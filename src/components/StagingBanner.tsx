@@ -11,11 +11,6 @@ export function StagingBanner() {
   return (
     <div
       style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 2147483647,
         background: '#ff0000',
         color: '#ffffff',
         fontWeight: 700,
