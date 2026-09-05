@@ -1,0 +1,126 @@
+.shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 56px 1fr;
+  min-height: 100vh;
+}
+
+.shell-sidebar {
+  grid-row: 1 / 3;
+  background: var(--surface-2);
+  border-right: 1px solid var(--border);
+  padding: var(--space-lg) var(--space-md);
+  display: flex;
+  flex-direction: column;
+}
+
+.shell-clinic-name {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  padding: 0 var(--space-xs);
+  margin-bottom: var(--space-lg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-input);
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.shell-nav-item svg {
+  flex: none;
+}
+
+.shell-sidebar-foot {
+  margin-top: auto;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.shell-signout {
+  display: block;
+  margin-top: var(--space-2xs);
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.shell-signout:hover {
+  color: var(--text);
+}
+
+.shell-signout:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.shell-topbar {
+  grid-column: 2 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-lg);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.shell-topbar-section {
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+.shell-topbar-user {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.shell-content {
+  grid-column: 2 / 3;
+  background: var(--surface);
+  overflow-y: auto;
+  padding: var(--space-xl);
+}
+
+@media (max-width: 720px) {
+  .shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 56px 1fr;
+  }
+  .shell-sidebar {
+    grid-row: 1 / 2;
+    flex-direction: row;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+  }
+  .shell-clinic-name {
+    margin-bottom: 0;
+    margin-right: var(--space-md);
+  }
+  .shell-sidebar-foot {
+    margin-top: 0;
+    margin-left: auto;
+    padding-top: 0;
+    border-top: none;
+  }
+  .shell-topbar,
+  .shell-content {
+    grid-column: 1 / 2;
+  }
+}
