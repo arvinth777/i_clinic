@@ -371,7 +371,7 @@ v0 runs one clinic with one doctor. Nothing in the data model assumes that's per
 - "Packing" automatically when the doctor finishes the consultation — this frees his screen for the next patient while medicines are packed.
 - "Ready at Reception" automatically when the receptionist opens that patient's bill.
 - "Paid" when payment is confirmed. The visit is then closed.
-- Only the doctor or admin can reopen a closed visit. The receptionist cannot.
+- Only the doctor can reopen a closed visit. The receptionist cannot, and neither can the admin-only account — the doctor holds `{doctor, admin}` and a locum holds `role = doctor`, so nothing is lost by excluding admin.
 
 **Queue Order**
 - Strict first-come-first-serve by token number. Calling ahead confers no priority.
