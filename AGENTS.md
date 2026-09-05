@@ -101,6 +101,7 @@ Never write implementation code during phase 1. The output is a document.
 - `implement-spec` — when a spec from phase 1 exists.
 - Deferred seed cases ride with their table. The synthetic seed data is deliberately missing negative stock, an expired unarrived pre-registration, and a pharma rep queued behind later arrivals, because stock, pre-registration, and rep support don't exist yet. When a migration adds one of those tables, the matching seed case is added in the *same* change — not left for later.
 - A screen's layout or visual design is being built → impeccable, briefed by the PRD's design framework, in its own turn. Ponytail comes after, also in its own turn, and wins on anything structural.
+- Every new screen reads `docs/design.md` first and builds with its tokens. A new colour, size, spacing, or radius value gets added to `docs/design.md` (and `src/index.css`) as a named token — never invented inline in a component's stylesheet.
 
 ### Phase 3 — Hardening
 - Anything touching money, auth, RLS, or patient data → run `docs/security-review.md`, plus the Supabase security advisor. Then code-review before merging.
