@@ -72,6 +72,39 @@ async function main() {
       error ? `error: ${error.message}` : `rows returned: ${data?.length ?? 'n/a'}`)
   }
 
+  // search_patients is SECURITY INVOKER -- adversarial test: pass clinic
+  // B's own id explicitly (not just search within one's own clinic), with
+  // a query matching clinic B's real patient, and confirm the underlying
+  // patients_select RLS still blocks it regardless of what clinic_id the
+  // caller asks for.
+  {
+    const { data, error } = await doctorA.rpc('search_patients', { p_clinic_id: CLINIC_B_ID, p_query: 'Priya' })
+    const empty = !error && Array.isArray(data) && data.length === 0
+    report('search_patients: doctor.a querying clinic B (explicit id + matching name) returns nothing', empty,
+      error ? `error: ${error.message}` : `rows returned: ${data?.length ?? 'n/a'}`)
+  }
+
+  // reception.a searching within her own clinic -- "Kumar" genuinely
+  // matches two real clinic A patients (Rajesh Kumar, Rajeesh Kumar), so
+  // this proves scoping positively (a non-empty, correct result set), not
+  // just vacuously (an empty result proves nothing about scoping).
+  {
+    const { data, error } = await receptionA.rpc('search_patients', { p_clinic_id: CLINIC_A_ID, p_query: 'Kumar' })
+    const namesFound = !error && Array.isArray(data) ? data.map((p) => p.name) : []
+    const onlyClinicA = !error && namesFound.length > 0 && !namesFound.includes('Priya Sharma')
+    report('search_patients: reception.a search returns only clinic A patients', onlyClinicA,
+      error ? `error: ${error.message}` : `names: ${namesFound.join(', ')}`)
+  }
+
+  // Mirrors the doctor.a adversarial check: reception.a has no role at
+  // clinic B either, so the same explicit-id attempt must also fail.
+  {
+    const { data, error } = await receptionA.rpc('search_patients', { p_clinic_id: CLINIC_B_ID, p_query: 'Priya' })
+    const empty = !error && Array.isArray(data) && data.length === 0
+    report('search_patients: reception.a querying clinic B (explicit id + matching name) returns nothing', empty,
+      error ? `error: ${error.message}` : `rows returned: ${data?.length ?? 'n/a'}`)
+  }
+
   // Realtime: doctor.a subscribes to clinic B's patients; doctor.b makes a
   // legitimate write to their own clinic's own patient (a normal app-level
   // UPDATE they're entitled to, not a privileged bypass) while doctor.a
