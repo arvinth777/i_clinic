@@ -29,12 +29,34 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  width: 100%;
+  margin-bottom: var(--space-2xs);
   padding: var(--space-xs) var(--space-sm);
+  border: none;
   border-radius: var(--radius-input);
-  background: var(--accent-wash);
-  color: var(--accent);
+  background: none;
+  color: var(--text-secondary);
+  font-family: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .shell-nav-item:hover {
+    background: var(--surface-2);
+  }
+}
+
+.shell-nav-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.shell-nav-item.active {
+  background: var(--accent-wash);
+  color: var(--accent);
 }
 
 .shell-nav-item svg {
