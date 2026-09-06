@@ -11,8 +11,8 @@ phase per session" pacing within a single session — most recently to
 resolve Phase A's two open decisions and then go straight into Phase C
 in the same turn.
 
-**Phase D — Documents, register, reps: built, tested, and verified live.
-Stopping here per the plan's own "one phase per session" rule.**
+**Phase E — Reports: built, tested, and verified live. Stopping here per
+the plan's own "one phase per session" rule.**
 
 ## Phase checklist
 
@@ -59,7 +59,18 @@ Stopping here per the plan's own "one phase per session" rule.**
   - [x] Checkpoint: `docs/security-review.md` — run against the live DB, scoped to the new surfaces only (not a re-review of Phases A–C); clean, no findings. `anon` shows full raw table-level grants on both new tables in `information_schema` — confirmed this is Supabase's standing platform default (identical on `patients`/`bill_settlements`), not something this migration introduced; RLS is what actually gates every path, verified directly.
   - [x] Checkpoint: ponytail — `Consultation.tsx` had grown to 498 lines against the 500-line rule with this phase's additions; extracted `TodayFlow` (fully self-contained, only needed `elapsedMinutes`) into its own `src/components/TodayFlow.tsx` rather than leave a "watch this" note, which brought it back to 454 with real headroom.
   - [x] Done when: verified live via a throwaway Playwright script (deleted after use, per convention) — a certificate was issued and its print-area rendered the correct signature block; the seeded rep sat behind the seeded patient in the doctor's live queue.
-- [ ] Phase E — Reports
+- [x] **Phase E — Reports**
+  - [x] Tests first: `scripts/phase-e-test.mjs`, run red against the pre-migration schema, then green (23/23) — every assertion is a before/after delta around a known fixture, since staging is shared, ever-growing data and an absolute total would be meaningless
+  - [x] `get_daily_report`, `get_monthly_report`, `get_gst_report`, `get_stock_warnings_report` — four `SECURITY DEFINER` **functions**, not views (the advisor's own flag: a view can't check the caller's role as part of its definition the way a function's body can). Each derives `clinic_id` from the caller's own `user_roles` row via `auth.uid()` and never accepts one as a parameter — confirmed by grep across the whole migration file, not just by inspection
+  - [x] Collections is cash-basis (cash/upi bills confirmed same-day, plus any `pay_later` bill actually `settle_bill`'d that day) — a `pay_later` bill confirmed today but still unsettled contributes nothing, verified explicitly in the test
+  - [x] Discount comes from `bill_line_items`' frozen `line_total_paise` per bill (non-negotiable #3), never live `visit_pricing` — a bill's own discount can't drift after the fact just because pricing was later revised
+  - [x] `needs_reconciliation_count` reuses the same live join `bills_needing_reconciliation` already uses (current revision vs. the snapshot at confirm time, excluding anything already corrected) — a current outstanding count, not scoped to "today," same as stock warnings being current state rather than today's activity
+  - [x] Stock warnings return medicine-level rows (name, total quantity, threshold), not a number — medicines aren't patient data at all, so row-level output here doesn't violate "totals only"; only medicines actually in a warning state are returned, same low-stock definition `StockList.tsx` already uses (total quantity across every stock point vs. the medicine's own threshold)
+  - [x] GST report returns exactly `collections_paise`/`discount_paise`/`bill_count` for an admin-chosen date range — no GST rate or tax-due computation invented (the PRD names neither, and healthcare consultation is largely GST-exempt in India regardless); exported to CSV via a plain `Blob` download, no library, no server round trip
+  - [x] Reports screen (Daily/Monthly/GST tabs) visible to admin and doctor — doctor because the PRD says so directly ("the doctor can see how much subsidised care he's actually provided"), even though his own RLS already gives him full row-level access and he could compute the same totals by hand
+  - [x] Fixed `formatPaise` for negative paise (`Math.floor`/`%` on a negative dividend in JS produce independently negative "rupees" and "cents", rendering `"₹-712.-25"`) — caught live signed in as `admin.only`, since Reports' discount total is the first place a negative value can reach this formatter (every individual bill amount is non-negative by its own check constraint; only a sum across many rows, against months of accumulated dirty staging data, can land negative)
+  - [x] Checkpoint: `docs/security-review.md` — run against the live DB, scoped to this phase's four new functions (no new tables/RLS surface exists to re-review); clean, no findings. Confirmed live via `pg_proc`: all four `prosecdef=true`, `search_path=""`, and (via `information_schema.routine_privileges`) `EXECUTE` granted to `authenticated` only, no `anon`
+  - [x] Done when: verified live via a throwaway Playwright script (deleted after use) signed in as `admin.only` — all three report tabs render real, non-zero figures; the test script's own Section 1 independently re-confirms admin's direct row reads on `patients`/`visits`/`bills`/`prescriptions`/`patient_comments` all still return nothing, run first and separately from the report checks, per the brief's "test both halves" instruction
 - [ ] Phase F — Offline
 - [ ] Phase G — Go live (item 7, the health endpoint, is already done — see below)
 
@@ -306,14 +317,39 @@ change, and the value round-tripped into the database correctly.
   `visits` or `patients` specifically (both already have blanket update
   policies); a brand-new table with no client update policy at all
   doesn't need it, per the `bill_settlements`/`clinic_documents` idiom.
+- **A `SECURITY DEFINER` view can't check the caller's role; a
+  `SECURITY DEFINER` function can.** Every earlier admin-safe aggregate
+  in this project (`unpaid_bills`, `bills_needing_reconciliation`,
+  `long_term_register`) used `security_invoker = true` views, which
+  work precisely *because* they inherit the caller's own RLS —
+  admin gets nothing from them for the same reason admin gets nothing
+  from the underlying table directly. Phase E's reports are the
+  opposite case: admin needs aggregates *despite* having no RLS access
+  at all, which means the function must bypass RLS (`SECURITY
+  DEFINER`) and enforce the role check itself, in its own body — not
+  something a view's definition can express. Reach for a view when the
+  caller's own RLS is what should decide access; reach for a function
+  when RLS would give the caller nothing and the whole point is
+  handing them a safe, aggregated slice anyway.
+- **Every reports function derives `clinic_id` from `auth.uid()` via
+  `user_roles`, never accepts it as a parameter.** This is the one
+  invariant that keeps a `SECURITY DEFINER` report function from
+  becoming a cross-clinic read for any authenticated user — confirmed
+  by grepping the whole migration file for `p_clinic_id`, not just by
+  inspecting each function individually. Apply the same grep-level
+  check to any future admin-aggregate function before it ships.
+- **Collections is cash-basis, not accrual** — a `pay_later` bill
+  confirmed today contributes nothing to today's collections until it
+  is actually `settle_bill`'d, possibly on a different day. If a future
+  report needs a *billed* figure (as opposed to *collected*), that's a
+  different query, not a variant of this one — don't quietly conflate
+  the two.
 
 ## Next action
 
 Read this file, `AGENTS.md`, `docs/design.md`, `docs/architecture-spec.md`,
-and the PRD, then start Phase E (Reports) — per `docs/build-plan.md`.
+and the PRD, then start Phase F (Offline) — per `docs/build-plan.md`.
 
-Phase E's own stated constraint is worth re-reading before starting:
-admin sees financial aggregates with no row-level access to patients,
-visits, or bills — build as `SECURITY DEFINER` views/RPCs returning
-totals with no patient identifiers, never a blanket admin row-level
-grant to make the reports easier to build.
+Read the offline section of AGENTS.md before starting; this is the
+architectural phase, deliberately not last, and the one place where
+retrofitting later would have been far harder than building it in.
