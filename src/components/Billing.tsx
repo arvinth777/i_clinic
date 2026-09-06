@@ -299,12 +299,24 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
           </div>
           <div className="pricing-row bill-final-amount">
             <span>Amount to collect</span>
-            <span className="bill-final-amount-value">
-              {waitingForDoctor ? 'Waiting for the doctor to confirm the amount' : formatPaise(amountPaise)}
-            </span>
+            {waitingForDoctor ? (
+              <span className="readout-empty">Waiting for the doctor to confirm the amount</span>
+            ) : (
+              <span className="bill-final-amount-value">{formatPaise(amountPaise)}</span>
+            )}
           </div>
         </div>
       </section>
+
+      {waitingForDoctor && (
+        <section className="record-section">
+          <div className="action-row">
+            <motion.button type="button" className="secondary-button" whileTap={{ scale: 0.97 }} onClick={onClose}>
+              Back to queue
+            </motion.button>
+          </div>
+        </section>
+      )}
 
       {!confirmedBill && !waitingForDoctor && (
         <section className="record-section">

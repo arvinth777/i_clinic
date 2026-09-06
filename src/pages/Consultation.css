@@ -105,10 +105,26 @@
   border-bottom: none;
 }
 
-@media (max-width: 480px) {
+/* Below ~620px the row's own card (not the viewport) is what's actually
+   narrow -- the two-pane consultation grid squeezes this queue panel to
+   well under 480px on ordinary desktop widths, long before the viewport
+   media query below would ever fire, silently ellipsing the patient's name
+   and complaint into unreadable fragments. A container query keys off the
+   card's real available width instead, so this also covers the mobile
+   viewport case (the panel is full-width there, but still narrow). */
+@container (max-width: 620px) {
   .doctor-queue-row {
     grid-template-columns: 2.5rem 1fr auto;
-    grid-template-areas: 'token name elapsed' 'token meta complaint';
+    /* meta and complaint each span both non-token columns on their own row,
+       rather than sharing the narrow "elapsed" column with it -- an auto
+       track sizes to the widest single-line content assigned to it even
+       when that content's white-space allows wrapping, so pairing a long
+       complaint with the tiny elapsed value was stretching the elapsed
+       column wide and squeezing the patient's name down to a fragment. */
+    grid-template-areas:
+      'token name elapsed'
+      'token meta meta'
+      'token complaint complaint';
     row-gap: var(--space-2xs);
   }
   .doctor-queue-row .readout-token {
@@ -321,7 +337,7 @@
 }
 
 .procedure-price-input {
-  width: 6rem;
+  width: 8rem;
   font-family: var(--font-mono);
   font-size: var(--text-base);
   height: 2.75rem;

@@ -214,7 +214,10 @@ export function Consultation({ userId }: { userId: string }) {
       const { error } = await supabase.from('visits').update({ stage: 'with_doctor' }).eq('id', visitId).eq('stage', 'waiting')
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queueKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queueKey })
+      queryClient.invalidateQueries({ queryKey: metricsKey })
+    },
   })
 
   const addComment = useMutation({
@@ -237,7 +240,10 @@ export function Consultation({ userId }: { userId: string }) {
       const { error } = await supabase.from('visits').update({ stage: 'packing' }).eq('id', current.id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queueKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queueKey })
+      queryClient.invalidateQueries({ queryKey: metricsKey })
+    },
   })
 
   if (!clinicId) return null

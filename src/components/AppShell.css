@@ -2,7 +2,11 @@
   display: grid;
   grid-template-columns: 240px 1fr;
   grid-template-rows: 64px 1fr;
-  min-height: 100vh;
+  /* Must be a capped height, not a floor -- a min-height lets the grid grow
+     to fit tall content instead, so .shell-content's overflow-y: auto never
+     engages and the whole document scrolls instead, taking the sidebar,
+     topbar, and any sticky content along with it. */
+  height: 100vh;
 }
 
 .shell-sidebar,

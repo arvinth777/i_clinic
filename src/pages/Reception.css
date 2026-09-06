@@ -255,6 +255,11 @@
   padding: var(--space-lg);
   position: sticky;
   top: var(--space-xl);
+  /* Lets rows inside (doctor-queue-row's stacked-vs-single-row switch) query
+     this card's own width -- it's squeezed by the two-pane grid well before
+     the viewport itself gets narrow, so a viewport media query alone misses
+     that case. */
+  container-type: inline-size;
 }
 
 @media (max-width: 900px) {
