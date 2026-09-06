@@ -1,9 +1,17 @@
 // Paise -> rupees for display only, integer arithmetic throughout (no /100
-// float division) -- money itself never leaves bigint paise.
+// float division) -- money itself never leaves bigint paise. Every
+// individual bill amount is non-negative by its own check constraint, but
+// an aggregate (Reports' discount total) sums many rows and, against
+// dirty-enough data, can land negative -- handled here rather than
+// assumed away, since Math.floor/% on a negative dividend in JS produce
+// a negative "rupees" and negative "cents" independently (e.g. -712 and
+// -25), reading as "₹-712.-25" instead of "-₹712.25".
 export function formatPaise(paise: number): string {
-  const rupees = Math.floor(paise / 100)
-  const cents = paise % 100
-  return `₹${rupees}.${String(cents).padStart(2, '0')}`
+  const sign = paise < 0 ? '-' : ''
+  const abs = Math.abs(paise)
+  const rupees = Math.floor(abs / 100)
+  const cents = abs % 100
+  return `${sign}₹${rupees}.${String(cents).padStart(2, '0')}`
 }
 
 // Same value, formatted for an editable rupees field: no trailing ".00" for
