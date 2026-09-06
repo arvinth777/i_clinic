@@ -173,6 +173,15 @@ console.log('signed in as doctor.a, reception.a, admin.only\n')
   report('doctor can un-flag a patient', !unflagErr, unflagErr?.message)
   const { data: afterUnflag } = await doctorA.from('long_term_register').select('patient_id').eq('patient_id', noHistoryId)
   report('an un-flagged patient drops off the register', (afterUnflag ?? []).length === 0, JSON.stringify(afterUnflag))
+
+  // An un-flagged patient's is_long_term/interval/next_review_due are
+  // all null (patients_long_term_shape's own is_long_term=false branch).
+  // reset_long_term_review_on_visit reads is_long_term on every new
+  // visit regardless -- confirm it correctly no-ops here rather than
+  // trying to write a non-null next_review_due against a patient the
+  // constraint now requires it to be null for.
+  const { error: checkInAfterUnflagErr } = await doctorA.from('visits').insert({ clinic_id: CLINIC_A_ID, patient_id: noHistoryId, arrived_at: new Date().toISOString(), complaint: 'phase d lt post-unflag check-in' })
+  report('checking in an un-flagged patient does not violate patients_long_term_shape', !checkInAfterUnflagErr, checkInAfterUnflagErr?.message)
 }
 
 // ================================================================
