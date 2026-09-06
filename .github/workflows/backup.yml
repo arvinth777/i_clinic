@@ -1,0 +1,38 @@
+name: Weekly database backup
+
+# GitHub Actions, not Vercel cron (docs/build-plan.md item 8) -- Vercel
+# Hobby cron is once-daily and can't shell out to pg_dump/age/aws anyway.
+# Runs Sunday 20:00 UTC (01:30 IST Monday) -- outside the clinic's 10am-3pm
+# hours and outside the 10am-before/3pm-after deploy window
+# (docs/architecture-spec.md), so a slow or failing run never competes
+# with a live clinic day.
+on:
+  schedule:
+    - cron: '0 20 * * 0'
+  workflow_dispatch: {} # manual trigger, for the restore-drill / a re-run after a fix
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install age and postgresql-client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y age postgresql-client
+
+      - name: Install awscli
+        run: pip install --quiet awscli
+
+      - name: Run backup
+        env:
+          BACKUP_DB_URL: ${{ secrets.BACKUP_DB_URL }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: bash scripts/backup.sh

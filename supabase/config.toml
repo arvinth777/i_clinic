@@ -8,3 +8,8 @@ project_id = "cofnrcgsolluyhghutah"
 # the keep-alive ping. See supabase/functions/health/index.ts.
 [functions.health]
 verify_jwt = false
+
+# Same reasoning as functions.health above -- see
+# supabase/functions/backup-freshness/index.ts.
+[functions.backup-freshness]
+verify_jwt = false
