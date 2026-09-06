@@ -1,40 +1,45 @@
-/* Design tokens -- v2: a distinct clinical-SaaS identity (Inter, indigo
-   accent, slate neutrals, real elevated cards), replacing the earlier
-   system-font/Apple-HIG-styled pass. Light is the primary, always-on
+/* Hallmark · genre: modern-minimal · theme: cobalt (trimmed) · macrostructure: app-pages · design-system: /design.md · designed-as-app
+ * Hallmark · pre-emit critique: P4 H4 E4 S4 R5 V4 */
+
+/* Design tokens -- v3: Hallmark "Cobalt" theme, trimmed for an internal
+   ops tool (see /design.md at the project root -- that file is the source
+   of truth; this is its implementation). Cool near-white paper, cool
+   charcoal ink, one electric-cobalt accent, tight ruler-drawn radii, depth
+   from a hairline border rather than blur. Light is the primary, always-on
    theme regardless of OS preference; dark is a secondary theme from the
    same token names, reachable only via an explicit `data-theme="dark"`
    on the root. */
 
 :root {
-  --bg: #f8fafc;
-  --surface: #ffffff;
-  --surface-2: #f1f5f9;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
+  --bg: oklch(98.2% 0.004 250);
+  --surface: oklch(99.5% 0.002 250);
+  --surface-2: oklch(95.5% 0.006 250);
+  --border: oklch(90% 0.008 250);
+  --border-strong: oklch(82% 0.012 250);
 
-  --text: #0f172a;
-  --text-secondary: #64748b;
-  --text-tertiary: #94a3b8;
+  --text: oklch(21% 0.02 260);
+  --text-secondary: oklch(52% 0.02 260);
+  --text-tertiary: oklch(68% 0.015 260);
 
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
-  --accent-active: #3730a3;
-  --accent-ink: #ffffff;
-  --accent-wash: rgba(79, 70, 229, 0.1);
-  --focus-ring: rgba(79, 70, 229, 0.35);
+  --accent: oklch(58% 0.20 256);
+  --accent-hover: oklch(52% 0.21 256);
+  --accent-active: oklch(45% 0.21 256);
+  --accent-ink: oklch(99% 0 0);
+  --accent-wash: oklch(58% 0.20 256 / 10%);
+  --focus-ring: oklch(58% 0.20 256 / 35%);
 
-  --danger: #dc2626;
-  --danger-wash: rgba(220, 38, 38, 0.1);
-  --success: #059669;
-  --success-wash: rgba(5, 150, 105, 0.1);
-  --warning: #d97706;
-  --warning-wash: rgba(217, 119, 6, 0.1);
+  --danger: oklch(55% 0.22 25);
+  --danger-wash: oklch(55% 0.22 25 / 10%);
+  --success: oklch(55% 0.14 155);
+  --success-wash: oklch(55% 0.14 155 / 10%);
+  --warning: oklch(65% 0.16 60);
+  --warning-wash: oklch(65% 0.16 60 / 10%);
 
   /* Staging strip -- a system/environment signal, not a clinical one, but
      still meaningful (this is a real warning), not decorative -- distinct
      from --danger so retuning one never silently moves the other. */
-  --staging-bg: #b91c1c;
-  --staging-ink: #ffffff;
+  --staging-bg: oklch(45% 0.19 25);
+  --staging-ink: oklch(99% 0 0);
 
   /* Stage semantics -- a separate categorical set from the brand accent.
      Colour reinforces at a glance; the shape drawn in TokenList.tsx is the
@@ -42,10 +47,12 @@
   --stage-waiting: var(--text-tertiary);
   --stage-with-doctor: var(--accent);
   --stage-packing: var(--warning);
-  --stage-ready: #8b5cf6;
+  --stage-ready: oklch(58% 0.19 300);
   --stage-paid: var(--success);
 
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica Neue, Arial, sans-serif;
+  --font-display: 'Space Grotesk', var(--font);
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --text-xs: 0.8125rem;
   --text-sm: 0.9375rem;
   --text-base: 1.0625rem;
@@ -60,44 +67,43 @@
   --space-lg: 1.5rem;
   --space-xl: 2.5rem;
 
-  --radius-card: 20px;
-  --radius-input: 12px;
+  /* Tight, ruler-drawn radii -- Cobalt's ceiling is deliberately lower than
+     v2's (was 20px/12px): ".../radius-card: 20px" read as a generic rounded-
+     card SaaS look the user rejected as "no proper design language". */
+  --radius-card: 10px;
+  --radius-input: 6px;
   --radius-pill: 999px;
 
-  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(15, 23, 42, 0.1);
-  --shadow-card-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.06);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   color-scheme: light;
 }
 
 :root[data-theme='dark'] {
-  --bg: #0b1120;
-  --surface: #161f34;
-  --surface-2: #1c2740;
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.18);
+  --bg: oklch(19% 0.014 260);
+  --surface: oklch(24% 0.016 260);
+  --surface-2: oklch(28% 0.018 260);
+  --border: oklch(38% 0.014 260);
+  --border-strong: oklch(46% 0.014 260);
 
-  --text: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
+  --text: oklch(94% 0.006 260);
+  --text-secondary: oklch(72% 0.012 260);
+  --text-tertiary: oklch(56% 0.012 260);
 
-  --accent: #818cf8;
-  --accent-hover: #a5b4fc;
-  --accent-active: #6366f1;
-  --accent-wash: rgba(129, 140, 248, 0.18);
-  --focus-ring: rgba(129, 140, 248, 0.45);
+  --accent: oklch(72% 0.16 256);
+  --accent-hover: oklch(78% 0.14 256);
+  --accent-active: oklch(65% 0.18 256);
+  --accent-wash: oklch(72% 0.16 256 / 18%);
+  --focus-ring: oklch(72% 0.16 256 / 45%);
 
-  --danger: #f87171;
-  --danger-wash: rgba(248, 113, 113, 0.16);
-  --success: #34d399;
-  --success-wash: rgba(52, 211, 153, 0.16);
-  --warning: #fbbf24;
-  --warning-wash: rgba(251, 191, 36, 0.16);
-  --stage-ready: #a78bfa;
+  --danger: oklch(70% 0.17 25);
+  --danger-wash: oklch(70% 0.17 25 / 16%);
+  --success: oklch(72% 0.14 155);
+  --success-wash: oklch(72% 0.14 155 / 16%);
+  --warning: oklch(78% 0.14 80);
+  --warning-wash: oklch(78% 0.14 80 / 16%);
+  --stage-ready: oklch(72% 0.15 300);
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.5);
-  --shadow-card-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
 }
 
@@ -122,6 +128,6 @@ body {
 h1,
 h2,
 h3 {
-  font-family: inherit;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }

@@ -1,4 +1,6 @@
-/* Reception content -- two-pane: search/check-in on the left, the live
+/* Hallmark · genre: modern-minimal · theme: cobalt (trimmed) · design-system: /design.md · designed-as-app
+ *
+ * Reception content -- two-pane: search/check-in on the left, the live
  * queue always visible on the right, so the receptionist can watch the
  * waiting room while mid-search. Shell chrome (sidebar/topbar) lives in
  * AppShell.css; tokens live in src/index.css.
@@ -87,6 +89,7 @@
 }
 
 .search-result-meta {
+  font-family: var(--font-mono);
   font-weight: 400;
   font-size: var(--text-sm);
   color: var(--text-secondary);
@@ -168,7 +171,6 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
 }
 
 .form-heading {
@@ -246,7 +248,6 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card-sm);
   padding: var(--space-lg);
   position: sticky;
   top: var(--space-xl);
@@ -259,6 +260,7 @@
 }
 
 .readout-heading {
+  font-family: var(--font-mono);
   font-size: var(--text-sm);
   font-weight: 700;
   color: var(--text-tertiary);
@@ -313,6 +315,7 @@
   height: 2.25rem;
   border-radius: 50%;
   background: var(--accent-wash);
+  font-family: var(--font-mono);
   font-weight: 700;
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
@@ -353,7 +356,6 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
 }
 
 .signin-heading {

@@ -1,4 +1,6 @@
-/* Billing (reception's side) -- reuses .record-section/.pricing-block/
+/* Hallmark · genre: modern-minimal · theme: cobalt (trimmed) · design-system: /design.md · designed-as-app
+ *
+ * Billing (reception's side) -- reuses .record-section/.pricing-block/
  * .pricing-row/.past-visit-list/.past-visit-item/.action-row from
  * Consultation.css and Reception.css; only the payment-method row, the
  * emphasised final-amount row, and the printable slip are new here.
@@ -30,6 +32,7 @@
 }
 
 .bill-final-amount-value {
+  font-family: var(--font-mono);
   font-weight: 700;
   font-size: var(--text-lg);
   font-variant-numeric: tabular-nums;
