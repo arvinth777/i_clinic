@@ -12,17 +12,26 @@
 // supabase/config.toml, which must ship with this file or a redeploy from
 // the CLI silently re-enables JWT verification and breaks the public ping.
 //
-// Uses the service role key (auto-provided in every Edge Function's
-// environment) specifically so this is a real read regardless of RLS --
-// an anon-key read against `clinics` would be filtered to zero rows by
-// clinics_select's role check and prove nothing.
+// Uses the anon key, not the service role -- a publicly-callable function
+// holding service_role is a liability with no upside once the anon key can
+// prove the same thing. Calls public.health_ping() (migration
+// 20260907010000) rather than reading `clinics` directly: clinics_select's
+// RLS calls has_any_clinic_role(id), and anon was deliberately never
+// granted EXECUTE on that helper (a real, correct hardening decision --
+// see the migration's own comment), so a raw anon-key read against
+// `clinics` fails closed with a Postgres permission error, not a clean
+// empty result. health_ping() is a narrow SECURITY DEFINER function that
+// does nothing but confirm `clinics` is queryable and return a bare
+// boolean -- granted to anon alone, it proves the same thing a direct
+// table read would ("Postgres answered", zero rows included) without
+// reopening RLS-helper access anywhere else in the schema.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 Deno.serve(async () => {
-  const client = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+  const client = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!)
 
-  const { error } = await client.from('clinics').select('id').limit(1)
+  const { error } = await client.rpc('health_ping')
 
   return new Response(JSON.stringify({ ok: !error }), {
     status: error ? 500 : 200,
