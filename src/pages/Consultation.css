@@ -184,3 +184,63 @@
   color: var(--text-secondary);
   font-size: var(--text-sm);
 }
+
+/* Procedures + pricing -- reuses .past-visit-list/.past-visit-item (the
+ * added-procedures list) and .field/.field-label (the final amount input)
+ * from Reception.css; only the inline price input and the pricing block's
+ * own row layout are new here.
+ */
+
+.procedure-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.procedure-item-name {
+  flex: 1;
+  font-size: var(--text-base);
+  color: var(--text);
+}
+
+.procedure-price-input {
+  width: 6rem;
+  font-family: inherit;
+  font-size: var(--text-base);
+  height: 2.75rem;
+  padding: 0 var(--space-sm);
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  box-sizing: border-box;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.procedure-price-input:focus-visible {
+  outline: none;
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.pricing-block {
+  padding: var(--space-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+}
+
+.pricing-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: var(--text-base);
+  padding: var(--space-xs) 0;
+}
+
+.pricing-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

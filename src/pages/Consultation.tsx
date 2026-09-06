@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useClinicId } from '../lib/useClinicId'
 import { PrescriptionForm } from '../components/PrescriptionForm'
+import { PricingPanel } from '../components/PricingPanel'
 import './Consultation.css'
 
 type DoctorVisit = {
@@ -317,6 +318,8 @@ export function Consultation({ userId }: { userId: string }) {
                 onActiveChange={setPrescribingActive}
               />
             </section>
+
+            <PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} />
 
             {!prescribingActive && (
               <div className="action-row">
