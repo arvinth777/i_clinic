@@ -8,6 +8,7 @@ import { Admin } from './pages/Admin'
 import { Stock } from './pages/Stock'
 import { MergePatients } from './pages/MergePatients'
 import { UnpaidBills } from './pages/UnpaidBills'
+import { LongTermRegister } from './pages/LongTermRegister'
 import { useSession } from './lib/useSession'
 import { useUserRoles } from './lib/useUserRoles'
 
@@ -22,6 +23,7 @@ function App() {
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'consultation', label: 'Consultation' })
   if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'stock', label: 'Stock' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'merge', label: 'Merge patients' })
+  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'register', label: 'Long-term register' })
   if (roles?.some((r) => r.role === 'admin')) sections.push({ key: 'admin', label: 'Admin' })
 
   const clinicId = roles?.[0]?.clinic_id
@@ -55,6 +57,7 @@ function App() {
         {activeSection === 'consultation' && <Consultation userId={session.user.id} />}
         {activeSection === 'stock' && clinicId && <Stock clinicId={clinicId} />}
         {activeSection === 'merge' && clinicId && <MergePatients clinicId={clinicId} />}
+        {activeSection === 'register' && clinicId && <LongTermRegister clinicId={clinicId} />}
         {activeSection === 'admin' && clinicId && <Admin clinicId={clinicId} />}
       </AppShell>
     </>

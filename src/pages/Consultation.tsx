@@ -7,6 +7,9 @@ import { startOfToday, elapsedMinutes, formatElapsed } from '../lib/date'
 import { nextSortState, sortRows, type SortState } from '../lib/sort'
 import { PrescriptionForm } from '../components/PrescriptionForm'
 import { PricingPanel } from '../components/PricingPanel'
+import { DocumentsPanel } from '../components/DocumentsPanel'
+import { CarePanel } from '../components/CarePanel'
+import { RepQueueRows } from '../components/RepQueueRows'
 import { Drawer } from '../components/Drawer'
 import '../components/Worklist.css'
 import './Consultation.css'
@@ -132,6 +135,7 @@ export function Consultation({ userId }: { userId: string }) {
   const [prescribingActive, setPrescribingActive] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [sort, setSort] = useState<SortState<SortKey>>(null)
+  const [repCount, setRepCount] = useState(0)
 
   const queueKey = ['doctor-queue', clinicId]
   const { data: visits } = useQuery({
@@ -294,7 +298,7 @@ export function Consultation({ userId }: { userId: string }) {
       </div>
       {callNext.isError && <p className="form-error">Couldn't save — try again.</p>}
 
-      {!visits || visits.length === 0 ? (
+      {(!visits || visits.length === 0) && repCount === 0 ? (
         <p className="readout-empty">Your queue is empty.</p>
       ) : (
         <div className="worklist-scroll">
@@ -334,6 +338,7 @@ export function Consultation({ userId }: { userId: string }) {
                   </tr>
                 )
               })}
+              <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />
             </tbody>
           </table>
         </div>
@@ -458,6 +463,18 @@ export function Consultation({ userId }: { userId: string }) {
             </section>
 
             <PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} />
+
+            <CarePanel key={`care-${current.id}`} visitId={current.id} patientId={current.patient_id} />
+
+            <DocumentsPanel
+              key={`docs-${current.id}`}
+              clinicId={clinicId}
+              visitId={current.id}
+              patientName={current.patients?.name ?? ''}
+              patientAge={current.patients?.age ?? null}
+              complaint={current.complaint}
+              issuedBy={userId}
+            />
 
             {!prescribingActive && (
               <div className="action-row">

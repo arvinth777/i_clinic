@@ -7,6 +7,7 @@ import { NewPatientForm, type NewPatientInput } from '../components/NewPatientFo
 import { TokenList } from '../components/TokenList'
 import { Billing } from '../components/Billing'
 import { Drawer } from '../components/Drawer'
+import { FollowUpTodos } from '../components/FollowUpTodos'
 import './Reception.css'
 
 const tap = { scale: 0.97 }
@@ -33,6 +34,9 @@ export function Reception({ userId }: { userId: string }) {
   const [selected, setSelected] = useState<SearchResult | 'new' | null>(null)
   const [complaint, setComplaint] = useState('')
   const [billingVisitId, setBillingVisitId] = useState<string | null>(null)
+  const [repFormOpen, setRepFormOpen] = useState(false)
+  const [repName, setRepName] = useState('')
+  const [repCompany, setRepCompany] = useState('')
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 250)
@@ -98,6 +102,21 @@ export function Reception({ userId }: { userId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['visits-today', clinicId] })
       reset()
+    },
+  })
+
+  const checkInRep = useMutation({
+    mutationFn: async () => {
+      if (!clinicId) return
+      const { error } = await supabase
+        .from('pharma_rep_checkins')
+        .insert({ clinic_id: clinicId, rep_name: repName, company: repCompany, checked_in_by: userId })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      setRepFormOpen(false)
+      setRepName('')
+      setRepCompany('')
     },
   })
 
@@ -172,7 +191,12 @@ export function Reception({ userId }: { userId: string }) {
         <motion.button type="button" className="secondary-button" whileTap={tap} onClick={() => setSelected('new')}>
           + New patient
         </motion.button>
+        <motion.button type="button" className="secondary-button" whileTap={tap} onClick={() => setRepFormOpen(true)}>
+          Check in pharma rep
+        </motion.button>
       </div>
+
+      <FollowUpTodos clinicId={clinicId} />
 
       <div className="worklist-panel">
         <h2 className="readout-heading">Today's queue</h2>
@@ -210,6 +234,37 @@ export function Reception({ userId }: { userId: string }) {
             {checkInExisting.isError && <p className="form-error">Couldn't save — try again.</p>}
           </form>
         )}
+      </Drawer>
+
+      <Drawer open={repFormOpen} onClose={() => setRepFormOpen(false)} title="Check in pharma rep">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            checkInRep.mutate()
+          }}
+        >
+          <div className="field">
+            <label className="field-label" htmlFor="rep-name">
+              Rep name
+            </label>
+            <input id="rep-name" value={repName} onChange={(e) => setRepName(e.target.value)} required autoFocus />
+          </div>
+          <div className="field">
+            <label className="field-label" htmlFor="rep-company">
+              Company
+            </label>
+            <input id="rep-company" value={repCompany} onChange={(e) => setRepCompany(e.target.value)} required />
+          </div>
+          <div className="action-row">
+            <motion.button type="submit" className="primary-button" whileTap={stampTap} disabled={checkInRep.isPending}>
+              {checkInRep.isPending ? 'Checking in…' : 'Check in'}
+            </motion.button>
+            <motion.button type="button" className="secondary-button" whileTap={tap} onClick={() => setRepFormOpen(false)}>
+              Cancel
+            </motion.button>
+          </div>
+          {checkInRep.isError && <p className="form-error">Couldn't save — try again.</p>}
+        </form>
       </Drawer>
 
       <Drawer open={selected === 'new'} onClose={reset} title="New patient">

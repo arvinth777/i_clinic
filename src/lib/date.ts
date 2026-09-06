@@ -20,3 +20,13 @@ export function formatElapsed(arrivedAt: string): string {
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
+
+// For a plain YYYY-MM-DD value (next_review_due, follow_up_date,
+// rest_from/rest_to -- date columns, not timestamptz): Date's own
+// parsing treats a date-only string as UTC midnight, which a browser in
+// a timezone behind UTC would then display as the previous day.
+// Constructing from the parts directly avoids that.
+export function formatDateOnly(dateOnly: string): string {
+  const [y, m, d] = dateOnly.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+}
