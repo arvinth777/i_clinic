@@ -19,6 +19,12 @@ function App() {
   const { session, loading } = useSession()
   const { data: roles, isLoading: rolesLoading } = useUserRoles(session?.user.id)
   const [manualSection, setManualSection] = useState<string | null>(null)
+  // Owned here, not inside AppShell: OfflineQueueBanner is a sibling of
+  // AppShell, not a child, and it needs this same fact to redact a
+  // patient's name from a halted-queue message while the screen is
+  // locked (docs/STATUS.md's Medium finding) -- a shared source of
+  // truth, not two components separately guessing at it.
+  const [locked, setLocked] = useState(false)
 
   const sections: ShellSection[] = []
   if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'reception', label: 'Reception' })
@@ -45,8 +51,11 @@ function App() {
         {/* Requirement 6: unmissable, not just while signed in -- the queue
             isn't cleared on sign-out (docs/STATUS.md's residual edge #2), so
             a receptionist signing out at end of day with pending work still
-            needs to see it, not a blank sign-in screen. */}
-        <OfflineQueueBanner />
+            needs to see it, not a blank sign-in screen. redact is always
+            true here -- nobody unauthenticated sees a halted mutation's
+            patient-identifying description (docs/STATUS.md's Medium
+            finding). */}
+        <OfflineQueueBanner redact />
         <SignIn />
       </>
     )
@@ -55,11 +64,14 @@ function App() {
   return (
     <>
       <StagingBanner />
-      <OfflineQueueBanner />
+      <OfflineQueueBanner redact={locked} />
       <AppShell
         userId={session.user.id}
         userEmail={session.user.email}
         isDoctor={!!roles?.some((r) => r.role === 'doctor')}
+        locked={locked}
+        onLock={() => setLocked(true)}
+        onUnlock={() => setLocked(false)}
         sections={sections}
         activeSection={activeSection}
         onSelectSection={setManualSection}

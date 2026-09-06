@@ -80,6 +80,9 @@ export function AppShell({
   userId,
   userEmail,
   isDoctor,
+  locked,
+  onLock,
+  onUnlock,
   sections,
   activeSection,
   onSelectSection,
@@ -88,6 +91,14 @@ export function AppShell({
   userId: string
   userEmail: string | undefined
   isDoctor: boolean
+  // Owned by App.tsx, not here: OfflineQueueBanner (a sibling of this
+  // shell, not a child) needs the same "locked" fact to redact a
+  // patient's name from a halted-queue message while the screen is
+  // locked (docs/STATUS.md) -- a single shared source of truth, not two
+  // components independently tracking whether the screen is locked.
+  locked: boolean
+  onLock: () => void
+  onUnlock: () => void
   sections: ShellSection[]
   activeSection: string
   onSelectSection: (key: string) => void
@@ -98,10 +109,9 @@ export function AppShell({
   const { theme, toggleTheme } = useTheme()
 
   const [pinSet, setPinSet] = useState(hasPin())
-  const [locked, setLocked] = useState(false)
   const [showPinForm, setShowPinForm] = useState(false)
 
-  useIdleTimer(pinSet, isDoctor ? DOCTOR_TIMEOUT_MS : OTHER_TIMEOUT_MS, () => setLocked(true))
+  useIdleTimer(pinSet, isDoctor ? DOCTOR_TIMEOUT_MS : OTHER_TIMEOUT_MS, onLock)
 
   return (
     <div className="shell">
@@ -146,7 +156,7 @@ export function AppShell({
           </svg>
         </button>
         {pinSet && (
-          <button type="button" className="shell-theme-toggle" onClick={() => setLocked(true)} aria-label="Lock screen now">
+          <button type="button" className="shell-theme-toggle" onClick={onLock} aria-label="Lock screen now">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
               <rect x="4" y="11" width="16" height="9" rx="2" />
               <path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -171,7 +181,7 @@ export function AppShell({
           }}
         />
       </Drawer>
-      <LockScreen locked={locked} onUnlock={() => setLocked(false)} />
+      <LockScreen locked={locked} onUnlock={onUnlock} />
       <div className="shell-content">
         {activeSection ? (
           children

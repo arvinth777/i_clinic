@@ -10,7 +10,7 @@ import './OfflineQueueBanner.css'
 // beforeunload is a best-effort second layer, not the primary mechanism:
 // it shows generic browser text this component can't customise, and
 // doesn't fire reliably on every close path (OS shutdown, killed process).
-export function OfflineQueueBanner() {
+export function OfflineQueueBanner({ redact }: { redact: boolean }) {
   const { pending, halted } = useOfflineQueue()
 
   useEffect(() => {
@@ -24,6 +24,13 @@ export function OfflineQueueBanner() {
   }, [pending.length])
 
   if (halted) {
+    // mutation.description embeds the patient's real name at several call
+    // sites (Consultation.tsx, Billing.tsx, Reception.tsx) -- fine to show
+    // to a signed-in, unlocked member of staff, but this banner is
+    // deliberately also mounted on the signed-out screen (the queue
+    // survives sign-out) and stays rendered underneath the lock screen.
+    // `redact` is true in both of those states -- the warning itself must
+    // still be unmissable (requirement 6), just without naming anyone.
     return (
       <div className="offline-queue-banner offline-queue-banner-halted" role="alert">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
@@ -31,8 +38,14 @@ export function OfflineQueueBanner() {
           <line x1="12" y1="9" x2="12" y2="14" strokeLinecap="round" />
           <circle cx="12" cy="17" r="0.5" fill="currentColor" />
         </svg>
-        A queued save could not go through ({halted.error}) — {halted.mutation.description}. It needs a person to look at
-        it before anything queued after it can sync. Do not close this device.
+        {redact ? (
+          <>A queued save could not go through. Sign in and unlock to see details. Do not close this device.</>
+        ) : (
+          <>
+            A queued save could not go through ({halted.error}) — {halted.mutation.description}. It needs a person to look
+            at it before anything queued after it can sync. Do not close this device.
+          </>
+        )}
       </div>
     )
   }
