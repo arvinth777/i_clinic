@@ -136,7 +136,8 @@ export function Consultation({ userId }: { userId: string }) {
   const { data: visits } = useQuery({
     queryKey: queueKey,
     enabled: !!clinicId,
-    refetchInterval: 30_000,
+    // Inherits queryClient's 3s default (was a 30s override here) --
+    // no reason for this one query to poll slower than everything else.
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visits')
