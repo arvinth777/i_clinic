@@ -265,7 +265,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
   const amountPaise = confirmedBill ? confirmedBill.final_amount_paise : pricing.final_amount_paise
 
   return (
-    <div>
+    <div className="record-area">
       <h2 className="form-heading">
         {visit.patients?.name} <span className="doctor-queue-meta">Token {visit.token_number}</span>
       </h2>

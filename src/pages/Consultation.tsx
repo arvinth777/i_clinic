@@ -244,7 +244,7 @@ export function Consultation({ userId }: { userId: string }) {
 
   return (
     <div className="consultation-grid">
-      <div>
+      <div className="readout-section">
         <h2 className="readout-heading">Queue</h2>
         <TodayFlow visits={todayVisits} />
         {queue.length === 0 ? (

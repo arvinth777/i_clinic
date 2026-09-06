@@ -1,8 +1,18 @@
 .shell {
   display: grid;
-  grid-template-columns: 220px 1fr;
-  grid-template-rows: 56px 1fr;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 64px 1fr;
   min-height: 100vh;
+}
+
+.shell-sidebar,
+.shell-topbar,
+.shell-content {
+  /* Grid items default to a content-based min-width/min-height floor --
+     without this, unshrinkable content (the mobile header row's nav
+     pill + sign-out button) pushes its track wider than the 1fr it was
+     given instead of clipping/eliding inside it. */
+  min-width: 0;
 }
 
 .shell-sidebar {
@@ -16,7 +26,7 @@
 
 .shell-clinic-name {
   font-size: var(--text-sm);
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.01em;
   padding: 0 var(--space-xs);
   margin-bottom: var(--space-lg);
@@ -31,7 +41,7 @@
   gap: var(--space-sm);
   width: 100%;
   margin-bottom: var(--space-2xs);
-  padding: var(--space-xs) var(--space-sm);
+  padding: var(--space-sm) var(--space-sm);
   border: none;
   border-radius: var(--radius-input);
   background: none;
@@ -41,11 +51,13 @@
   font-weight: 600;
   text-align: left;
   cursor: pointer;
+  transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out);
 }
 
 @media (hover: hover) {
   .shell-nav-item:hover {
     background: var(--surface-2);
+    color: var(--text);
   }
 }
 
@@ -65,32 +77,46 @@
 
 .shell-sidebar-foot {
   margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   padding-top: var(--space-sm);
   border-top: 1px solid var(--border);
   font-size: var(--text-xs);
   color: var(--text-secondary);
 }
 
+.shell-user-email {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .shell-signout {
-  display: block;
-  margin-top: var(--space-2xs);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
   font: inherit;
   font-weight: 600;
   color: var(--text-tertiary);
   background: none;
   border: none;
-  padding: 0;
+  padding: var(--space-2xs);
+  border-radius: var(--radius-input);
   cursor: pointer;
 }
 
 .shell-signout:hover {
-  color: var(--text);
+  color: var(--danger);
+  background: var(--danger-wash);
 }
 
 .shell-signout:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 .shell-topbar {
@@ -98,7 +124,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-lg);
+  padding: 0 var(--space-xl);
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
@@ -117,32 +143,63 @@
   grid-column: 2 / 3;
   background: var(--bg);
   overflow-y: auto;
+  overflow-x: clip;
   padding: var(--space-xl);
 }
 
 @media (max-width: 720px) {
   .shell {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 56px 1fr;
+    grid-template-rows: auto 1fr;
   }
+
+  /* One combined header row -- the separate topbar (which duplicated the
+     section name and the user's email) is dropped entirely on mobile
+     rather than cramming both rows' content into 390px. */
   .shell-sidebar {
     grid-row: 1 / 2;
     flex-direction: row;
     align-items: center;
+    gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
+    border-right: none;
+    border-bottom: 1px solid var(--border);
   }
+
   .shell-clinic-name {
+    flex: 1;
+    min-width: 0;
     margin-bottom: 0;
-    margin-right: var(--space-md);
   }
+
+  .shell-nav-item {
+    flex: none;
+    width: auto;
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+
   .shell-sidebar-foot {
+    flex: none;
     margin-top: 0;
-    margin-left: auto;
     padding-top: 0;
     border-top: none;
   }
-  .shell-topbar,
+
+  .shell-user-email {
+    display: none;
+  }
+
+  .shell-signout-label {
+    display: none;
+  }
+
+  .shell-topbar {
+    display: none;
+  }
+
   .shell-content {
     grid-column: 1 / 2;
+    padding: var(--space-md);
   }
 }
