@@ -48,6 +48,31 @@ const adminOnly = await signIn('admin.only@staging.test', userEnv.TEST_ADMIN_ONL
 
 console.log('\nsigned in as doctor.a, reception.a, admin.only\n')
 
+// Fixture helpers, same shape as phase-f-test.mjs's own (that script
+// exercises confirm_bill's snapshot args; this one needs a real
+// needs_reconciliation bill to correct, same underlying mechanism).
+async function makeVisit(complaint) {
+  const stamp = Date.now() + Math.random()
+  const { data: patient, error: patientErr } = await doctorA.from('patients').insert({ clinic_id: CLINIC_A_ID, name: `Phase G Fix Test Patient ${stamp}`, age: 40 }).select('id').single()
+  if (patientErr) throw new Error(`fixture: creating patient failed: ${patientErr.message}`)
+  const { data: visit, error: visitErr } = await doctorA.from('visits').insert({ clinic_id: CLINIC_A_ID, patient_id: patient.id, arrived_at: new Date().toISOString(), complaint }).select('id').single()
+  if (visitErr) throw new Error(`fixture: creating visit failed: ${visitErr.message}`)
+  return visit.id
+}
+
+async function readyForBilling(visitId, finalAmountPaise) {
+  await doctorA.from('visits').update({ stage: 'with_doctor' }).eq('id', visitId)
+  await doctorA.from('visit_pricing').update({ final_amount_paise: finalAmountPaise }).eq('visit_id', visitId)
+  await doctorA.from('visits').update({ stage: 'packing' }).eq('id', visitId)
+  await receptionA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId)
+}
+
+async function pricingOf(visitId) {
+  const { data, error } = await doctorA.from('visit_pricing').select('final_amount_paise, revision_number').eq('visit_id', visitId).single()
+  if (error) throw new Error(`reading visit_pricing failed: ${error.message}`)
+  return data
+}
+
 // ============================================================
 // Section 1: Critical finding #3 -- consultation fee has no admin setter
 // anywhere. Genuinely red before migration 20260907030000_admin_set_
@@ -79,6 +104,59 @@ console.log('\nsigned in as doctor.a, reception.a, admin.only\n')
   // restore the original staging value so other scripts/manual testing
   // aren't disrupted
   await adminOnly.rpc('admin_set_clinic_fee', { p_clinic_id: CLINIC_A_ID, p_fee_paise: before?.consultation_fee_paise ?? 25000 })
+}
+
+// ============================================================
+// Section 2: Critical finding #1 -- the offline money-conflict
+// *resolution* half doesn't exist: mismatches are correctly detected and
+// flagged, but nothing lets a doctor actually write the correction row.
+// Genuinely red before migration 20260907040000_correct_bill.sql:
+// correct_bill doesn't exist pre-migration, so the two "should succeed"
+// assertions below throw; the role-check assertions pass vacuously for
+// the same reason Section 1's did pre-migration.
+// ============================================================
+{
+  const visitId = await makeVisit('phase g fix test: reconciliation resolution')
+  await readyForBilling(visitId, 18000)
+  const snapshot = await pricingOf(visitId)
+
+  // The doctor revises again after reception's (simulated offline) confirm
+  // already saw 18000 -- same setup phase-f-test.mjs's Section 1 uses to
+  // produce a genuine needs_reconciliation bill.
+  await doctorA.from('visit_pricing').update({ final_amount_paise: 12000 }).eq('visit_id', visitId)
+  const live = await pricingOf(visitId)
+
+  const { data: billId, error: confirmErr } = await receptionA.rpc('confirm_bill', {
+    p_visit_id: visitId,
+    p_payment_method: 'cash',
+    p_snapshot_final_amount_paise: snapshot.final_amount_paise,
+    p_snapshot_revision_number: snapshot.revision_number,
+  })
+  if (confirmErr) throw new Error(`fixture: confirm_bill failed: ${confirmErr.message}`)
+
+  // bills_needing_reconciliation keeps bills' own primary key column name
+  // (b.* -- unlike unpaid_bills, which explicitly aliases id as bill_id)
+  const { data: flaggedBefore, error: flaggedErr } = await doctorA.from('bills_needing_reconciliation').select('id, patient_name, live_final_amount_paise, live_revision_number').eq('id', billId).maybeSingle()
+  if (flaggedErr) throw new Error(`fixture check failed: ${flaggedErr.message}`)
+  report('the flagged bill appears in bills_needing_reconciliation with patient/live-pricing context', !!flaggedBefore && flaggedBefore.live_final_amount_paise === live.final_amount_paise, JSON.stringify(flaggedBefore))
+
+  const { error: recErr } = await receptionA.rpc('correct_bill', { p_bill_id: billId })
+  report('reception cannot correct a bill', !!recErr, recErr?.message)
+
+  const { data: newBillId, error: correctErr } = await doctorA.rpc('correct_bill', { p_bill_id: billId })
+  report('doctor can correct the flagged bill', !correctErr, correctErr?.message)
+
+  const { data: correction } = await doctorA.from('bills').select('final_amount_paise, pricing_revision_at_confirm, corrects_bill_id').eq('id', newBillId).single()
+  report('the correction bill is at the current (12000), not the stale (18000), amount', correction?.final_amount_paise === 12000, JSON.stringify(correction))
+  report('the correction bill carries the live revision_number', correction?.pricing_revision_at_confirm === live.revision_number, JSON.stringify(correction))
+  report('the correction bill references the original', correction?.corrects_bill_id === billId, JSON.stringify(correction))
+
+  const { data: flaggedAfter, error: flaggedAfterErr } = await doctorA.from('bills_needing_reconciliation').select('id').eq('id', billId).maybeSingle()
+  if (flaggedAfterErr) throw new Error(`fixture check failed: ${flaggedAfterErr.message}`)
+  report('the original bill no longer appears in bills_needing_reconciliation once corrected', !flaggedAfter, JSON.stringify(flaggedAfter))
+
+  const { error: doubleCorrectErr } = await doctorA.rpc('correct_bill', { p_bill_id: billId })
+  report('correcting an already-corrected bill is rejected', !!doubleCorrectErr, doubleCorrectErr?.message)
 }
 
 console.log('\n== Summary ==')
