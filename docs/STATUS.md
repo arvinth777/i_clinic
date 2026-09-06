@@ -11,7 +11,7 @@ phase per session" pacing within a single session — most recently to
 resolve Phase A's two open decisions and then go straight into Phase C
 in the same turn.
 
-**Phase C — Payments completed: built, tested, and verified live.
+**Phase D — Documents, register, reps: built, tested, and verified live.
 Stopping here per the plan's own "one phase per session" rule.**
 
 ## Phase checklist
@@ -49,7 +49,16 @@ Stopping here per the plan's own "one phase per session" rule.**
   - [x] Checkpoint: `docs/security-review.md` — run against the live DB; **no findings this time** (RLS, grants, and role boundaries all came out clean on the first check, unlike Phases A and B)
   - [x] Checkpoint: ponytail — no follow-up needed
   - [x] Done when: verified live and via script — a credit visit closes as paid, appears on the unpaid list, disappears once settled, and the original bill row is unchanged (compared before/after, identical)
-- [ ] Phase D — Documents, register, reps
+- [x] **Phase D — Documents, register, reps**
+  - [x] Tests first: `scripts/phase-d-test.mjs`, run red against the pre-migration schema, then green (37/37)
+  - [x] Clinic documents: `clinic_documents` (certificate/sick_leave/referral, a check constraint enforces each type's required fields plus `rest_to >= rest_from`), doctor-only select+insert (same posture as `prescriptions`/`patient_comments` — a referral's case summary or a sick-leave reason is clinical free text, and reception's job never needs to read one, only receive the printed paper). Issued from `DocumentsPanel.tsx` inside the consultation drawer; prints without the clinic name (real letterhead already carries it) but with the doctor's name/registration number, now configurable via a narrow `admin_set_clinic_doctor_info` RPC on the same Admin "Settings" tab as the UPI VPA.
+  - [x] Long-term register: `patients.is_long_term`/`long_term_review_interval_days`/`next_review_due`, doctor-gated via `set_patient_long_term`; a `security_invoker` view (`long_term_register`, same idiom as `unpaid_bills`) lists last visit + next review due; a new visit resets `next_review_due` automatically via an `after insert on visits` trigger. Visible to doctor and receptionist (`src/pages/LongTermRegister.tsx`, own nav item).
+  - [x] Follow-up dates: `visits.follow_up_date`/`follow_up_done_at`, doctor sets via `set_visit_follow_up` (also clears any earlier done-mark — a revised date starts a fresh to-do), reception clears via `mark_follow_up_done`. No WhatsApp (out of scope for the whole build): surfaces as a plain to-do list on Reception (`FollowUpTodos.tsx`) for anything due today or overdue and not yet done.
+  - [x] Pharma rep check-in: `pharma_rep_checkins` (name + company only, no patient/visit link, no medical record, no bill), reception checks in, doctor marks done. Always renders after every patient row in the doctor's queue (`RepQueueRows.tsx`) — this is grouping (a separate appended block, never interleaved with the sortable patient rows), not a shared sort key, so it holds regardless of arrival time or which column the doctor has the patient rows sorted by. Deferred seed case (a rep checked in two hours before a later-arriving patient) added in the same migration.
+  - [x] **A real enforcement gap caught before it shipped, not just an RPC-level check**: `visits_update`/`patients_update` already grant both doctor and receptionist a blanket UPDATE (needed for other columns on those tables), so a plain client call could have set `follow_up_date` or `is_long_term` directly, bypassing the RPCs' own role checks entirely — the RPC would have been documentation, not enforcement. Closed with a `BEFORE UPDATE` trigger per table, checked per-column (`IS DISTINCT FROM`) rather than per-row, so every other existing update path (stage transitions, the automatic `next_review_due` reset) passes through unaffected. `next_review_due` itself is deliberately *not* covered by the patients guard — it must also be settable by that automatic reset, which runs under whichever role (often reception, at check-in) triggered the insert.
+  - [x] Checkpoint: `docs/security-review.md` — run against the live DB, scoped to the new surfaces only (not a re-review of Phases A–C); clean, no findings. `anon` shows full raw table-level grants on both new tables in `information_schema` — confirmed this is Supabase's standing platform default (identical on `patients`/`bill_settlements`), not something this migration introduced; RLS is what actually gates every path, verified directly.
+  - [x] Checkpoint: ponytail — no follow-up needed; `Consultation.tsx` sits at 498 lines, worth watching before any future addition to that file specifically (not blocking).
+  - [x] Done when: verified live via a throwaway Playwright script (deleted after use, per convention) — a certificate was issued and its print-area rendered the correct signature block; the seeded rep sat behind the seeded patient in the doctor's live queue.
 - [ ] Phase E — Reports
 - [ ] Phase F — Offline
 - [ ] Phase G — Go live (item 7, the health endpoint, is already done — see below)
@@ -279,19 +288,32 @@ change, and the value round-tripped into the database correctly.
   already restricts every caller to their own clinic's rows regardless
   of what the view returns), but a future multi-clinic-per-user role
   would need the view's own `where clinic_id = ...` predicate, not just
-  RLS, to stay correct.
+  RLS, to stay correct. **`long_term_register` (Phase D) joins this same
+  pattern** — also no own `clinic_id` predicate, also relies on the
+  caller's RLS on `patients` plus the frontend's own `.eq('clinic_id',
+  ...)` filter.
+- **A blanket doctor+receptionist UPDATE policy on a shared table
+  (`visits`, `patients`) is not enough to enforce "only role X sets
+  column Y."** An RPC's own internal role check only holds if nothing
+  else can reach the same column — on a table both roles can already
+  update for other reasons, a direct client call bypasses the RPC
+  entirely. Phase D's `follow_up_date`/`is_long_term` fields are the
+  first case of this in the app; closed with a `BEFORE UPDATE` trigger
+  per table, gating specific columns via `IS DISTINCT FROM` rather than
+  gating the whole row, so every other existing write path through that
+  table keeps working unexamined. Reach for this — not just an RPC role
+  check — the next time a doctor-only or reception-only field lands on
+  `visits` or `patients` specifically (both already have blanket update
+  policies); a brand-new table with no client update policy at all
+  doesn't need it, per the `bill_settlements`/`clinic_documents` idiom.
 
 ## Next action
 
 Read this file, `AGENTS.md`, `docs/design.md`, `docs/architecture-spec.md`,
-and the PRD, then start Phase D (Documents, register, reps) — per
-`docs/build-plan.md`.
+and the PRD, then start Phase E (Reports) — per `docs/build-plan.md`.
 
-Note on a worry from the previous entry, now resolved: settling a bill
-does **not** call `confirm_bill` again — `settle_bill` is a separate RPC
-against a separate table (`bill_settlements`), so it never touches
-`stock_movements` and can't reintroduce the reopen/rebill double-
-deduction Phase B fixed. That fix's own regression guard
-(`stock-test.mjs` section 8) is only relevant if a future phase adds a
-*second* call path into `confirm_bill` itself (e.g. a correction-bill
-flow using `corrects_bill_id`) — Phase C did not need one.
+Phase E's own stated constraint is worth re-reading before starting:
+admin sees financial aggregates with no row-level access to patients,
+visits, or bills — build as `SECURITY DEFINER` views/RPCs returning
+totals with no patient identifiers, never a blanket admin row-level
+grant to make the reports easier to build.
