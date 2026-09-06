@@ -123,7 +123,13 @@ console.log('signed in as doctor.a, reception.a, admin.only\n')
 }
 
 // ================================================================
-// Section 4 -- merge_patients
+// Section 4 -- merge_patients (moved from admin to doctor: deciding two
+// records are the same person is a clinical judgment, not
+// configuration -- admin keeps no read on patients at all, no
+// exception. Search for candidates goes through search_patients, the
+// same RPC Reception's check-in screen already uses under the doctor's
+// own real patients_select RLS -- no separate admin-only RPC exists
+// anymore.)
 // ================================================================
 {
   const stamp = Date.now() + Math.random()
@@ -134,7 +140,7 @@ console.log('signed in as doctor.a, reception.a, admin.only\n')
   // give the newer one an open visit today -- merge must refuse
   const { data: openVisit } = await receptionA.from('visits').insert({ clinic_id: CLINIC_A_ID, patient_id: newer.id, arrived_at: new Date().toISOString(), complaint: 'merge test open visit' }).select('id').single()
 
-  const { data: blockedResult, error: blockedErr } = await adminOnly.rpc('merge_patients', { p_patient_a: older.id, p_patient_b: newer.id })
+  const { data: blockedResult, error: blockedErr } = await doctorA.rpc('merge_patients', { p_patient_a: older.id, p_patient_b: newer.id })
   report('merge refuses when either patient has an open visit today', !!blockedErr && !blockedResult, blockedErr?.message)
 
   // close it out, then merge should succeed -- passed in the "wrong" order
@@ -143,27 +149,32 @@ console.log('signed in as doctor.a, reception.a, admin.only\n')
   const { data: pastVisit } = await receptionA.from('visits').insert({ clinic_id: CLINIC_A_ID, patient_id: newer.id, arrived_at: new Date(Date.now() - 86400000).toISOString(), complaint: 'a past visit to reassign', stage: 'paid', closed_at: new Date().toISOString() }).select('id').single()
   const { data: comment } = await doctorA.from('patient_comments').insert({ clinic_id: CLINIC_A_ID, patient_id: newer.id, author_id: (await doctorA.auth.getUser()).data.user.id, body: 'a comment to reassign' }).select('id').single()
 
-  const { data: keptId, error: mergeErr } = await adminOnly.rpc('merge_patients', { p_patient_a: newer.id, p_patient_b: older.id })
-  report('merge succeeds once no open visit remains, keeps the actually-older id', !mergeErr && keptId === older.id, mergeErr?.message ?? `kept ${keptId}, expected ${older.id}`)
+  const { error: adminBlockedErr } = await adminOnly.rpc('merge_patients', { p_patient_a: newer.id, p_patient_b: older.id })
+  report('admin cannot call merge_patients (no exception -- moved to doctor)', !!adminBlockedErr, adminBlockedErr?.message)
 
-  // admin correctly has no row-level SELECT on visits at all (by design --
-  // see docs/architecture-spec.md's Phase E constraint, already true today)
-  // -- check via reception, who does.
+  const { error: recBlockedErr } = await receptionA.rpc('merge_patients', { p_patient_a: newer.id, p_patient_b: older.id })
+  report('reception cannot call merge_patients at all', !!recBlockedErr, recBlockedErr?.message)
+
+  const { data: keptId, error: mergeErr } = await doctorA.rpc('merge_patients', { p_patient_a: newer.id, p_patient_b: older.id })
+  report('doctor can merge once no open visit remains, keeps the actually-older id', !mergeErr && keptId === older.id, mergeErr?.message ?? `kept ${keptId}, expected ${older.id}`)
+
   const { data: reassignedVisit } = await receptionA.from('visits').select('patient_id').eq('id', pastVisit.id).single()
   report('the reassigned visit now points at the kept patient', reassignedVisit?.patient_id === older.id, JSON.stringify(reassignedVisit))
 
   const { data: reassignedComment } = await doctorA.from('patient_comments').select('patient_id').eq('id', comment.id).single()
   report('the reassigned comment now points at the kept patient', reassignedComment?.patient_id === older.id, JSON.stringify(reassignedComment))
 
-  const { data: removedPatient } = await adminOnly.from('patients').select('id').eq('id', newer.id)
+  // admin correctly has no row-level SELECT on patients at all -- check
+  // via reception, who does.
+  const { data: removedPatient } = await receptionA.from('patients').select('id').eq('id', newer.id)
   report('the retired (newer) patient no longer exists', (removedPatient ?? []).length === 0, JSON.stringify(removedPatient))
 
-  const { error: recBlockedErr } = await receptionA.rpc('merge_patients', { p_patient_a: older.id, p_patient_b: older.id })
-  report('reception cannot call merge_patients at all', !!recBlockedErr, recBlockedErr?.message)
+  const { error: gonErr } = await doctorA.rpc('admin_search_patients_for_merge', { p_clinic_id: CLINIC_A_ID, p_query: 'x' })
+  report('admin_search_patients_for_merge no longer exists -- merge search goes through search_patients', !!gonErr && /not find|does not exist|schema cache/i.test(gonErr.message ?? ''), gonErr?.message)
 }
 
 // ================================================================
-// Section 5 -- the two narrow admin RPCs backing the Admin screen
+// Section 5 -- the one remaining narrow admin RPC backing the Admin screen
 // ================================================================
 {
   const { data, error } = await adminOnly.rpc('list_clinic_logins', { p_clinic_id: CLINIC_A_ID })
@@ -172,13 +183,6 @@ console.log('signed in as doctor.a, reception.a, admin.only\n')
 
   const { data: recData, error: recErr } = await receptionA.rpc('list_clinic_logins', { p_clinic_id: CLINIC_A_ID })
   report('reception gets nothing from list_clinic_logins', !recErr && (recData ?? []).length === 0, JSON.stringify(recData))
-}
-{
-  const { data, error } = await adminOnly.rpc('admin_search_patients_for_merge', { p_clinic_id: CLINIC_A_ID, p_query: 'Rajesh' })
-  report('admin can search patients for merge (name/age/phone only)', !error && (data ?? []).length > 0 && 'name' in (data[0] ?? {}), error?.message ?? JSON.stringify(data?.[0]))
-
-  const { data: recData, error: recErr } = await receptionA.rpc('admin_search_patients_for_merge', { p_clinic_id: CLINIC_A_ID, p_query: 'Rajesh' })
-  report('reception gets nothing from admin_search_patients_for_merge', !recErr && (recData ?? []).length === 0, JSON.stringify(recData))
 }
 
 console.log('\n== Summary ==')
