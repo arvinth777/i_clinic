@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import QRCode from 'qrcode'
 import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
+import { formatDate } from '../lib/date'
 import './Billing.css'
 
 type Visit = {
@@ -57,10 +58,6 @@ function UpiQr({ vpa, amountPaise, payeeName }: { vpa: string; amountPaise: numb
   }, [vpa, amountPaise, payeeName])
   if (!dataUrl) return null
   return <img className="upi-qr" src={dataUrl} width={220} height={220} alt="UPI payment QR code" />
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function PrintableSlip({

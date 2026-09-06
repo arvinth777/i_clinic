@@ -1,13 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
+import { formatDate } from '../lib/date'
 import './MergePatients.css'
 
 type Candidate = { id: string; name: string; age: number | null; phone: string | null; last_visit_at: string | null }
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 // Deciding two records are the same person is a clinical judgment about a
 // patient, not configuration -- this lives with the doctor, who already

@@ -13,3 +13,10 @@ export function formatElapsed(arrivedAt: string): string {
   if (mins < 60) return `${mins}m`
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
 }
+
+// Shared short-date formatting -- was duplicated identically in
+// Billing.tsx and MergePatients.tsx before UnpaidBills.tsx made it a
+// third copy.
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+}
