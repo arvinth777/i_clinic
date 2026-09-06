@@ -75,7 +75,8 @@ async function billAs(visitId, paymentMethod, finalAmountPaise) {
 const doctorA = await signIn('doctor.a@staging.test', userEnv.TEST_DOCTOR_A_PASSWORD)
 const receptionA = await signIn('reception.a@staging.test', userEnv.TEST_RECEPTION_A_PASSWORD)
 const adminOnly = await signIn('admin.only@staging.test', userEnv.TEST_ADMIN_ONLY_PASSWORD)
-console.log('signed in as doctor.a, reception.a, admin.only\n')
+const doctorB = await signIn('doctor.b@staging.test', userEnv.TEST_DOCTOR_B_PASSWORD)
+console.log('signed in as doctor.a, reception.a, admin.only, doctor.b\n')
 
 // ================================================================
 // Section 1 -- role boundary: only admin/doctor can call the report
@@ -121,6 +122,14 @@ console.log('signed in as doctor.a, reception.a, admin.only\n')
   const { data: before } = await adminOnly.rpc('get_daily_report', {})
   const b = before[0]
 
+  // Cross-clinic isolation: v_clinic_id is derived from the caller's own
+  // user_roles row, not passed in -- so clinic A's billing activity below
+  // must be invisible to clinic B's own report. Captured before/after the
+  // exact same fixtures clinic A's own delta assertions below are checked
+  // against.
+  const { data: beforeB } = await doctorB.rpc('get_daily_report', {})
+  const bB = beforeB[0]
+
   // Cash visit billed today with a real discount: calculated total is
   // the flat consultation fee (25000), final amount set to 18000.
   const cashVisit = await makeVisit('report test cash visit')
@@ -150,6 +159,16 @@ console.log('signed in as doctor.a, reception.a, admin.only\n')
     'discount delta = 7000 (cash visit only: 25000 - 18000; the two pay_later visits kept full price)',
     BigInt(a.discount_paise) - BigInt(b.discount_paise) === 7000n,
     `before ${b.discount_paise}, after ${a.discount_paise}`,
+  )
+
+  const { data: afterB } = await doctorB.rpc('get_daily_report', {})
+  const aB = afterB[0]
+  report(
+    "clinic A's bills (43000 collections, 7000 discount, 3 patients) move clinic B's own report by exactly zero",
+    BigInt(aB.collections_paise) === BigInt(bB.collections_paise)
+      && BigInt(aB.discount_paise) === BigInt(bB.discount_paise)
+      && aB.patient_count === bB.patient_count,
+    `before ${JSON.stringify(bB)}, after ${JSON.stringify(aB)}`,
   )
 
   // Construct a live needs_reconciliation case: revise pricing on an

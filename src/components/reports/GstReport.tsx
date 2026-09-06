@@ -42,7 +42,7 @@ export function GstReport() {
     a.href = url
     a.download = `gst-summary-${startDate}-to-${endDate}.csv`
     a.click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 0)
   }
 
   return (
