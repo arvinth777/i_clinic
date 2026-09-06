@@ -1,15 +1,15 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AnimatePresence, motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
-import { startOfToday } from '../lib/date'
-
-const rowTransition = { duration: 0.22, ease: [0.16, 1, 0.3, 1] as const }
+import { startOfToday, elapsedMinutes, formatElapsed } from '../lib/date'
+import { nextSortState, sortRows, type SortState } from '../lib/sort'
+import './Worklist.css'
 
 type Visit = {
   id: string
   token_number: number
   stage: string
+  arrived_at: string
   patients: { name: string } | null
 }
 
@@ -89,16 +89,44 @@ function StageShape({ stage, color }: { stage: string; color: string }) {
 // "with_doctor"/"waiting" have nothing for her to do yet.
 const BILLABLE_STAGES = new Set(['packing', 'ready_at_reception', 'paid'])
 
+type SortKey = 'token' | 'name' | 'stage' | 'wait'
+
+function sortValue(v: Visit, key: SortKey): string | number {
+  switch (key) {
+    case 'token':
+      return v.token_number
+    case 'name':
+      return v.patients?.name ?? ''
+    case 'stage':
+      return STAGES[v.stage]?.label ?? v.stage
+    case 'wait':
+      return elapsedMinutes(v.arrived_at)
+  }
+}
+
+function SortHeader({ label, sortKey, sort, onSort }: { label: string; sortKey: SortKey; sort: SortState<SortKey>; onSort: (k: SortKey) => void }) {
+  const active = sort?.key === sortKey
+  return (
+    <th>
+      <button type="button" className="worklist-sort" onClick={() => onSort(sortKey)}>
+        {label}
+        <span className="worklist-sort-arrow">{active ? (sort!.direction === 'asc' ? '▲' : '▼') : ''}</span>
+      </button>
+    </th>
+  )
+}
+
 export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSelectVisit?: (visitId: string) => void }) {
   const queryClient = useQueryClient()
   const queryKey = ['visits-today', clinicId]
+  const [sort, setSort] = useState<SortState<SortKey>>(null)
 
   const { data, isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visits')
-        .select('id, token_number, stage, patients(name)')
+        .select('id, token_number, stage, arrived_at, patients(name)')
         .eq('clinic_id', clinicId)
         .gte('arrived_at', startOfToday())
         .order('arrived_at', { ascending: true })
@@ -130,31 +158,43 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
   if (isLoading) return null
   if (!data || data.length === 0) return <p className="readout-empty">No patients yet today.</p>
 
+  const rows = sortRows(data, sort, sortValue)
+
   return (
-    <div className="readout-list">
-      <AnimatePresence initial={false}>
-        {data.map((v) => {
-          const clickable = !!onSelectVisit && BILLABLE_STAGES.has(v.stage)
-          return (
-            <motion.div
-              key={v.id}
-              className={clickable ? 'readout-row readout-row-clickable' : 'readout-row'}
-              layout
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={rowTransition}
-              onClick={clickable ? () => onSelectVisit!(v.id) : undefined}
-              role={clickable ? 'button' : undefined}
-              tabIndex={clickable ? 0 : undefined}
-            >
-              <span className="readout-token">{v.token_number}</span>
-              <span className="readout-name">{v.patients?.name}</span>
-              <StageGlyph stage={v.stage} />
-            </motion.div>
-          )
-        })}
-      </AnimatePresence>
+    <div className="worklist-scroll">
+      <table className="worklist">
+        <thead>
+          <tr>
+            <SortHeader label="Token" sortKey="token" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
+            <SortHeader label="Name" sortKey="name" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
+            <SortHeader label="Stage" sortKey="stage" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
+            <SortHeader label="Wait" sortKey="wait" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((v) => {
+            const clickable = !!onSelectVisit && BILLABLE_STAGES.has(v.stage)
+            return (
+              <tr
+                key={v.id}
+                className={clickable ? 'worklist-row worklist-row-clickable' : 'worklist-row'}
+                onClick={clickable ? () => onSelectVisit!(v.id) : undefined}
+                role={clickable ? 'button' : undefined}
+                tabIndex={clickable ? 0 : undefined}
+              >
+                <td>
+                  <span className="readout-token">{v.token_number}</span>
+                </td>
+                <td className="worklist-name-cell">{v.patients?.name}</td>
+                <td>
+                  <StageGlyph stage={v.stage} />
+                </td>
+                <td className="worklist-wait-cell">{formatElapsed(v.arrived_at)}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }

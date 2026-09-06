@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-06T09:01:40Z",
+  "title": "Design System: i-clinic -- The Case Sheet",
+  "extensions": {
+    "colorMeta": {
+      "accent": { "role": "primary", "displayName": "Terracotta Index-Tab", "canonical": "oklch(50% 0.155 40)", "tonalRamp": ["oklch(15% 0.09 40)", "oklch(25% 0.11 40)", "oklch(35% 0.13 40)", "oklch(44% 0.15 40)", "oklch(50% 0.155 40)", "oklch(65% 0.13 40)", "oklch(80% 0.09 40)", "oklch(95% 0.03 40)"] },
+      "bg": { "role": "neutral", "displayName": "Kraft Ground", "canonical": "oklch(90% 0.045 75)", "tonalRamp": ["oklch(20% 0.02 75)", "oklch(32% 0.03 75)", "oklch(45% 0.035 75)", "oklch(58% 0.04 75)", "oklch(72% 0.045 75)", "oklch(85.5% 0.05 72)", "oklch(90% 0.045 75)", "oklch(96% 0.02 75)"] },
+      "surface": { "role": "neutral", "displayName": "Manila Surface", "canonical": "oklch(94% 0.035 78)", "tonalRamp": ["oklch(20% 0.02 78)", "oklch(32% 0.03 78)", "oklch(45% 0.035 78)", "oklch(58% 0.04 78)", "oklch(72% 0.04 78)", "oklch(85.5% 0.05 72)", "oklch(94% 0.035 78)", "oklch(97% 0.015 78)"] },
+      "surface-2": { "role": "neutral", "displayName": "Manila Surface, Deeper", "canonical": "oklch(85.5% 0.05 72)", "tonalRamp": ["oklch(18% 0.02 72)", "oklch(30% 0.03 72)", "oklch(42% 0.04 72)", "oklch(55% 0.045 72)", "oklch(68% 0.05 72)", "oklch(78% 0.05 72)", "oklch(85.5% 0.05 72)", "oklch(93% 0.03 72)"] },
+      "text": { "role": "neutral", "displayName": "Charcoal-Brown Ink", "canonical": "oklch(25% 0.03 45)", "tonalRamp": ["oklch(15% 0.02 45)", "oklch(25% 0.03 45)", "oklch(35% 0.035 45)", "oklch(45% 0.04 45)", "oklch(58% 0.04 45)", "oklch(70% 0.035 45)", "oklch(84% 0.02 45)", "oklch(95% 0.01 45)"] },
+      "success": { "role": "secondary", "displayName": "Confirmation Green (ink-stamp)", "canonical": "oklch(40% 0.09 152)", "tonalRamp": ["oklch(16% 0.05 152)", "oklch(26% 0.07 152)", "oklch(33% 0.08 152)", "oklch(40% 0.09 152)", "oklch(52% 0.1 152)", "oklch(65% 0.09 152)", "oklch(80% 0.06 152)", "oklch(94% 0.02 152)"] },
+      "danger": { "role": "tertiary", "displayName": "Danger", "canonical": "oklch(42% 0.15 22)", "tonalRamp": ["oklch(16% 0.08 22)", "oklch(26% 0.11 22)", "oklch(34% 0.13 22)", "oklch(42% 0.15 22)", "oklch(55% 0.16 22)", "oklch(68% 0.14 22)", "oklch(82% 0.08 22)", "oklch(94% 0.03 22)"] },
+      "warning": { "role": "tertiary", "displayName": "Warning (packing stage)", "canonical": "oklch(58% 0.13 78)", "tonalRamp": ["oklch(20% 0.06 78)", "oklch(32% 0.09 78)", "oklch(45% 0.11 78)", "oklch(58% 0.13 78)", "oklch(68% 0.12 78)", "oklch(78% 0.1 78)", "oklch(88% 0.06 78)", "oklch(96% 0.02 78)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Headline", "purpose": "h1/h2/h3, sign-in heading -- not a separate typeface, same Inter family as body." },
+      "mono": { "displayName": "Numeral Mono", "purpose": "Token numbers, elapsed minutes, rupee amounts. Never label text (see The Mono-Is-For-Numerals Rule)." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default easing for hover/focus/border transitions and the token-queue row insert/remove animation (motion/react)." }
+    ],
+    "breakpoints": [
+      { "name": "shell-mobile", "value": "720px" },
+      { "name": "grid-stack", "value": "900px" },
+      { "name": "queue-row-container", "value": "620px (container query, not viewport)" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Default task action (Check in, Confirm payment). No shadow, instant color-only state changes.",
+      "html": "<button class=\"ds-btn-primary\">Confirm payment</button>",
+      "css": ".ds-btn-primary { font-family: 'Inter', sans-serif; font-size: 1.0625rem; font-weight: 600; min-height: 3rem; padding: 0 1.5rem; border: 1px solid transparent; border-radius: 4px; background: oklch(50% 0.155 40); color: oklch(99% 0 0); transition: background-color 150ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-primary:hover { background: oklch(44% 0.16 40); } .ds-btn-primary:active { background: oklch(38% 0.16 40); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px oklch(50% 0.155 40 / 38%); }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Ruled rectangular search field with an inline currentColor SVG icon, not a pill.",
+      "html": "<div class=\"ds-search-field\"><svg class=\"ds-search-icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/></svg><input class=\"ds-search-strip\" placeholder=\"Search by name or token\" /></div>",
+      "css": ".ds-search-field { position: relative; } .ds-search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: oklch(46% 0.032 50); pointer-events: none; } .ds-search-strip { width: 100%; box-sizing: border-box; height: 3.25rem; font-size: 1.0625rem; padding: 0 1.5rem 0 2.75rem; color: oklch(25% 0.03 45); background: oklch(94% 0.035 78); border: 1px solid oklch(68% 0.065 62); border-radius: 4px; outline: none; } .ds-search-strip::placeholder { color: oklch(46% 0.032 50); } .ds-search-strip:focus-visible { border-color: oklch(50% 0.155 40); box-shadow: 0 0 0 3px oklch(50% 0.155 40 / 38%); }"
+    },
+    {
+      "name": "Tab-Flag Heading",
+      "kind": "custom",
+      "refersTo": "tab-flag-heading",
+      "description": "The signature section-label device: an angled-corner chip evoking a folder index tab. Used above every record section (Queue, Comments, Demographics, Procedures, Pricing).",
+      "html": "<span class=\"ds-readout-heading\">Procedures</span>",
+      "css": ".ds-readout-heading { display: inline-block; margin: 0 0 0.75rem; padding: 0.25rem 0.75rem; background: oklch(85.5% 0.05 72); color: oklch(42% 0.04 48); font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 100%, 0 100%); }"
+    },
+    {
+      "name": "Stage Pill",
+      "kind": "chip",
+      "refersTo": "stage-pill",
+      "description": "Neutral bordered chip carrying a per-stage SVG glyph shape (the colour-blind-safe signal) plus the stage label word; color never carries the signal alone.",
+      "html": "<span class=\"ds-stage-pill\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" aria-hidden=\"true\"><circle cx=\"10\" cy=\"10\" r=\"7\" fill=\"oklch(40% 0.09 152)\"/><path d=\"M6.5 10.2l2.3 2.3 4.7-4.9\" fill=\"none\" stroke=\"oklch(94% 0.035 78)\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>Paid</span>",
+      "css": ".ds-stage-pill { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.75rem; border: 1px solid oklch(58% 0.07 58); border-radius: 3px; background: oklch(94% 0.035 78); font-size: 0.8125rem; font-weight: 700; color: oklch(42% 0.04 48); white-space: nowrap; }"
+    },
+    {
+      "name": "Token Chit",
+      "kind": "custom",
+      "refersTo": "token-chit",
+      "description": "Dashed-border ticket-stub chit displaying the queue token number in mono numerals.",
+      "html": "<span class=\"ds-readout-token\">14</span>",
+      "css": ".ds-readout-token { display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 3px; border: 1.5px dashed oklch(50% 0.155 40); background: oklch(50% 0.155 40 / 12%); font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.9375rem; color: oklch(50% 0.155 40); }"
+    },
+    {
+      "name": "Record Panel",
+      "kind": "card",
+      "refersTo": "record-area",
+      "description": "The one bordered panel per pane (case-sheet, queue readout, form panel). Sections inside divide by border-top hairlines only, never a nested card.",
+      "html": "<div class=\"ds-record-area\"><div class=\"ds-record-section\">Section one content</div><div class=\"ds-record-section ds-ruled\">Section two content</div></div>",
+      "css": ".ds-record-area { background: oklch(94% 0.035 78); border: 1px solid oklch(68% 0.065 62); border-radius: 6px; padding: 1.5rem 2.5rem 2.5rem; } .ds-record-section { margin-top: 2.5rem; padding-top: 1.5rem; } .ds-record-section.ds-ruled { border-top: 1px solid oklch(68% 0.065 62); }"
+    },
+    {
+      "name": "Paid Stamp",
+      "kind": "custom",
+      "refersTo": "paid-stamp",
+      "description": "The app's one signature/delight component: a rotated bordered PAID mark shown only on an actually confirmed payment, with uneven corners and an offset ghost shadow reading as an imperfect rubber-stamp impression. CSS-only, not a rendered/distressed asset.",
+      "html": "<span class=\"ds-paid-stamp\">Paid</span>",
+      "css": ".ds-paid-stamp { display: inline-block; margin-bottom: 0.75rem; padding: 0.25rem 1rem; border: 3px solid oklch(40% 0.09 152); border-radius: 5px 3px 6px 2px; box-shadow: 1.5px 1px 0 0 oklch(40% 0.09 152 / 12%); color: oklch(40% 0.09 152); font-size: 1.5rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; transform: rotate(-6deg); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Case Sheet",
+    "overview": "This is v4 of the app's visual world, replacing v3 (\"Cobalt,\" a tech-blue SaaS theme). The thesis: an Operate-mode two-person clinic tool should look like what the doctor and receptionist already use on paper -- a case sheet, a token chit, a rubber ink stamp -- not a generic dashboard. The build commits to a warm kraft/manila paper ground (never a sterile white or a tinted-cool near-white), warm charcoal-brown ink (never cool grey), one terracotta accent reserved for the accentable moment, and a forest-green ink-stamp reserved for confirmed/paid. Depth comes from a hairline rule, never a shadow -- paper doesn't float. This app has exactly one page family: app pages (Reception, Consultation, Billing, sign-in) for two roles who scan and act under time pressure, often with a patient in the room. No marketing surface exists anywhere in this codebase -- no hero, no testimonial, no pricing table, no footer -- and none should be introduced. Confirmed rejections: no card-stack-of-identical-bordered-cards for Consultation's record (the world this replaces); no second display typeface (Space Grotesk was removed -- one workhorse family, Inter, carries headings, body, and UI); no invented clinic brand name or logo.",
+    "keyCharacteristics": [
+      "Warm kraft/manila ground and charcoal-brown ink, never a cool near-white or grey",
+      "One terracotta accent, held rare; forest-green reserved for confirmed/paid",
+      "Hairline rules and tab-flag section labels instead of nested cards",
+      "Sharp, cut-paper corners (small radii) instead of soft rounding",
+      "Mono reserved strictly for numerals, never for label text"
+    ],
+    "rules": [
+      { "name": "The Colour-Is-Reinforcement Rule", "body": "Every stage in the token queue carries a distinct SVG glyph shape in addition to its color, and the label word is always shown alongside. Color alone never carries the signal.", "section": "colors" },
+      { "name": "The One Stamp Rule", "body": "The forest-green ink-stamp treatment appears only on an actually confirmed payment, never reused decoratively elsewhere.", "section": "colors" },
+      { "name": "The Mono-Is-For-Numerals Rule", "body": "JetBrains Mono is reserved strictly for genuinely numeric content, never for label text, even within a class that is mono elsewhere for its numeric use.", "section": "typography" },
+      { "name": "The One Bordered Panel Rule", "body": "Each pane gets exactly one bordered container. Sections within it are ruled (border-top), never individually carded.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use the kraft/manila ground tokens (--bg/--surface/--surface-2) as-is; they were deliberately corrected for chroma/lightness in finish review and should not be lightened back toward a cool near-white.",
+      "Do apply .readout-heading's tab-flag clip-path to every new record-section label; it is the system's one recurring signature motif, not a one-off.",
+      "Do reserve JetBrains Mono for genuine numerals (tokens, minutes, rupees) and keep label text, including text that shares a class with numeric content, on the Inter body face.",
+      "Do keep every Consultation record section visible and scrollable at once inside its one bordered panel; PRODUCT.md's one-screen requirement is durable, not a task-local choice."
+    ],
+    "donts": [
+      "Don't stack multiple individually-bordered cards inside a pane. One bordered panel per pane; sections inside it divide by border-top hairlines only.",
+      "Don't add a box-shadow as a general elevation device. The one exception (.paid-stamp's ghost-offset shadow) is welded to that component as a rubber-stamp effect, not a reusable shadow token.",
+      "Don't introduce a second display typeface. One family (Inter) carries headings, body, and UI; Space Grotesk was removed in this build and should not return.",
+      "Don't invent a clinic brand name, logo, or fixed identity anywhere in this app. It renders whichever clinic's own name is stored in its database row.",
+      "Don't let --stage-pill's container color vary by stage. Color reinforces; the SVG shape and label word are the actual colour-blind-safe signal."
+    ]
+  }
+}

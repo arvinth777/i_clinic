@@ -265,7 +265,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
   const amountPaise = confirmedBill ? confirmedBill.final_amount_paise : pricing.final_amount_paise
 
   return (
-    <div className="record-area">
+    <div>
       <h2 className="form-heading">
         {visit.patients?.name} <span className="doctor-queue-meta">Token {visit.token_number}</span>
       </h2>
@@ -345,7 +345,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
             <motion.button
               type="button"
               className="primary-button"
-              whileTap={{ scale: 0.97 }}
+              whileTap={{ scale: 0.96, rotate: -1 }}
               disabled={confirmPayment.isPending}
               onClick={() => confirmPayment.mutate()}
             >
@@ -361,6 +361,9 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
 
       {confirmedBill && (
         <section className="record-section">
+          <div className="paid-stamp" aria-hidden="true">
+            Paid
+          </div>
           <p>Paid via {confirmedBill.payment_method}. Prescription and receipt sent to print.</p>
           <div className="action-row">
             <motion.button type="button" className="secondary-button" whileTap={{ scale: 0.97 }} onClick={() => window.print()}>

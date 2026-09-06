@@ -1,108 +1,128 @@
-/* Hallmark · genre: modern-minimal · theme: cobalt (trimmed) · macrostructure: app-pages · design-system: /design.md · designed-as-app
- * Hallmark · pre-emit critique: P4 H4 E4 S4 R5 V4 */
+/* genre: modern-minimal-operate · design-system: /design.md · designed-as-app
+ * v4.1 -- "The Case Sheet," rebased: same case-sheet structure (tab-flags,
+ * ruled sections, ledger stripes, ink-stamp) but on a cooler sage-paper
+ * ground with a slate-teal accent, replacing the first v4 pass's warm
+ * kraft/terracotta palette, which read as muddy in the real build. See
+ * /design.md. */
 
-/* Design tokens -- v3: Hallmark "Cobalt" theme, trimmed for an internal
-   ops tool (see /design.md at the project root -- that file is the source
-   of truth; this is its implementation). Cool near-white paper, cool
-   charcoal ink, one electric-cobalt accent, tight ruler-drawn radii, depth
-   from a hairline border rather than blur. Light is the primary, always-on
-   theme regardless of OS preference; dark is a secondary theme from the
-   same token names, reachable only via an explicit `data-theme="dark"`
-   on the root. */
+/* Design tokens -- cool sage-paper ground (not sterile white, not warm
+   kraft), a deep cool charcoal-green ink, one slate-teal accent kept
+   distinct from the forest-green ink-stamp reserved for confirmed/paid
+   only (same hue family as the ground, different enough in hue to read as
+   a deliberate second color, not "everything green"). Depth still comes
+   from a hairline rule, never a shadow -- paper doesn't float. Both
+   light and dark are real, user-selectable themes now (see
+   src/lib/useTheme.ts and the toggle in AppShell) -- dark is no longer a
+   token-only variant with no way to reach it. */
 
 :root {
-  --bg: oklch(98.2% 0.004 250);
-  --surface: oklch(99.5% 0.002 250);
-  --surface-2: oklch(95.5% 0.006 250);
-  --border: oklch(90% 0.008 250);
-  --border-strong: oklch(82% 0.012 250);
+  --bg: oklch(91% 0.02 135);
+  --surface: oklch(95% 0.015 138);
+  --surface-2: oklch(85% 0.025 132);
+  --border: oklch(70% 0.035 130);
+  --border-strong: oklch(58% 0.045 125);
 
-  --text: oklch(21% 0.02 260);
-  --text-secondary: oklch(52% 0.02 260);
-  --text-tertiary: oklch(68% 0.015 260);
+  --text: oklch(22% 0.025 140);
+  --text-secondary: oklch(40% 0.03 138);
+  /* Also placeholder and de-emphasised label text -- craft-floor's 4.5:1
+     floor applies there too; measured at 5.91:1 vs --bg, 4.89:1 vs the
+     darker --surface-2 a themed placeholder actually sits on. */
+  --text-tertiary: oklch(44% 0.028 135);
 
-  --accent: oklch(58% 0.20 256);
-  --accent-hover: oklch(52% 0.21 256);
-  --accent-active: oklch(45% 0.21 256);
+  --accent: oklch(45% 0.09 220);
+  --accent-hover: oklch(40% 0.095 220);
+  --accent-active: oklch(35% 0.095 220);
   --accent-ink: oklch(99% 0 0);
-  --accent-wash: oklch(58% 0.20 256 / 10%);
-  --focus-ring: oklch(58% 0.20 256 / 35%);
+  --accent-wash: oklch(45% 0.09 220 / 12%);
+  --focus-ring: oklch(45% 0.09 220 / 38%);
 
-  --danger: oklch(55% 0.22 25);
-  --danger-wash: oklch(55% 0.22 25 / 10%);
-  --success: oklch(55% 0.14 155);
-  --success-wash: oklch(55% 0.14 155 / 10%);
-  --warning: oklch(65% 0.16 60);
-  --warning-wash: oklch(65% 0.16 60 / 10%);
+  --danger: oklch(42% 0.15 22);
+  --danger-wash: oklch(42% 0.15 22 / 10%);
+  --success: oklch(40% 0.09 152);
+  --success-wash: oklch(40% 0.09 152 / 12%);
+  --warning: oklch(58% 0.13 78);
+  --warning-wash: oklch(58% 0.13 78 / 12%);
 
   /* Staging strip -- a system/environment signal, not a clinical one, but
      still meaningful (this is a real warning), not decorative -- distinct
      from --danger so retuning one never silently moves the other. */
-  --staging-bg: oklch(45% 0.19 25);
-  --staging-ink: oklch(99% 0 0);
+  --staging-bg: oklch(36% 0.15 25);
+  --staging-ink: oklch(98% 0 0);
 
-  /* Stage semantics -- a separate categorical set from the brand accent.
+  /* Stage semantics -- a separate categorical set from the accent.
      Colour reinforces at a glance; the shape drawn in TokenList.tsx is the
      real signal, so it survives any colour-vision deficiency. */
   --stage-waiting: var(--text-tertiary);
   --stage-with-doctor: var(--accent);
   --stage-packing: var(--warning);
-  --stage-ready: oklch(58% 0.19 300);
+  --stage-ready: oklch(46% 0.1 320);
   --stage-paid: var(--success);
 
+  /* One workhorse family carries headings, body, and UI -- an Operate
+     surface doesn't need a second display face (Space Grotesk, dropped);
+     the paper identity comes from tone, rule, and stamp, not a second
+     typeface. Mono is reserved for actual numerals -- tokens, minutes,
+     rupees -- never for label text (see .readout-heading below). */
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica Neue, Arial, sans-serif;
-  --font-display: 'Space Grotesk', var(--font);
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --text-xs: 0.8125rem;
-  --text-sm: 0.9375rem;
-  --text-base: 1.0625rem;
-  --text-md: 1.25rem;
-  --text-lg: 1.5rem;
-  --text-xl: 2rem;
+  /* Dense-operational-tool scale, not marketing-page scale -- the previous
+     values (17px base, 32px --text-xl) read as "unusually big and zoomed
+     out" once this ran on a real monitor next to real software. */
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
 
   --space-2xs: 0.25rem;
-  --space-xs: 0.5rem;
-  --space-sm: 0.75rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2.5rem;
+  --space-xs: 0.375rem;
+  --space-sm: 0.625rem;
+  --space-md: 0.875rem;
+  --space-lg: 1.25rem;
+  --space-xl: 2rem;
 
-  /* Tight, ruler-drawn radii -- Cobalt's ceiling is deliberately lower than
-     v2's (was 20px/12px): ".../radius-card: 20px" read as a generic rounded-
-     card SaaS look the user rejected as "no proper design language". */
-  --radius-card: 10px;
-  --radius-input: 6px;
+  /* Sharper, cut-paper radii -- a case-sheet's corners are clipped, not
+     rounded like v3's "Cobalt" cards. --radius-pill survives only for the
+     flow-bar's progress track, a shape that's legitimately a pill. */
+  --radius-card: 6px;
+  --radius-input: 4px;
   --radius-pill: 999px;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* The drawer is the one floating surface in the app (see Drawer.css) --
+     every static in-page panel stays shadow-free (border-only depth). */
+  --shadow-drawer: -8px 0 32px oklch(20% 0.02 140 / 18%);
 
   color-scheme: light;
 }
 
 :root[data-theme='dark'] {
-  --bg: oklch(19% 0.014 260);
-  --surface: oklch(24% 0.016 260);
-  --surface-2: oklch(28% 0.018 260);
-  --border: oklch(38% 0.014 260);
-  --border-strong: oklch(46% 0.014 260);
+  --bg: oklch(20% 0.02 140);
+  --surface: oklch(25% 0.022 138);
+  --surface-2: oklch(16% 0.02 142);
+  --border: oklch(34% 0.025 135);
+  --border-strong: oklch(43% 0.03 132);
 
-  --text: oklch(94% 0.006 260);
-  --text-secondary: oklch(72% 0.012 260);
-  --text-tertiary: oklch(56% 0.012 260);
+  --text: oklch(92% 0.012 135);
+  --text-secondary: oklch(74% 0.018 133);
+  --text-tertiary: oklch(60% 0.02 133);
 
-  --accent: oklch(72% 0.16 256);
-  --accent-hover: oklch(78% 0.14 256);
-  --accent-active: oklch(65% 0.18 256);
-  --accent-wash: oklch(72% 0.16 256 / 18%);
-  --focus-ring: oklch(72% 0.16 256 / 45%);
+  --accent: oklch(68% 0.1 210);
+  --accent-hover: oklch(74% 0.09 210);
+  --accent-active: oklch(60% 0.11 210);
+  --accent-wash: oklch(68% 0.1 210 / 18%);
+  --focus-ring: oklch(68% 0.1 210 / 45%);
 
-  --danger: oklch(70% 0.17 25);
-  --danger-wash: oklch(70% 0.17 25 / 16%);
-  --success: oklch(72% 0.14 155);
-  --success-wash: oklch(72% 0.14 155 / 16%);
-  --warning: oklch(78% 0.14 80);
-  --warning-wash: oklch(78% 0.14 80 / 16%);
-  --stage-ready: oklch(72% 0.15 300);
+  --danger: oklch(66% 0.15 22);
+  --danger-wash: oklch(66% 0.15 22 / 16%);
+  --success: oklch(62% 0.11 152);
+  --success-wash: oklch(62% 0.11 152 / 16%);
+  --warning: oklch(72% 0.12 78);
+  --warning-wash: oklch(72% 0.12 78 / 16%);
+  --stage-ready: oklch(64% 0.11 320);
+
+  --shadow-drawer: -8px 0 32px oklch(0% 0 0 / 45%);
 
   color-scheme: dark;
 }
@@ -121,13 +141,42 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* #root holds the staging banner (28px, only in non-production builds) and
+   .shell as flex siblings, so .shell can flex to fill exactly whatever's
+   left of the viewport instead of assuming it owns the whole 100vh itself.
+   .shell used to hard-code height: 100vh, which didn't know the banner
+   above it was already spending 28px -- the document ended up 100vh + 28px
+   tall, so both the page itself and .shell-content's own scroll region
+   scrolled, showing two scrollbars a few pixels apart. */
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 h1,
 h2,
 h3 {
-  font-family: var(--font-display);
+  font-family: var(--font);
+  font-weight: 700;
+  line-height: 1.2;
   letter-spacing: -0.01em;
+}
+
+/* Plain section title -- every section label in this app (Queue, Comments,
+   Demographics, Today's complaint, Procedures, Pricing...) used to be a
+   chip with a clip-path "tab" corner; real competitor software (Practo Ray's
+   own consultation screen, studied directly) just sets this in plain bold
+   text with no container at all. Removing the invented shape, not renaming
+   it -- an AI-tell is a tell regardless of what it's called. */
+.readout-heading {
+  margin: 0 0 var(--space-sm);
+  color: var(--text);
+  font-size: var(--text-base);
+  font-weight: 700;
 }

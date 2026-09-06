@@ -1,51 +1,49 @@
+/* v4.1 restructure -- a vertical sidebar plus a separate topbar was
+   inherited unchanged from earlier passes without asking whether it fit
+   this app: every account has exactly one or two sections (Reception,
+   Consultation), so a 240px sidebar column read as mostly dead vertical
+   space, and the topbar's section label duplicated the sidebar's own
+   active-nav highlighting. One compact header row replaces both -- the
+   same collapse the old mobile breakpoint already did, now the only
+   layout instead of a second one desktop carried alongside it. */
 .shell {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  grid-template-rows: 64px 1fr;
-  /* Must be a capped height, not a floor -- a min-height lets the grid grow
-     to fit tall content instead, so .shell-content's overflow-y: auto never
-     engages and the whole document scrolls instead, taking the sidebar,
-     topbar, and any sticky content along with it. */
-  height: 100vh;
+  grid-template-rows: 60px 1fr;
+  /* Fills whatever #root has left after the staging banner, rather than
+     assuming the full 100vh -- see the #root comment in index.css. */
+  flex: 1;
+  min-height: 0;
 }
 
-.shell-sidebar,
-.shell-topbar,
-.shell-content {
-  /* Grid items default to a content-based min-width/min-height floor --
-     without this, unshrinkable content (the mobile header row's nav
-     pill + sign-out button) pushes its track wider than the 1fr it was
-     given instead of clipping/eliding inside it. */
+.shell-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: 0 var(--space-lg);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
   min-width: 0;
 }
 
-.shell-sidebar {
-  grid-row: 1 / 3;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  padding: var(--space-lg) var(--space-md);
-  display: flex;
-  flex-direction: column;
-}
-
 .shell-clinic-name {
+  flex: none;
+  max-width: 12rem;
   font-size: var(--text-sm);
   font-weight: 800;
   letter-spacing: -0.01em;
-  padding: 0 var(--space-xs);
-  margin-bottom: var(--space-lg);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.shell-nav-item {
+.shell-nav {
   display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  width: 100%;
-  margin-bottom: var(--space-2xs);
-  padding: var(--space-sm) var(--space-sm);
+  gap: var(--space-2xs);
+  flex: none;
+}
+
+.shell-nav-item {
+  padding: var(--space-xs) var(--space-md);
   border: none;
   border-radius: var(--radius-input);
   background: none;
@@ -53,7 +51,6 @@
   font-family: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
-  text-align: left;
   cursor: pointer;
   transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out);
 }
@@ -75,27 +72,41 @@
   color: var(--accent);
 }
 
-.shell-nav-item svg {
-  flex: none;
+.shell-header-spacer {
+  flex: 1;
+  min-width: var(--space-md);
 }
 
-.shell-sidebar-foot {
-  margin-top: auto;
+.shell-theme-toggle {
+  flex: none;
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding-top: var(--space-sm);
-  border-top: 1px solid var(--border);
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
+  background: none;
+  border: none;
+  padding: var(--space-2xs);
+  border-radius: var(--radius-input);
+  cursor: pointer;
+}
+
+.shell-theme-toggle:hover {
+  color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.shell-theme-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .shell-user-email {
-  flex: 1;
-  min-width: 0;
+  flex: none;
+  max-width: 14rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
 }
 
 .shell-signout {
@@ -108,7 +119,7 @@
   color: var(--text-tertiary);
   background: none;
   border: none;
-  padding: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-xs);
   border-radius: var(--radius-input);
   cursor: pointer;
 }
@@ -119,75 +130,33 @@
 }
 
 .shell-signout:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.shell-topbar {
-  grid-column: 2 / 3;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--space-xl);
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.shell-topbar-section {
-  font-size: var(--text-base);
-  font-weight: 700;
-}
-
-.shell-topbar-user {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .shell-content {
-  grid-column: 2 / 3;
-  background: var(--bg);
   overflow-y: auto;
   overflow-x: clip;
+  background: var(--bg);
   padding: var(--space-xl);
 }
 
-@media (max-width: 720px) {
-  .shell {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
+/* Past a certain width, an uncapped case-sheet just stretches its ruled
+   sections and record panel across bare background -- a wide monitor
+   isn't more content, so cap the working width instead of floating it. */
+.shell-content > * {
+  max-width: 1600px;
+  margin-inline: auto;
+}
 
-  /* One combined header row -- the separate topbar (which duplicated the
-     section name and the user's email) is dropped entirely on mobile
-     rather than cramming both rows' content into 390px. */
-  .shell-sidebar {
-    grid-row: 1 / 2;
-    flex-direction: row;
-    align-items: center;
+@media (max-width: 720px) {
+  .shell-header {
+    padding: 0 var(--space-md);
     gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    border-right: none;
-    border-bottom: 1px solid var(--border);
   }
 
   .shell-clinic-name {
-    flex: 1;
-    min-width: 0;
-    margin-bottom: 0;
-  }
-
-  .shell-nav-item {
-    flex: none;
-    width: auto;
-    margin-bottom: 0;
-    white-space: nowrap;
-  }
-
-  .shell-sidebar-foot {
-    flex: none;
-    margin-top: 0;
-    padding-top: 0;
-    border-top: none;
+    max-width: 6rem;
   }
 
   .shell-user-email {
@@ -198,12 +167,7 @@
     display: none;
   }
 
-  .shell-topbar {
-    display: none;
-  }
-
   .shell-content {
-    grid-column: 1 / 2;
     padding: var(--space-md);
   }
 }

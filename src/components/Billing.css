@@ -1,9 +1,10 @@
-/* Hallmark · genre: modern-minimal · theme: cobalt (trimmed) · design-system: /design.md · designed-as-app
+/* genre: modern-minimal-operate · design-system: /design.md · designed-as-app
  *
  * Billing (reception's side) -- reuses .record-section/.pricing-block/
  * .pricing-row/.past-visit-list/.past-visit-item/.action-row from
  * Consultation.css and Reception.css; only the payment-method row, the
- * emphasised final-amount row, and the printable slip are new here.
+ * emphasised final-amount row, the paid stamp, and the printable slip are
+ * new here.
  */
 
 .bill-item-row {
@@ -42,6 +43,27 @@
   display: block;
   margin: var(--space-md) 0;
   border-radius: var(--radius-input);
+}
+
+/* The one rubber-stamp moment in the app -- reserved for an actually
+   confirmed payment, never used decoratively elsewhere, so it still means
+   something when it appears. */
+.paid-stamp {
+  display: inline-block;
+  margin-bottom: var(--space-sm);
+  padding: var(--space-2xs) var(--space-md);
+  border: 3px solid var(--success);
+  /* Uneven corners plus a faint offset "ghost" outline -- a real rubber
+     stamp never strikes perfectly true; cheapest honest version of that
+     imprecision, short of a rendered/distressed asset. */
+  border-radius: 5px 3px 6px 2px;
+  box-shadow: 1.5px 1px 0 0 var(--success-wash);
+  color: var(--success);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transform: rotate(-6deg);
 }
 
 /* ============================================================

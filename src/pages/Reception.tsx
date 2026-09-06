@@ -1,24 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AnimatePresence, motion } from 'motion/react'
+import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useClinicId } from '../lib/useClinicId'
 import { NewPatientForm, type NewPatientInput } from '../components/NewPatientForm'
 import { TokenList } from '../components/TokenList'
 import { Billing } from '../components/Billing'
+import { Drawer } from '../components/Drawer'
 import './Reception.css'
 
-// The one focal moment on this screen: search -> confirm/new-patient is the
-// whole task, so it gets one continuous-feeling transition instead of a
-// hard cut. Everything else (hover, focus) is a plain CSS state change.
-const panelTransition = { duration: 0.22, ease: [0.16, 1, 0.3, 1] as const }
-const panelMotion = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
-  transition: panelTransition,
-}
 const tap = { scale: 0.97 }
+// A small press-and-tilt, reserved for the one moment this action really is
+// a stamp on the record (checking a patient in) -- not applied to every
+// button, or it stops meaning anything.
+const stampTap = { scale: 0.96, rotate: -1 }
 
 type SearchResult = {
   id: string
@@ -114,134 +109,120 @@ export function Reception({ userId }: { userId: string }) {
 
   if (!clinicId) return null
 
-  const view = selected === 'new' ? 'new' : selected ? 'confirm' : 'search'
-
   return (
-    <div className="reception-grid">
-      <div>
-        {billingVisitId ? (
-          <Billing key={billingVisitId} clinicId={clinicId} visitId={billingVisitId} onClose={() => setBillingVisitId(null)} />
-        ) : (
-        <AnimatePresence mode="wait">
-          {view === 'search' && (
-            <motion.div key="search" {...panelMotion}>
-              <input
-                className="search-strip"
-                type="search"
-                placeholder="Search by name or phone"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && results && results.length > 0) {
-                    e.preventDefault()
-                    setSelected(results[0])
-                  }
-                }}
-                autoFocus
-              />
-
-              {debouncedQuery && (results?.length ?? 0) > 0 && (
-                <ul className="search-results">
-                  {results!.map((r) => (
-                    <li key={r.id}>
-                      <motion.button
-                        type="button"
-                        className="search-result-button"
-                        whileTap={tap}
-                        onClick={() => setSelected(r)}
-                      >
-                        {r.name}
-                        {r.phone || r.age ? (
-                          <span className="search-result-meta">
-                            {' '}
-                            {r.phone ? `— ${r.phone}` : ''} {r.age ? `— ${r.age}y` : ''}
-                          </span>
-                        ) : null}
-                      </motion.button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {debouncedQuery && (results?.length ?? 0) === 0 && (
-                <div className="no-match">
-                  <p>No matching patient found.</p>
-                  <div className="action-row">
-                    <motion.button
-                      type="button"
-                      className="primary-button"
-                      whileTap={tap}
-                      onClick={() => setSelected('new')}
-                    >
-                      New patient
-                    </motion.button>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {view === 'confirm' && selected && selected !== 'new' && (
-            <motion.form
-              key="confirm"
-              className="form-panel"
-              {...panelMotion}
-              onSubmit={(e) => {
+    <div className="reception-page">
+      <div className="reception-toolbar">
+        <div className="search-field">
+          <svg
+            className="search-field-icon"
+            width="18"
+            height="18"
+            viewBox="0 0 18 18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <circle cx="7.5" cy="7.5" r="5.5" />
+            <line x1="15.5" y1="15.5" x2="11.4" y2="11.4" />
+          </svg>
+          <input
+            className="search-strip"
+            type="search"
+            placeholder="Search by name or phone"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && results && results.length > 0) {
                 e.preventDefault()
-                checkInExisting.mutate()
-              }}
-            >
-              <h2 className="form-heading">{selected.name}</h2>
-              <div className="field">
-                <label className="field-label" htmlFor="complaint">
-                  Complaint
-                </label>
-                <input
-                  id="complaint"
-                  value={complaint}
-                  onChange={(e) => setComplaint(e.target.value)}
-                  required
-                  autoFocus
-                />
-              </div>
-              <div className="action-row">
-                <motion.button
-                  type="submit"
-                  className="primary-button"
-                  whileTap={tap}
-                  disabled={checkInExisting.isPending}
-                >
-                  {checkInExisting.isPending ? 'Checking in…' : 'Check in'}
-                </motion.button>
-                <motion.button type="button" className="secondary-button" whileTap={tap} onClick={reset}>
-                  Cancel
-                </motion.button>
-              </div>
-            </motion.form>
+                setSelected(results[0])
+              }
+            }}
+          />
+          {debouncedQuery && (results?.length ?? 0) > 0 && (
+            <ul className="search-results">
+              {results!.map((r) => (
+                <li key={r.id}>
+                  <motion.button
+                    type="button"
+                    className="search-result-button"
+                    whileTap={tap}
+                    onClick={() => setSelected(r)}
+                  >
+                    {r.name}
+                    {r.phone || r.age ? (
+                      <span className="search-result-meta">
+                        {' '}
+                        {r.phone ? `— ${r.phone}` : ''} {r.age ? `— ${r.age}y` : ''}
+                      </span>
+                    ) : null}
+                  </motion.button>
+                </li>
+              ))}
+            </ul>
           )}
-
-          {view === 'new' && (
-            <motion.div key="new" {...panelMotion}>
-              <NewPatientForm
-                initialName={debouncedQuery}
-                onSubmit={(input) => checkInNew.mutate(input)}
-                submitting={checkInNew.isPending}
-              />
-              <div className="action-row">
-                <motion.button type="button" className="secondary-button" whileTap={tap} onClick={reset}>
-                  Cancel
-                </motion.button>
-              </div>
-            </motion.div>
+          {debouncedQuery && (results?.length ?? 0) === 0 && (
+            <div className="no-match">
+              <p>No matching patient found.</p>
+            </div>
           )}
-        </AnimatePresence>
-        )}
+        </div>
+        <motion.button type="button" className="secondary-button" whileTap={tap} onClick={() => setSelected('new')}>
+          + New patient
+        </motion.button>
       </div>
 
-      <div className="readout-section">
+      <div className="worklist-panel">
         <h2 className="readout-heading">Today's queue</h2>
         <TokenList clinicId={clinicId} onSelectVisit={setBillingVisitId} />
       </div>
+
+      <Drawer open={!!billingVisitId} onClose={() => setBillingVisitId(null)} title="Bill">
+        {billingVisitId && (
+          <Billing key={billingVisitId} clinicId={clinicId} visitId={billingVisitId} onClose={() => setBillingVisitId(null)} />
+        )}
+      </Drawer>
+
+      <Drawer open={selected !== null && selected !== 'new'} onClose={reset} title={selected !== 'new' ? selected?.name : ''}>
+        {selected && selected !== 'new' && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              checkInExisting.mutate()
+            }}
+          >
+            <div className="field">
+              <label className="field-label" htmlFor="complaint">
+                Complaint
+              </label>
+              <input id="complaint" value={complaint} onChange={(e) => setComplaint(e.target.value)} required autoFocus />
+            </div>
+            <div className="action-row">
+              <motion.button type="submit" className="primary-button" whileTap={stampTap} disabled={checkInExisting.isPending}>
+                {checkInExisting.isPending ? 'Checking in…' : 'Check in'}
+              </motion.button>
+              <motion.button type="button" className="secondary-button" whileTap={tap} onClick={reset}>
+                Cancel
+              </motion.button>
+            </div>
+            {checkInExisting.isError && <p className="form-error">Couldn't save — try again.</p>}
+          </form>
+        )}
+      </Drawer>
+
+      <Drawer open={selected === 'new'} onClose={reset} title="New patient">
+        {selected === 'new' && (
+          <>
+            <NewPatientForm initialName={debouncedQuery} onSubmit={(input: NewPatientInput) => checkInNew.mutate(input)} submitting={checkInNew.isPending} />
+            <div className="action-row">
+              <motion.button type="button" className="secondary-button" whileTap={tap} onClick={reset}>
+                Cancel
+              </motion.button>
+            </div>
+          </>
+        )}
+      </Drawer>
     </div>
   )
 }

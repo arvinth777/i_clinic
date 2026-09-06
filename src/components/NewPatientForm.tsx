@@ -112,7 +112,7 @@ export function NewPatientForm({
       </div>
 
       <div className="action-row">
-        <motion.button type="submit" className="primary-button" whileTap={{ scale: 0.97 }} disabled={submitting}>
+        <motion.button type="submit" className="primary-button" whileTap={{ scale: 0.96, rotate: -1 }} disabled={submitting}>
           {submitting ? 'Checking in…' : 'Check in'}
         </motion.button>
       </div>

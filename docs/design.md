@@ -14,7 +14,7 @@ from this file to avoid keeping two documents in sync. Git history has the
 old version if a past value or rationale is needed.
 
 **Source files:**
-- Tokens + font loading — `src/index.css`, `src/main.tsx` (`@fontsource/inter`, `@fontsource/space-grotesk`, `@fontsource/jetbrains-mono` imports)
+- Tokens + font loading — `src/index.css`, `src/main.tsx` (`@fontsource/inter`, `@fontsource/jetbrains-mono` imports)
 - Shell chrome — `src/components/AppShell.tsx` + `AppShell.css`
 - Staging strip — `src/components/StagingBanner.tsx` + `.css`
 - Reception content — `src/pages/Reception.tsx` + `Reception.css`
