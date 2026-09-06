@@ -159,6 +159,62 @@ async function pricingOf(visitId) {
   report('correcting an already-corrected bill is rejected', !!doubleCorrectErr, doubleCorrectErr?.message)
 }
 
+// ============================================================
+// Section 3: High finding -- a visit can silently vanish from
+// Reception's own billing queue once it crosses midnight still unbilled.
+// TokenList.tsx's query used .gte('arrived_at', startOfToday()) with no
+// exception for a visit that hasn't been paid yet. Established first
+// (docs/STATUS.md): there is no end-of-day/expiry concept anywhere in
+// this app for an open visit -- nothing else ever says "yesterday's
+// unbilled visit stops being billable" -- so this is a query-scope bug,
+// not a missing product state. The fix keeps the existing "today" scope
+// for anything already paid (no reason to keep flooding the worklist
+// with settled history) but adds an escape hatch for anything not yet
+// paid, regardless of arrival date -- mirroring the doctor's own queue,
+// which never date-scopes at all.
+//
+// This section runs both the OLD and the FIXED query shape directly
+// (no migration or component needed to demonstrate the difference) --
+// genuinely red for the OLD shape (confirms the bug is real), genuinely
+// green for the FIXED shape, both asserted here before touching
+// TokenList.tsx itself.
+// ============================================================
+{
+  const yesterday = new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString() // safely into "yesterday" regardless of timezone
+
+  const staleUnbilledId = await makeVisit('phase g fix test: stale unbilled visit')
+  await doctorA.from('visits').update({ arrived_at: yesterday }).eq('id', staleUnbilledId)
+  await readyForBilling(staleUnbilledId, 15000) // stage: ready_at_reception, never paid
+
+  const stalePaidId = await makeVisit('phase g fix test: stale already-paid visit')
+  await doctorA.from('visits').update({ arrived_at: yesterday }).eq('id', stalePaidId)
+  await readyForBilling(stalePaidId, 15000)
+  const paidSnapshot = await pricingOf(stalePaidId)
+  await receptionA.rpc('confirm_bill', {
+    p_visit_id: stalePaidId,
+    p_payment_method: 'cash',
+    p_snapshot_final_amount_paise: paidSnapshot.final_amount_paise,
+    p_snapshot_revision_number: paidSnapshot.revision_number,
+  })
+
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+
+  const { data: oldQuery } = await receptionA.from('visits').select('id').eq('clinic_id', CLINIC_A_ID).gte('arrived_at', todayStart.toISOString())
+  const oldIds = new Set((oldQuery ?? []).map((v) => v.id))
+  report("the current query genuinely misses the stale unbilled visit (confirms the bug's real)", !oldIds.has(staleUnbilledId), `oldQuery matched ${oldIds.size} rows`)
+
+  const { data: fixedQuery, error: fixedErr } = await receptionA
+    .from('visits')
+    .select('id, stage')
+    .eq('clinic_id', CLINIC_A_ID)
+    .or(`arrived_at.gte.${todayStart.toISOString()},stage.neq.paid`)
+  if (fixedErr) throw new Error(`fixed query failed: ${fixedErr.message}`)
+  const fixedIds = new Map((fixedQuery ?? []).map((v) => [v.id, v.stage]))
+  report('the fixed query surfaces the stale UNBILLED visit', fixedIds.get(staleUnbilledId) === 'ready_at_reception', JSON.stringify(fixedIds.get(staleUnbilledId)))
+  report('the fixed query still excludes the stale PAID visit (no worklist bloat from settled history)', !fixedIds.has(stalePaidId), JSON.stringify(fixedIds.has(stalePaidId)))
+}
+
 console.log('\n== Summary ==')
 const failed = results.filter((r) => !r.pass)
 console.log(`${results.length - failed.length}/${results.length} passed`)

@@ -124,11 +124,19 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
   const { data, isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
+      // "Today" alone used to be the whole filter -- but a visit that's
+      // still unpaid when it crosses midnight would silently drop off
+      // this list forever, with real money owed and no UI path left to
+      // collect it (docs/STATUS.md's Phase G audit). Anything not yet
+      // paid stays visible regardless of arrival date, same as the
+      // doctor's own queue never date-scopes at all; a visit that's
+      // already paid keeps the "today" scope, so settled history doesn't
+      // pile up here indefinitely.
       const { data, error } = await supabase
         .from('visits')
         .select('id, token_number, stage, arrived_at, patients(name)')
         .eq('clinic_id', clinicId)
-        .gte('arrived_at', startOfToday())
+        .or(`arrived_at.gte.${startOfToday()},stage.neq.paid`)
         .order('arrived_at', { ascending: true })
       if (error) throw error
       return data as unknown as Visit[]
