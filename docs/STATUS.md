@@ -273,7 +273,13 @@ change, and the value round-tripped into the database correctly.
   "a derived read across tables that must inherit the querying user's
   own RLS, not the view owner's." Reach for this before a new RPC
   whenever the only reason for an RPC would be joining a few tables for
-  display, not elevating privilege.
+  display, not elevating privilege. Neither view filters by `clinic_id`
+  itself — both rely entirely on the caller's RLS on `bills`/`visits`/
+  `patients` to scope rows to their own clinic. Harmless today (RLS
+  already restricts every caller to their own clinic's rows regardless
+  of what the view returns), but a future multi-clinic-per-user role
+  would need the view's own `where clinic_id = ...` predicate, not just
+  RLS, to stay correct.
 
 ## Next action
 
