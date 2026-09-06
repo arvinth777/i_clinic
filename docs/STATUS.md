@@ -6,13 +6,13 @@ Update it before ending a session or when a block of work completes.
 ## Where we are
 
 Working through `docs/build-plan.md`, one phase per session, in order.
-The user has twice explicitly authorized skipping the plan's default
-"one phase per session" pacing within a session: once to go straight
-into Phase B after Phase A, and again to resolve Phase A's two open
-decisions before starting Phase C.
+The user has repeatedly authorized skipping the plan's default "one
+phase per session" pacing within a single session — most recently to
+resolve Phase A's two open decisions and then go straight into Phase C
+in the same turn.
 
-Phase A's two open decisions are now both resolved by the user — see
-"Resolved this session" below. **Phase C — Payments completed is next.**
+**Phase C — Payments completed: built, tested, and verified live.
+Stopping here per the plan's own "one phase per session" rule.**
 
 ## Phase checklist
 
@@ -39,7 +39,16 @@ Phase A's two open decisions are now both resolved by the user — see
   - [x] Checkpoint: `docs/security-review.md` — run against the live DB (not just the migration text); two real findings, both fixed in the same phase (see below) — no policy tradeoff either time, unlike Phase A's merge finding
   - [x] Checkpoint: ponytail / live verification — see "Caught this phase" below
   - [x] Done when: verified live — billing a visit with a real prescribed quantity visibly moved stock (Counter 4 → 2 for a ×2 dispensing, not the 1-unit fallback), and a monthly count surfaced a real variance (40 expected → 35 counted, gap -5 saved)
-- [ ] Phase C — Payments completed (UPI, pay-later/credit, unpaid list, settling)
+- [x] **Phase C — Payments completed**
+  - [x] Tests first: `scripts/settle-bill-test.mjs`, run red against the pre-migration schema, then green (17/17)
+  - [x] UPI: already worked before this phase (real QR from `qrcode`, `clinics.upi_vpa`) — pinned down, not rebuilt
+  - [x] Pay later / credit: already worked before this phase (`confirm_bill` already accepted `payment_method='pay_later'` and closed the visit as billed) — pinned down, not rebuilt
+  - [x] Unpaid list: `unpaid_bills` (security_invoker view, same idiom as `bills_needing_reconciliation`) + a receptionist-only nav screen
+  - [x] Settling: `bill_settlements` (append-only, `unique(bill_id)` is the only guard needed) + `settle_bill` RPC (receptionist-only, pay_later-only) — a new linked record, the original `bills` row never mutated (non-negotiable #3), verified byte-for-byte unchanged in the test
+  - [x] Extra, not in the plan's bullet list but needed to make UPI actually usable for a real clinic: an Admin "Settings" tab for `clinics.upi_vpa`, via a narrow `admin_set_clinic_upi_vpa` RPC (one column, not a blanket UPDATE policy on `clinics` — that would also expose `next_token_number` to casual editing)
+  - [x] Checkpoint: `docs/security-review.md` — run against the live DB; **no findings this time** (RLS, grants, and role boundaries all came out clean on the first check, unlike Phases A and B)
+  - [x] Checkpoint: ponytail — no follow-up needed
+  - [x] Done when: verified live and via script — a credit visit closes as paid, appears on the unpaid list, disappears once settled, and the original bill row is unchanged (compared before/after, identical)
 - [ ] Phase D — Documents, register, reps
 - [ ] Phase E — Reports
 - [ ] Phase F — Offline
@@ -251,17 +260,32 @@ change, and the value round-tripped into the database correctly.
   because a narrow read still turned out to be the wrong call once the
   user weighed it — read "Resolved this session" before reaching for
   this pattern again.
+- **Settling is a new linked record, not a correction.**
+  `corrects_bill_id` is for amount corrections after pricing drifted (a
+  different concern, unaffected by Phase C); settling a pay_later bill
+  is `bill_settlements`, a separate table with no relationship to
+  `corrects_bill_id` at all. If a future phase needs to settle a bill
+  that also needs a price correction, that's two independent linked
+  records against the same original bill, not one mechanism reused for
+  both.
+- **`unpaid_bills` and `bills_needing_reconciliation` are both
+  `security_invoker` views over `bills`** — the established idiom for
+  "a derived read across tables that must inherit the querying user's
+  own RLS, not the view owner's." Reach for this before a new RPC
+  whenever the only reason for an RPC would be joining a few tables for
+  display, not elevating privilege.
 
 ## Next action
 
 Read this file, `AGENTS.md`, `docs/design.md`, `docs/architecture-spec.md`,
-and the PRD, resolve Phase A's two open decisions above if you can, then
-start Phase C (Payments completed) — tests first, per
+and the PRD, then start Phase D (Documents, register, reps) — per
 `docs/build-plan.md`.
 
-Phase C's own surface (settling an unpaid bill, correction bills via
-`corrects_bill_id`) calls `confirm_bill` again on a visit that may
-already have stock deducted. Read migration `20260906200300`'s header
-before touching `confirm_bill`, and run `scripts/stock-test.mjs` section
-8 as part of Phase C's own test pass — it's the regression guard against
-reintroducing the reopen/rebill double-deduction this phase just fixed.
+Note on a worry from the previous entry, now resolved: settling a bill
+does **not** call `confirm_bill` again — `settle_bill` is a separate RPC
+against a separate table (`bill_settlements`), so it never touches
+`stock_movements` and can't reintroduce the reopen/rebill double-
+deduction Phase B fixed. That fix's own regression guard
+(`stock-test.mjs` section 8) is only relevant if a future phase adds a
+*second* call path into `confirm_bill` itself (e.g. a correction-bill
+flow using `corrects_bill_id`) — Phase C did not need one.
