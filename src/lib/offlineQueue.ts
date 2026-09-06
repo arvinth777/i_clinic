@@ -179,7 +179,16 @@ export async function attemptOrQueue(args: {
   queueItem: () => Omit<QueuedMutation, 'id' | 'seq' | 'createdAt'> & { id?: string }
   applyOptimistic?: () => void
 }): Promise<{ queued: boolean }> {
-  if (navigator.onLine) {
+  // Being online is not enough to attempt directly -- requirement 3 is
+  // "never skip ahead". A halted mutation is never dequeued (it sits at the
+  // front until a human resolves it), and drainQueue's own listQueue() call
+  // races the 'online' listener's fire-and-forget drain against whatever the
+  // user does next -- without this check, a fresh online-first write could
+  // land before an older queued (or halted) one finishes replaying, which is
+  // exactly the out-of-order corruption a visit_pricing revision can't
+  // tolerate. Checking the queue is empty first means a new write only ever
+  // goes straight to the server when nothing is ahead of it.
+  if (navigator.onLine && (await listQueue()).length === 0) {
     const { error } = await args.attempt()
     if (!error) return { queued: false }
     if (!isNetworkFailure(error)) throw error

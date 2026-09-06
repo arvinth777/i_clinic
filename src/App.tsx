@@ -40,6 +40,11 @@ function App() {
     return (
       <>
         <StagingBanner />
+        {/* Requirement 6: unmissable, not just while signed in -- the queue
+            isn't cleared on sign-out (docs/STATUS.md's residual edge #2), so
+            a receptionist signing out at end of day with pending work still
+            needs to see it, not a blank sign-in screen. */}
+        <OfflineQueueBanner />
         <SignIn />
       </>
     )
