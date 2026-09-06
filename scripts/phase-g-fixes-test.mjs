@@ -215,6 +215,32 @@ async function pricingOf(visitId) {
   report('the fixed query still excludes the stale PAID visit (no worklist bloat from settled history)', !fixedIds.has(stalePaidId), JSON.stringify(fixedIds.has(stalePaidId)))
 }
 
+// ============================================================
+// Section 4: Medium finding -- search_patients had a live anon EXECUTE
+// grant, contradicting its own migration's revoke (the two-Supabase-
+// privilege-grant gotcha). Genuinely red before migration
+// 20260907050000: an anon (unauthenticated) client's call *succeeds*
+// (RLS filters it to zero rows, but the function-level grant itself
+// still lets the call through) -- green after: the call is rejected at
+// the permission level before RLS is even reached.
+// ============================================================
+{
+  // Specifically checking the message names search_patients itself, not
+  // has_clinic_role (the RLS helper) -- before the fix, anon's call
+  // reaches the function body and only fails once RLS's own helper
+  // denies it ("permission denied for function has_clinic_role"), which
+  // would make a bare "permission denied" assertion pass for the wrong
+  // reason (caught by running this before the migration and reading the
+  // actual message, not assumed).
+  const anonClient = createClient(SUPABASE_URL, ANON_KEY, { realtime: { transport: ws } })
+  const { data, error } = await anonClient.rpc('search_patients', { p_clinic_id: CLINIC_A_ID, p_query: 'a' })
+  report(
+    'anon is denied at the search_patients grant itself, before ever reaching RLS',
+    !!error && /permission denied for function search_patients/i.test(error.message ?? ''),
+    JSON.stringify({ data, error }),
+  )
+}
+
 console.log('\n== Summary ==')
 const failed = results.filter((r) => !r.pass)
 console.log(`${results.length - failed.length}/${results.length} passed`)

@@ -1,0 +1,22 @@
+-- Phase G fix pass (docs/STATUS.md, Medium finding): search_patients had a
+-- live anon EXECUTE grant, contradicting its own migration
+-- (20260905194019_search_patients.sql), which only ever did `revoke ...
+-- from public; grant ... to authenticated` -- the exact two-Supabase-
+-- privilege-grant gotcha this project's own docs already flag as
+-- recurring (Supabase grants EXECUTE to anon/authenticated directly at
+-- CREATE FUNCTION time, as separate ACL entries from PUBLIC's).
+--
+-- Not currently exploitable -- search_patients is SECURITY INVOKER, so an
+-- anon caller still hits patients_select's RLS (which requires
+-- has_any_clinic_role, itself anon-revoked) and gets nothing -- but the
+-- anon key is public, ships in the browser bundle, and nothing should be
+-- directly callable by anon at all. Defence in depth, not a live hole.
+--
+-- Confirmed via information_schema.routine_privileges before writing this:
+-- search_patients is the only function in `public` with an unintended
+-- anon grant. health_ping (anon, deliberately -- the public health
+-- endpoint) and rls_auto_enable (anon, a pre-existing Supabase platform
+-- function this project doesn't own, already accepted in earlier phases)
+-- are the only other two, and neither is a new finding.
+
+revoke execute on function public.search_patients(uuid, text) from anon;
