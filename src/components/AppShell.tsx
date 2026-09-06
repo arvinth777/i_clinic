@@ -5,7 +5,7 @@ import { useClinicId } from '../lib/useClinicId'
 import { useTheme } from '../lib/useTheme'
 import './AppShell.css'
 
-function useClinicName(clinicId: string | undefined) {
+function useClinicName(clinicId: string | null | undefined) {
   return useQuery({
     queryKey: ['clinic-name', clinicId],
     enabled: !!clinicId,
@@ -85,7 +85,11 @@ export function AppShell({
         </button>
       </div>
       <div className="shell-content">
-        {activeSection ? children : <p>No screen is set up for this account yet.</p>}
+        {activeSection ? (
+          children
+        ) : (
+          <p className="readout-empty">This account has no role assigned at this clinic. Contact your admin to get access.</p>
+        )}
       </div>
     </div>
   )
