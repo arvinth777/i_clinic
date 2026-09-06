@@ -109,7 +109,7 @@ export function DrugList({ clinicId }: { clinicId: string }) {
       queryClient.invalidateQueries({ queryKey })
       setRemoveError('')
     },
-    onError: () => setRemoveError("Couldn't remove — it's already used in a prescription or bill."),
+    onError: () => setRemoveError("Couldn't remove — it's already used in a prescription, bill, or stock record."),
   })
 
   return (
