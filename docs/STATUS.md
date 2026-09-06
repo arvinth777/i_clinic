@@ -6,13 +6,13 @@ Update it before ending a session or when a block of work completes.
 ## Where we are
 
 Working through `docs/build-plan.md`, one phase per session, in order.
-The user explicitly authorized going straight into Phase B in the same
-session Phase A finished ("ok go on do the phase b"), overriding the
-plan's own default "one phase per session" pacing for that one instance.
+The user has twice explicitly authorized skipping the plan's default
+"one phase per session" pacing within a session: once to go straight
+into Phase B after Phase A, and again to resolve Phase A's two open
+decisions before starting Phase C.
 
-**Phase B — Stock: built, tested, and verified live. Stopping here per
-the plan's own "one phase per session" rule.** Phase A's two open
-decisions (below) are still unresolved and still apply.
+Phase A's two open decisions are now both resolved by the user — see
+"Resolved this session" below. **Phase C — Payments completed is next.**
 
 ## Phase checklist
 
@@ -22,8 +22,8 @@ decisions (below) are still unresolved and still apply.
   - [x] Prescription templates: view/rename/delete (doctor still creates them)
   - [x] Custom patient fields: definitions table + JSONB values; confirmed live that a new field appears on the intake form with zero code change
   - [x] Logins: add (Edge Function, service role) / remove (plain RLS-permitted delete); assign roles
-  - [x] Duplicate patient merge (blocked if either has an open visit today; keeps the older id; reassigns visits + patient_comments)
-  - [x] Checkpoint: `docs/security-review.md` — run, findings below, **not fixed yet** (review's own rule: report, don't fix in the same pass)
+  - [x] Duplicate patient merge (blocked if either has an open visit today; keeps the older id; reassigns visits + patient_comments) — originally built under Admin with a narrow admin-read exception; **moved to the doctor's own nav and the exception removed**, see "Resolved this session" below
+  - [x] Checkpoint: `docs/security-review.md` — run, finding **resolved this session** (see "Resolved this session" below), review's own "report, don't fix in the same pass" rule honored at the time
   - [x] Checkpoint: ponytail — caught a real gap before calling this done (see "Caught by ponytail" below)
 - [x] **Phase B — Stock**
   - [x] Tests first: `scripts/stock-test.mjs`, run red against the pre-migration schema, then green (22/22)
@@ -45,33 +45,42 @@ decisions (below) are still unresolved and still apply.
 - [ ] Phase F — Offline
 - [ ] Phase G — Go live (item 7, the health endpoint, is already done — see below)
 
-## Needs a decision before Phase B
+## Resolved this session (Phase A's two open decisions)
 
-1. **`admin_search_patients_for_merge` gives admin a narrow read of
-   `patients.name/age/phone/created_at`.** `docs/security-review.md`
-   states unconditionally: "admin cannot read patients, visits, bills,
-   prescriptions, or patient_comments." Merge (a Phase A requirement)
-   can't identify duplicate records without *some* way to look patients
-   up. Built as narrow as it can be: a SECURITY DEFINER RPC returning
-   only those four fields, admin-gated inside the function, not a
-   relaxation of `patients_select`'s RLS. Confirmed empirically (
-   `admin-phase-test.mjs`) that admin still gets nothing from `visits`,
-   `bills`, `prescriptions`, or `patient_comments` — this is the one
-   exception, not a general opening. Decide: is this an acceptable,
-   narrowly-scoped exception, or should merge candidates be identified a
-   different way (e.g. reception looks them up, admin only confirms by
-   id)?
-2. **One orphaned test login exists on staging**:
-   `should-not-exist-<timestamp>@staging.test`, currently holding role
-   `doctor` at Clinic A, visible in the real Logins tab. Left over from
-   this phase's own Edge Function testing (a test assumption was wrong —
-   see the git history for `admin-create-login-test.mjs` — the call
-   that created it was legitimate at the time, not a security hole: it
-   required a genuine admin-role session to succeed). Harmless
-   (staging-only synthetic data) but should be removed — either via the
-   Logins tab's own "Remove" (revokes the role; the login itself would
-   need `auth.admin.deleteUser`, which no script in this repo has
-   access to) or manually in the Supabase dashboard.
+1. **Merge moved from admin to doctor, `admin_search_patients_for_merge`
+   deleted.** User's call: deciding two records are the same person is a
+   clinical judgment about a patient, not configuration. The doctor
+   already has a legitimate `patients_select` read; admin does not, and
+   now has no exception at all — `docs/security-review.md`'s "admin
+   cannot read patients" line was clarified to say so explicitly.
+   `merge_patients`' authorization check moved from `has_clinic_role(...,
+   'admin')` to `'doctor'`; the narrow admin-only search RPC was dropped
+   outright (migration `20260906210000`) since the doctor's own
+   `search_patients` RPC (already used by Reception's check-in screen)
+   covers the same search under real RLS. The UI moved from an Admin tab
+   to a standalone doctor-only nav section (`src/pages/MergePatients.tsx`).
+   Verified live and via `admin-phase-test.mjs` (23/23): admin and
+   reception both rejected with "only a doctor can merge patients";
+   admin_search_patients_for_merge no longer exists at all.
+2. **Orphaned test login**: the user is deleting
+   `should-not-exist-<timestamp>@staging.test` directly in the Supabase
+   dashboard themselves. Explicit instruction: do not add service-role
+   access to any script to make this easier — that key stays off the
+   machine. Nothing to do here on the code side.
+   Same session, the user also asked for a related real case to be
+   covered: a login created with no role assigned (the role forgotten).
+   `noroles@staging.test` was created via the *existing*
+   `admin-create-login` Edge Function (its already-deployed service role
+   stays server-side; nothing new was added to any script), then its
+   `user_roles` row removed via a plain, already-RLS-permitted delete —
+   the same mechanism the Logins tab's own "Remove" already uses.
+   Caught and fixed two real 406 console errors in the process
+   (`useClinicId`'s `.single()` throws on the now-legitimate zero-role
+   case; switched to `.maybeSingle()`) and gave `AppShell` an explicit
+   message instead of a vague fallback. New committed test:
+   `scripts/no-role-account-test.mjs` (4/4) — the one script in this
+   repo that drives a real browser, since this is a rendered-UI
+   behavior no API-level check can verify.
 
 ## Caught this phase (Phase B)
 
@@ -236,8 +245,12 @@ change, and the value round-tripped into the database correctly.
   access** — deliberate continuation of Phase A's own framing (admin is
   catalog/config, not day-to-day operations). If a future phase wants
   admin visibility into stock (e.g. for reporting), that's a new,
-  explicitly-scoped read, not a blanket RLS relaxation — same idiom as
-  `admin_search_patients_for_merge`.
+  explicitly-scoped read, not a blanket RLS relaxation. Note this idiom
+  no longer has a live example in this codebase: the one prior instance
+  (`admin_search_patients_for_merge`) was deleted this session precisely
+  because a narrow read still turned out to be the wrong call once the
+  user weighed it — read "Resolved this session" before reaching for
+  this pattern again.
 
 ## Next action
 
