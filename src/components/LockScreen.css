@@ -1,0 +1,41 @@
+.lock-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lock-screen-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  width: min(240px, 80vw);
+  color: var(--text);
+}
+
+.lock-screen-label {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin: 0;
+}
+
+.lock-screen-input {
+  width: 100%;
+  text-align: center;
+  font-size: var(--text-lg);
+  letter-spacing: 0.3em;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.lock-screen-input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}

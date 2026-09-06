@@ -1,9 +1,66 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useClinicId } from '../lib/useClinicId'
 import { useTheme } from '../lib/useTheme'
+import { useIdleTimer } from '../lib/useIdleTimer'
+import { hasPin, setPin } from '../lib/pinLock'
+import { LockScreen } from './LockScreen'
+import { Drawer } from './Drawer'
 import './AppShell.css'
+
+// Per-station idle-lock timeout (docs/architecture-spec.md): the reception
+// desk is a walk-through space, unattended repeatedly through the day; the
+// doctor's console is a controlled consultation room where a short timer
+// would just get disabled by the person it's meant to protect. Derived
+// from role, not a physical station setting -- this is a login session,
+// not a kiosk. A doctor holding admin too (docs/STATUS.md's documented
+// roster) still gets the doctor's longer window.
+const DOCTOR_TIMEOUT_MS = 15 * 60 * 1000
+const OTHER_TIMEOUT_MS = 2 * 60 * 1000
+
+function PinForm({ onDone }: { onDone: () => void }) {
+  const [pin, setPinDraft] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [error, setError] = useState('')
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!/^\d{4,6}$/.test(pin)) {
+      setError('PIN must be 4 to 6 digits.')
+      return
+    }
+    if (pin !== confirm) {
+      setError("PINs don't match.")
+      return
+    }
+    await setPin(pin)
+    onDone()
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <div className="field">
+        <label className="field-label" htmlFor="new-pin">
+          New PIN (4-6 digits)
+        </label>
+        <input id="new-pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPinDraft(e.target.value)} autoFocus />
+      </div>
+      <div className="field">
+        <label className="field-label" htmlFor="confirm-pin">
+          Confirm PIN
+        </label>
+        <input id="confirm-pin" type="password" inputMode="numeric" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+      </div>
+      {error && <p className="form-error">{error}</p>}
+      <div className="action-row">
+        <button type="submit" className="primary-button">
+          Save PIN
+        </button>
+      </div>
+    </form>
+  )
+}
 
 function useClinicName(clinicId: string | null | undefined) {
   return useQuery({
@@ -22,6 +79,7 @@ export type ShellSection = { key: string; label: string }
 export function AppShell({
   userId,
   userEmail,
+  isDoctor,
   sections,
   activeSection,
   onSelectSection,
@@ -29,6 +87,7 @@ export function AppShell({
 }: {
   userId: string
   userEmail: string | undefined
+  isDoctor: boolean
   sections: ShellSection[]
   activeSection: string
   onSelectSection: (key: string) => void
@@ -37,6 +96,12 @@ export function AppShell({
   const { data: clinicId } = useClinicId(userId)
   const { data: clinicName } = useClinicName(clinicId)
   const { theme, toggleTheme } = useTheme()
+
+  const [pinSet, setPinSet] = useState(hasPin())
+  const [locked, setLocked] = useState(false)
+  const [showPinForm, setShowPinForm] = useState(false)
+
+  useIdleTimer(pinSet, isDoctor ? DOCTOR_TIMEOUT_MS : OTHER_TIMEOUT_MS, () => setLocked(true))
 
   return (
     <div className="shell">
@@ -74,6 +139,20 @@ export function AppShell({
             </svg>
           )}
         </button>
+        <button type="button" className="shell-theme-toggle" onClick={() => setShowPinForm(true)} aria-label={pinSet ? 'Change lock PIN' : 'Set a lock PIN'}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="11" width="16" height="9" rx="2" />
+            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+          </svg>
+        </button>
+        {pinSet && (
+          <button type="button" className="shell-theme-toggle" onClick={() => setLocked(true)} aria-label="Lock screen now">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <rect x="4" y="11" width="16" height="9" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
         <span className="shell-user-email">{userEmail}</span>
         <button type="button" className="shell-signout" onClick={() => supabase.auth.signOut()}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -84,6 +163,15 @@ export function AppShell({
           <span className="shell-signout-label">Sign out</span>
         </button>
       </div>
+      <Drawer open={showPinForm} onClose={() => setShowPinForm(false)} title={pinSet ? 'Change lock PIN' : 'Set a lock PIN'}>
+        <PinForm
+          onDone={() => {
+            setPinSet(true)
+            setShowPinForm(false)
+          }}
+        />
+      </Drawer>
+      <LockScreen locked={locked} onUnlock={() => setLocked(false)} />
       <div className="shell-content">
         {activeSection ? (
           children

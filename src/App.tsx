@@ -59,6 +59,7 @@ function App() {
       <AppShell
         userId={session.user.id}
         userEmail={session.user.email}
+        isDoctor={!!roles?.some((r) => r.role === 'doctor')}
         sections={sections}
         activeSection={activeSection}
         onSelectSection={setManualSection}
