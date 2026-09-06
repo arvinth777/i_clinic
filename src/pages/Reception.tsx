@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useClinicId } from '../lib/useClinicId'
 import { NewPatientForm, type NewPatientInput } from '../components/NewPatientForm'
 import { TokenList } from '../components/TokenList'
+import { Billing } from '../components/Billing'
 import './Reception.css'
 
 // The one focal moment on this screen: search -> confirm/new-patient is the
@@ -36,6 +37,7 @@ export function Reception({ userId }: { userId: string }) {
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [selected, setSelected] = useState<SearchResult | 'new' | null>(null)
   const [complaint, setComplaint] = useState('')
+  const [billingVisitId, setBillingVisitId] = useState<string | null>(null)
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 250)
@@ -117,6 +119,9 @@ export function Reception({ userId }: { userId: string }) {
   return (
     <div className="reception-grid">
       <div>
+        {billingVisitId ? (
+          <Billing key={billingVisitId} clinicId={clinicId} visitId={billingVisitId} onClose={() => setBillingVisitId(null)} />
+        ) : (
         <AnimatePresence mode="wait">
           {view === 'search' && (
             <motion.div key="search" {...panelMotion}>
@@ -230,11 +235,12 @@ export function Reception({ userId }: { userId: string }) {
             </motion.div>
           )}
         </AnimatePresence>
+        )}
       </div>
 
       <div className="readout-section">
         <h2 className="readout-heading">Today's queue</h2>
-        <TokenList clinicId={clinicId} />
+        <TokenList clinicId={clinicId} onSelectVisit={setBillingVisitId} />
       </div>
     </div>
   )

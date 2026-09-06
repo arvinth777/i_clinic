@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
+import { parseRupeesToPaise } from '../lib/money'
 
 const DRUG_TYPES = ['Tablet', 'Syrup', 'Capsule', 'Powder', 'Injection', 'Other'] as const
 const FOOD_OPTIONS = ['Before food', 'After food', 'Either'] as const
@@ -109,6 +110,7 @@ export function PrescriptionForm({
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
+  const [newMedicinePrice, setNewMedicinePrice] = useState('')
 
   useEffect(() => {
     onActiveChange(draftItems.length > 0)
@@ -169,19 +171,19 @@ export function PrescriptionForm({
   }
 
   const addNewMedicine = useMutation({
-    mutationFn: async () => {
-      // ponytail: price_paise 0 -- pricing is out of scope for this feature.
-      // Billing (not built yet) must not silently charge ₹0 for a real drug
-      // added here; give ad-hoc medicines a real price before that ships.
+    mutationFn: async (pricePaise: number) => {
       const { data, error } = await supabase
         .from('medicines')
-        .insert({ clinic_id: clinicId, name: debouncedSearch, price_paise: 0 })
+        .insert({ clinic_id: clinicId, name: debouncedSearch, price_paise: pricePaise })
         .select('id, name')
         .single()
       if (error) throw error
       return data as MedicineResult
     },
-    onSuccess: (medicine) => addFromSearch(medicine),
+    onSuccess: (medicine) => {
+      addFromSearch(medicine)
+      setNewMedicinePrice('')
+    },
   })
 
   function updateDraft(key: string, patch: Partial<DraftItem>) {
@@ -328,12 +330,27 @@ export function PrescriptionForm({
         ) : (
           <div className="no-match">
             <p>No drug named "{debouncedSearch}" in the list.</p>
+            <div className="field">
+              <label className="field-label" htmlFor="new-medicine-price">
+                Price (₹)
+              </label>
+              <input
+                id="new-medicine-price"
+                inputMode="decimal"
+                value={newMedicinePrice}
+                onChange={(e) => setNewMedicinePrice(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
             <motion.button
               type="button"
               className="secondary-button"
               whileTap={{ scale: 0.97 }}
-              disabled={addNewMedicine.isPending}
-              onClick={() => addNewMedicine.mutate()}
+              disabled={addNewMedicine.isPending || parseRupeesToPaise(newMedicinePrice) === null}
+              onClick={() => {
+                const price = parseRupeesToPaise(newMedicinePrice)
+                if (price !== null) addNewMedicine.mutate(price)
+              }}
             >
               {addNewMedicine.isPending ? 'Adding…' : `Add "${debouncedSearch}" as a new drug`}
             </motion.button>

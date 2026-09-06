@@ -1,39 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
+import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../lib/money'
 
 type Procedure = { id: string; name: string; default_price_paise: number }
 type VisitProcedure = { id: string; procedure_id: string; price_paise: number; procedures: { name: string } | null }
-type Pricing = { calculated_total_paise: number; final_amount_paise: number; discount_paise: number; revision_number: number }
-
-// Paise -> rupees for display only, integer arithmetic throughout (no /100
-// float division) -- money itself never leaves bigint paise.
-function formatPaise(paise: number): string {
-  const rupees = Math.floor(paise / 100)
-  const cents = paise % 100
-  return `₹${rupees}.${String(cents).padStart(2, '0')}`
-}
-
-// Same value, formatted for an editable rupees field: no trailing ".00" for
-// a whole-rupee amount, so an untouched field doesn't read as "changed".
-function formatPaiseForInput(paise: number): string {
-  const rupees = Math.floor(paise / 100)
-  const cents = paise % 100
-  return cents === 0 ? String(rupees) : `${rupees}.${String(cents).padStart(2, '0')}`
-}
-
-// Parses what the doctor typed -- rupees, optionally with up to 2 decimal
-// places (procedures can legitimately price at e.g. 7.50) -- into integer
-// paise via string splitting, never parseFloat/Number division: a real
-// price like 7.50 has no exact binary float representation, and this is
-// the one arithmetic path in the whole feature that a doctor's keystrokes
-// drive directly. Returns null for anything that isn't a plain non-negative
-// rupees[.paise] number.
-function parseRupeesToPaise(input: string): number | null {
-  const trimmed = input.trim()
-  if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return null
-  const [rupees, paise = ''] = trimmed.split('.')
-  return Number(rupees) * 100 + Number((paise + '00').slice(0, 2))
+type Pricing = {
+  calculated_total_paise: number
+  final_amount_paise: number
+  discount_paise: number
+  revision_number: number
+  final_amount_set: boolean
 }
 
 export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId: string }) {
@@ -73,7 +50,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visit_pricing')
-        .select('calculated_total_paise, final_amount_paise, discount_paise, revision_number')
+        .select('calculated_total_paise, final_amount_paise, discount_paise, revision_number, final_amount_set')
         .eq('visit_id', visitId)
         .single()
       if (error) throw error
@@ -135,9 +112,13 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
   })
 
   const [finalAmountDraft, setFinalAmountDraft] = useState('')
+  const [finalAmountDirty, setFinalAmountDirty] = useState(false)
   const [finalAmountError, setFinalAmountError] = useState('')
   useEffect(() => {
-    if (pricing) setFinalAmountDraft(formatPaiseForInput(pricing.final_amount_paise))
+    if (pricing) {
+      setFinalAmountDraft(formatPaiseForInput(pricing.final_amount_paise))
+      setFinalAmountDirty(false)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pricing?.final_amount_paise])
 
@@ -149,8 +130,15 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
     onSuccess: () => queryClient.invalidateQueries({ queryKey: pricingKey }),
   })
 
+  // Reception's billing screen blocks payment until final_amount_set is
+  // true, so a doctor who's happy with the default (no discount) still has
+  // to actively confirm it -- but an incidental tab-through of an
+  // already-set field must not silently re-fire a write. Send when the
+  // field was genuinely edited (dirty), or when it hasn't been set yet at
+  // all (the one case where even an unchanged value is a real confirm).
   function commitFinalAmount() {
     if (!pricing) return
+    if (!finalAmountDirty && pricing.final_amount_set) return
     const value = parseRupeesToPaise(finalAmountDraft)
     if (value === null) {
       setFinalAmountError("Final amount can't be less than 0")
@@ -161,7 +149,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
       return
     }
     setFinalAmountError('')
-    if (value === pricing.final_amount_paise) return
+    setFinalAmountDirty(false)
     updateFinalAmount.mutate(value)
   }
 
@@ -236,7 +224,10 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
                 id="final-amount"
                 inputMode="decimal"
                 value={finalAmountDraft}
-                onChange={(e) => setFinalAmountDraft(e.target.value)}
+                onChange={(e) => {
+                  setFinalAmountDraft(e.target.value)
+                  setFinalAmountDirty(true)
+                }}
                 onBlur={commitFinalAmount}
                 onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
               />

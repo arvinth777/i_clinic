@@ -90,7 +90,11 @@ function StageShape({ stage, color }: { stage: string; color: string }) {
   }
 }
 
-export function TokenList({ clinicId }: { clinicId: string }) {
+// Stages the receptionist can click into to open (or reopen) a bill --
+// "with_doctor"/"waiting" have nothing for her to do yet.
+const BILLABLE_STAGES = new Set(['packing', 'ready_at_reception', 'paid'])
+
+export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSelectVisit?: (visitId: string) => void }) {
   const queryClient = useQueryClient()
   const queryKey = ['visits-today', clinicId]
 
@@ -134,21 +138,27 @@ export function TokenList({ clinicId }: { clinicId: string }) {
   return (
     <div className="readout-list">
       <AnimatePresence initial={false}>
-        {data.map((v) => (
-          <motion.div
-            key={v.id}
-            className="readout-row"
-            layout
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={rowTransition}
-          >
-            <span className="readout-token">{v.token_number}</span>
-            <span className="readout-name">{v.patients?.name}</span>
-            <StageGlyph stage={v.stage} />
-          </motion.div>
-        ))}
+        {data.map((v) => {
+          const clickable = !!onSelectVisit && BILLABLE_STAGES.has(v.stage)
+          return (
+            <motion.div
+              key={v.id}
+              className={clickable ? 'readout-row readout-row-clickable' : 'readout-row'}
+              layout
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={rowTransition}
+              onClick={clickable ? () => onSelectVisit!(v.id) : undefined}
+              role={clickable ? 'button' : undefined}
+              tabIndex={clickable ? 0 : undefined}
+            >
+              <span className="readout-token">{v.token_number}</span>
+              <span className="readout-name">{v.patients?.name}</span>
+              <StageGlyph stage={v.stage} />
+            </motion.div>
+          )
+        })}
       </AnimatePresence>
     </div>
   )
