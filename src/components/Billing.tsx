@@ -5,6 +5,7 @@ import QRCode from 'qrcode'
 import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
 import { formatDate } from '../lib/date'
+import { attemptOrQueue } from '../lib/offlineQueue'
 import './Billing.css'
 
 type Visit = {
@@ -15,7 +16,7 @@ type Visit = {
   patients: { name: string } | null
 }
 
-type Pricing = { calculated_total_paise: number; final_amount_paise: number; discount_paise: number; final_amount_set: boolean }
+type Pricing = { calculated_total_paise: number; final_amount_paise: number; discount_paise: number; revision_number: number; final_amount_set: boolean }
 
 type DetailRow = {
   kind: 'consultation' | 'procedure' | 'medicine'
@@ -29,7 +30,7 @@ type DetailRow = {
   notes: string | null
 }
 
-type Bill = { id: string; final_amount_paise: number; payment_method: string; confirmed_at: string }
+type Bill = { id: string; final_amount_paise: number; payment_method: string; confirmed_at: string; pending?: boolean }
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
@@ -162,11 +163,27 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
   })
 
   // Opening the bill moves the visit to "ready at reception" automatically
-  // -- no separate click.
+  // -- no separate click. Queued offline: patched into the cache directly
+  // (not just invalidated -- there's no network to refetch from), so the
+  // rest of this screen unblocks immediately instead of waiting on a stage
+  // that will only actually change once the queue drains.
   const openBill = useMutation({
+    // React Query's default networkMode ('online') pauses a mutation before
+    // ever calling mutationFn while navigator.onLine is false -- 'always'
+    // is what lets attemptOrQueue's own online/offline branch run at all.
+    networkMode: 'always',
     mutationFn: async () => {
-      const { error } = await supabase.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId).eq('stage', 'packing')
-      if (error) throw error
+      await attemptOrQueue({
+        attempt: () => supabase.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId).eq('stage', 'packing'),
+        queueItem: () => ({
+          kind: 'update',
+          table: 'visits',
+          payload: { stage: 'ready_at_reception' },
+          match: { id: visitId },
+          description: `Open bill for ${visit?.patients?.name ?? 'a visit'}`,
+        }),
+        applyOptimistic: () => queryClient.setQueryData<Visit>(visitKey, (old) => (old ? { ...old, stage: 'ready_at_reception' } : old)),
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: visitKey })
@@ -184,7 +201,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visit_pricing')
-        .select('calculated_total_paise, final_amount_paise, discount_paise, final_amount_set')
+        .select('calculated_total_paise, final_amount_paise, discount_paise, revision_number, final_amount_set')
         .eq('visit_id', visitId)
         .single()
       if (error) throw error
@@ -234,16 +251,63 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
   const [confirmedBill, setConfirmedBill] = useState<Bill | null>(null)
 
   const confirmPayment = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: paymentMethod })
-      if (error) throw error
-      const { data: bill, error: billErr } = await supabase
-        .from('bills')
-        .select('id, final_amount_paise, payment_method, confirmed_at')
-        .eq('id', data as string)
-        .single()
-      if (billErr) throw billErr
-      return bill as Bill
+    networkMode: 'always',
+    mutationFn: async (): Promise<Bill> => {
+      // The snapshot is taken right here, at the moment of the click, from
+      // whatever this screen currently has cached -- not re-read after the
+      // fact. If this ends up queued and the doctor's own device syncs a
+      // revision in before this replays, confirm_bill bills exactly this
+      // snapshot and the reconciliation trigger flags the mismatch, per
+      // docs/architecture-spec.md's offline money-conflict design -- never
+      // a silent re-read of whatever is live by then.
+      const snapshotAmount = pricing!.final_amount_paise
+      const snapshotRevision = pricing!.revision_number
+
+      const { queued } = await attemptOrQueue({
+        attempt: async () => {
+          const { error } = await supabase.rpc('confirm_bill', {
+            p_visit_id: visitId,
+            p_payment_method: paymentMethod,
+            p_snapshot_final_amount_paise: snapshotAmount,
+            p_snapshot_revision_number: snapshotRevision,
+          })
+          return { error }
+        },
+        queueItem: () => ({
+          kind: 'rpc',
+          rpc: 'confirm_bill',
+          payload: {
+            p_visit_id: visitId,
+            p_payment_method: paymentMethod,
+            p_snapshot_final_amount_paise: snapshotAmount,
+            p_snapshot_revision_number: snapshotRevision,
+          },
+          description: `Confirm ${paymentMethod} payment for ${visit?.patients?.name ?? 'a visit'}`,
+        }),
+        applyOptimistic: () => queryClient.setQueryData<Visit>(visitKey, (old) => (old ? { ...old, stage: 'paid' } : old)),
+      })
+
+      if (!queued) {
+        // Online path: confirm_bill already ran -- the same visit_id +
+        // "latest original bill" lookup confirm_bill's own early-return
+        // uses internally, since attemptOrQueue's attempt callback only
+        // surfaces { error }, not the RPC's returned id.
+        const { data: bill, error: billErr } = await supabase
+          .from('bills')
+          .select('id, final_amount_paise, payment_method, confirmed_at')
+          .eq('visit_id', visitId)
+          .is('corrects_bill_id', null)
+          .order('confirmed_at', { ascending: false })
+          .limit(1)
+          .single()
+        if (billErr) throw billErr
+        return bill as Bill
+      }
+
+      // Offline: there is no real bill row yet (confirm_bill hasn't run) --
+      // the patient is standing here regardless, so print proceeds from
+      // exactly what this screen already knows, with no server id to show.
+      return { id: 'pending', final_amount_paise: snapshotAmount, payment_method: paymentMethod, confirmed_at: new Date().toISOString(), pending: true }
     },
     onSuccess: (bill) => {
       setConfirmedBill(bill)
@@ -251,7 +315,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
       queryClient.invalidateQueries({ queryKey: ['visits-today', clinicId] })
       // Give the DOM a tick to render the printable slip before invoking
       // the browser's print dialog -- the print path stays DOM-based, no
-      // server round trip, works with zero connectivity.
+      // server round trip, works with zero connectivity, queued or not.
       setTimeout(() => window.print(), 100)
     },
   })
@@ -361,7 +425,10 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
           <div className="paid-stamp" aria-hidden="true">
             Paid
           </div>
-          <p>Paid via {confirmedBill.payment_method}. Prescription and receipt sent to print.</p>
+          <p>
+            Paid via {confirmedBill.payment_method}. Prescription and receipt sent to print.
+            {confirmedBill.pending && ' Not saved yet — waiting for a connection to actually confirm with the server.'}
+          </p>
           <div className="action-row">
             <motion.button type="button" className="secondary-button" whileTap={{ scale: 0.97 }} onClick={() => window.print()}>
               Print again

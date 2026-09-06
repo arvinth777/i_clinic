@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../lib/money'
+import { attemptOrQueue } from '../lib/offlineQueue'
 
 type Procedure = { id: string; name: string; default_price_paise: number }
 type VisitProcedure = { id: string; procedure_id: string; price_paise: number; procedures: { name: string } | null }
@@ -82,31 +83,65 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
     queryClient.invalidateQueries({ queryKey: pricingKey })
   }
 
+  // calculated_total_paise/final_amount_paise are normally recomputed
+  // server-side (recompute_visit_pricing, a trigger on visit_procedures)
+  // -- offline, nothing runs that trigger, so the optimistic patches below
+  // mirror its exact arithmetic locally (mirrored again in reverse for a
+  // removal) so this screen -- and print, if billing follows straight from
+  // here -- reflects the real total without a round trip.
+  function patchTotal(deltaPaise: number) {
+    queryClient.setQueryData<Pricing>(pricingKey, (old) => {
+      if (!old) return old
+      const total = old.calculated_total_paise + deltaPaise
+      return { ...old, calculated_total_paise: total, final_amount_paise: old.final_amount_set ? Math.min(old.final_amount_paise, total) : total }
+    })
+  }
+
   const addProcedure = useMutation({
+    networkMode: 'always',
     mutationFn: async (procedure: Procedure) => {
-      const { error } = await supabase.from('visit_procedures').insert({
-        clinic_id: clinicId,
-        visit_id: visitId,
-        procedure_id: procedure.id,
-        price_paise: procedure.default_price_paise,
+      const id = crypto.randomUUID()
+      const row = { id, clinic_id: clinicId, visit_id: visitId, procedure_id: procedure.id, price_paise: procedure.default_price_paise }
+      await attemptOrQueue({
+        attempt: () => supabase.from('visit_procedures').insert(row),
+        queueItem: () => ({ kind: 'insert', table: 'visit_procedures', payload: row, description: `Add procedure "${procedure.name}"` }),
+        applyOptimistic: () => {
+          queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => [...(old ?? []), { id, procedure_id: procedure.id, price_paise: procedure.default_price_paise, procedures: { name: procedure.name } }])
+          patchTotal(procedure.default_price_paise)
+        },
       })
-      if (error) throw error
     },
     onSuccess: invalidateAll,
   })
 
   const updatePrice = useMutation({
+    networkMode: 'always',
     mutationFn: async ({ id, price_paise }: { id: string; price_paise: number }) => {
-      const { error } = await supabase.from('visit_procedures').update({ price_paise }).eq('id', id)
-      if (error) throw error
+      const previous = visitProcedures?.find((r) => r.id === id)?.price_paise ?? price_paise
+      await attemptOrQueue({
+        attempt: () => supabase.from('visit_procedures').update({ price_paise }).eq('id', id),
+        queueItem: () => ({ kind: 'update', table: 'visit_procedures', payload: { price_paise }, match: { id }, description: 'Update a procedure price' }),
+        applyOptimistic: () => {
+          queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => old?.map((r) => (r.id === id ? { ...r, price_paise } : r)))
+          patchTotal(price_paise - previous)
+        },
+      })
     },
     onSuccess: invalidateAll,
   })
 
   const removeProcedure = useMutation({
+    networkMode: 'always',
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('visit_procedures').delete().eq('id', id)
-      if (error) throw error
+      const removed = visitProcedures?.find((r) => r.id === id)
+      await attemptOrQueue({
+        attempt: () => supabase.from('visit_procedures').delete().eq('id', id),
+        queueItem: () => ({ kind: 'delete', table: 'visit_procedures', match: { id }, description: `Remove procedure "${removed?.procedures?.name ?? ''}"` }),
+        applyOptimistic: () => {
+          queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => old?.filter((r) => r.id !== id))
+          if (removed) patchTotal(-removed.price_paise)
+        },
+      })
     },
     onSuccess: invalidateAll,
   })
@@ -123,9 +158,14 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
   }, [pricing?.final_amount_paise])
 
   const updateFinalAmount = useMutation({
+    networkMode: 'always',
     mutationFn: async (value: number) => {
-      const { error } = await supabase.from('visit_pricing').update({ final_amount_paise: value }).eq('visit_id', visitId)
-      if (error) throw error
+      await attemptOrQueue({
+        attempt: () => supabase.from('visit_pricing').update({ final_amount_paise: value }).eq('visit_id', visitId),
+        queueItem: () => ({ kind: 'update', table: 'visit_pricing', payload: { final_amount_paise: value }, match: { visit_id: visitId }, description: 'Set the final amount' }),
+        applyOptimistic: () =>
+          queryClient.setQueryData<Pricing>(pricingKey, (old) => (old ? { ...old, final_amount_paise: value, final_amount_set: true } : old)),
+      })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: pricingKey }),
   })

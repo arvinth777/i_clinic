@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
+import { attemptOrQueue } from '../lib/offlineQueue'
 import { useClinicId } from '../lib/useClinicId'
 import { NewPatientForm, type NewPatientInput } from '../components/NewPatientForm'
 import { TokenList } from '../components/TokenList'
@@ -57,15 +58,18 @@ export function Reception({ userId }: { userId: string }) {
   })
 
   const checkInExisting = useMutation({
+    // token_number is assigned server-side (schema comment, phase1_core_
+    // schema.sql) precisely so check-in itself can be queued offline --
+    // arrived_at, captured here at the client, is the real queue sort key
+    // regardless of when this row actually lands in Postgres.
+    networkMode: 'always',
     mutationFn: async () => {
       if (selected === 'new' || !selected || !clinicId) return
-      const { error } = await supabase.from('visits').insert({
-        clinic_id: clinicId,
-        patient_id: selected.id,
-        arrived_at: new Date().toISOString(),
-        complaint,
+      const row = { id: crypto.randomUUID(), clinic_id: clinicId, patient_id: selected.id, arrived_at: new Date().toISOString(), complaint }
+      await attemptOrQueue({
+        attempt: () => supabase.from('visits').insert(row),
+        queueItem: () => ({ kind: 'insert', table: 'visits', payload: row, description: `Check in ${selected.name}` }),
       })
-      if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['visits-today', clinicId] })
@@ -74,30 +78,30 @@ export function Reception({ userId }: { userId: string }) {
   })
 
   const checkInNew = useMutation({
+    networkMode: 'always',
     mutationFn: async (input: NewPatientInput) => {
       if (!clinicId) return
-      const { data: patient, error: patientErr } = await supabase
-        .from('patients')
-        .insert({
-          clinic_id: clinicId,
-          name: input.name,
-          age: Number(input.age),
-          gender: input.gender || null,
-          address: input.address || null,
-          phone: input.phone || null,
-          custom_fields: input.customFields,
-        })
-        .select('id')
-        .single()
-      if (patientErr) throw patientErr
-
-      const { error: visitErr } = await supabase.from('visits').insert({
+      const patientId = crypto.randomUUID()
+      const patientRow = {
+        id: patientId,
         clinic_id: clinicId,
-        patient_id: patient.id,
-        arrived_at: new Date().toISOString(),
-        complaint: input.complaint,
+        name: input.name,
+        age: Number(input.age),
+        gender: input.gender || null,
+        address: input.address || null,
+        phone: input.phone || null,
+        custom_fields: input.customFields,
+      }
+      const visitRow = { id: crypto.randomUUID(), clinic_id: clinicId, patient_id: patientId, arrived_at: new Date().toISOString(), complaint: input.complaint }
+
+      await attemptOrQueue({
+        attempt: () => supabase.from('patients').insert(patientRow),
+        queueItem: () => ({ kind: 'insert', table: 'patients', payload: patientRow, description: `Register new patient ${input.name}` }),
       })
-      if (visitErr) throw visitErr
+      await attemptOrQueue({
+        attempt: () => supabase.from('visits').insert(visitRow),
+        queueItem: () => ({ kind: 'insert', table: 'visits', payload: visitRow, description: `Check in ${input.name}` }),
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['visits-today', clinicId] })

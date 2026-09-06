@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { StagingBanner } from './components/StagingBanner'
+import { OfflineQueueBanner } from './components/OfflineQueueBanner'
 import { SignIn } from './components/SignIn'
 import { AppShell, type ShellSection } from './components/AppShell'
 import { Reception } from './pages/Reception'
@@ -47,6 +48,7 @@ function App() {
   return (
     <>
       <StagingBanner />
+      <OfflineQueueBanner />
       <AppShell
         userId={session.user.id}
         userEmail={session.user.email}

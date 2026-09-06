@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
+import { attemptOrQueue } from '../lib/offlineQueue'
 import { useClinicId } from '../lib/useClinicId'
 import { startOfToday, elapsedMinutes, formatElapsed } from '../lib/date'
 import { nextSortState, sortRows, type SortState } from '../lib/sort'
@@ -195,10 +196,18 @@ export function Consultation({ userId }: { userId: string }) {
     },
   })
 
+  function patchVisitStage(visitId: string, stage: string) {
+    queryClient.setQueryData<DoctorVisit[]>(queueKey, (old) => old?.map((v) => (v.id === visitId ? { ...v, stage } : v)))
+  }
+
   const callNext = useMutation({
+    networkMode: 'always',
     mutationFn: async (visitId: string) => {
-      const { error } = await supabase.from('visits').update({ stage: 'with_doctor' }).eq('id', visitId).eq('stage', 'waiting')
-      if (error) throw error
+      await attemptOrQueue({
+        attempt: () => supabase.from('visits').update({ stage: 'with_doctor' }).eq('id', visitId).eq('stage', 'waiting'),
+        queueItem: () => ({ kind: 'update', table: 'visits', payload: { stage: 'with_doctor' }, match: { id: visitId }, description: 'Call next patient' }),
+        applyOptimistic: () => patchVisitStage(visitId, 'with_doctor'),
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queueKey })
@@ -208,12 +217,16 @@ export function Consultation({ userId }: { userId: string }) {
   })
 
   const addComment = useMutation({
+    networkMode: 'always',
     mutationFn: async () => {
       if (!current || !clinicId) return
-      const { error } = await supabase
-        .from('patient_comments')
-        .insert({ clinic_id: clinicId, patient_id: current.patient_id, author_id: userId, body: commentBody.trim() })
-      if (error) throw error
+      const row = { id: crypto.randomUUID(), clinic_id: clinicId, patient_id: current.patient_id, author_id: userId, body: commentBody.trim() }
+      await attemptOrQueue({
+        attempt: () => supabase.from('patient_comments').insert(row),
+        queueItem: () => ({ kind: 'insert', table: 'patient_comments', payload: row, description: 'Add a patient comment' }),
+        applyOptimistic: () =>
+          queryClient.setQueryData<Comment[]>(commentsKey, (old) => [...(old ?? []), { id: row.id, body: row.body, created_at: new Date().toISOString() }]),
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: commentsKey })
@@ -222,10 +235,14 @@ export function Consultation({ userId }: { userId: string }) {
   })
 
   const consultationDone = useMutation({
+    networkMode: 'always',
     mutationFn: async () => {
       if (!current) return
-      const { error } = await supabase.from('visits').update({ stage: 'packing' }).eq('id', current.id)
-      if (error) throw error
+      await attemptOrQueue({
+        attempt: () => supabase.from('visits').update({ stage: 'packing' }).eq('id', current.id),
+        queueItem: () => ({ kind: 'update', table: 'visits', payload: { stage: 'packing' }, match: { id: current.id }, description: `Finish consultation for ${current.patients?.name ?? 'a patient'}` }),
+        applyOptimistic: () => patchVisitStage(current.id, 'packing'),
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queueKey })

@@ -2,104 +2,15 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
+import { attemptOrQueue } from '../lib/offlineQueue'
 import { parseRupeesToPaise } from '../lib/money'
+import { newDraftItem, draftFromExisting, itemRow, itemIsValid, type DraftItem, type ExistingItem, type Template } from '../lib/prescriptionDraft'
 
 const DRUG_TYPES = ['Tablet', 'Syrup', 'Capsule', 'Powder', 'Injection', 'Other'] as const
 const FOOD_OPTIONS = ['Before food', 'After food', 'Either'] as const
 const FREQUENCY_OPTIONS = ['1-0-1', '1-1-1', '0-0-1', '1-0-0', 'SOS', 'Other'] as const
 
-type DraftItem = {
-  key: string
-  medicineId: string
-  medicineName: string
-  drugType: string
-  strength: string
-  beforeAfterFood: string
-  dosageFrequency: string
-  durationDays: string
-  quantityDispensed: string
-  notes: string
-}
-
 type MedicineResult = { id: string; name: string }
-
-type ExistingItem = {
-  medicine_id?: string
-  drug_type: string | null
-  strength: string | null
-  before_after_food?: string | null
-  dosage_frequency: string | null
-  duration_days: number
-  quantity_dispensed?: number | null
-  notes: string | null
-  medicines: { name: string } | null
-}
-
-type Template = {
-  id: string
-  name: string
-  prescription_template_items: ExistingItem[]
-}
-
-function newDraftItem(medicineId: string, medicineName: string): DraftItem {
-  return {
-    key: crypto.randomUUID(),
-    medicineId,
-    medicineName,
-    drugType: 'Tablet',
-    strength: '',
-    beforeAfterFood: 'After food',
-    dosageFrequency: '1-0-1',
-    durationDays: '',
-    quantityDispensed: '',
-    notes: '',
-  }
-}
-
-function draftFromExisting(item: ExistingItem): DraftItem | null {
-  if (!item.medicine_id) return null
-  return {
-    key: crypto.randomUUID(),
-    medicineId: item.medicine_id,
-    medicineName: item.medicines?.name ?? '',
-    drugType: item.drug_type ?? 'Tablet',
-    strength: item.strength ?? '',
-    beforeAfterFood: item.before_after_food ?? 'After food',
-    dosageFrequency: item.dosage_frequency ?? '1-0-1',
-    durationDays: String(item.duration_days ?? ''),
-    quantityDispensed: item.quantity_dispensed != null ? String(item.quantity_dispensed) : '',
-    notes: item.notes ?? '',
-  }
-}
-
-function itemRow(item: DraftItem) {
-  return {
-    medicine_id: item.medicineId,
-    drug_type: item.drugType,
-    strength: item.strength.trim() || null,
-    before_after_food: item.beforeAfterFood,
-    dosage_frequency: item.dosageFrequency,
-    duration_days: Number(item.durationDays),
-    quantity_dispensed: Number(item.quantityDispensed),
-    notes: item.notes.trim() || null,
-  }
-}
-
-function itemIsValid(item: DraftItem): boolean {
-  const days = Number(item.durationDays)
-  const quantity = Number(item.quantityDispensed)
-  return (
-    !!item.drugType &&
-    !!item.beforeAfterFood &&
-    !!item.dosageFrequency &&
-    item.durationDays.trim() !== '' &&
-    Number.isInteger(days) &&
-    days > 0 &&
-    item.quantityDispensed.trim() !== '' &&
-    Number.isInteger(quantity) &&
-    quantity > 0
-  )
-}
 
 export function PrescriptionForm({
   clinicId,
@@ -226,17 +137,33 @@ export function PrescriptionForm({
   })
 
   const confirm = useMutation({
+    // See offlineQueue.ts -- 'online' (the default) would pause this whole
+    // mutationFn before it ever runs while offline, never reaching either
+    // insert below.
+    networkMode: 'always',
     mutationFn: async () => {
-      const { data: prescription, error: prescriptionErr } = await supabase
-        .from('prescriptions')
-        .insert({ clinic_id: clinicId, visit_id: visitId })
-        .select('id')
-        .single()
-      if (prescriptionErr) throw prescriptionErr
-      const { error: itemsErr } = await supabase
-        .from('prescription_items')
-        .insert(draftItems.map((item) => ({ ...itemRow(item), clinic_id: clinicId, prescription_id: prescription.id })))
-      if (itemsErr) throw itemsErr
+      // Client-generated ids, not server-returned ones: with no network,
+      // there is no round trip to get an id back from the first insert
+      // before the second can reference it. The same id is what makes a
+      // queued insert replay-safe (upsert-on-conflict against this id),
+      // whichever path (online or queued) each of the two inserts below
+      // actually takes.
+      const prescriptionId = crypto.randomUUID()
+      const itemRows = draftItems.map((item) => ({ ...itemRow(item), id: crypto.randomUUID(), clinic_id: clinicId, prescription_id: prescriptionId }))
+
+      await attemptOrQueue({
+        attempt: () => supabase.from('prescriptions').insert({ id: prescriptionId, clinic_id: clinicId, visit_id: visitId }),
+        queueItem: () => ({
+          kind: 'insert',
+          table: 'prescriptions',
+          payload: { id: prescriptionId, clinic_id: clinicId, visit_id: visitId },
+          description: 'Write a prescription',
+        }),
+      })
+      await attemptOrQueue({
+        attempt: () => supabase.from('prescription_items').insert(itemRows),
+        queueItem: () => ({ kind: 'insert', table: 'prescription_items', payload: itemRows, description: `Write ${itemRows.length} prescription item(s)` }),
+      })
       // Confirming a prescription is not finishing the consultation -- the
       // doctor may still add procedures or set the final amount below.
       // Only the "Consultation done" button (Consultation.tsx) moves the
