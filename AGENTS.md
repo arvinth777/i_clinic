@@ -5,6 +5,18 @@ Full product spec: `prd-clinic-management-system.md`. Read it before proposing f
 
 ---
 
+## Session state
+
+docs/STATUS.md is the current state of the build. Read it at the start
+of every session, alongside AGENTS.md and docs/. Update it before
+ending a session or when a block of work completes — what's done,
+what's uncommitted, what's flagged unfixed, what's next.
+
+Nothing important lives only in the chat. If a decision is made in
+conversation, it goes into the relevant doc in the same turn.
+
+---
+
 ## Non-negotiables
 
 These are decided. Do not relitigate them, and do not silently violate them.
