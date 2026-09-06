@@ -181,3 +181,33 @@ files this app loads.
 **shadcn/ui CSS variables (reference only):** same names as this app's own
 `--bg`/`--surface`/`--accent`/`--border` etc. — shadcn's convention and this
 project's pre-existing convention already coincide.
+
+## Known inconsistencies (left as exceptions, not normalised)
+
+Carried forward from the v2 design doc so the record survives (that doc was
+folded into this file):
+
+1. `--text-md` (1.25rem) is declared and never used.
+2. `--border-strong` doubles as `.primary-button:disabled`'s background fill,
+   outside its "border colour" name.
+3. `Reception.css`'s search-icon SVG is a static `background-image` data-URI
+   with a hardcoded hex stroke (`#9399a2`, hand-converted from
+   `--text-tertiary`'s OKLCH value) — it can't reference a CSS custom
+   property, so it silently drifts whenever that token changes, and it's
+   still wrong in dark mode (no dark-mode override exists for it).
+4. `.shell-signout:focus-visible` uses a plain `outline` (no radius token)
+   rather than the `box-shadow`-ring pattern used elsewhere.
+5. Focus-ring width is 4px on `.search-strip`, 3px everywhere else.
+6. `panelTransition` (`Reception.tsx`) and `rowTransition` (`TokenList.tsx`)
+   are identical values declared twice, not shared.
+7. `whileTap={{ scale: 0.97 }}` is redeclared inline in several files
+   instead of imported once.
+8. No `line-height` is set anywhere; every element runs on the browser
+   default for the active font stack.
+9. Buttons have no loading-spinner or error visual state — only a
+   label-text swap during a pending mutation.
+10. `.procedure-price-input` (`Consultation.css`) is a fixed `width: 6rem`
+    and now renders in `--font-mono` (JetBrains Mono, wider glyphs than
+    Inter's tabular figures) — not re-verified against a real multi-digit
+    rupee amount in a live browser after the v3 font change. Check this
+    first if a pricing input ever looks tight or clips a value.
