@@ -1,36 +1,46 @@
-/* Design tokens -- Apple-inspired, one family, restrained neutral + one
-   accent, adaptive to the OS light/dark setting (explicit user choice,
-   this session -- unlike the reset this replaced, this file's whole job
-   is to make both themes correct, not to avoid dark mode). */
+/* Design tokens -- restrained neutral + one accent. Light is the primary,
+   always-on theme regardless of OS preference (a clinic desktop's own
+   dark-mode setting shouldn't decide what staff see); dark is a secondary
+   theme from the same token names, reachable only via an explicit
+   `data-theme="dark"` on the root -- there is no settings toggle for it
+   yet, so today it exists for whenever one is added, not for OS-driven
+   auto-switching. */
 
 :root {
-  --bg: #f5f5f7;
+  --bg: #f7f8fa;
   --surface: #ffffff;
-  --surface-2: #fbfbfd;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.14);
+  --surface-2: #f3f4f6;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
 
-  --text: #1d1d1f;
-  --text-secondary: #6e6e73;
-  --text-tertiary: #86868b;
+  --text: #171a1f;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
 
-  --accent: #0071e3;
-  --accent-hover: #0077ed;
-  --accent-active: #0068d1;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-active: #1e40af;
   --accent-ink: #ffffff;
-  --accent-wash: rgba(0, 113, 227, 0.12);
-  --focus-ring: rgba(0, 113, 227, 0.35);
+  --accent-wash: rgba(37, 99, 235, 0.1);
+  --focus-ring: rgba(37, 99, 235, 0.35);
 
-  --danger: #ff3b30;
-  --success: #34c759;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #d97706;
+
+  /* Staging strip -- a system/environment signal, not a clinical one, but
+     still meaningful (this is a real warning), not decorative -- distinct
+     from --danger so retuning one never silently moves the other. */
+  --staging-bg: #b91c1c;
+  --staging-ink: #ffffff;
 
   /* Stage semantics -- a separate categorical set from the brand accent.
      Colour reinforces at a glance; the shape drawn in TokenList.tsx is the
      real signal, so it survives any colour-vision deficiency. */
-  --stage-waiting: #8e8e93;
+  --stage-waiting: var(--text-tertiary);
   --stage-with-doctor: var(--accent);
-  --stage-packing: #ff9500;
-  --stage-ready: #af52de;
+  --stage-packing: var(--warning);
+  --stage-ready: #7c3aed;
   --stage-paid: var(--success);
 
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica Neue, Arial, sans-serif;
@@ -58,29 +68,6 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #000000;
-    --surface: #1c1c1e;
-    --surface-2: #17171a;
-    --border: rgba(255, 255, 255, 0.1);
-    --border-strong: rgba(255, 255, 255, 0.16);
-
-    --text: #f5f5f7;
-    --text-secondary: #98989d;
-    --text-tertiary: #6e6e73;
-
-    --accent: #0a84ff;
-    --accent-hover: #3396ff;
-    --accent-active: #0a74e0;
-    --accent-wash: rgba(10, 132, 255, 0.16);
-    --focus-ring: rgba(10, 132, 255, 0.45);
-
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.45);
-    color-scheme: dark;
-  }
-}
-
 :root[data-theme='dark'] {
   --bg: #000000;
   --surface: #1c1c1e;
@@ -97,6 +84,11 @@
   --accent-active: #0a74e0;
   --accent-wash: rgba(10, 132, 255, 0.16);
   --focus-ring: rgba(10, 132, 255, 0.45);
+
+  --danger: #ff453a;
+  --success: #34c759;
+  --warning: #ff9f0a;
+  --stage-ready: #af52de;
 
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.45);
   color-scheme: dark;

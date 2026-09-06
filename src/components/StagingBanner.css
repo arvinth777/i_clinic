@@ -1,0 +1,16 @@
+.staging-banner {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  background: var(--staging-bg);
+  color: var(--staging-ink);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.staging-banner svg {
+  flex: none;
+}

@@ -1,13 +1,14 @@
 /* Consultation content -- queue on the left (this doctor's waiting
- * patients, token order), the open patient's record on the right.
- * Reuses Reception's readout/field/button/panel language; only the
- * shapes that don't already exist there (the wider queue row, the
- * record panel, comment/past-visit list items) are new.
+ * patients, token order), the open patient's record on the right. Reuses
+ * Reception's readout/field/button language. No nested cards anywhere:
+ * grouping comes from spacing, hairline dividers, and type hierarchy --
+ * the record area is plain page content on the canvas, not a floating
+ * panel, same as .drug-row and .pricing-block below.
  */
 
 .consultation-grid {
   display: grid;
-  grid-template-columns: 1fr 1.3fr;
+  grid-template-columns: 1fr 1.6fr;
   gap: var(--space-xl);
   align-items: start;
 }
@@ -16,6 +17,74 @@
   .consultation-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ============================================================
+ * Today's flow -- three real numbers (waiting / seen today / average
+ * current wait) plus a proportional bar in the same stage colours used
+ * everywhere else. Nothing here is invented: every figure is derived
+ * from today's visits for this clinic at render time.
+ * ============================================================ */
+
+.flow-widget {
+  margin: var(--space-md) 0 var(--space-lg);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+.flow-stats {
+  display: flex;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-md);
+}
+
+.flow-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.flow-stat-value {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.flow-overdue {
+  color: var(--danger);
+}
+
+.flow-stat-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.flow-bar {
+  display: flex;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.flow-bar-segment {
+  min-width: 3px;
+}
+
+.flow-bar-waiting {
+  background: var(--stage-waiting);
+}
+
+.flow-bar-with-doctor {
+  background: var(--stage-with-doctor);
+}
+
+.flow-bar-seen {
+  background: var(--stage-paid);
 }
 
 .doctor-queue-row {
@@ -38,6 +107,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.doctor-queue-overdue {
+  color: var(--danger);
+  font-weight: 700;
+}
+
 .doctor-queue-complaint {
   font-size: var(--text-sm);
   color: var(--text-secondary);
@@ -46,20 +120,20 @@
   white-space: nowrap;
 }
 
-.record-panel {
-  padding: var(--space-lg);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
+.record-area {
+  padding-bottom: var(--space-xl);
 }
 
 .record-section {
-  margin-top: var(--space-lg);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border);
 }
 
 .record-section:first-of-type {
-  margin-top: 0;
+  margin-top: var(--space-lg);
+  padding-top: 0;
+  border-top: none;
 }
 
 .comment-field {
@@ -100,8 +174,9 @@
 
 /* Prescription writing -- per-drug editor rows and the review list. Reuses
  * .search-results/.search-result-button (templates, drug search results)
- * and .field/.field-label (each per-drug control) from Reception.css;
- * only the drug-row card and the review-item shape are new here.
+ * and .field/.field-label (each per-drug control) from Reception.css. Each
+ * drug row is a hairline-divided group, not a card -- density comes from
+ * spacing, not a boxed background.
  */
 
 .drug-row-list {
@@ -109,11 +184,15 @@
 }
 
 .drug-row {
-  padding: var(--space-md);
-  margin-bottom: var(--space-sm);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-input);
+  padding-top: var(--space-md);
+  margin-top: var(--space-md);
+  border-top: 1px solid var(--border);
+}
+
+.drug-row:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .drug-row-head {
@@ -187,8 +266,8 @@
 
 /* Procedures + pricing -- reuses .past-visit-list/.past-visit-item (the
  * added-procedures list) and .field/.field-label (the final amount input)
- * from Reception.css; only the inline price input and the pricing block's
- * own row layout are new here.
+ * from Reception.css. The pricing block is a hairline-divided group like
+ * the drug rows above, not a filled card.
  */
 
 .procedure-item {
@@ -226,10 +305,8 @@
 }
 
 .pricing-block {
-  padding: var(--space-md);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-input);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border);
 }
 
 .pricing-row {

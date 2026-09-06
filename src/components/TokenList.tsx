@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
+import { startOfToday } from '../lib/date'
 
 const rowTransition = { duration: 0.22, ease: [0.16, 1, 0.3, 1] as const }
 
@@ -10,12 +11,6 @@ type Visit = {
   token_number: number
   stage: string
   patients: { name: string } | null
-}
-
-function startOfToday() {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d.toISOString()
 }
 
 // Colour alone is never the signal -- shape carries it too, so the stage
