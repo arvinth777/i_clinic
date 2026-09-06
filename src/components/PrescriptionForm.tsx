@@ -228,11 +228,16 @@ export function PrescriptionForm({
         .from('prescription_items')
         .insert(draftItems.map((item) => ({ ...itemRow(item), clinic_id: clinicId, prescription_id: prescription.id })))
       if (itemsErr) throw itemsErr
-      const { error: visitErr } = await supabase.from('visits').update({ stage: 'packing' }).eq('id', visitId)
-      if (visitErr) throw visitErr
+      // Confirming a prescription is not finishing the consultation -- the
+      // doctor may still add procedures or set the final amount below.
+      // Only the "Consultation done" button (Consultation.tsx) moves the
+      // visit to packing; this used to also do it here, which silently
+      // ended the consultation the moment a prescription was confirmed,
+      // before the doctor ever reached pricing (found via a live flow
+      // test, not by inspection -- the visit was already in packing
+      // immediately after the confirm click, with final_amount never set).
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['doctor-queue', clinicId] })
       queryClient.invalidateQueries({ queryKey: ['past-prescriptions'] })
       setDraftItems([])
       setReviewOpen(false)
@@ -268,7 +273,7 @@ export function PrescriptionForm({
           <motion.button
             type="button"
             className="primary-button"
-            whileTap={{ scale: 0.97 }}
+            whileTap={{ scale: 0.96, rotate: -1 }}
             disabled={confirm.isPending}
             onClick={() => confirm.mutate()}
           >

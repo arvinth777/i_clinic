@@ -230,10 +230,14 @@ async function main() {
     const ok = !error && kinds.join(',') === 'consultation,medicine,procedure'
     report('reception gets the full billing detail once the visit is ready_at_reception', ok, error ? error.message : JSON.stringify(data))
   }
-  {
-    const { data, error: rpcErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visit2, p_payment_method: 'cash' })
-    report('confirm_bill refuses payment while final_amount_set is false ("waiting for the doctor")', !!rpcErr && !data, rpcErr?.message)
-  }
+  // confirm_bill's own "waiting for the doctor" guard (final_amount_set is
+  // false) is no longer reachable from here to test: reaching packing above
+  // (via 20260906160000_ensure_final_amount_set_on_packing.sql) already
+  // guarantees final_amount_set is true by the time a visit reaches
+  // ready_at_reception -- proved directly, including confirm_bill
+  // succeeding on such a visit, in packing-final-amount-test.mjs. The guard
+  // itself is left in confirm_bill as defense in depth, not deleted; there's
+  // just no longer a client-reachable path left to exercise it against.
 
   // ================================================================
   // Section 3 -- confirm_bill: the atomic snapshot + close + idempotency.
