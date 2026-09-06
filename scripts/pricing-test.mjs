@@ -225,24 +225,34 @@ async function main() {
   } else {
     // ================================================================
     // F/G/H. final_amount_paise: doctor-settable, anywhere from
-    // calculated_total down to 0; discount is derived; every edit bumps
-    // revision by exactly 1.
+    // calculated_total down to 0; discount is derived; every edit that
+    // actually changes the value bumps revision by exactly 1.
+    //
+    // The first call below (final_amount at calculated_total) is the one
+    // exception: since a later migration made an untouched final_amount
+    // auto-track calculated_total (see 20260906130000_billing_confirm.sql),
+    // final_amount_paise here is ALREADY 57000 -- so confirming it at that
+    // same value is a real doctor action (it flips final_amount_set true)
+    // but not a numeric change, and revision correctly does not bump for a
+    // no-op write. Every subsequent call sets a genuinely different value
+    // and does bump revision by 1, same as before.
     // ================================================================
-    async function setFinalAmount(label, value, expectedDiscount) {
+    async function setFinalAmount(label, value, expectedDiscount, expectRevisionBump = true) {
       const before = await readPricing(doctorA, visitId)
       const { error } = await doctorA.from('visit_pricing').update({ final_amount_paise: value }).eq('visit_id', visitId)
       if (error) {
-        report('existing', `${label}: final_amount=${value} -> discount=${expectedDiscount}, revision +1`, false, `update failed: ${error.message}`)
+        report('existing', `${label}: final_amount=${value} -> discount=${expectedDiscount}`, false, `update failed: ${error.message}`)
         return
       }
       const after = await readPricing(doctorA, visitId)
       const discountOk = after.discount_paise === expectedDiscount
-      const revisionOk = after.revision_number === before.revision_number + 1
-      report('existing', `${label}: final_amount=${value} -> discount=${expectedDiscount}, revision +1`,
+      const expectedRevision = before.revision_number + (expectRevisionBump ? 1 : 0)
+      const revisionOk = after.revision_number === expectedRevision
+      report('existing', `${label}: final_amount=${value} -> discount=${expectedDiscount}, revision ${expectRevisionBump ? '+1' : 'unchanged'}`,
         discountOk && revisionOk,
         `discount ${after.discount_paise} (want ${expectedDiscount}), revision ${before.revision_number} -> ${after.revision_number}`)
     }
-    await setFinalAmount('final_amount at calculated_total (upper bound, no discount)', 57000, 0)
+    await setFinalAmount('final_amount at calculated_total (upper bound, no discount)', 57000, 0, false)
     await setFinalAmount('final_amount at 0 (lower bound, full discount)', 0, 57000)
     await setFinalAmount('final_amount at an arbitrary mid-range value', 20000, 37000)
 
