@@ -1,0 +1,10 @@
+project_id = "cofnrcgsolluyhghutah"
+
+# Public on purpose -- an external uptime monitor pings this with no
+# Supabase session to present, and the function takes no input and returns
+# no data beyond {"ok":true/false}. This setting has to live here, not just
+# be passed at deploy time: a future `supabase functions deploy` from the
+# CLI defaults verify_jwt to true and would silently re-enable it, breaking
+# the keep-alive ping. See supabase/functions/health/index.ts.
+[functions.health]
+verify_jwt = false
