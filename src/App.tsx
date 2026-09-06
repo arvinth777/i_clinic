@@ -6,18 +6,20 @@ import { Reception } from './pages/Reception'
 import { Consultation } from './pages/Consultation'
 import { Admin } from './pages/Admin'
 import { Stock } from './pages/Stock'
+import { MergePatients } from './pages/MergePatients'
 import { useSession } from './lib/useSession'
 import { useUserRoles } from './lib/useUserRoles'
 
 function App() {
   const { session, loading } = useSession()
-  const { data: roles } = useUserRoles(session?.user.id)
+  const { data: roles, isLoading: rolesLoading } = useUserRoles(session?.user.id)
   const [manualSection, setManualSection] = useState<string | null>(null)
 
   const sections: ShellSection[] = []
   if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'reception', label: 'Reception' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'consultation', label: 'Consultation' })
   if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'stock', label: 'Stock' })
+  if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'merge', label: 'Merge patients' })
   if (roles?.some((r) => r.role === 'admin')) sections.push({ key: 'admin', label: 'Admin' })
 
   const clinicId = roles?.[0]?.clinic_id
@@ -26,7 +28,7 @@ function App() {
   // overrides that default without needing to sync it into state.
   const activeSection = manualSection ?? sections[0]?.key ?? ''
 
-  if (loading) return null
+  if (loading || rolesLoading) return null
   if (!session) {
     return (
       <>
@@ -49,6 +51,7 @@ function App() {
         {activeSection === 'reception' && <Reception userId={session.user.id} />}
         {activeSection === 'consultation' && <Consultation userId={session.user.id} />}
         {activeSection === 'stock' && clinicId && <Stock clinicId={clinicId} />}
+        {activeSection === 'merge' && clinicId && <MergePatients clinicId={clinicId} />}
         {activeSection === 'admin' && clinicId && <Admin clinicId={clinicId} />}
       </AppShell>
     </>

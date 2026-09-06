@@ -1,0 +1,17 @@
+/* Hallmark · genre: modern-minimal · design-system: /design.md · designed-as-app
+ *
+ * Doctor-only duplicate-patient merge. Reuses .admin-toolbar/.readout-
+ * heading (Admin.css) and .field/.search-result-button (Reception.css) --
+ * a single screen, no tabs, same as Stock.tsx's own standalone pages.
+ */
+
+.merge-patients-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: 40rem;
+}
+
+.merge-selected {
+  cursor: default;
+}

@@ -1,25 +1,28 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '../lib/supabase'
+import './MergePatients.css'
 
-type Candidate = { id: string; name: string; age: number | null; phone: string | null; created_at: string }
+type Candidate = { id: string; name: string; age: number | null; phone: string | null; last_visit_at: string | null }
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-// admin has no row-level read on patients at all (docs/architecture-
-// spec.md's Phase E constraint -- aggregates only). This screen's search
-// goes through admin_search_patients_for_merge, a narrow SECURITY DEFINER
-// read scoped to exactly this job (name/age/phone/created_at, nothing
-// clinical), not a blanket relaxation of patients_select.
-function PatientSearch({ label, clinicId, selected, onSelect }: { label: string; clinicId: string; selected: Candidate | null; onSelect: (c: Candidate) => void }) {
+// Deciding two records are the same person is a clinical judgment about a
+// patient, not configuration -- this lives with the doctor, who already
+// has a legitimate patients_select read, not with admin (docs/security-
+// review.md's "admin cannot read patients" stays literal, no exception).
+// Search reuses search_patients, the same RPC Reception's check-in screen
+// calls -- SECURITY INVOKER, runs under the doctor's own RLS, no separate
+// function needed for this.
+function PatientSearch({ label, clinicId, selected, onSelect }: { label: string; clinicId: string; selected: Candidate | null; onSelect: (c: Candidate | null) => void }) {
   const [query, setQuery] = useState('')
   const { data: results } = useQuery({
     queryKey: ['merge-search', clinicId, query],
     enabled: query.trim().length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('admin_search_patients_for_merge', { p_clinic_id: clinicId, p_query: query.trim() })
+      const { data, error } = await supabase.rpc('search_patients', { p_clinic_id: clinicId, p_query: query.trim() })
       if (error) throw error
       return data as Candidate[]
     },
@@ -29,11 +32,15 @@ function PatientSearch({ label, clinicId, selected, onSelect }: { label: string;
     <div className="field">
       <label className="field-label">{label}</label>
       {selected ? (
-        <div className="search-result-button" style={{ cursor: 'default' }}>
+        <div className="search-result-button merge-selected">
           <span>
-            {selected.name} <span className="search-result-meta">— {selected.phone ?? 'no phone'} — checked in {formatDate(selected.created_at)}</span>
+            {selected.name}{' '}
+            <span className="search-result-meta">
+              {selected.phone ? `— ${selected.phone}` : ''} {selected.age ? `— ${selected.age}y` : ''}
+              {selected.last_visit_at ? ` — last seen ${formatDate(selected.last_visit_at)}` : ' — no visits yet'}
+            </span>
           </span>
-          <button type="button" className="drug-row-remove" onClick={() => onSelect(null as unknown as Candidate)}>
+          <button type="button" className="drug-row-remove" onClick={() => onSelect(null)}>
             Change
           </button>
         </div>
@@ -47,7 +54,7 @@ function PatientSearch({ label, clinicId, selected, onSelect }: { label: string;
                   <button type="button" className="search-result-button" onClick={() => onSelect(c)}>
                     {c.name}
                     <span className="search-result-meta">
-                      {c.phone ? `— ${c.phone}` : ''} — since {formatDate(c.created_at)}
+                      {c.phone ? `— ${c.phone}` : ''} {c.age ? `— ${c.age}y` : ''}
                     </span>
                   </button>
                 </li>
@@ -87,7 +94,7 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
   const samePatient = bothSelected && a!.id === b!.id
 
   return (
-    <div>
+    <div className="merge-patients-page">
       <div className="admin-toolbar">
         <h2 className="readout-heading">Merge duplicate patients</h2>
       </div>
