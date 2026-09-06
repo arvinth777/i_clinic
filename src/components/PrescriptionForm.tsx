@@ -17,6 +17,7 @@ type DraftItem = {
   beforeAfterFood: string
   dosageFrequency: string
   durationDays: string
+  quantityDispensed: string
   notes: string
 }
 
@@ -29,6 +30,7 @@ type ExistingItem = {
   before_after_food?: string | null
   dosage_frequency: string | null
   duration_days: number
+  quantity_dispensed?: number | null
   notes: string | null
   medicines: { name: string } | null
 }
@@ -49,6 +51,7 @@ function newDraftItem(medicineId: string, medicineName: string): DraftItem {
     beforeAfterFood: 'After food',
     dosageFrequency: '1-0-1',
     durationDays: '',
+    quantityDispensed: '',
     notes: '',
   }
 }
@@ -64,6 +67,7 @@ function draftFromExisting(item: ExistingItem): DraftItem | null {
     beforeAfterFood: item.before_after_food ?? 'After food',
     dosageFrequency: item.dosage_frequency ?? '1-0-1',
     durationDays: String(item.duration_days ?? ''),
+    quantityDispensed: item.quantity_dispensed != null ? String(item.quantity_dispensed) : '',
     notes: item.notes ?? '',
   }
 }
@@ -76,19 +80,24 @@ function itemRow(item: DraftItem) {
     before_after_food: item.beforeAfterFood,
     dosage_frequency: item.dosageFrequency,
     duration_days: Number(item.durationDays),
+    quantity_dispensed: Number(item.quantityDispensed),
     notes: item.notes.trim() || null,
   }
 }
 
 function itemIsValid(item: DraftItem): boolean {
   const days = Number(item.durationDays)
+  const quantity = Number(item.quantityDispensed)
   return (
     !!item.drugType &&
     !!item.beforeAfterFood &&
     !!item.dosageFrequency &&
     item.durationDays.trim() !== '' &&
     Number.isInteger(days) &&
-    days > 0
+    days > 0 &&
+    item.quantityDispensed.trim() !== '' &&
+    Number.isInteger(quantity) &&
+    quantity > 0
   )
 }
 
@@ -252,7 +261,7 @@ export function PrescriptionForm({
             <li key={item.key} className="review-item">
               <span className="review-item-name">{item.medicineName}</span>
               <p>
-                {[item.drugType, item.strength, item.beforeAfterFood, item.dosageFrequency, `${item.durationDays} days`]
+                {[item.drugType, item.strength, item.beforeAfterFood, item.dosageFrequency, `${item.durationDays} days`, `×${item.quantityDispensed}`]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
@@ -416,6 +425,16 @@ export function PrescriptionForm({
                     step="1"
                     value={item.durationDays}
                     onChange={(e) => updateDraft(item.key, { durationDays: e.target.value })}
+                  />
+                </div>
+                <div className="field">
+                  <label className="field-label">Quantity dispensed</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={item.quantityDispensed}
+                    onChange={(e) => updateDraft(item.key, { quantityDispensed: e.target.value })}
                   />
                 </div>
                 <div className="field drug-row-notes">

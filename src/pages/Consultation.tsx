@@ -37,6 +37,7 @@ type PrescriptionItem = {
   before_after_food: string | null
   dosage_frequency: string | null
   duration_days: number
+  quantity_dispensed: number | null
   notes: string | null
   medicines: { name: string } | null
 }
@@ -210,7 +211,7 @@ export function Consultation({ userId }: { userId: string }) {
       const { data, error } = await supabase
         .from('prescriptions')
         .select(
-          'id, created_at, visits!inner(patient_id), prescription_items(medicine_id, drug_type, strength, before_after_food, dosage_frequency, duration_days, notes, medicines(name))',
+          'id, created_at, visits!inner(patient_id), prescription_items(medicine_id, drug_type, strength, before_after_food, dosage_frequency, duration_days, quantity_dispensed, notes, medicines(name))',
         )
         .eq('visits.patient_id', current!.patient_id)
         .order('created_at', { ascending: false })
