@@ -81,6 +81,7 @@ export function Reception({ userId }: { userId: string }) {
           gender: input.gender || null,
           address: input.address || null,
           phone: input.phone || null,
+          custom_fields: input.customFields,
         })
         .select('id')
         .single()
@@ -214,7 +215,7 @@ export function Reception({ userId }: { userId: string }) {
       <Drawer open={selected === 'new'} onClose={reset} title="New patient">
         {selected === 'new' && (
           <>
-            <NewPatientForm initialName={debouncedQuery} onSubmit={(input: NewPatientInput) => checkInNew.mutate(input)} submitting={checkInNew.isPending} />
+            <NewPatientForm clinicId={clinicId} initialName={debouncedQuery} onSubmit={(input: NewPatientInput) => checkInNew.mutate(input)} submitting={checkInNew.isPending} />
             <div className="action-row">
               <motion.button type="button" className="secondary-button" whileTap={tap} onClick={reset}>
                 Cancel

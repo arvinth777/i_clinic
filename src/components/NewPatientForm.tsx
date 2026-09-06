@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { motion } from 'motion/react'
+import { supabase } from '../lib/supabase'
 
 export type NewPatientInput = {
   name: string
@@ -8,15 +10,24 @@ export type NewPatientInput = {
   address: string
   phone: string
   complaint: string
+  // Keyed by patient_field_definitions.key, already coerced to the JSON
+  // shape (number/boolean/string) its field_type calls for -- Admin
+  // defines these (Phase A); adding one here needs no code change, only
+  // a new row in that table.
+  customFields: Record<string, string | number | boolean>
 }
 
-const emptyForm: NewPatientInput = { name: '', age: '', gender: '', address: '', phone: '', complaint: '' }
+type FieldDef = { key: string; label: string; field_type: string }
+
+const emptyForm: NewPatientInput = { name: '', age: '', gender: '', address: '', phone: '', complaint: '', customFields: {} }
 
 export function NewPatientForm({
+  clinicId,
   initialName,
   onSubmit,
   submitting,
 }: {
+  clinicId: string
   initialName: string
   onSubmit: (input: NewPatientInput) => void
   submitting: boolean
@@ -24,8 +35,26 @@ export function NewPatientForm({
   const [form, setForm] = useState<NewPatientInput>({ ...emptyForm, name: initialName })
   const [errors, setErrors] = useState<Partial<Record<keyof NewPatientInput, string>>>({})
 
+  const { data: fieldDefs } = useQuery({
+    queryKey: ['patient-field-definitions', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('patient_field_definitions')
+        .select('key, label, field_type')
+        .eq('clinic_id', clinicId)
+        .order('display_order')
+      if (error) throw error
+      return data as FieldDef[]
+    },
+  })
+
   function set<K extends keyof NewPatientInput>(key: K, value: NewPatientInput[K]) {
     setForm((f) => ({ ...f, [key]: value }))
+  }
+
+  function setCustom(def: FieldDef, raw: string | boolean) {
+    const value = def.field_type === 'number' ? Number(raw) : def.field_type === 'boolean' ? !!raw : raw
+    setForm((f) => ({ ...f, customFields: { ...f.customFields, [def.key]: value } }))
   }
 
   function handleSubmit(e: FormEvent) {
@@ -110,6 +139,29 @@ export function NewPatientForm({
           </span>
         )}
       </div>
+
+      {(fieldDefs ?? []).map((def) => (
+        <div className="field" key={def.key}>
+          <label className="field-label" htmlFor={`custom-${def.key}`}>
+            {def.label}
+          </label>
+          {def.field_type === 'boolean' ? (
+            <input
+              id={`custom-${def.key}`}
+              type="checkbox"
+              checked={!!form.customFields[def.key]}
+              onChange={(e) => setCustom(def, e.target.checked)}
+            />
+          ) : (
+            <input
+              id={`custom-${def.key}`}
+              type={def.field_type === 'number' ? 'number' : def.field_type === 'date' ? 'date' : 'text'}
+              value={(form.customFields[def.key] as string) ?? ''}
+              onChange={(e) => setCustom(def, e.target.value)}
+            />
+          )}
+        </div>
+      ))}
 
       <div className="action-row">
         <motion.button type="submit" className="primary-button" whileTap={{ scale: 0.96, rotate: -1 }} disabled={submitting}>

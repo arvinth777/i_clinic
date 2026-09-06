@@ -4,6 +4,7 @@ import { SignIn } from './components/SignIn'
 import { AppShell, type ShellSection } from './components/AppShell'
 import { Reception } from './pages/Reception'
 import { Consultation } from './pages/Consultation'
+import { Admin } from './pages/Admin'
 import { useSession } from './lib/useSession'
 import { useUserRoles } from './lib/useUserRoles'
 
@@ -15,6 +16,9 @@ function App() {
   const sections: ShellSection[] = []
   if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'reception', label: 'Reception' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'consultation', label: 'Consultation' })
+  if (roles?.some((r) => r.role === 'admin')) sections.push({ key: 'admin', label: 'Admin' })
+
+  const clinicId = roles?.[0]?.clinic_id
 
   // Default to the first section this account can see; a manual click
   // overrides that default without needing to sync it into state.
@@ -42,6 +46,7 @@ function App() {
       >
         {activeSection === 'reception' && <Reception userId={session.user.id} />}
         {activeSection === 'consultation' && <Consultation userId={session.user.id} />}
+        {activeSection === 'admin' && clinicId && <Admin clinicId={clinicId} />}
       </AppShell>
     </>
   )
