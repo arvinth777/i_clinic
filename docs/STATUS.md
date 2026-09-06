@@ -245,3 +245,10 @@ Read this file, `AGENTS.md`, `docs/design.md`, `docs/architecture-spec.md`,
 and the PRD, resolve Phase A's two open decisions above if you can, then
 start Phase C (Payments completed) — tests first, per
 `docs/build-plan.md`.
+
+Phase C's own surface (settling an unpaid bill, correction bills via
+`corrects_bill_id`) calls `confirm_bill` again on a visit that may
+already have stock deducted. Read migration `20260906200300`'s header
+before touching `confirm_bill`, and run `scripts/stock-test.mjs` section
+8 as part of Phase C's own test pass — it's the regression guard against
+reintroducing the reopen/rebill double-deduction this phase just fixed.
