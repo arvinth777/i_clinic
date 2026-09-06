@@ -211,9 +211,16 @@ console.log('signed in as doctor.a, reception.a, admin.only, doctor.b\n')
   report('get_monthly_report returns exactly p_months rows', !error && months.length === 3, error?.message ?? JSON.stringify(months))
   const sorted = [...months].sort((x, y) => (x.month_start < y.month_start ? -1 : 1))
   report('rows are ordered oldest to newest', JSON.stringify(months) === JSON.stringify(sorted), JSON.stringify(months))
-  const thisMonthStart = new Date()
-  thisMonthStart.setDate(1)
-  const thisMonthStr = thisMonthStart.toISOString().slice(0, 10)
+  // get_monthly_report's month_start comes from current_date in the DB's
+  // session timezone (UTC) -- computing "this month" via local-time
+  // setDate(1) then toISOString() is timezone-unsafe the same way
+  // formatDateOnly's bug was (Phase D): whenever local time (IST, UTC+5:30)
+  // has already turned the calendar page but UTC hasn't yet -- true for the
+  // first ~5.5 hours of every IST day -- setDate(1) can land on the wrong
+  // side of a month boundary in local time before toISOString() converts it
+  // back. Compute "this month" the same way the RPC does: from UTC fields.
+  const nowUtc = new Date()
+  const thisMonthStr = `${nowUtc.getUTCFullYear()}-${String(nowUtc.getUTCMonth() + 1).padStart(2, '0')}-01`
   report('the most recent row is the current month', months[months.length - 1]?.month_start === thisMonthStr, JSON.stringify(months))
 
   const { error: rangeErr } = await adminOnly.rpc('get_monthly_report', { p_months: 100 })
