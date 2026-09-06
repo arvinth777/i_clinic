@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useClinicId } from '../lib/useClinicId'
+import { PrescriptionForm } from '../components/PrescriptionForm'
 import './Consultation.css'
 
 type DoctorVisit = {
@@ -18,8 +19,10 @@ type DoctorVisit = {
 type PastVisit = { id: string; arrived_at: string; complaint: string }
 
 type PrescriptionItem = {
+  medicine_id: string
   drug_type: string | null
   strength: string | null
+  before_after_food: string | null
   dosage_frequency: string | null
   duration_days: number
   notes: string | null
@@ -49,6 +52,7 @@ export function Consultation({ userId }: { userId: string }) {
   const queryClient = useQueryClient()
   const { data: clinicId } = useClinicId(userId)
   const [commentBody, setCommentBody] = useState('')
+  const [prescribingActive, setPrescribingActive] = useState(false)
 
   const queueKey = ['doctor-queue', clinicId]
   const { data: visits } = useQuery({
@@ -107,7 +111,9 @@ export function Consultation({ userId }: { userId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('prescriptions')
-        .select('id, created_at, visits!inner(patient_id), prescription_items(drug_type, strength, dosage_frequency, duration_days, notes, medicines(name))')
+        .select(
+          'id, created_at, visits!inner(patient_id), prescription_items(medicine_id, drug_type, strength, before_after_food, dosage_frequency, duration_days, notes, medicines(name))',
+        )
         .eq('visits.patient_id', current!.patient_id)
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -301,17 +307,30 @@ export function Consultation({ userId }: { userId: string }) {
               )}
             </section>
 
-            <div className="action-row">
-              <motion.button
-                type="button"
-                className="primary-button"
-                whileTap={{ scale: 0.97 }}
-                disabled={consultationDone.isPending}
-                onClick={() => consultationDone.mutate()}
-              >
-                {consultationDone.isPending ? 'Saving…' : 'Consultation done'}
-              </motion.button>
-            </div>
+            <section className="record-section">
+              <h3 className="readout-heading">Write prescription</h3>
+              <PrescriptionForm
+                key={current.id}
+                clinicId={clinicId}
+                visitId={current.id}
+                lastPrescriptionItems={prescriptions?.[0]?.prescription_items}
+                onActiveChange={setPrescribingActive}
+              />
+            </section>
+
+            {!prescribingActive && (
+              <div className="action-row">
+                <motion.button
+                  type="button"
+                  className="primary-button"
+                  whileTap={{ scale: 0.97 }}
+                  disabled={consultationDone.isPending}
+                  onClick={() => consultationDone.mutate()}
+                >
+                  {consultationDone.isPending ? 'Saving…' : 'Consultation done'}
+                </motion.button>
+              </div>
+            )}
             {consultationDone.isError && <p className="form-error">Couldn't save — try again.</p>}
           </>
         )}
