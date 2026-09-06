@@ -11,13 +11,13 @@ phase per session" pacing within a single session — most recently to
 resolve Phase A's two open decisions and then go straight into Phase C
 in the same turn.
 
-**Phase G — Go live: run as an audit (items 1-5, findings only, nothing
-fixed — by explicit instruction) plus a build (items 6-8: runbook,
-health endpoint, backup job). The audit surfaced 3 Critical, multiple
-High, and several Medium/Low findings against the app built in Phases
-A-F — this app is NOT production-ready as-is. See the Phase G entry
-below for the full, ranked punch list; that list is this session's
-actual deliverable.**
+**Phase G — Go live: audited (items 1-5), built (items 6-8), and now a
+fix pass against the audit's own ranked findings, strictly in severity
+order. All 3 Critical findings are fixed, tested, and verified this
+session — see "Phase G fix pass" below. Stopping here per the fix
+pass's own explicit instruction: report after Critical, before
+touching High/Medium. Several High and Medium findings remain open —
+this app is still not production-ready until those are addressed too.**
 
 ## Phase checklist
 
@@ -431,6 +431,104 @@ change, and the value round-tripped into the database correctly.
   2-arg caller with "function is not unique"), and re-run
   `information_schema.routine_privileges` afterward without exception,
   since grants never carry across a signature change.
+
+## Phase G fix pass — Critical findings (all 3 fixed)
+
+Worked strictly in severity order, one finding per commit, each with its
+own red-then-green test and a full regression-suite re-run before moving
+to the next. Nothing in High/Medium was touched — stopping here per this
+pass's own explicit instruction.
+
+- [x] **Critical #3 — consultation fee had no admin setter.** Fixed:
+  `admin_set_clinic_fee` (migration `20260907030000`), same narrow
+  admin-gated idiom as `admin_set_clinic_upi_vpa`; wired into
+  `ClinicSettings.tsx` using the existing `formatPaiseForInput`/
+  `parseRupeesToPaise` money helpers. TDD: `scripts/phase-g-fixes-test.mjs`
+  Section 1, red (function didn't exist) then green, 4/4. One test bug
+  caught and fixed before considering this done: an assumed "doctor
+  blocked" assertion doesn't hold, since `doctor.a` also holds `admin`
+  (docs/STATUS.md's own documented roster) — removed rather than left
+  wrong, matching how `admin_set_clinic_upi_vpa`'s own test already
+  handles this. Changing the fee doesn't retroactively touch an open
+  visit's `calculated_total_paise` — only new visits and any open visit
+  whose own procedures/prescription_items change afterward, per
+  `recompute_visit_pricing`'s pre-existing, already-documented behaviour.
+  Full regression suite clean. Re-ran the exact grep that surfaced this
+  finding — confirmed closed.
+- [x] **Critical #1 — the offline money-conflict *resolution* mechanism
+  didn't exist.** Detection (`bills_needing_reconciliation`) and
+  surfacing (the Daily Report's count) already worked; nothing let a
+  doctor write the correction row. Fixed: `correct_bill(p_bill_id)`
+  (migration `20260907040000`) — doctor-only, re-snapshots whatever
+  `visit_pricing` says *right now* (no typed-in amount, so no new way to
+  get the figure wrong) — plus a new doctor-only screen
+  (`src/pages/Reconciliation.tsx`) listing flagged bills side by side
+  with what was billed vs. the actual amount. `bills_needing_reconciliation`
+  extended (columns only ever appended, never reordered/removed) with
+  `patient_name`/`token_number`/`arrived_at`/live pricing — the context a
+  doctor needs to act, following the exact join `unpaid_bills` already
+  uses. Doctor-only, not admin: deciding the correct amount is tied to
+  the doctor's own pricing decision (non-negotiable #2), same reasoning
+  `merge_patients` already established for a similar judgment call.
+  TDD: `scripts/phase-g-fixes-test.mjs` Section 2, red (function/view
+  columns didn't exist) then green, 12/12 — including two of my own test
+  bugs caught before calling it done: a wrong view column name
+  (`bill_id` vs. the view's actual `id`) that silently swallowed a real
+  query error through an unchecked `.maybeSingle()`, which made a
+  downstream assertion pass for the wrong reason (a query error, not the
+  thing it claimed to verify) until traced down and fixed. Live UI
+  smoke-tested against a fresh fixture (row shows both amounts, Correct
+  button removes it, DB confirms the correction landed). Full regression
+  suite clean. Re-ran the exact grep that surfaced this finding —
+  confirmed closed.
+  **Deferred, not fixed** (discovered as a side effect of this fix,
+  out of scope for it): `get_daily_report`'s collections sum doesn't
+  exclude a corrected bill's original row, so a same-day correction
+  would double-count that visit's money in the daily figure. Purely
+  theoretical before this fix (corrections only ever existed via a
+  frozen seed row); newly exercisable now that a real correction path
+  exists. Needs a product decision (does a correction represent new cash
+  changing hands, or a pure bookkeeping adjustment?) before it's an
+  engineering fix — revisit before this screen sees real use, not before.
+- [x] **Critical #2 — idle-lock/PIN was entirely unimplemented.** Built
+  from scratch: a local PIN (`src/lib/pinLock.ts`, Web Crypto SHA-256,
+  verified fully offline, stored in `localStorage` — not the offline
+  queue's own IndexedDB store, since this is a device-local security
+  artifact, not patient data or a queued write); a reusable idle-timeout
+  hook (`src/lib/useIdleTimer.ts`); a full-viewport lock overlay
+  (`src/components/LockScreen.tsx`, deliberately not a `Drawer` — a
+  `Drawer` closes on Escape/scrim-click, which a lock screen must never
+  do) rendering nothing but a PIN field, no patient name/queue/token/
+  amount; a Set/Change-PIN control and a manual one-click Lock button in
+  `AppShell.tsx`. Per-station timeout derived from role (doctor: 15
+  minutes; everyone else: 2), not a physical station setting, since this
+  is a login session not a kiosk — a doctor who also holds admin still
+  gets the doctor's longer window. The app underneath stays mounted the
+  entire time locked (the overlay renders `null` when unlocked rather
+  than being conditionally mounted by its caller), so locking never
+  discards an in-progress draft. TDD: `scripts/idle-lock-test.mjs`, a
+  live Playwright script (pure client-side behaviour — no DB round trip
+  — same convention as `no-role-account-test.mjs`, the one other script
+  in this repo that drives a real browser for exactly this reason).
+  Confirmed genuinely red first by stashing the fix and re-running
+  against the reverted code (times out looking for a control that
+  doesn't exist yet), then restored and green, 9/9 — manual lock, wrong/
+  correct PIN, draft-preservation across a lock/unlock cycle, the lock
+  screen actually covering the header (checked via
+  `document.elementFromPoint`, not just "the element exists somewhere in
+  the DOM"), and the doctor's 15-minute idle timeout firing automatically
+  via Playwright's clock API (installed before a page reload so the
+  timer is scheduled under the fake clock from the start — installing
+  mid-session left an already-real-clock-scheduled timer unreachable by
+  the fast-forward). Full regression suite clean. Re-ran the exact grep
+  that surfaced this finding — confirmed closed.
+
+**What's still open**: every High and Medium finding from the audit
+(the drawer-dropdown CSS bug, the doctor-queue date-scoping cash-loss
+bug, the offline-print timing gap, `search_patients`' anon grant, the
+patient-name-in-signed-out-banner leak, and the rest) — none of these
+were touched in this pass, by design. A future session picks up High
+next, per the audit's own severity order.
 
 ## Context a future session needs (Phase G)
 
