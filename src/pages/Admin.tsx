@@ -4,6 +4,7 @@ import { ProcedureList } from '../components/admin/ProcedureList'
 import { TemplateList } from '../components/admin/TemplateList'
 import { CustomFieldList } from '../components/admin/CustomFieldList'
 import { LoginsPanel } from '../components/admin/LoginsPanel'
+import { ClinicSettings } from '../components/admin/ClinicSettings'
 import './Admin.css'
 
 const TABS = [
@@ -12,6 +13,7 @@ const TABS = [
   { key: 'templates', label: 'Templates' },
   { key: 'fields', label: 'Custom fields' },
   { key: 'logins', label: 'Logins' },
+  { key: 'settings', label: 'Settings' },
 ] as const
 
 type TabKey = (typeof TABS)[number]['key']
@@ -39,6 +41,7 @@ export function Admin({ clinicId }: { clinicId: string }) {
         {tab === 'templates' && <TemplateList clinicId={clinicId} />}
         {tab === 'fields' && <CustomFieldList clinicId={clinicId} />}
         {tab === 'logins' && <LoginsPanel clinicId={clinicId} />}
+        {tab === 'settings' && <ClinicSettings clinicId={clinicId} />}
       </div>
     </div>
   )

@@ -7,6 +7,7 @@ import { Consultation } from './pages/Consultation'
 import { Admin } from './pages/Admin'
 import { Stock } from './pages/Stock'
 import { MergePatients } from './pages/MergePatients'
+import { UnpaidBills } from './pages/UnpaidBills'
 import { useSession } from './lib/useSession'
 import { useUserRoles } from './lib/useUserRoles'
 
@@ -17,6 +18,7 @@ function App() {
 
   const sections: ShellSection[] = []
   if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'reception', label: 'Reception' })
+  if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'unpaid', label: 'Unpaid' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'consultation', label: 'Consultation' })
   if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'stock', label: 'Stock' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'merge', label: 'Merge patients' })
@@ -49,6 +51,7 @@ function App() {
         onSelectSection={setManualSection}
       >
         {activeSection === 'reception' && <Reception userId={session.user.id} />}
+        {activeSection === 'unpaid' && clinicId && <UnpaidBills clinicId={clinicId} />}
         {activeSection === 'consultation' && <Consultation userId={session.user.id} />}
         {activeSection === 'stock' && clinicId && <Stock clinicId={clinicId} />}
         {activeSection === 'merge' && clinicId && <MergePatients clinicId={clinicId} />}
