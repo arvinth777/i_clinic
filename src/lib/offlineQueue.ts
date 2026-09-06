@@ -84,8 +84,16 @@ async function replayOne(m: QueuedMutation): Promise<void> {
   } else if (m.kind === 'update') {
     let q = supabase.from(m.table!).update(m.payload as object)
     for (const [k, v] of Object.entries(m.match ?? {})) q = q.eq(k, v)
-    const { error } = await q
+    // RLS denial on an UPDATE returns { data: [], error: null } -- zero rows,
+    // no error (docs/STATUS.md already flags this from phase-d-test.mjs). Left
+    // unchecked, a write the caller isn't permitted to make would dequeue as
+    // if it had succeeded, and requirement 6 (unmissable unsynced work) would
+    // have nothing left to warn about. .select() is what makes the affected
+    // rows visible so a permission denial (or the row being gone) can be
+    // told apart from a real success and routed to the halt path instead.
+    const { data, error } = await q.select()
     if (error) throw error
+    if (!data || data.length === 0) throw new Error(`${m.table}: matched no rows (permission denied, or the row no longer exists)`)
   } else if (m.kind === 'delete') {
     // Deleting an already-deleted (or never-created) row matches zero rows
     // and returns no error -- naturally idempotent, no special handling.
