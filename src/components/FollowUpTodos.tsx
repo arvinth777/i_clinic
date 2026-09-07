@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { startOfToday, formatDateOnly } from '../lib/date'
+import { Button } from './ui/button'
 
 type Todo = { id: string; follow_up_date: string; patients: { name: string } | null }
 
@@ -47,9 +48,9 @@ export function FollowUpTodos({ clinicId }: { clinicId: string }) {
             <span>
               {t.patients?.name} — due {formatDateOnly(t.follow_up_date)}
             </span>
-            <button type="button" className="secondary-button" disabled={markDone.isPending} onClick={() => markDone.mutate(t.id)}>
+            <Button type="button" variant="secondary" disabled={markDone.isPending} onClick={() => markDone.mutate(t.id)}>
               Done
-            </button>
+            </Button>
           </li>
         ))}
       </ul>

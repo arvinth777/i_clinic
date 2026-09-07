@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { startOfToday, elapsedMinutes, formatElapsed } from '../lib/date'
 import { nextSortState, sortRows, type SortState } from '../lib/sort'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
 import './Worklist.css'
 
 type Visit = {
@@ -107,12 +108,12 @@ function sortValue(v: Visit, key: SortKey): string | number {
 function SortHeader({ label, sortKey, sort, onSort }: { label: string; sortKey: SortKey; sort: SortState<SortKey>; onSort: (k: SortKey) => void }) {
   const active = sort?.key === sortKey
   return (
-    <th>
+    <TableHead>
       <button type="button" className="worklist-sort" onClick={() => onSort(sortKey)}>
         {label}
         <span className="worklist-sort-arrow">{active ? (sort!.direction === 'asc' ? '▲' : '▼') : ''}</span>
       </button>
-    </th>
+    </TableHead>
   )
 }
 
@@ -169,40 +170,38 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
   const rows = sortRows(data, sort, sortValue)
 
   return (
-    <div className="worklist-scroll">
-      <table className="worklist">
-        <thead>
-          <tr>
-            <SortHeader label="Token" sortKey="token" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
-            <SortHeader label="Name" sortKey="name" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
-            <SortHeader label="Stage" sortKey="stage" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
-            <SortHeader label="Wait" sortKey="wait" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((v) => {
-            const clickable = !!onSelectVisit && BILLABLE_STAGES.has(v.stage)
-            return (
-              <tr
-                key={v.id}
-                className={clickable ? 'worklist-row worklist-row-clickable' : 'worklist-row'}
-                onClick={clickable ? () => onSelectVisit!(v.id) : undefined}
-                role={clickable ? 'button' : undefined}
-                tabIndex={clickable ? 0 : undefined}
-              >
-                <td>
-                  <span className="readout-token">{v.token_number}</span>
-                </td>
-                <td className="worklist-name-cell">{v.patients?.name}</td>
-                <td>
-                  <StageGlyph stage={v.stage} />
-                </td>
-                <td className="worklist-wait-cell">{formatElapsed(v.arrived_at)}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <SortHeader label="Token" sortKey="token" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
+          <SortHeader label="Name" sortKey="name" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
+          <SortHeader label="Stage" sortKey="stage" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
+          <SortHeader label="Wait" sortKey="wait" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((v) => {
+          const clickable = !!onSelectVisit && BILLABLE_STAGES.has(v.stage)
+          return (
+            <TableRow
+              key={v.id}
+              className={clickable ? 'worklist-row-clickable' : undefined}
+              onClick={clickable ? () => onSelectVisit!(v.id) : undefined}
+              role={clickable ? 'button' : undefined}
+              tabIndex={clickable ? 0 : undefined}
+            >
+              <TableCell>
+                <span className="readout-token">{v.token_number}</span>
+              </TableCell>
+              <TableCell className="worklist-name-cell">{v.patients?.name}</TableCell>
+              <TableCell>
+                <StageGlyph stage={v.stage} />
+              </TableCell>
+              <TableCell className="worklist-wait-cell">{formatElapsed(v.arrived_at)}</TableCell>
+            </TableRow>
+          )
+        })}
+      </TableBody>
+    </Table>
   )
 }

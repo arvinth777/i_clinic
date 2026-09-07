@@ -2,6 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
+import { buttonVariants } from './ui/button'
+import { Input } from './ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 
 export type NewPatientInput = {
   name: string
@@ -77,7 +80,7 @@ export function NewPatientForm({
         <label className="field-label" htmlFor="new-name">
           Name
         </label>
-        <input id="new-name" value={form.name} onChange={(e) => set('name', e.target.value)} autoFocus />
+        <Input id="new-name" value={form.name} onChange={(e) => set('name', e.target.value)} autoFocus />
         {errors.name && (
           <span className="field-error" role="alert">
             {errors.name}
@@ -89,7 +92,7 @@ export function NewPatientForm({
         <label className="field-label" htmlFor="new-age">
           Age
         </label>
-        <input id="new-age" type="number" value={form.age} onChange={(e) => set('age', e.target.value)} />
+        <Input id="new-age" type="number" value={form.age} onChange={(e) => set('age', e.target.value)} />
         {errors.age && (
           <span className="field-error" role="alert">
             {errors.age}
@@ -101,26 +104,30 @@ export function NewPatientForm({
         <label className="field-label" htmlFor="new-gender">
           Gender
         </label>
-        <select id="new-gender" value={form.gender} onChange={(e) => set('gender', e.target.value)}>
-          <option value="">—</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Other">Other</option>
-        </select>
+        <Select value={form.gender || undefined} onValueChange={(v) => set('gender', v)}>
+          <SelectTrigger id="new-gender">
+            <SelectValue placeholder="—" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Male">Male</SelectItem>
+            <SelectItem value="Female">Female</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="field">
         <label className="field-label" htmlFor="new-address">
           Address / Village
         </label>
-        <input id="new-address" value={form.address} onChange={(e) => set('address', e.target.value)} />
+        <Input id="new-address" value={form.address} onChange={(e) => set('address', e.target.value)} />
       </div>
 
       <div className="field">
         <label className="field-label" htmlFor="new-phone">
           Phone
         </label>
-        <input id="new-phone" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+        <Input id="new-phone" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
         {errors.phone && (
           <span className="field-error" role="alert">
             {errors.phone}
@@ -132,7 +139,7 @@ export function NewPatientForm({
         <label className="field-label" htmlFor="new-complaint">
           Complaint
         </label>
-        <input id="new-complaint" value={form.complaint} onChange={(e) => set('complaint', e.target.value)} />
+        <Input id="new-complaint" value={form.complaint} onChange={(e) => set('complaint', e.target.value)} />
         {errors.complaint && (
           <span className="field-error" role="alert">
             {errors.complaint}
@@ -153,7 +160,7 @@ export function NewPatientForm({
               onChange={(e) => setCustom(def, e.target.checked)}
             />
           ) : (
-            <input
+            <Input
               id={`custom-${def.key}`}
               type={def.field_type === 'number' ? 'number' : def.field_type === 'date' ? 'date' : 'text'}
               value={(form.customFields[def.key] as string) ?? ''}
@@ -164,7 +171,7 @@ export function NewPatientForm({
       ))}
 
       <div className="action-row">
-        <motion.button type="submit" className="primary-button" whileTap={{ scale: 0.96, rotate: -1 }} disabled={submitting}>
+        <motion.button type="submit" className={buttonVariants({ variant: 'primary' })} whileTap={{ scale: 0.96, rotate: -1 }} disabled={submitting}>
           {submitting ? 'Checking in…' : 'Check in'}
         </motion.button>
       </div>

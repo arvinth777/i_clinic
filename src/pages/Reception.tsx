@@ -9,6 +9,8 @@ import { TokenList } from '../components/TokenList'
 import { Billing } from '../components/Billing'
 import { Drawer } from '../components/Drawer'
 import { FollowUpTodos } from '../components/FollowUpTodos'
+import { Button, buttonVariants } from '../components/ui/button'
+import { Input } from '../components/ui/input'
 import './Reception.css'
 
 const tap = { scale: 0.97 }
@@ -194,12 +196,12 @@ export function Reception({ userId }: { userId: string }) {
             )}
           </div>
           <div className="rail-actions">
-            <motion.button type="button" className="secondary-button" whileTap={tap} onClick={() => setSelected('new')}>
+            <Button type="button" variant="secondary" onClick={() => setSelected('new')}>
               + New patient
-            </motion.button>
-            <motion.button type="button" className="secondary-button" whileTap={tap} onClick={() => setRepFormOpen(true)}>
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setRepFormOpen(true)}>
               Check in pharma rep
-            </motion.button>
+            </Button>
           </div>
 
           <FollowUpTodos clinicId={clinicId} />
@@ -234,15 +236,15 @@ export function Reception({ userId }: { userId: string }) {
               <label className="field-label" htmlFor="complaint">
                 Complaint
               </label>
-              <input id="complaint" value={complaint} onChange={(e) => setComplaint(e.target.value)} required autoFocus />
+              <Input id="complaint" value={complaint} onChange={(e) => setComplaint(e.target.value)} required autoFocus />
             </div>
             <div className="action-row">
-              <motion.button type="submit" className="primary-button" whileTap={stampTap} disabled={checkInExisting.isPending}>
+              <motion.button type="submit" className={buttonVariants({ variant: 'primary' })} whileTap={stampTap} disabled={checkInExisting.isPending}>
                 {checkInExisting.isPending ? 'Checking in…' : 'Check in'}
               </motion.button>
-              <motion.button type="button" className="secondary-button" whileTap={tap} onClick={reset}>
+              <Button type="button" variant="secondary" onClick={reset}>
                 Cancel
-              </motion.button>
+              </Button>
             </div>
             {checkInExisting.isError && <p className="form-error">Couldn't save — try again.</p>}
           </form>
@@ -260,21 +262,21 @@ export function Reception({ userId }: { userId: string }) {
             <label className="field-label" htmlFor="rep-name">
               Rep name
             </label>
-            <input id="rep-name" value={repName} onChange={(e) => setRepName(e.target.value)} required autoFocus />
+            <Input id="rep-name" value={repName} onChange={(e) => setRepName(e.target.value)} required autoFocus />
           </div>
           <div className="field">
             <label className="field-label" htmlFor="rep-company">
               Company
             </label>
-            <input id="rep-company" value={repCompany} onChange={(e) => setRepCompany(e.target.value)} required />
+            <Input id="rep-company" value={repCompany} onChange={(e) => setRepCompany(e.target.value)} required />
           </div>
           <div className="action-row">
-            <motion.button type="submit" className="primary-button" whileTap={stampTap} disabled={checkInRep.isPending}>
+            <motion.button type="submit" className={buttonVariants({ variant: 'primary' })} whileTap={stampTap} disabled={checkInRep.isPending}>
               {checkInRep.isPending ? 'Checking in…' : 'Check in'}
             </motion.button>
-            <motion.button type="button" className="secondary-button" whileTap={tap} onClick={() => setRepFormOpen(false)}>
+            <Button type="button" variant="secondary" onClick={() => setRepFormOpen(false)}>
               Cancel
-            </motion.button>
+            </Button>
           </div>
           {checkInRep.isError && <p className="form-error">Couldn't save — try again.</p>}
         </form>
@@ -285,9 +287,9 @@ export function Reception({ userId }: { userId: string }) {
           <>
             <NewPatientForm clinicId={clinicId} initialName={debouncedQuery} onSubmit={(input: NewPatientInput) => checkInNew.mutate(input)} submitting={checkInNew.isPending} />
             <div className="action-row">
-              <motion.button type="button" className="secondary-button" whileTap={tap} onClick={reset}>
+              <Button type="button" variant="secondary" onClick={reset}>
                 Cancel
-              </motion.button>
+              </Button>
             </div>
           </>
         )}
