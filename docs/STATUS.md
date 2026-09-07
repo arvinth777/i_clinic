@@ -396,6 +396,43 @@ elsewhere for the same definition), not an average. "How many people am
 I making wait too long right now" is actionable in a way "what's the
 average" wasn't.
 
+**Eighth round -- a different screen, the same root cause named at the
+very start of this initiative**: "it looks like markdown... i want it to
+look neat, like how you as Claude would give me tables." Pointed at
+Stock's medicine list, but the actual cause is `.worklist` -- a bare
+header rule plus hairline row dividers and nothing else, which is
+genuinely what a plain unstyled HTML table (or a rendered markdown
+table with no CSS at all) looks like. New `src/components/ui/table.tsx`
+(`Table`/`TableHeader`/`TableBody`/`TableRow`/`TableHead`/`TableCell`):
+a bordered rounded container, tinted header row, hover-highlighted
+rows, numeric columns right-aligned in tabular-nums mono. Applied to
+`StockList.tsx` as the pilot; every other `.worklist` consumer
+(Reception's queue, Admin's drug/procedure/template lists, Reports)
+is still the old bare styling -- next, not forgotten.
+
+**Ninth round -- two requests together**: "what even is L-T register?
+rename it" and "make it hidden by making a collapsible side menu bar."
+- Renamed "Long-term register" -> "Long-term care" (`App.tsx`) --
+  "register" was the jargon, not the feature itself (patients flagged
+  for periodic review).
+- Built a real collapsible left sidebar (`AppShell.tsx`/`.css`),
+  replacing the single horizontal nav row `AppShell.css`'s own header
+  comment had explicitly defended since v4.1 ("every account has one or
+  two sections, a sidebar is dead space"). That reasoning no longer
+  holds: a doctor holding admin now sees seven sections, which had
+  nowhere to go in one row -- confirmed live earlier in this same
+  session that nav items were overflowing off-screen at ordinary widths,
+  not just extreme ones. One icon per section (falls back to a plain
+  dot for anything unmapped), a manual collapse toggle persisted to
+  `localStorage` (same per-device-convenience idiom as `useTheme.ts`),
+  and a mobile breakpoint (720px, matching the convention already used
+  elsewhere) that forces icon-only regardless of the toggle, per the
+  PRD's own "single-column on a mobile browser" requirement.
+  Verified live: all seven sections render with no overflow, the
+  collapse toggle works (confirmed via the DOM class and `localStorage`
+  directly, not just visually), and the collapsed state survives a full
+  page reload.
+
 ## Where we are
 
 Working through `docs/build-plan.md`, one phase per session, in order.

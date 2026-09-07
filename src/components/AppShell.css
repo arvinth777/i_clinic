@@ -1,33 +1,43 @@
-/* v4.1 restructure -- a vertical sidebar plus a separate topbar was
-   inherited unchanged from earlier passes without asking whether it fit
-   this app: every account has exactly one or two sections (Reception,
-   Consultation), so a 240px sidebar column read as mostly dead vertical
-   space, and the topbar's section label duplicated the sidebar's own
-   active-nav highlighting. One compact header row replaces both -- the
-   same collapse the old mobile breakpoint already did, now the only
-   layout instead of a second one desktop carried alongside it. */
+/* v4.6 -- a collapsible left sidebar, replacing the single-row nav.
+   v4.1 dropped a sidebar for exactly one reason: at the time, every
+   account had one or two sections, so a fixed sidebar column read as
+   dead space. That reasoning no longer holds -- a doctor holding admin
+   too now sees seven nav items, which the single header row had no room
+   for (items were overflowing off-screen at ordinary window widths, not
+   just extreme ones). The user asked directly for this reversal
+   ("collapsible side menu bar") rather than it being silently
+   rediscovered as a good idea; recorded here the same way the
+   Drawer-to-rail reversal was. */
 .shell {
-  display: grid;
-  grid-template-rows: 60px 1fr;
+  display: flex;
+  align-items: stretch;
   /* Fills whatever #root has left after the staging banner, rather than
      assuming the full 100vh -- see the #root comment in index.css. */
   flex: 1;
   min-height: 0;
 }
 
-.shell-header {
+.shell-sidebar {
+  flex: none;
+  width: 15rem;
   display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  padding: 0 var(--space-lg);
-  border-bottom: 1px solid var(--border);
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
   background: var(--surface);
-  min-width: 0;
+  border-right: 1px solid var(--border);
+  transition: width 150ms var(--ease-out);
+  overflow-y: auto;
+}
+
+.shell-sidebar-collapsed {
+  width: 4rem;
+  align-items: center;
 }
 
 .shell-clinic-name {
   flex: none;
-  max-width: 12rem;
+  padding: var(--space-xs) var(--space-sm);
   font-size: var(--text-sm);
   font-weight: 800;
   letter-spacing: -0.01em;
@@ -38,12 +48,19 @@
 
 .shell-nav {
   display: flex;
+  flex-direction: column;
   gap: var(--space-2xs);
-  flex: none;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
 }
 
 .shell-nav-item {
-  padding: var(--space-xs) var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm);
   border: none;
   border-radius: var(--radius-input);
   background: none;
@@ -51,8 +68,36 @@
   font-family: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
+  text-align: left;
   cursor: pointer;
   transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out);
+}
+
+.shell-sidebar-collapsed .shell-nav-item {
+  justify-content: center;
+  padding: var(--space-sm);
+}
+
+.shell-nav-icon {
+  flex: none;
+  display: flex;
+}
+
+.shell-nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.shell-nav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shell-sidebar-collapsed .shell-nav-label {
+  display: none;
 }
 
 @media (hover: hover) {
@@ -70,6 +115,51 @@
 .shell-nav-item.active {
   background: var(--accent-wash);
   color: var(--accent);
+}
+
+.shell-sidebar-collapse {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm);
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shell-sidebar-collapsed .shell-sidebar-collapse {
+  justify-content: center;
+}
+
+.shell-sidebar-collapse:hover {
+  color: var(--text);
+}
+
+.shell-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  height: 3.5rem;
+  flex: none;
+  padding: 0 var(--space-lg);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  min-width: 0;
 }
 
 .shell-header-spacer {
@@ -155,8 +245,26 @@
     gap: var(--space-sm);
   }
 
+  /* Always icon-only below this width, regardless of the manual
+     collapse toggle -- PRD's "single-column on a mobile browser"
+     requirement; a labelled 15rem column has no room on a phone. */
+  .shell-sidebar {
+    width: 4rem;
+    align-items: center;
+  }
+
   .shell-clinic-name {
-    max-width: 6rem;
+    padding: var(--space-xs);
+    text-align: center;
+  }
+
+  .shell-nav-item,
+  .shell-sidebar-collapse {
+    justify-content: center;
+  }
+
+  .shell-nav-label {
+    display: none;
   }
 
   .shell-user-email {

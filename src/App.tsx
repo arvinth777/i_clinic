@@ -32,7 +32,10 @@ function App() {
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'consultation', label: 'Consultation' })
   if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'stock', label: 'Stock' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'merge', label: 'Merge patients' })
-  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'register', label: 'Long-term register' })
+  // Renamed from "Long-term register" -- the user asked directly what
+  // it even meant; "register" (a records-office word) was the jargon,
+  // not the underlying feature (patients flagged for periodic review).
+  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'register', label: 'Long-term care' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'reconciliation', label: 'Needs reconciliation' })
   if (roles?.some((r) => r.role === 'admin' || r.role === 'doctor')) sections.push({ key: 'reports', label: 'Reports' })
   if (roles?.some((r) => r.role === 'admin')) sections.push({ key: 'admin', label: 'Admin' })
