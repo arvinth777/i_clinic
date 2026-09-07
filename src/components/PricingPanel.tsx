@@ -208,16 +208,18 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
       <section className="record-section">
         <h3 className="readout-heading">Procedures</h3>
         {procedures && procedures.length > 0 && (
-          <ul className="search-results">
-            {procedures.map((p) => (
-              <li key={p.id}>
-                <button type="button" className="search-result-button" onClick={() => addProcedure.mutate(p)}>
-                  <span>{p.name}</span>
-                  <span className="search-result-meta">{formatPaise(p.default_price_paise)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="search-results-anchor">
+            <ul className="search-results">
+              {procedures.map((p) => (
+                <li key={p.id}>
+                  <button type="button" className="search-result-button" onClick={() => addProcedure.mutate(p)}>
+                    <span>{p.name}</span>
+                    <span className="search-result-meta">{formatPaise(p.default_price_paise)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {!visitProcedures || visitProcedures.length === 0 ? (
           <p className="readout-empty">No procedures added for this visit.</p>

@@ -224,7 +224,7 @@ export function PrescriptionForm({
   return (
     <div>
       {templates && templates.length > 0 && (
-        <div className="field">
+        <div className="field search-results-anchor">
           <span className="field-label">Templates</span>
           <ul className="search-results">
             {templates.map((t) => (
@@ -259,15 +259,17 @@ export function PrescriptionForm({
       </div>
       {debouncedSearch &&
         (searchResults && searchResults.length > 0 ? (
-          <ul className="search-results">
-            {searchResults.map((m) => (
-              <li key={m.id}>
-                <button type="button" className="search-result-button" onClick={() => addFromSearch(m)}>
-                  <span>{m.name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="search-results-anchor">
+            <ul className="search-results">
+              {searchResults.map((m) => (
+                <li key={m.id}>
+                  <button type="button" className="search-result-button" onClick={() => addFromSearch(m)}>
+                    <span>{m.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : (
           <div className="no-match">
             <p>No drug named "{debouncedSearch}" in the list.</p>

@@ -26,7 +26,7 @@ function PatientSearch({ label, clinicId, selected, onSelect }: { label: string;
   })
 
   return (
-    <div className="field">
+    <div className="field search-results-anchor">
       <label className="field-label">{label}</label>
       {selected ? (
         <div className="search-result-button merge-selected">

@@ -68,6 +68,19 @@
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
+/* .search-results anchors (position: absolute, below) against its
+   nearest positioned ancestor -- .search-field already provides that
+   (position: relative, above). Anywhere .search-results is used without
+   .search-field's own input-plus-icon wrapper, its container needs this
+   instead: without it, .search-results silently escapes to whatever
+   positioned ancestor happens to be further up the tree (docs/STATUS.md's
+   High finding -- inside the consultation drawer, that's the drawer's
+   own `position: fixed` panel, landing the dropdown exactly one row below
+   the visible viewport, every time, on any window size). */
+.search-results-anchor {
+  position: relative;
+}
+
 /* Floats over the worklist rather than pushing it down -- a typeahead
    result set is transient, and the table underneath shouldn't reflow while
    someone is still typing a name. */
