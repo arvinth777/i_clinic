@@ -95,9 +95,39 @@ phase — the A-G plan is fully audited/closed per Phase G above):
     present in the working tree before this session started — not made
     by this work, not committed, flagged to the user rather than
     silently carried or discarded.
-- [ ] **Phase UI-2 — Section jump-nav.** The four-step stepper as pure
-  jump-navigation (confirmed answer, not yet built): click scrolls to an
-  anchor, active step tracks scroll position, nothing ever hidden.
+- [x] **Phase UI-2 — Section jump-nav.** `SectionStepper.tsx` (new,
+  reusable, currently one consumer): four steps -- Overview / Prescription
+  / Procedures & pricing / Documents & follow-up -- wrapping the exact
+  same Consultation content from Phase UI-1 in four `id`-anchored divs,
+  extracted out of `Consultation.tsx` specifically to keep that file
+  under the 500-line rule as it grew. Pure jump-nav, confirmed: no step
+  is ever hidden, gated, or marked "done."
+  - Two real bugs caught live, neither visible from reading the code:
+    (1) the click handler's `scrollIntoView({ behavior: 'smooth' })`
+    silently did nothing on a real click most of the time -- traced to
+    this page's background query refetches (the doctor queue polls every
+    few seconds) re-rendering mid-animation and resetting the in-progress
+    smooth scroll before it completed. Direct script calls to the same
+    `scrollIntoView` worked fine, which is what made this one non-obvious;
+    only testing an actual click, not just the underlying browser API,
+    surfaced it. Fixed by switching to `behavior: 'instant'`, which
+    can't be interrupted the same way. (2) The active-step indicator,
+    first built on `IntersectionObserver` watching each section against
+    a fixed viewport band, got stuck on "Overview" for most of the page
+    -- that one section wraps four tall sub-sections (Comments/Patient/
+    Past visits/Past prescriptions) and kept overlapping the observed
+    band regardless of how far past it the doctor had actually scrolled.
+    Replaced with the standard scroll-spy algorithm instead (a plain
+    `scroll` listener on `.shell-content` -- the app's real scroll
+    container, not `window` -- picking the last section whose own
+    `getBoundingClientRect().top` has crossed a fixed threshold). Also
+    made clicking a step set the active index directly rather than
+    waiting for a scroll event to imply it, since the click already
+    knows exactly which section it targeted.
+  - Verified live as `doctor.a`: every one of the four steps, clicked in
+    sequence through the real React click handler (not a raw script
+    call), scrolls to its section and updates the active highlight
+    correctly and immediately, each time.
 - [ ] **Phase UI-3 — Prescription entry redesign.** Search-first entry +
   quick-add chips, including the "usual combo" suggestion described
   above. Per-drug fields stay real editable controls; the mockup's
@@ -851,8 +881,8 @@ or confirm they're each still worth deferring.
 Two independent tracks are open now, not one:
 
 1. **The UI redesign initiative** (new section at the top of this file):
-   Phase UI-1 (layout shell) is done and verified live; Phase UI-2
-   (section jump-nav) is the next piece of that track.
+   Phases UI-1 (layout shell) and UI-2 (section jump-nav) are done and
+   verified live; Phase UI-3 (prescription entry redesign) is next.
 2. **Phase G's own residual items** (below): every audited finding is
    fixed and verified; what's left is the human-only setup for the
    backup pipeline (`docs/runbook.md`'s "Pending setup" — age private

@@ -11,6 +11,7 @@ import { DocumentsPanel } from '../components/DocumentsPanel'
 import { CarePanel } from '../components/CarePanel'
 import { RepQueueRows } from '../components/RepQueueRows'
 import { TodayFlow, type TodayVisit } from '../components/TodayFlow'
+import { SectionStepper, type StepperSection } from '../components/SectionStepper'
 import '../components/Worklist.css'
 import './Consultation.css'
 
@@ -18,6 +19,15 @@ import './Consultation.css'
 // shown as a plain elapsed time -- reserving colour for something that
 // actually needs attention, not decoration.
 const LONG_WAIT_MINUTES = 30
+
+// Jump-nav only (confirmed explicitly, not a gated wizard) -- every id
+// here must match a real section id rendered below.
+const STAGE_SECTIONS: StepperSection[] = [
+  { id: 'stage-overview', label: 'Overview' },
+  { id: 'stage-prescription', label: 'Prescription' },
+  { id: 'stage-procedures', label: 'Procedures & pricing' },
+  { id: 'stage-documents', label: 'Documents & follow-up' },
+]
 
 type DoctorVisit = {
   id: string
@@ -279,6 +289,9 @@ export function Consultation({ userId }: { userId: string }) {
                 <span className="doctor-queue-meta">Token {current.token_number}</span>
               </div>
 
+              <SectionStepper sections={STAGE_SECTIONS} />
+
+              <div id="stage-overview">
               <section className="record-section">
                 <h3 className="readout-heading">Comments</h3>
               {!comments || comments.length === 0 ? (
@@ -378,7 +391,9 @@ export function Consultation({ userId }: { userId: string }) {
                 </ul>
               )}
             </section>
+              </div>
 
+              <div id="stage-prescription">
             <section className="record-section">
               <h3 className="readout-heading">Write prescription</h3>
               <PrescriptionForm
@@ -389,9 +404,13 @@ export function Consultation({ userId }: { userId: string }) {
                 onActiveChange={setPrescribingActive}
               />
             </section>
+              </div>
 
+              <div id="stage-procedures">
             <PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} />
+              </div>
 
+              <div id="stage-documents">
             <CarePanel key={`care-${current.id}`} visitId={current.id} patientId={current.patient_id} />
 
             <DocumentsPanel
@@ -418,6 +437,7 @@ export function Consultation({ userId }: { userId: string }) {
               </div>
             )}
               {consultationDone.isError && <p className="form-error">Couldn't save — try again.</p>}
+              </div>
             </>
           )}
         </div>
