@@ -11,13 +11,21 @@ phase per session" pacing within a single session — most recently to
 resolve Phase A's two open decisions and then go straight into Phase C
 in the same turn.
 
-**Phase G — Go live: audited (items 1-5), built (items 6-8), and now a
-fix pass against the audit's own ranked findings, strictly in severity
-order. All 3 Critical findings are fixed, tested, and verified this
-session — see "Phase G fix pass" below. Stopping here per the fix
-pass's own explicit instruction: report after Critical, before
-touching High/Medium. Several High and Medium findings remain open —
-this app is still not production-ready until those are addressed too.**
+**Phase G — Go live: audited (items 1-5), built (items 6-8), and now
+two fix passes against the audit's own ranked findings, strictly in
+severity order. All 3 Critical findings, all 5 named High/Medium
+findings, and one deferred item (reports double-counting, resolved per
+an explicit decision) are fixed, tested, and verified — see "Phase G
+fix pass" below for the Critical pass and "Phase G fix pass —
+High/Medium" for the rest. Every finding actually assigned in either
+pass was genuinely fixed — none needed to be dismissed as not-real.
+The remaining Low/informational findings from the original audit
+(a GST date-range bug, a template-applied prescription's missing
+quantity, a stale isolation-test comment, leaked-password protection,
+an int-vs-bigint nit) were never assigned to either pass and remain
+untouched — see "What's still open" at the end of the High/Medium
+section for the full, honest residual state before this is genuinely
+production-ready.**
 
 ## Phase checklist
 
@@ -523,43 +531,184 @@ pass's own explicit instruction.
   the fast-forward). Full regression suite clean. Re-ran the exact grep
   that surfaced this finding — confirmed closed.
 
-**What's still open**: every High and Medium finding from the audit
-(the drawer-dropdown CSS bug, the doctor-queue date-scoping cash-loss
-bug, the offline-print timing gap, `search_patients`' anon grant, the
-patient-name-in-signed-out-banner leak, and the rest) — none of these
-were touched in this pass, by design. A future session picks up High
-next, per the audit's own severity order.
+## Phase G fix pass — High/Medium findings (all 5 fixed) plus one deferred item
+
+Same rules as the Critical pass: one finding per commit, fix only what
+the finding said, a regression test per behavioural fix, full suite
+after each, re-ran the originating check to confirm closure. Worked in
+severity/risk order by explicit instruction, not the order the audit
+originally listed them in — money first.
+
+- [x] **1 (money first) — a visit crossing midnight unbilled could
+  vanish from Reception's own billing queue.** Established first, per
+  this pass's own instruction: there is no end-of-day/expiry concept
+  anywhere in this app for an open visit — nothing else ever says
+  "yesterday's unbilled visit stops being billable" — confirming this
+  is a query-scope bug, not a missing product state. `TokenList.tsx`
+  filtered strictly on `arrived_at >= today`, no exception for a visit
+  that hasn't been paid yet. Fixed: kept the existing "today" scope for
+  anything already paid (no reason to flood the worklist with settled
+  history), added `stage != 'paid'` as an escape hatch — mirroring the
+  doctor's own queue, which never date-scopes at all. TDD: both the old
+  and fixed query shapes run directly against a fresh stale-visit
+  fixture — the old shape genuinely misses it (confirms the bug, not
+  assumed), the fixed shape surfaces it while still excluding an old
+  *paid* visit. Re-confirmed against the exact visit id the original
+  audit reproduced (`b80a8259-...`) — now correctly included.
+- [x] **2 — a patient's name leaked outside an authenticated, unlocked
+  session.** `OfflineQueueBanner`'s halted state rendered
+  `mutation.description` (embeds real patient names at several call
+  sites) verbatim, on the signed-out screen and — since it's a sibling
+  of `AppShell`, not a child — through yesterday's new lock screen too,
+  which had no way to know the screen was locked. Fixed by lifting
+  `locked` state out of `AppShell.tsx` into `App.tsx` (the shared
+  ancestor) and threading a `redact` prop into the banner — true when
+  signed out or locked. Swept for the general case per the brief:
+  grepped every other always-mounted top-level surface
+  (`StagingBanner`, `SignIn`, `document.title`) for dynamic/patient-
+  derived text; none found — this banner was the only surface with the
+  problem. TDD: a dev-only `window.__debugQueue` hook (guarded by
+  `import.meta.env.DEV`, confirmed stripped from the production
+  build — 0 occurrences in the built bundle) forces a genuinely halted
+  mutation deterministically. Confirmed red (patient name visible both
+  locked and signed out), green after (7/7).
+- [x] **3 — `search_patients`' unintended anon EXECUTE grant, revoked.**
+  Its own migration only ever did `revoke ... from public; grant ... to
+  authenticated`, never explicitly revoking from anon — the two-
+  Supabase-privilege-grant gotcha this file already flags as recurring.
+  Not currently exploitable (SECURITY INVOKER means an anon caller
+  still hits `patients_select`'s RLS and gets nothing), but closed
+  directly rather than left to rely on that second, unrelated
+  protection. Confirmed via `information_schema.routine_privileges`
+  that no other function carries an unintended anon grant — `health_ping`
+  (deliberately anon, the public health endpoint) and `rls_auto_enable`
+  (a pre-existing platform function, already accepted) are the only
+  other two. TDD caught its own mistake before calling it done: a bare
+  "permission denied" assertion passed even before the fix, since RLS's
+  own `has_clinic_role` helper denies anon first regardless — tightened
+  to check the error message specifically names `search_patients`
+  itself (denied at the grant, before ever reaching RLS).
+- [x] **4 — the offline-print timing gap, closed with an explicit grace
+  window.** `Billing.tsx`'s `detail` query (the prescription/procedure
+  rows `PrintableSlip` renders) had nothing ensuring it resolved before
+  "Confirm payment" was clickable — a connectivity drop in that exact
+  window printed an empty prescription table, not a warning. Reproduced
+  the exact timing deterministically before fixing it (a Playwright
+  route interception delaying the RPC). First fix attempt
+  (`networkMode: 'always'` + a single retry, gating on
+  `fetchStatus === 'fetching'`) was wrong: tested against a real
+  simulated outage, Confirm stayed stuck for 30+ seconds because a fetch
+  against a dead connection doesn't reliably fail fast — retry backoff
+  assumes a failure signal arrives quickly, which isn't guaranteed.
+  Fixed instead with a plain, fixed-duration `setTimeout` grace window
+  (2s), independent of React Query's own retry/fetchStatus machinery —
+  a bound this project controls directly. Two scenarios verified live:
+  a brief connectivity blip (Confirm blocks, then the real prescription
+  prints once the blip passes) and a genuine sustained outage (Confirm
+  still unblocks within the bounded window — measured ~2000ms, not
+  indefinite — and print still fires per non-negotiable #7, honestly
+  with no prescription data cached, matching Phase F's already-
+  documented "never fetched while online" boundary, not a new failure).
+- [x] **5 (last, per instruction — judged first, moved up only in the
+  sense that it turned out to block a task, so it's listed here rather
+  than deferred) — the drawer-dropdown CSS bug.** Confirmed it blocks a
+  core, everyday task (a doctor cannot select a template, add a
+  searched drug, or add a procedure by mouse/touch at all), not merely
+  a visual defect. `.search-results` (`position: absolute`) needs a
+  positioned ancestor; `.field`/`.record-section` — its wrapper at
+  every affected site — never declared `position: relative`; inside the
+  consultation drawer (`position: fixed`), the dropdown anchored to the
+  drawer itself, landing exactly at 100% of the viewport height, always
+  one row below the visible screen. Fixed with a new, narrowly-scoped
+  class (`.search-results-anchor`) applied only at the four affected
+  JSX sites, rather than changing `.field`/`.record-section` directly —
+  those two classes are used in dozens of unrelated places, and a
+  global change risks moving the positioning context for some other
+  absolutely-positioned element entirely unrelated to this bug. Covers
+  all three sites the audit confirmed (templates, drug search,
+  procedures) plus `MergePatients.tsx`, which the audit flagged as
+  carrying the identical pattern but left "severity unconfirmed" —
+  confirmed live here: it was also broken. TDD: real
+  `getBoundingClientRect()` measurements plus a real mouse click
+  dispatched at the dropdown's own on-screen coordinates
+  (`document.elementFromPoint`), matching exactly how the audit found
+  this — not a code reading. Confirmed red at all four sites, green
+  after (8/8). One test bug caught before calling it done: the
+  procedures check initially picked the *last* of 100+ procedures
+  staging has accumulated across earlier phases — naturally far down a
+  long list on its own, unrelated to this bug; fixed to check the first
+  row. A second, independent test flake found and fixed afterward (own
+  commit): the Templates check's own fixture template accumulated
+  unbounded across runs with no cleanup, and a drawer-entrance-animation
+  race — both real, reproducible, now fixed; stable across 3 consecutive
+  runs.
+- [x] **Also in this pass, decided: `get_daily_report` double-counted
+  same-day corrections** (the item deferred during Critical #1's own
+  fix). Count only the terminal bill in each correction chain, never
+  the sum, plus a separate reported line for corrections today (count
+  and net amount) — collections must equal the drawer. Fixed with the
+  same "not exists a later correction" idiom already used elsewhere: a
+  bill that's been superseded is excluded from any day's collections;
+  only the chain's terminal bill counts, on whichever day *it* was
+  confirmed. Applied to all three report functions' collections
+  computation for consistency (the same SQL is literally duplicated
+  three times), not just the one named — discount and patient-count
+  computations untouched, out of scope for this fix.
+  `get_daily_report` gains two new columns
+  (`corrections_today_count`/`corrections_today_net_paise`), surfaced
+  on the Daily Report screen as a new stat tile plus an explanatory
+  note. TDD: before/after deltas around a fresh fixture. Confirmed red
+  (collections delta was 35000 — both bills summed — before the fix;
+  the two new columns didn't exist at all), green after (delta 15000,
+  the corrected amount only). Live-checked the new stat tile renders
+  real data (9 corrections today, -₹340.00 net, on staging's own
+  accumulated data).
+
+**Nothing was dismissed as not-real in this pass** — all 5 named
+findings plus the deferred reports item were genuinely fixed, each with
+its own red-then-green test, live verification beyond the DB layer
+where the finding was itself a live/UI bug, and a clean full-suite
+re-run after every single commit.
+
+**What's still open**: the Low/informational findings from the
+original audit that were never assigned to either fix pass —
+`GstReport.tsx`'s own timezone-unsafe date-range default (the same bug
+class fixed twice elsewhere, not yet fixed a third time here); a
+template-applied prescription row arriving with a blank
+`quantity_dispensed` and unhelpful validation copy; `isolation-test.mjs`'s
+stale "no edge functions deployed" comment (three now exist); Supabase
+Auth's leaked-password protection, still disabled (a dashboard toggle,
+no code change); `consultation_fee_paise`'s `int`-vs-`bigint` type
+inconsistency in a few function signatures (still an exact integer, no
+real risk). None of these were named in either fix pass's instructions;
+none were touched. A future session should pick these up explicitly,
+or confirm they're each still worth deferring.
 
 ## Context a future session needs (Phase G)
 
-- **This app is not production-ready.** Phase G's audit (items 1-5) found
-  3 Critical and multiple High/Medium findings against Phases A-F's own
-  work, all independently verified (not taken on any sub-agent's word),
-  none fixed by design (this phase's own explicit "report, don't fix"
-  instruction). The full ranked list is in this phase's checklist entry
-  above — read it before assuming this app is ready to onboard a real
-  patient. The three Critical gaps (offline-reconciliation resolution UI,
-  idle-lock/PIN, consultation-fee admin setter) and the drawer-dropdown
-  CSS bug are each a full, scoped piece of work, not a one-line fix.
-- **The drawer-dropdown bug (position:relative) blocks a core, everyday
-  doctor workflow today** — not an edge case. Fix is small (`position:
-  relative` on `.field`/`.record-section`, or reuse `.search-field`) but
-  touches three live call sites (`PrescriptionForm.tsx` x2,
-  `PricingPanel.tsx`) plus an unconfirmed fourth (`MergePatients.tsx`) —
-  verify all four together, not just the three found broken.
-- **The doctor's queue (`Consultation.tsx`) has no `arrived_at` date
-  filter; Reception's (`TokenList.tsx`) does.** This is why a visit can
-  cross midnight and vanish from Reception's billing queue with money
-  still owed. Fixing this needs to decide what the doctor's queue
-  *should* show for a multi-day backlog (today only, like Reception? some
-  explicit "older" grouping?) — a real product decision, not just adding
-  the same `.gte(startOfToday())` filter reflexively, since a patient
-  seen very late one night shouldn't silently disappear from the
-  *doctor's* queue either.
-- **`search_patients`' anon EXECUTE grant and the halted-banner patient-
-  name leak are both narrow, mechanical fixes** (a `revoke` statement; not
-  rendering/scrubbing `mutation.description` while signed out) — lower
-  effort than either of the above two, worth doing first.
+- **Every finding from Phase G's audit (items 1-5) has now been fixed,
+  tested, and verified**, across two fix passes: 3 Critical (offline-
+  reconciliation resolution UI, idle-lock/PIN, consultation-fee admin
+  setter) and 5 High/Medium (the doctor-queue date-scoping cash-loss
+  bug, the patient-name-in-banner leak, `search_patients`' anon grant,
+  the offline-print timing gap, the drawer-dropdown CSS bug), plus one
+  deferred item decided and fixed in the same pass (reports double-
+  counting same-day corrections). Every fix has its own red-then-green
+  test, a live/UI verification where the finding itself was a live
+  bug, and a clean full-suite re-run after every commit — see both
+  "Phase G fix pass" sections above for the complete detail. Nothing
+  was dismissed as not-real; nothing was silently dropped.
+- **What's genuinely still open**: the Low/informational findings from
+  the original audit that were never assigned to either fix pass (listed
+  at the end of the High/Medium section above) — a GST date-range
+  timezone bug, a template-prescription blank-quantity UX rough edge, a
+  stale isolation-test comment, leaked-password protection still
+  disabled, an int-vs-bigint nit. None of these block a real patient;
+  all are worth a future pass. Beyond that, this app is materially
+  closer to production-ready than at any prior point in this build —
+  but the Phase G build items (6-8) still have real, human-only setup
+  steps outstanding (below) before the backup pipeline specifically is
+  *working*, not just built.
 - **Every Phase G build item (6-8) has a human-only step still open**
   before it's a *working* backup pipeline, not just a built one: the age
   private key needs to actually land in the password manager (already
@@ -585,11 +734,13 @@ next, per the audit's own severity order.
 
 ## Next action
 
-Read this file (especially the Phase G checklist entry and the section
-above), `AGENTS.md`, `docs/architecture-spec.md`, and the PRD. Phase G's
-audit is done; **its findings are not** — the next session's job is
-fixing this phase's punch list (ranked above), re-verifying each fix live,
-and only then treating this app as ready for a real patient. `docs/build-
-plan.md`'s own phases A-G are all now *attempted*, but "attempted" and
-"done" have diverged for the first time in this project's history — don't
-let the checkbox above read as more finished than it is.
+Read this file (especially both "Phase G fix pass" sections above),
+`AGENTS.md`, `docs/architecture-spec.md`, and the PRD. Every finding
+Phase G's audit raised has been fixed and verified; what's left is the
+human-only setup for the backup pipeline (`docs/runbook.md`'s "Pending
+setup" — age private key into the password manager, `backup_reader`'s
+password, the R2 bucket/tokens, wiring the two health endpoints to an
+external uptime monitor) and, at the maintainer's discretion, the
+Low/informational findings nobody's assigned to a pass yet. Once the
+human-only steps are done and a real restore drill has been run, this
+app is ready for a real patient.
