@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
+import { Button } from './ui/button'
+import { Input } from './ui/input'
 
 type PatientLongTerm = { is_long_term: boolean; long_term_review_interval_days: number | null }
 type VisitFollowUp = { follow_up_date: string | null }
@@ -75,11 +77,11 @@ export function CarePanel({ visitId, patientId }: { visitId: string; patientId: 
         <label className="field-label" htmlFor="follow-up-date">
           Follow-up date
         </label>
-        <input id="follow-up-date" type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
+        <Input id="follow-up-date" type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
         <div className="action-row">
-          <button type="submit" className="secondary-button" disabled={saveFollowUp.isPending}>
+          <Button type="submit" variant="secondary" disabled={saveFollowUp.isPending}>
             {saveFollowUp.isPending ? 'Saving…' : 'Save follow-up date'}
-          </button>
+          </Button>
         </div>
         {saveFollowUp.isError && <p className="form-error">Couldn't save — try again.</p>}
       </form>
@@ -99,13 +101,13 @@ export function CarePanel({ visitId, patientId }: { visitId: string; patientId: 
             <label className="field-label" htmlFor="long-term-interval">
               Review interval (days)
             </label>
-            <input id="long-term-interval" type="number" min={1} value={intervalDays} onChange={(e) => setIntervalDays(e.target.value)} required />
+            <Input id="long-term-interval" type="number" min={1} value={intervalDays} onChange={(e) => setIntervalDays(e.target.value)} required />
           </>
         )}
         <div className="action-row">
-          <button type="submit" className="secondary-button" disabled={saveLongTerm.isPending || (isLongTerm && !intervalDays)}>
+          <Button type="submit" variant="secondary" disabled={saveLongTerm.isPending || (isLongTerm && !intervalDays)}>
             {saveLongTerm.isPending ? 'Saving…' : 'Save'}
-          </button>
+          </Button>
         </div>
         {saveLongTerm.isError && <p className="form-error">Couldn't save — try again.</p>}
       </form>

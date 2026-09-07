@@ -29,18 +29,31 @@
    into the current patient's record. Capped and independently scrollable
    since staging alone can carry hundreds of queued rows; a real clinic
    day never will, but the rail must not silently break under either. */
+/* v4.5: both the rail and the stage read as real elevated panels
+   (background + border + radius + shadow) rather than bare content
+   floating on the page background -- Linear/Stripe both group content
+   this way. */
 .consultation-rail {
-  flex: 0 0 15rem;
+  flex: 0 0 16rem;
   position: sticky;
   top: var(--space-md);
   max-height: calc(100vh - 6rem);
   overflow-y: auto;
-  padding-right: var(--space-2xs);
+  padding: var(--space-md) var(--space-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
 }
 
 .consultation-stage {
   flex: 1;
   min-width: 0;
+  padding: var(--space-xl);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
 }
 
 .rail-head {
@@ -449,18 +462,21 @@
 
 .drug-row-list {
   margin-top: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
 }
 
+/* v4.5: a real card (border + radius + shadow), not a hairline-divided
+   strip -- matches Linear/Stripe's own per-item grouping and was the
+   mockup's original intent, deferred at Phase UI-3 since that phase
+   was scoped to entry-flow only, not per-drug visual treatment. */
 .drug-row {
-  padding-top: var(--space-md);
-  margin-top: var(--space-md);
-  border-top: 1px solid var(--border);
-}
-
-.drug-row:first-child {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: none;
+  padding: var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
 }
 
 .drug-row-head {

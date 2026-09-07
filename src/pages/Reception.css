@@ -21,6 +21,8 @@
   gap: var(--space-lg);
 }
 
+/* v4.5: real elevated panels, matching Consultation's own rail/stage --
+   see Consultation.css for the fuller rationale. */
 .reception-rail {
   flex: 0 0 16rem;
   position: sticky;
@@ -28,11 +30,21 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
 }
 
 .reception-stage {
   flex: 1;
   min-width: 0;
+  padding: var(--space-xl);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
 }
 
 .rail-actions {
@@ -210,16 +222,19 @@
   box-shadow: var(--shadow-drawer);
 }
 
-/* Buttons */
+/* Buttons -- v4.5: real shadow (--shadow-sm) instead of flat fill, a
+   taller min-height (2.5rem) and softer radius, matching Linear/Stripe's
+   own button proportions rather than the earlier dense-tool scale. */
 .primary-button,
 .secondary-button {
   font-family: inherit;
   font-size: var(--text-base);
   font-weight: 600;
-  min-height: 2.25rem;
+  min-height: 2.5rem;
   padding: 0 var(--space-lg);
   border-radius: var(--radius-input);
-  transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out);
+  box-shadow: var(--shadow-sm);
+  transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out), box-shadow 150ms var(--ease-out);
 }
 
 .primary-button {
@@ -301,14 +316,31 @@
 .field select {
   font-family: inherit;
   font-size: var(--text-base);
-  height: 2.25rem;
+  height: 2.5rem;
   padding: 0 var(--space-sm);
   color: var(--text);
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-input);
   box-sizing: border-box;
+  box-shadow: var(--shadow-sm);
   transition: border-color 150ms var(--ease-out), background-color 150ms var(--ease-out);
+}
+
+/* A custom chevron replacing each browser/OS's own native select arrow --
+   one of the clearest "unstyled default HTML" tells (v4.5). The chevron
+   colour is a fixed mid-grey baked into the SVG rather than a token,
+   since a background-image data URI can't pick up currentColor/theme
+   changes the way an inline SVG or a mask-image could -- a disclosed
+   simplification, not an oversight; a fixed mid-grey reads acceptably
+   against both themes' --surface-2 fill. */
+.field select {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8L9.5 4.5' fill='none' stroke='%23888888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-sm) center;
+  cursor: pointer;
 }
 
 .field input::placeholder {
@@ -394,14 +426,22 @@
 }
 
 /* Sign-in */
+/* #root is a column flexbox (index.css) with .signin as a direct sibling
+   of the staging/offline banners, not wrapped in its own centering
+   container -- `margin: auto` on all four sides centers it in both the
+   main axis (vertical, absorbing whatever space the banners don't use)
+   and the cross axis (horizontal), which a fixed top margin never did:
+   it only ever centered horizontally, leaving the card stranded near
+   the top of an otherwise empty page. */
 .signin {
   max-width: 22rem;
-  margin: var(--space-xl) auto 0;
+  margin: auto;
   padding: var(--space-xl) var(--space-lg);
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
 }
 
 .signin-heading {

@@ -18,7 +18,7 @@ old version if a past value or rationale is needed.
 - Shell chrome — `src/components/AppShell.tsx` + `AppShell.css`
 - Staging strip — `src/components/StagingBanner.tsx` + `.css`
 - Reception content — `src/pages/Reception.tsx` + `Reception.css`
-- Consultation content — `src/pages/Consultation.tsx` + `Consultation.css`, `src/components/PrescriptionForm.tsx`, `src/components/PricingPanel.tsx`
+- Consultation content — `src/pages/Consultation.tsx` + `Consultation.css`, `src/components/PrescriptionForm.tsx`, `src/components/PricingPanel.tsx`, `src/components/SectionStepper.tsx`, `src/components/ConsultationClock.tsx`
 - Billing content — `src/components/Billing.tsx` + `Billing.css` (reuses `.record-area`/`.record-section`/`.pricing-block` from `Consultation.css`, since Vite bundles all statically-imported component CSS globally — there are no CSS Modules in this project)
 - Token list / stage model — `src/components/TokenList.tsx`
 - Forms — `src/components/NewPatientForm.tsx`, `src/components/SignIn.tsx`

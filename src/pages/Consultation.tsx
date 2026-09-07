@@ -13,6 +13,8 @@ import { RepQueueRows } from '../components/RepQueueRows'
 import { TodayFlow, type TodayVisit } from '../components/TodayFlow'
 import { SectionStepper, type StepperSection } from '../components/SectionStepper'
 import { ConsultationClock } from '../components/ConsultationClock'
+import { Button, buttonVariants } from '../components/ui/button'
+import { Input } from '../components/ui/input'
 import '../components/Worklist.css'
 import './Consultation.css'
 
@@ -264,15 +266,13 @@ export function Consultation({ userId }: { userId: string }) {
         <div className="consultation-rail">
           <div className="rail-head">
             <h2 className="readout-heading">Queue</h2>
-            <motion.button
+            <Button
               type="button"
-              className="primary-button"
-              whileTap={{ scale: 0.97 }}
               disabled={queue.length === 0 || !!current || callNext.isPending}
               onClick={() => callNext.mutate(queue[0].id)}
             >
               {callNext.isPending ? 'Calling…' : 'Call next'}
-            </motion.button>
+            </Button>
           </div>
 
           {(!visits || visits.length === 0) && repCount === 0 ? (
@@ -342,21 +342,16 @@ export function Consultation({ userId }: { userId: string }) {
                   <label className="field-label" htmlFor="comment-body">
                     Add a comment
                   </label>
-                  <input
+                  <Input
                     id="comment-body"
                     value={commentBody}
                     onChange={(e) => setCommentBody(e.target.value)}
                     placeholder="Something worth remembering next time"
                   />
                 </div>
-                <motion.button
-                  type="submit"
-                  className="secondary-button"
-                  whileTap={{ scale: 0.97 }}
-                  disabled={addComment.isPending || !commentBody.trim()}
-                >
+                <Button type="submit" variant="secondary" disabled={addComment.isPending || !commentBody.trim()}>
                   {addComment.isPending ? 'Adding…' : 'Add'}
-                </motion.button>
+                </Button>
               </form>
               {addComment.isError && <p className="form-error">Couldn't save — try again.</p>}
             </section>
@@ -452,7 +447,7 @@ export function Consultation({ userId }: { userId: string }) {
               <div className="action-row">
                 <motion.button
                   type="button"
-                  className="primary-button"
+                  className={buttonVariants({ variant: 'primary' })}
                   whileTap={{ scale: 0.96, rotate: -1 }}
                   disabled={consultationDone.isPending}
                   onClick={() => consultationDone.mutate()}

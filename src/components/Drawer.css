@@ -9,7 +9,7 @@
 .drawer-scrim {
   position: fixed;
   inset: 0;
-  background: oklch(15% 0.02 140 / 45%);
+  background: oklch(15% 0 0 / 45%);
   z-index: 40;
 }
 

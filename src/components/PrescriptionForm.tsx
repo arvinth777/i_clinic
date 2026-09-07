@@ -4,6 +4,9 @@ import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { parseRupeesToPaise } from '../lib/money'
+import { Button, buttonVariants } from './ui/button'
+import { Input } from './ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import {
   newDraftItem,
   draftFromExisting,
@@ -211,18 +214,12 @@ export function PrescriptionForm({
           ))}
         </ul>
         <div className="action-row">
-          <motion.button
-            type="button"
-            className="secondary-button"
-            whileTap={{ scale: 0.97 }}
-            disabled={confirm.isPending}
-            onClick={() => setReviewOpen(false)}
-          >
+          <Button type="button" variant="secondary" disabled={confirm.isPending} onClick={() => setReviewOpen(false)}>
             Back to edit
-          </motion.button>
+          </Button>
           <motion.button
             type="button"
-            className="primary-button"
+            className={buttonVariants({ variant: 'primary' })}
             whileTap={{ scale: 0.96, rotate: -1 }}
             disabled={confirm.isPending}
             onClick={() => confirm.mutate()}
@@ -243,7 +240,7 @@ export function PrescriptionForm({
         <label className="field-label" htmlFor="drug-search">
           Search drugs
         </label>
-        <input
+        <Input
           id="drug-search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -292,7 +289,7 @@ export function PrescriptionForm({
               <label className="field-label" htmlFor="new-medicine-price">
                 Price (₹)
               </label>
-              <input
+              <Input
                 id="new-medicine-price"
                 inputMode="decimal"
                 value={newMedicinePrice}
@@ -300,10 +297,9 @@ export function PrescriptionForm({
                 placeholder="0.00"
               />
             </div>
-            <motion.button
+            <Button
               type="button"
-              className="secondary-button"
-              whileTap={{ scale: 0.97 }}
+              variant="secondary"
               disabled={addNewMedicine.isPending || parseRupeesToPaise(newMedicinePrice) === null}
               onClick={() => {
                 const price = parseRupeesToPaise(newMedicinePrice)
@@ -311,7 +307,7 @@ export function PrescriptionForm({
               }}
             >
               {addNewMedicine.isPending ? 'Adding…' : `Add "${debouncedSearch}" as a new drug`}
-            </motion.button>
+            </Button>
             {addNewMedicine.isError && <p className="form-error">Couldn't add that drug — try again.</p>}
           </div>
         ))}
@@ -329,41 +325,56 @@ export function PrescriptionForm({
               <div className="drug-row-fields">
                 <div className="field">
                   <label className="field-label">Type</label>
-                  <select value={item.drugType} onChange={(e) => updateDraft(item.key, { drugType: e.target.value })}>
-                    {DRUG_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={item.drugType} onValueChange={(v) => updateDraft(item.key, { drugType: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DRUG_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="field">
                   <label className="field-label">Strength</label>
-                  <input value={item.strength} onChange={(e) => updateDraft(item.key, { strength: e.target.value })} placeholder="500mg" />
+                  <Input value={item.strength} onChange={(e) => updateDraft(item.key, { strength: e.target.value })} placeholder="500mg" />
                 </div>
                 <div className="field">
                   <label className="field-label">Food</label>
-                  <select value={item.beforeAfterFood} onChange={(e) => updateDraft(item.key, { beforeAfterFood: e.target.value })}>
-                    {FOOD_OPTIONS.map((f) => (
-                      <option key={f} value={f}>
-                        {f}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={item.beforeAfterFood} onValueChange={(v) => updateDraft(item.key, { beforeAfterFood: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FOOD_OPTIONS.map((f) => (
+                        <SelectItem key={f} value={f}>
+                          {f}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="field">
                   <label className="field-label">Frequency</label>
-                  <select value={item.dosageFrequency} onChange={(e) => updateDraft(item.key, { dosageFrequency: e.target.value })}>
-                    {FREQUENCY_OPTIONS.map((f) => (
-                      <option key={f} value={f}>
-                        {f}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={item.dosageFrequency} onValueChange={(v) => updateDraft(item.key, { dosageFrequency: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FREQUENCY_OPTIONS.map((f) => (
+                        <SelectItem key={f} value={f}>
+                          {f}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="field">
                   <label className="field-label">Duration (days)</label>
-                  <input
+                  <Input
                     type="number"
                     min="1"
                     step="1"
@@ -373,7 +384,7 @@ export function PrescriptionForm({
                 </div>
                 <div className="field">
                   <label className="field-label">Quantity dispensed</label>
-                  <input
+                  <Input
                     type="number"
                     min="1"
                     step="1"
@@ -383,7 +394,7 @@ export function PrescriptionForm({
                 </div>
                 <div className="field drug-row-notes">
                   <label className="field-label">Note</label>
-                  <input value={item.notes} onChange={(e) => updateDraft(item.key, { notes: e.target.value })} placeholder="Optional" />
+                  <Input value={item.notes} onChange={(e) => updateDraft(item.key, { notes: e.target.value })} placeholder="Optional" />
                 </div>
               </div>
               {!itemIsValid(item) && <span className="field-error">Type, food, frequency and a whole-number duration are required.</span>}
@@ -394,24 +405,12 @@ export function PrescriptionForm({
 
       {draftItems.length > 0 && (
         <div className="action-row">
-          <motion.button
-            type="button"
-            className="primary-button"
-            whileTap={{ scale: 0.97 }}
-            disabled={!canReview}
-            onClick={() => setReviewOpen(true)}
-          >
+          <Button type="button" disabled={!canReview} onClick={() => setReviewOpen(true)}>
             Review prescription
-          </motion.button>
-          <motion.button
-            type="button"
-            className="secondary-button"
-            whileTap={{ scale: 0.97 }}
-            disabled={!canReview}
-            onClick={() => setShowSaveTemplate((s) => !s)}
-          >
+          </Button>
+          <Button type="button" variant="secondary" disabled={!canReview} onClick={() => setShowSaveTemplate((s) => !s)}>
             Save as template
-          </motion.button>
+          </Button>
         </div>
       )}
 

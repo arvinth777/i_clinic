@@ -199,14 +199,78 @@ phase — the A-G plan is fully audited/closed per Phase G above):
     `with_doctor_at` landed, `consultation_ended_at` correctly `null`),
     and watched the clock advance from 00:07 to 00:21 over a real ~14s
     wait.
-- [ ] **Phase UI-5 — Visual language reconciliation.** Decide a real
-  (non-cliché) hierarchy device for the new center-stage's section
-  labels/tables — the "bland" root cause above is still unresolved, just
-  relocated into the new layout — then rewrite `design.md` to match
-  what's actually shipped, closing the doc/code gap this session found.
+- [x] **Phase UI-5 — Visual language reconciliation.** Took three real
+  rounds of live user feedback to converge, recorded honestly rather than
+  smoothed into a tidy one-shot success:
+  1. **Section-heading fix** (`.readout-heading`): a genuine type-scale
+     step-up (`--text-base` → `--text-lg`) plus a neutral 3px
+     `--border-strong` left rule, replacing the plain-bold-text-with-
+     nothing v4.2 shipped. Landed clean, not revisited.
+  2. **A colour-only swap** (sage/teal → neutral black/white/grey +
+     blue), done in direct response to "I don't like the slate-teal, I
+     need professional colours." The user's own verdict on the result:
+     "still ugly... everything -- the zoomed in, the components, the
+     fonts and spacing and the dropdowns." **This attempt is superseded,
+     not layered on** -- named here so a future session doesn't
+     rediscover "colour-only isn't enough" the hard way.
+  3. **The actual fix**: real elevation (`--shadow-sm`/`--shadow-md`
+     tokens, applied to cards/buttons/inputs, border *and* shadow
+     together, never one alone), a reopened spacing scale and larger
+     radii (10px/8px, up from 6px/4px), a custom `<select>` chevron, the
+     sign-in centering bug fixed (found at the very start of the UI
+     initiative, never circled back to until now), and the "procedure
+     drawer" complaint traced to a real UX bug -- `PricingPanel.tsx` was
+     dumping every procedure in the clinic's catalog (100+ junk rows in
+     staging) into an always-visible unfiltered list; rebuilt as the same
+     search-first pattern as the drug search.
+  - **Even after (3), the user's read was still short of "elite":**
+     "better than before, but does not look elite and well crafted" --
+     confirming the *direction* (real depth/spacing/radii) but not the
+     *execution*. Explicitly authorized reaching for a real component
+     library rather than more manual token guessing ("use online react
+     comps if you cant make it").
+  - **Tailwind + Radix UI, introduced this phase** (`@tailwindcss/vite`,
+    `@radix-ui/react-select`, `@radix-ui/react-slot`,
+    `class-variance-authority`, `clsx`, `tailwind-merge` -- the same
+    foundation Kokonut UI itself is built on). `src/index.css`'s
+    `@theme` block maps Tailwind's utility keys (`bg-accent`,
+    `rounded-card`, `shadow-sm`, etc.) straight onto the existing CSS
+    custom properties, so a Tailwind utility and a plain `var(--...)`
+    rule always resolve to the same one token -- never two parallel
+    colour systems. New primitives in `src/components/ui/`: `Button`
+    (cva-based variants), `Input`, `Card`, and `Select` (a real
+    Radix-rendered popover replacing the native `<select>` entirely, not
+    just a styled native one -- checkmark on the selected item, proper
+    hover states, a small open/close fade+scale animation added directly
+    since Radix ships the popover with no motion of its own).
+  - **Piloted, then fully rolled out across Consultation** (not yet
+    Reception/Admin/Stock -- a deliberate, separate next step, not an
+    oversight): every native `<select>`/text input/primary or secondary
+    button in `PrescriptionForm.tsx`, `PricingPanel.tsx`,
+    `Consultation.tsx`, `CarePanel.tsx`, and `DocumentsPanel.tsx` now
+    uses the new primitives. Deliberately left native: checkboxes,
+    radio buttons, the `<textarea>` (case-summary field) -- no `Textarea`
+    primitive exists yet, and none of these were named as a concrete
+    complaint. "Remove" links stay plain text links -- a legitimate,
+    lighter-weight pattern, not everything needs to be a button.
+  - Verified live after every step (typecheck + lint clean throughout,
+    zero new warnings beyond the one expected shadcn-style
+    fast-refresh notice on `button.tsx`): the new `Select` popover
+    confirmed as a real Radix-rendered listbox (not native), procedure
+    search-and-filter confirmed working, sign-in confirmed centered with
+    real shadow, full Consultation flow re-checked end to end after the
+    conversion.
+  - **Not yet done, named explicitly rather than implied finished**:
+    Reception/Admin/Stock/Billing still use the pre-Tailwind CSS
+    components; a `Textarea` primitive; re-running this same pass's
+    user-facing check ("does this read as elite now?") since the last
+    explicit verdict recorded above predates the full Consultation
+    rollout.
 
-Not committed to git yet as of this write-up — do that as the last step
-of finishing Phase UI-1 (see "Next action").
+This entire phase's git history was intentionally *not* split into one
+commit per round -- the intermediate colour-only attempt was superseded,
+not layered on, so committing it separately would leave a step in
+history that this same file says plainly not to trust.
 
 ## Where we are
 
@@ -942,9 +1006,12 @@ or confirm they're each still worth deferring.
 Two independent tracks are open now, not one:
 
 1. **The UI redesign initiative** (new section at the top of this file):
-   Phases UI-1 through UI-4 (layout shell, section jump-nav, prescription
-   entry redesign, consultation duration tracking) are done and verified
-   live; Phase UI-5 (visual language reconciliation) is last.
+   all five planned phases (UI-1 through UI-5) are done, but UI-5 itself
+   names real unfinished work rather than closing clean -- Reception,
+   Admin, Stock, and Billing still need the same Tailwind/Radix
+   component conversion Consultation just got, and the user's own "is
+   this elite yet" verdict needs re-checking against the fuller rollout,
+   not assumed from where the last round of feedback left off.
 2. **Phase G's own residual items** (below): every audited finding is
    fixed and verified; what's left is the human-only setup for the
    backup pipeline (`docs/runbook.md`'s "Pending setup" — age private

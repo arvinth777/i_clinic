@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatDate, formatDateOnly } from '../lib/date'
+import { Button } from './ui/button'
+import { Input } from './ui/input'
 
 type DocType = 'certificate' | 'sick_leave' | 'referral'
 
@@ -134,7 +136,7 @@ export function DocumentsPanel({ clinicId, visitId, patientName, patientAge, com
             <label className="field-label" htmlFor="doc-purpose">
               Purpose
             </label>
-            <input id="doc-purpose" value={purpose} onChange={(e) => setPurpose(e.target.value)} required />
+            <Input id="doc-purpose" value={purpose} onChange={(e) => setPurpose(e.target.value)} required />
           </div>
         )}
 
@@ -144,19 +146,19 @@ export function DocumentsPanel({ clinicId, visitId, patientName, patientAge, com
               <label className="field-label" htmlFor="doc-rest-from">
                 Rest from
               </label>
-              <input id="doc-rest-from" type="date" value={restFrom} onChange={(e) => setRestFrom(e.target.value)} required />
+              <Input id="doc-rest-from" type="date" value={restFrom} onChange={(e) => setRestFrom(e.target.value)} required />
             </div>
             <div className="field">
               <label className="field-label" htmlFor="doc-rest-to">
                 Rest to
               </label>
-              <input id="doc-rest-to" type="date" value={restTo} onChange={(e) => setRestTo(e.target.value)} required />
+              <Input id="doc-rest-to" type="date" value={restTo} onChange={(e) => setRestTo(e.target.value)} required />
             </div>
             <div className="field">
               <label className="field-label" htmlFor="doc-reason-sick">
                 Reason
               </label>
-              <input id="doc-reason-sick" value={reason} onChange={(e) => setReason(e.target.value)} required />
+              <Input id="doc-reason-sick" value={reason} onChange={(e) => setReason(e.target.value)} required />
             </div>
           </>
         )}
@@ -167,13 +169,13 @@ export function DocumentsPanel({ clinicId, visitId, patientName, patientAge, com
               <label className="field-label" htmlFor="doc-referred-to">
                 Referred to
               </label>
-              <input id="doc-referred-to" value={referredTo} onChange={(e) => setReferredTo(e.target.value)} required />
+              <Input id="doc-referred-to" value={referredTo} onChange={(e) => setReferredTo(e.target.value)} required />
             </div>
             <div className="field">
               <label className="field-label" htmlFor="doc-reason-referral">
                 Reason
               </label>
-              <input id="doc-reason-referral" value={reason} onChange={(e) => setReason(e.target.value)} required />
+              <Input id="doc-reason-referral" value={reason} onChange={(e) => setReason(e.target.value)} required />
             </div>
             <div className="field">
               <label className="field-label" htmlFor="doc-case-summary">
@@ -185,9 +187,9 @@ export function DocumentsPanel({ clinicId, visitId, patientName, patientAge, com
         )}
 
         <div className="action-row">
-          <button type="submit" className="secondary-button" disabled={issue.isPending}>
+          <Button type="submit" variant="secondary" disabled={issue.isPending}>
             {issue.isPending ? 'Issuing…' : 'Issue & print'}
-          </button>
+          </Button>
         </div>
         {issue.isError && <p className="form-error">Couldn't save — try again.</p>}
         {issued && <p className="readout-empty">Issued and sent to print.</p>}

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../lib/money'
 import { attemptOrQueue } from '../lib/offlineQueue'
+import { Input } from './ui/input'
 
 type Procedure = { id: string; name: string; default_price_paise: number }
 type VisitProcedure = { id: string; procedure_id: string; price_paise: number; procedures: { name: string } | null }
@@ -16,6 +17,7 @@ type Pricing = {
 
 export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId: string }) {
   const queryClient = useQueryClient()
+  const [procedureSearch, setProcedureSearch] = useState('')
 
   const proceduresKey = ['procedures', clinicId]
   const { data: procedures } = useQuery({
@@ -114,6 +116,15 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
     onSuccess: invalidateAll,
   })
 
+  function addProcedureFromSearch(procedure: Procedure) {
+    addProcedure.mutate(procedure)
+    setProcedureSearch('')
+  }
+
+  const filteredProcedures = procedureSearch.trim()
+    ? (procedures ?? []).filter((p) => p.name.toLowerCase().includes(procedureSearch.trim().toLowerCase()))
+    : []
+
   const updatePrice = useMutation({
     networkMode: 'always',
     mutationFn: async ({ id, price_paise }: { id: string; price_paise: number }) => {
@@ -207,20 +218,34 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
     <>
       <section className="record-section">
         <h3 className="readout-heading">Procedures</h3>
-        {procedures && procedures.length > 0 && (
-          <div className="search-results-anchor">
-            <ul className="search-results">
-              {procedures.map((p) => (
-                <li key={p.id}>
-                  <button type="button" className="search-result-button" onClick={() => addProcedure.mutate(p)}>
-                    <span>{p.name}</span>
-                    <span className="search-result-meta">{formatPaise(p.default_price_paise)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <div className="field search-results-anchor">
+          <label className="field-label" htmlFor="procedure-search">
+            Search procedures
+          </label>
+          <Input
+            id="procedure-search"
+            value={procedureSearch}
+            onChange={(e) => setProcedureSearch(e.target.value)}
+            placeholder="Search a procedure to add…"
+          />
+          {procedureSearch.trim() &&
+            (filteredProcedures.length > 0 ? (
+              <ul className="search-results">
+                {filteredProcedures.map((p) => (
+                  <li key={p.id}>
+                    <button type="button" className="search-result-button" onClick={() => addProcedureFromSearch(p)}>
+                      <span>{p.name}</span>
+                      <span className="search-result-meta">{formatPaise(p.default_price_paise)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="no-match">
+                <p>No procedure named "{procedureSearch}" in the list.</p>
+              </div>
+            ))}
+        </div>
         {!visitProcedures || visitProcedures.length === 0 ? (
           <p className="readout-empty">No procedures added for this visit.</p>
         ) : (
@@ -228,7 +253,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
             {visitProcedures.map((row) => (
               <li key={row.id} className="past-visit-item procedure-item">
                 <span className="procedure-item-name">{row.procedures?.name}</span>
-                <input
+                <Input
                   className="procedure-price-input"
                   inputMode="decimal"
                   value={priceDrafts[row.id] ?? formatPaiseForInput(row.price_paise)}
@@ -262,7 +287,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
               <label className="field-label" htmlFor="final-amount">
                 Final amount (₹)
               </label>
-              <input
+              <Input
                 id="final-amount"
                 inputMode="decimal"
                 value={finalAmountDraft}
