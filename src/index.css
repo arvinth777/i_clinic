@@ -64,6 +64,18 @@
   --stage-ready: oklch(46% 0.1 320);
   --stage-paid: var(--success);
 
+  /* Bento-tile palette (TodayFlow.tsx only, for now) -- standalone from
+     --accent/--success/--warning on purpose, see that file's own header
+     comment. One saturated "hero" fill (white text) plus two pale
+     supporting fills (dark text), matching the reference's own mix
+     rather than uniform pastels. */
+  --tile-hero: oklch(52% 0.16 290);
+  --tile-hero-ink: oklch(99% 0 0);
+  --tile-mint: oklch(92% 0.05 165);
+  --tile-mint-ink: oklch(32% 0.06 165);
+  --tile-amber: oklch(92% 0.06 80);
+  --tile-amber-ink: oklch(35% 0.07 70);
+
   /* v4.5 font pass -- researched directly (search results in
      docs/STATUS.md), not guessed: Geist for headings paired with Inter
      for body is named as the current "gold standard" pairing for
@@ -143,6 +155,13 @@
   --warning: oklch(72% 0.12 78);
   --warning-wash: oklch(72% 0.12 78 / 16%);
   --stage-ready: oklch(64% 0.11 320);
+
+  --tile-hero: oklch(58% 0.17 290);
+  --tile-hero-ink: oklch(99% 0 0);
+  --tile-mint: oklch(30% 0.05 165);
+  --tile-mint-ink: oklch(90% 0.05 165);
+  --tile-amber: oklch(32% 0.06 75);
+  --tile-amber-ink: oklch(88% 0.07 75);
 
   /* Shadows need more opacity on a dark ground to read at all -- same two
      steps as light, tuned darker. */

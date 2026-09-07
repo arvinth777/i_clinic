@@ -11,8 +11,17 @@ export type TodayVisit = { stage: string; arrived_at: string }
 // fabricated) plus one proportional bar in the same stage colours used
 // everywhere else in the app -- waiting/with-doctor/seen-today, not the
 // full five-stage taxonomy, since only these three matter from the
-// doctor's own desk. A slim strip above the worklist, not a boxed card --
-// nothing here needs its own visual region separate from the table below.
+// doctor's own desk.
+//
+// Bento-grid tiles (user-directed reference: websiteprompts.com/design/
+// bento-grid), the first application of that pattern in this app --
+// varied but aligned tiles, one bold "hero" colour and two paler
+// supporting tiles, each with one clear number. Colours here are new,
+// standalone tile tokens (--tile-hero/--tile-mint/--tile-amber), not
+// reused --accent/--success/--warning -- this widget is a categorical,
+// at-a-glance summary, a different job from the stage semantics
+// elsewhere in the app, and reusing --success here would have diluted
+// its "only ever the paid-stamp" rule.
 export function TodayFlow({ visits }: { visits: TodayVisit[] | undefined }) {
   const waiting = visits?.filter((v) => v.stage === 'waiting').length ?? 0
   const withDoctor = visits?.filter((v) => v.stage === 'with_doctor').length ?? 0
@@ -25,18 +34,21 @@ export function TodayFlow({ visits }: { visits: TodayVisit[] | undefined }) {
 
   return (
     <div className="flow-widget">
-      <div className="flow-stats">
-        <div className="flow-stat">
-          <span className="flow-stat-value">{waiting}</span>
-          <span className="flow-stat-label">Waiting</span>
+      <div className="flow-grid">
+        <div className="flow-tile flow-tile-hero">
+          <svg className="flow-tile-ring" width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="14" opacity="0.35" />
+          </svg>
+          <span className="flow-tile-label">Waiting</span>
+          <span className="flow-tile-value">{waiting}</span>
         </div>
-        <div className="flow-stat">
-          <span className="flow-stat-value">{seenToday}</span>
-          <span className="flow-stat-label">Seen today</span>
+        <div className="flow-tile flow-tile-mint">
+          <span className="flow-tile-label">Seen today</span>
+          <span className="flow-tile-value">{seenToday}</span>
         </div>
-        <div className="flow-stat">
-          <span className={overdue ? 'flow-stat-value flow-overdue' : 'flow-stat-value'}>{avgWait !== null ? `${avgWait}m` : '—'}</span>
-          <span className="flow-stat-label">Avg wait now</span>
+        <div className="flow-tile flow-tile-amber">
+          <span className="flow-tile-label">Avg wait now</span>
+          <span className={overdue ? 'flow-tile-value flow-overdue' : 'flow-tile-value'}>{avgWait !== null ? `${avgWait}m` : '—'}</span>
         </div>
       </div>
       {total > 0 && (

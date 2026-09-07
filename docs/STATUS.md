@@ -318,9 +318,46 @@ panel... it still looks like typical AI slop."
   reasoned about: roughly 15 rows now visible in the rail at once versus
   ~4-5 before, which also directly addresses part of the earlier
   "zoomed in" complaint as a side effect, not a separate fix.
-- **Still open**: the user has not yet reacted to this fourth round --
-  don't mark this phase's remaining "is this elite" question answered
-  until they have.
+- **The user's verdict on round 4**: "better than before, but that was
+  worse than AI slop, now it is [an] AI slop" -- genuine forward
+  progress (no longer *worse* than the generic baseline), but landing
+  squarely on "competently generic," not distinctive. Asked whether to
+  propose real distinctive creative directions before building further;
+  the user dismissed that question without answering, then instead gave
+  a direct, concrete visual reference to follow (below) rather than
+  continuing the abstract "is it elite yet" conversation.
+
+**Fifth round -- a concrete visual reference, not another abstract
+adjective.** The user linked a specific "Bento Grid" pattern
+(websiteprompts.com/design/bento-grid) and then a full screenshot of its
+illustrative example (varied-span tiles, one saturated "hero" tile with
+a decorative ring graphic, pale supporting tiles, bold numbers, no
+borders -- colour alone separates tiles). Applied to `TodayFlow.tsx`
+(the Waiting/Seen-today/Avg-wait strip) as the first, bounded
+application of the pattern -- not yet the queue rail or the record
+itself, a deliberate scope line pending reaction to this piece first.
+- New standalone tile tokens (`--tile-hero`/`--tile-mint`/`--tile-amber`
+  + dark-mode variants), explicitly *not* reusing `--accent`/`--success`/
+  `--warning` -- reusing `--success` here specifically would have diluted
+  the "only ever the paid-stamp" rule this file already documents.
+- A real bug caught and fixed in the same pass, not left for later:
+  deleting `TodayFlow`'s old `.flow-stat`/`.flow-stats` CSS rules
+  wholesale silently broke `DailyReport.tsx` and `GstReport.tsx`, which
+  also use those exact class names -- `tsc` does not catch a missing CSS
+  class, so this was only caught by grepping every consumer of the
+  classes being touched (the same lesson this file has already recorded
+  once, for `search_patients`' anon grant, applied here to CSS instead of
+  SQL). Fixed by restoring those rules alongside the new bento-specific
+  ones, verified live on both Consultation (new tiles) and the Daily
+  Report screen (old classes, unaffected).
+- Verified live as `doctor.a`: the three-tile bento row renders with the
+  intended saturated-hero + pale-supporting mix, the decorative ring
+  clips correctly inside the hero tile, and the overdue-wait red text
+  override still applies inside the new tile.
+- **Not yet done, named explicitly**: the queue rail and the rest of the
+  record are still the pre-bento Tailwind/Radix treatment from round 3;
+  Reception/Admin/Stock untouched; the user has not yet reacted to this
+  round.
 
 ## Where we are
 
