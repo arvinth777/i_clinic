@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { Drawer } from '../Drawer'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Button } from '../ui/button'
 import { RecordPurchaseForm } from './RecordPurchaseForm'
 import { TransferForm } from './TransferForm'
 import { MonthlyCountForm } from './MonthlyCountForm'
@@ -64,57 +66,59 @@ export function StockList({ clinicId }: { clinicId: string }) {
       <div className="admin-toolbar">
         <h2 className="readout-heading">Stock</h2>
         <div className="action-row">
-          <button type="button" className="secondary-button" onClick={() => setAction('adjust')}>
+          <Button type="button" variant="secondary" onClick={() => setAction('adjust')}>
             Adjust
-          </button>
-          <button type="button" className="secondary-button" onClick={() => setAction('count')}>
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => setAction('count')}>
             Monthly count
-          </button>
-          <button type="button" className="secondary-button" onClick={() => setAction('transfer')}>
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => setAction('transfer')}>
             Transfer
-          </button>
-          <button type="button" className="primary-button" onClick={() => setAction('purchase')}>
+          </Button>
+          <Button type="button" onClick={() => setAction('purchase')}>
             + Record purchase
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="worklist-scroll">
-        <table className="worklist">
-          <thead>
-            <tr>
-              <th>Medicine</th>
-              {(stockPoints ?? []).map((sp) => (
-                <th key={sp.id}>{sp.name}</th>
-              ))}
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(medicines ?? []).map((m) => {
-              const total = (stockPoints ?? []).reduce((sum, sp) => sum + quantityAt(m.id, sp.id), 0)
-              const isLow = m.low_stock_threshold != null && total <= m.low_stock_threshold
-              return (
-                <tr key={m.id} className="worklist-row">
-                  <td className="worklist-name-cell">
-                    {m.name}
-                    {isLow && <span className="stock-badge">Low stock</span>}
-                  </td>
-                  {(stockPoints ?? []).map((sp) => {
-                    const qty = quantityAt(m.id, sp.id)
-                    return (
-                      <td key={sp.id} className={`worklist-wait-cell ${qty < 0 ? 'stock-qty-negative' : ''}`}>
-                        {qty}
-                      </td>
-                    )
-                  })}
-                  <td className={`worklist-wait-cell ${total < 0 ? 'stock-qty-negative' : isLow ? 'stock-qty-low' : ''}`}>{total}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Medicine</TableHead>
+            {(stockPoints ?? []).map((sp) => (
+              <TableHead key={sp.id} className="text-right">
+                {sp.name}
+              </TableHead>
+            ))}
+            <TableHead className="text-right">Total</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(medicines ?? []).map((m) => {
+            const total = (stockPoints ?? []).reduce((sum, sp) => sum + quantityAt(m.id, sp.id), 0)
+            const isLow = m.low_stock_threshold != null && total <= m.low_stock_threshold
+            return (
+              <TableRow key={m.id}>
+                <TableCell className="font-medium">
+                  {m.name}
+                  {isLow && <span className="stock-badge">Low stock</span>}
+                </TableCell>
+                {(stockPoints ?? []).map((sp) => {
+                  const qty = quantityAt(m.id, sp.id)
+                  return (
+                    <TableCell key={sp.id} className={`text-right font-mono tabular-nums ${qty < 0 ? 'stock-qty-negative' : ''}`}>
+                      {qty}
+                    </TableCell>
+                  )
+                })}
+                <TableCell className={`text-right font-mono font-semibold tabular-nums ${total < 0 ? 'stock-qty-negative' : isLow ? 'stock-qty-low' : ''}`}>
+                  {total}
+                </TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
 
       <Drawer open={action === 'purchase'} onClose={closeAction} title="Record purchase">
         {action === 'purchase' && (
