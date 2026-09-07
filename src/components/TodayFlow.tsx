@@ -36,8 +36,8 @@ export function TodayFlow({ visits }: { visits: TodayVisit[] | undefined }) {
     <div className="flow-widget">
       <div className="flow-grid">
         <div className="flow-tile flow-tile-hero">
-          <svg className="flow-tile-ring" width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
-            <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="14" opacity="0.35" />
+          <svg className="flow-tile-ring" width="160" height="160" viewBox="0 0 160 160" aria-hidden="true">
+            <circle cx="80" cy="80" r="68" fill="none" stroke="currentColor" strokeWidth="18" opacity="0.35" />
           </svg>
           <span className="flow-tile-label">Waiting</span>
           <span className="flow-tile-value">{waiting}</span>

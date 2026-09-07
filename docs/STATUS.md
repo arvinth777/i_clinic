@@ -356,8 +356,33 @@ itself, a deliberate scope line pending reaction to this piece first.
   override still applies inside the new tile.
 - **Not yet done, named explicitly**: the queue rail and the rest of the
   record are still the pre-bento Tailwind/Radix treatment from round 3;
-  Reception/Admin/Stock untouched; the user has not yet reacted to this
-  round.
+  Reception/Admin/Stock untouched.
+
+**Sixth round -- same reference image, re-sent with a specific complaint**:
+"the colour, text size, contrast and the sizing is not as premium as
+this photo." Measured against the reference directly rather than
+adjusting by feel:
+- Tile numbers were `--text-xl` (1.5rem); the reference's numbers run
+  roughly 3.5x their own label size, not the ~2x that gave. New
+  `--text-3xl` (2.5rem) token, hero-stat scale only, applied to
+  `.flow-tile-value` at weight 800 with tight tracking.
+- The pale mint/amber tiles had hue-tinted ink
+  (`--tile-mint-ink`/`--tile-amber-ink`) -- the reference's "Completion"/
+  "84%"/"Activity" text is neutral near-black throughout, not tinted to
+  match each tile's own hue. Replaced both with one `--tile-pale-ink`
+  (= `--text`), which is what actually gave the reference its higher-
+  contrast, more serious look -- the tint, not the size, was flattening
+  contrast.
+- Hero tile bumped from `oklch(52% 0.16 290)` to `oklch(58% 0.2 290)`
+  (dark-mode variant similarly) -- more vivid/saturated, closer to the
+  reference's confident indigo rather than a muted one.
+- Tile `min-height` 6rem → 9.5rem, padding and grid gap both widened,
+  the decorative ring enlarged 120px → 160px -- the reference's tiles
+  read as spacious/roomy, not compact.
+- Verified live: numbers now dominate their tiles the way the reference's
+  do, mint/amber text reads neutral dark, hero tile is visibly more
+  saturated, and the overdue-wait red override (`.flow-overdue`) still
+  correctly overrides the new neutral ink.
 
 ## Where we are
 

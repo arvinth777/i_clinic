@@ -69,12 +69,16 @@
      comment. One saturated "hero" fill (white text) plus two pale
      supporting fills (dark text), matching the reference's own mix
      rather than uniform pastels. */
-  --tile-hero: oklch(52% 0.16 290);
+  --tile-hero: oklch(58% 0.2 290);
   --tile-hero-ink: oklch(99% 0 0);
   --tile-mint: oklch(92% 0.05 165);
-  --tile-mint-ink: oklch(32% 0.06 165);
   --tile-amber: oklch(92% 0.06 80);
-  --tile-amber-ink: oklch(35% 0.07 70);
+  /* Neutral dark ink on both pale tiles, not hue-tinted -- measured
+     against the reference: "Completion"/"84%" and "Activity" render in
+     the same near-black as the rest of the page, not a green/amber-
+     tinted dark. Tinting the text as well as the fill read softer and
+     lower-contrast than the reference's actual look. */
+  --tile-pale-ink: var(--text);
 
   /* v4.5 font pass -- researched directly (search results in
      docs/STATUS.md), not guessed: Geist for headings paired with Inter
@@ -95,6 +99,10 @@
   --text-base: 0.875rem;
   --text-lg: 1.125rem;
   --text-xl: 1.5rem;
+  /* Hero-stat scale only (bento tile numbers) -- measured directly
+     against the reference screenshot: its tile numbers run roughly 3.5x
+     their own label size, not the ~2x --text-xl gave. */
+  --text-3xl: 2.5rem;
 
   /* v4.5: the "dense operational tool" scale above this comment was
      tightened once already (v4.1) and is now, on the user's own direct
@@ -156,12 +164,11 @@
   --warning-wash: oklch(72% 0.12 78 / 16%);
   --stage-ready: oklch(64% 0.11 320);
 
-  --tile-hero: oklch(58% 0.17 290);
+  --tile-hero: oklch(62% 0.21 290);
   --tile-hero-ink: oklch(99% 0 0);
   --tile-mint: oklch(30% 0.05 165);
-  --tile-mint-ink: oklch(90% 0.05 165);
   --tile-amber: oklch(32% 0.06 75);
-  --tile-amber-ink: oklch(88% 0.07 75);
+  --tile-pale-ink: var(--text);
 
   /* Shadows need more opacity on a dark ground to read at all -- same two
      steps as light, tuned darker. */
