@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaise } from '../../lib/money'
-import { Drawer } from '../Drawer'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
 
 type Supplier = { id: string; name: string; phone: string | null; address: string | null }
 type PurchaseHistoryRow = {
@@ -83,40 +85,13 @@ export function Suppliers({ clinicId }: { clinicId: string }) {
     },
   })
 
-  return (
-    <div>
-      <div className="admin-toolbar">
-        <h2 className="readout-heading">Suppliers</h2>
-        <button type="button" className="primary-button" onClick={openNew}>
-          + Add supplier
+  if (editing === 'new') {
+    return (
+      <div>
+        <button type="button" className="back-to-queue" onClick={() => setEditing(null)}>
+          ← Back to suppliers
         </button>
-      </div>
-      <div className="worklist-scroll">
-        <table className="worklist">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Phone</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {(suppliers ?? []).map((s) => (
-              <tr key={s.id} className="worklist-row worklist-row-clickable" onClick={() => setHistoryFor(s)}>
-                <td className="worklist-name-cell">{s.name}</td>
-                <td>{s.phone ?? '—'}</td>
-                <td>
-                  <button type="button" className="secondary-button" onClick={(e) => { e.stopPropagation(); setHistoryFor(s) }}>
-                    Purchase history
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <Drawer open={editing === 'new'} onClose={() => setEditing(null)} title="Add supplier">
+        <h2 className="readout-heading">Add supplier</h2>
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -127,53 +102,102 @@ export function Suppliers({ clinicId }: { clinicId: string }) {
             <label className="field-label" htmlFor="supplier-name">
               Name
             </label>
-            <input id="supplier-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+            <Input id="supplier-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
           </div>
           <div className="field">
             <label className="field-label" htmlFor="supplier-phone">
               Phone
             </label>
-            <input id="supplier-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input id="supplier-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
           </div>
           <div className="field">
             <label className="field-label" htmlFor="supplier-address">
               Address
             </label>
-            <input id="supplier-address" value={address} onChange={(e) => setAddress(e.target.value)} />
+            <Input id="supplier-address" value={address} onChange={(e) => setAddress(e.target.value)} />
           </div>
           {formError && <p className="form-error">{formError}</p>}
           <div className="action-row">
-            <button type="submit" className="primary-button" disabled={save.isPending}>
+            <Button type="submit" disabled={save.isPending}>
               {save.isPending ? 'Saving…' : 'Save'}
-            </button>
-            <button type="button" className="secondary-button" onClick={() => setEditing(null)}>
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setEditing(null)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
-      </Drawer>
+      </div>
+    )
+  }
 
-      <Drawer open={!!historyFor} onClose={() => setHistoryFor(null)} title={historyFor ? `${historyFor.name} — purchase history` : ''}>
+  if (historyFor) {
+    return (
+      <div>
+        <button type="button" className="back-to-queue" onClick={() => setHistoryFor(null)}>
+          ← Back to suppliers
+        </button>
+        <h2 className="readout-heading">{historyFor.name} — purchase history</h2>
         {(history ?? []).length === 0 && <p className="field-hint">No purchases recorded yet.</p>}
         {(history ?? []).map((p) => (
           <div key={p.id} className="field">
             <div className="field-label">
               {p.purchase_date} — Invoice {p.invoice_number} — {p.stock_point_name}
             </div>
-            <table className="worklist">
-              <tbody>
+            <Table>
+              <TableBody>
                 {p.items.map((it, i) => (
-                  <tr key={i} className="worklist-row">
-                    <td className="worklist-name-cell">{it.medicine_name}</td>
-                    <td className="worklist-wait-cell">×{it.quantity}</td>
-                    <td className="worklist-wait-cell">{formatPaise(it.cost_price_paise)}</td>
-                  </tr>
+                  <TableRow key={i}>
+                    <TableCell className="worklist-name-cell">{it.medicine_name}</TableCell>
+                    <TableCell className="worklist-wait-cell">×{it.quantity}</TableCell>
+                    <TableCell className="worklist-wait-cell">{formatPaise(it.cost_price_paise)}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         ))}
-      </Drawer>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="admin-toolbar">
+        <h2 className="readout-heading">Suppliers</h2>
+        <Button type="button" onClick={openNew}>
+          + Add supplier
+        </Button>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Phone</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(suppliers ?? []).map((s) => (
+            <TableRow key={s.id} className="worklist-row-clickable" onClick={() => setHistoryFor(s)}>
+              <TableCell className="worklist-name-cell">{s.name}</TableCell>
+              <TableCell>{s.phone ?? '—'}</TableCell>
+              <TableCell>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setHistoryFor(s)
+                  }}
+                >
+                  Purchase history
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   )
 }
