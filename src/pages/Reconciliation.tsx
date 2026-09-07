@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
 import { formatDate } from '../lib/date'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
+import { Button } from '../components/ui/button'
 
 // The resolution half of docs/architecture-spec.md's offline money-
 // conflict design (detection -- bills_needing_reconciliation, surfaced as
@@ -57,45 +59,43 @@ export function Reconciliation({ clinicId }: { clinicId: string }) {
       {(flagged ?? []).length === 0 ? (
         <p className="readout-empty">Nothing flagged right now.</p>
       ) : (
-        <div className="worklist-scroll">
-          <table className="worklist">
-            <thead>
-              <tr>
-                <th>Patient</th>
-                <th>Token</th>
-                <th>Billed on</th>
-                <th>Billed as</th>
-                <th>Actual amount</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {(flagged ?? []).map((b) => (
-                <tr key={b.id} className="worklist-row">
-                  <td className="worklist-name-cell">{b.patient_name}</td>
-                  <td className="worklist-wait-cell">{b.token_number}</td>
-                  <td className="worklist-wait-cell">{formatDate(b.confirmed_at)}</td>
-                  <td className="worklist-wait-cell">{formatPaise(b.final_amount_paise)}</td>
-                  <td className="worklist-wait-cell">{formatPaise(b.live_final_amount_paise)}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      disabled={correct.isPending}
-                      onClick={() => {
-                        if (confirm(`Write a correction for ${b.patient_name}, billing ${formatPaise(b.live_final_amount_paise)} instead of ${formatPaise(b.final_amount_paise)}?`)) {
-                          correct.mutate(b.id)
-                        }
-                      }}
-                    >
-                      Correct
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Patient</TableHead>
+              <TableHead>Token</TableHead>
+              <TableHead>Billed on</TableHead>
+              <TableHead>Billed as</TableHead>
+              <TableHead>Actual amount</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(flagged ?? []).map((b) => (
+              <TableRow key={b.id}>
+                <TableCell className="worklist-name-cell">{b.patient_name}</TableCell>
+                <TableCell className="worklist-wait-cell">{b.token_number}</TableCell>
+                <TableCell className="worklist-wait-cell">{formatDate(b.confirmed_at)}</TableCell>
+                <TableCell className="worklist-wait-cell">{formatPaise(b.final_amount_paise)}</TableCell>
+                <TableCell className="worklist-wait-cell">{formatPaise(b.live_final_amount_paise)}</TableCell>
+                <TableCell>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={correct.isPending}
+                    onClick={() => {
+                      if (confirm(`Write a correction for ${b.patient_name}, billing ${formatPaise(b.live_final_amount_paise)} instead of ${formatPaise(b.final_amount_paise)}?`)) {
+                        correct.mutate(b.id)
+                      }
+                    }}
+                  >
+                    Correct
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
       {correct.isError && <p className="form-error">{(correct.error as Error).message}</p>}
     </div>

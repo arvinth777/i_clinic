@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 
 type Medicine = { id: string; name: string }
 type StockPoint = { id: string; name: string }
@@ -70,62 +74,64 @@ export function MonthlyCountForm({
         <label className="field-label" htmlFor="count-stock-point">
           Stock point
         </label>
-        <select id="count-stock-point" value={stockPointId} onChange={(e) => setStockPointId(e.target.value)} required autoFocus>
-          <option value="">— Choose —</option>
-          {stockPoints.map((sp) => (
-            <option key={sp.id} value={sp.id}>
-              {sp.name}
-            </option>
-          ))}
-        </select>
+        <Select value={stockPointId} onValueChange={setStockPointId}>
+          <SelectTrigger id="count-stock-point" autoFocus>
+            <SelectValue placeholder="— Choose —" />
+          </SelectTrigger>
+          <SelectContent>
+            {stockPoints.map((sp) => (
+              <SelectItem key={sp.id} value={sp.id}>
+                {sp.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {stockPointId && (
-        <div className="worklist-scroll">
-          <table className="worklist stock-count-table">
-            <thead>
-              <tr>
-                <th>Medicine</th>
-                <th>Expected</th>
-                <th>Counted</th>
-                <th>Gap</th>
-              </tr>
-            </thead>
-            <tbody>
-              {medicines.map((m) => {
-                const exp = expectedFor(m.id)
-                const enteredRaw = counted[m.id] ?? ''
-                const entered = enteredRaw.trim() === '' ? null : Number(enteredRaw)
-                const gap = entered === null ? null : entered - exp
-                return (
-                  <tr key={m.id} className="worklist-row">
-                    <td className="worklist-name-cell">{m.name}</td>
-                    <td className="worklist-wait-cell">{exp}</td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        value={enteredRaw}
-                        onChange={(e) => setCounted((c) => ({ ...c, [m.id]: e.target.value }))}
-                      />
-                    </td>
-                    <td className={`worklist-wait-cell ${gap != null && gap < 0 ? 'stock-qty-negative' : ''}`}>{gap ?? '—'}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Medicine</TableHead>
+              <TableHead>Expected</TableHead>
+              <TableHead>Counted</TableHead>
+              <TableHead>Gap</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {medicines.map((m) => {
+              const exp = expectedFor(m.id)
+              const enteredRaw = counted[m.id] ?? ''
+              const entered = enteredRaw.trim() === '' ? null : Number(enteredRaw)
+              const gap = entered === null ? null : entered - exp
+              return (
+                <TableRow key={m.id}>
+                  <TableCell className="worklist-name-cell">{m.name}</TableCell>
+                  <TableCell className="worklist-wait-cell">{exp}</TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={enteredRaw}
+                      onChange={(e) => setCounted((c) => ({ ...c, [m.id]: e.target.value }))}
+                    />
+                  </TableCell>
+                  <TableCell className={`worklist-wait-cell ${gap != null && gap < 0 ? 'stock-qty-negative' : ''}`}>{gap ?? '—'}</TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
       )}
 
       {formError && <p className="form-error">{formError}</p>}
       <div className="action-row">
-        <button type="submit" className="primary-button" disabled={save.isPending}>
+        <Button type="submit" disabled={save.isPending}>
           {save.isPending ? 'Saving…' : 'Confirm count'}
-        </button>
-        <button type="button" className="secondary-button" onClick={onCancel}>
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   )

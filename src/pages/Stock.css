@@ -36,12 +36,3 @@
   background: var(--surface-2);
   color: var(--text-secondary);
 }
-
-.stock-count-table td,
-.stock-count-table th {
-  white-space: nowrap;
-}
-
-.stock-count-table input[type='number'] {
-  width: 6rem;
-}

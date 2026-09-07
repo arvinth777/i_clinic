@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { startOfToday, formatDate, formatDateOnly } from '../lib/date'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 
 type RegisterRow = { patient_id: string; name: string; last_visit_at: string | null; next_review_due: string }
 
@@ -23,34 +24,32 @@ export function LongTermRegister({ clinicId }: { clinicId: string }) {
   return (
     <div className="admin-page">
       <div className="admin-toolbar">
-        <h2 className="readout-heading">Long-term register</h2>
+        <h2 className="readout-heading">Long-term care</h2>
       </div>
       {!rows || rows.length === 0 ? (
         <p className="readout-empty">No long-term patients flagged yet.</p>
       ) : (
-        <div className="worklist-scroll">
-          <table className="worklist">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Last visit</th>
-                <th>Next review due</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => {
-                const overdue = r.next_review_due < today
-                return (
-                  <tr key={r.patient_id} className="worklist-row">
-                    <td className="worklist-name-cell">{r.name}</td>
-                    <td className="worklist-wait-cell">{r.last_visit_at ? formatDate(r.last_visit_at) : 'No visits yet'}</td>
-                    <td className={overdue ? 'worklist-wait-cell doctor-queue-overdue' : 'worklist-wait-cell'}>{formatDateOnly(r.next_review_due)}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Last visit</TableHead>
+              <TableHead>Next review due</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((r) => {
+              const overdue = r.next_review_due < today
+              return (
+                <TableRow key={r.patient_id}>
+                  <TableCell className="worklist-name-cell">{r.name}</TableCell>
+                  <TableCell className="worklist-wait-cell">{r.last_visit_at ? formatDate(r.last_visit_at) : 'No visits yet'}</TableCell>
+                  <TableCell className={overdue ? 'worklist-wait-cell doctor-queue-overdue' : 'worklist-wait-cell'}>{formatDateOnly(r.next_review_due)}</TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
       )}
     </div>
   )
