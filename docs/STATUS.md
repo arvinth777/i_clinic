@@ -483,6 +483,25 @@ background agents against those two references. No Drawer remains on
 Reception, Admin, or Unpaid; Stock and MergePatients still use it
 (out of scope -- not named in this round).
 
+**Twelfth round -- "change stock and merge as well"**: the user closed
+the loop on the Eleventh round's own disclosed gap. Stock's own
+`StockList.tsx` (record purchase / transfer / monthly count / adjust)
+dropped its 4 Drawers for the same inline swap as everywhere else.
+`Suppliers.tsx` needed more: unlike every other file this session,
+it had never gotten the Tailwind/Radix kit at all (missed in the
+very first Stock-table pilot round, which only touched
+`StockList.tsx`) -- so its list, add-supplier form, and purchase-
+history view were converted to Table/Button/Input *and* had their 2
+Drawers dropped in the same pass, since the whole file's JSX was
+already being rewritten. `MergePatients.tsx` only needed the
+Tailwind/Radix conversion (search inputs, Merge button) -- it never
+had a Drawer to begin with, being a single always-inline view.
+Not done, and not asked for: `RecordPurchaseForm`/`TransferForm`/
+`MonthlyCountForm`/`AdjustStockForm` (the components Stock's own
+actions render) still use native `<select>`/`<input>` internally --
+removing their Drawer wrapper didn't require touching their own
+markup, and nobody's asked for that layer yet.
+
 ## Where we are
 
 Working through `docs/build-plan.md`, one phase per session, in order.
@@ -1218,14 +1237,17 @@ Two independent tracks are open now, not one:
 
 1. **The UI redesign initiative** (new section at the top of this file):
    all five planned phases (UI-1 through UI-5) are done, and UI-5's own
-   named unfinished work is now closed too -- Reception, Admin,
-   Reports, and Billing all have the Tailwind/Radix component kit, and
-   Reception/Admin/Unpaid have also dropped the right-side Drawer for
-   inline stage/list swaps (the Tenth and Eleventh rounds, above).
-   Stock and MergePatients still use `Drawer` for their own forms --
-   nobody's asked for that yet, so it stays as is. The user's own "is
-   this elite yet" verdict still needs re-checking against the fuller
-   rollout, not assumed from where the last round of feedback left off.
+   named unfinished work is now closed too -- every screen (Reception,
+   Admin, Reports, Billing, Stock, Suppliers, MergePatients) has the
+   Tailwind/Radix component kit, and Reception/Admin/Unpaid/Stock have
+   all dropped the right-side Drawer for inline stage/list swaps (the
+   Tenth through Twelfth rounds, above). What's left, undone because
+   nobody's asked yet: the sub-form components Stock's own actions
+   render (`RecordPurchaseForm`/`TransferForm`/`MonthlyCountForm`/
+   `AdjustStockForm`) still use native `<select>`/`<input>` internally.
+   The user's own "is this elite yet" verdict still needs re-checking
+   against the fuller rollout, not assumed from where the last round
+   of feedback left off.
 2. **Phase G's own residual items** (below): every audited finding is
    fixed and verified; what's left is the human-only setup for the
    backup pipeline (`docs/runbook.md`'s "Pending setup" — age private
