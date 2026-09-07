@@ -385,6 +385,54 @@
  * spacing, not a boxed background.
  */
 
+/* Phase UI-3: search-first entry (see PrescriptionForm.tsx) -- the "usual
+   combo" and each saved template are quiet suggestion chips underneath
+   the search box, not a row of parallel decision buttons above it. */
+.rx-quick-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: var(--space-sm) 0;
+}
+
+.rx-quick-add-label {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.rx-chip {
+  font: inherit;
+  font-size: var(--text-sm);
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .rx-chip:hover {
+    background: var(--surface-2);
+  }
+}
+
+/* The one chip allowed to stand out -- it's the fastest path for a
+   returning patient, worth a glance ahead of the plain template chips. */
+.rx-chip-suggested {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.rx-quick-add-note {
+  margin: 0 0 var(--space-md);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
 .drug-row-list {
   margin-top: var(--space-md);
 }

@@ -34,6 +34,48 @@ export type Template = {
   prescription_template_items: ExistingItem[]
 }
 
+export type PastPrescription = {
+  id: string
+  created_at: string
+  prescription_items: ExistingItem[]
+}
+
+export type ComboItem = { medicineId: string; medicineName: string; item: ExistingItem }
+
+// "Usual combo" -- majority of the patient's last 5 prescriptions, not
+// simply the most recent one (Phase UI-3, replacing plain "repeat last"):
+// a one-off addition -- an antibiotic for a passing infection, say --
+// shouldn't get suggested forever the way repeating just the last visit
+// would. Needs at least 2 past prescriptions to call anything "usual" at
+// all; one data point isn't a pattern. Each qualifying medicine's fields
+// come from its own most recent occurrence, never blended across visits.
+// `pastPrescriptions` is expected newest-first (Consultation.tsx's own
+// query already orders it that way).
+export function usualCombo(pastPrescriptions: PastPrescription[]): ComboItem[] {
+  const recent = pastPrescriptions.slice(0, 5)
+  if (recent.length < 2) return []
+
+  const seen = new Map<string, { count: number; item: ExistingItem; medicineName: string }>()
+  for (const prescription of recent) {
+    const countedThisPrescription = new Set<string>()
+    for (const item of prescription.prescription_items) {
+      if (!item.medicine_id || countedThisPrescription.has(item.medicine_id)) continue
+      countedThisPrescription.add(item.medicine_id)
+      const existing = seen.get(item.medicine_id)
+      if (existing) {
+        existing.count += 1
+      } else {
+        seen.set(item.medicine_id, { count: 1, item, medicineName: item.medicines?.name ?? '' })
+      }
+    }
+  }
+
+  const majority = recent.length / 2
+  return [...seen.entries()]
+    .filter(([, v]) => v.count > majority)
+    .map(([medicineId, v]) => ({ medicineId, medicineName: v.medicineName, item: v.item }))
+}
+
 export function newDraftItem(medicineId: string, medicineName: string): DraftItem {
   return {
     key: crypto.randomUUID(),

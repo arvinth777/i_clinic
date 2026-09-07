@@ -4,7 +4,16 @@ import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { parseRupeesToPaise } from '../lib/money'
-import { newDraftItem, draftFromExisting, itemRow, itemIsValid, type DraftItem, type ExistingItem, type Template } from '../lib/prescriptionDraft'
+import {
+  newDraftItem,
+  draftFromExisting,
+  itemRow,
+  itemIsValid,
+  usualCombo,
+  type DraftItem,
+  type PastPrescription,
+  type Template,
+} from '../lib/prescriptionDraft'
 
 const DRUG_TYPES = ['Tablet', 'Syrup', 'Capsule', 'Powder', 'Injection', 'Other'] as const
 const FOOD_OPTIONS = ['Before food', 'After food', 'Either'] as const
@@ -15,12 +24,12 @@ type MedicineResult = { id: string; name: string }
 export function PrescriptionForm({
   clinicId,
   visitId,
-  lastPrescriptionItems,
+  pastPrescriptions,
   onActiveChange,
 }: {
   clinicId: string
   visitId: string
-  lastPrescriptionItems: ExistingItem[] | undefined
+  pastPrescriptions: PastPrescription[] | undefined
   onActiveChange: (active: boolean) => void
 }) {
   const queryClient = useQueryClient()
@@ -78,9 +87,14 @@ export function PrescriptionForm({
     setDraftItems((prev) => [...prev, ...items])
   }
 
-  function repeatLast() {
-    if (!lastPrescriptionItems) return
-    const items = lastPrescriptionItems.map(draftFromExisting).filter((i): i is DraftItem => i !== null)
+  // Majority of the patient's last 5 prescriptions, not just the most
+  // recent one -- see usualCombo's own header for why. Computed directly
+  // each render: cheap (at most 5 prescriptions' worth of items), no
+  // memoisation needed.
+  const combo = usualCombo(pastPrescriptions ?? [])
+
+  function applyCombo() {
+    const items = combo.map((c) => draftFromExisting(c.item)).filter((i): i is DraftItem => i !== null)
     setDraftItems((prev) => [...prev, ...items])
   }
 
@@ -221,42 +235,43 @@ export function PrescriptionForm({
     )
   }
 
+  const hasQuickAdd = combo.length > 0 || (templates && templates.length > 0)
+
   return (
     <div>
-      {templates && templates.length > 0 && (
-        <div className="field search-results-anchor">
-          <span className="field-label">Templates</span>
-          <ul className="search-results">
-            {templates.map((t) => (
-              <li key={t.id}>
-                <button type="button" className="search-result-button" onClick={() => applyTemplate(t)}>
-                  <span>{t.name}</span>
-                  <span className="search-result-meta">{t.prescription_template_items.length} drug(s)</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="action-row">
-        <motion.button
-          type="button"
-          className="secondary-button"
-          whileTap={{ scale: 0.97 }}
-          disabled={!lastPrescriptionItems || lastPrescriptionItems.length === 0}
-          onClick={repeatLast}
-        >
-          Repeat last prescription
-        </motion.button>
-      </div>
-
       <div className="field">
         <label className="field-label" htmlFor="drug-search">
           Search drugs
         </label>
-        <input id="drug-search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Drug name" />
+        <input
+          id="drug-search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search a drug to add…"
+        />
       </div>
+
+      {hasQuickAdd && (
+        <div className="rx-quick-add">
+          <span className="rx-quick-add-label">Quick add:</span>
+          {combo.length > 0 && (
+            <button type="button" className="rx-chip rx-chip-suggested" onClick={applyCombo}>
+              Usual combo: {combo.map((c) => c.medicineName).join(' + ')}
+            </button>
+          )}
+          {templates?.map((t) => (
+            <button key={t.id} type="button" className="rx-chip" onClick={() => applyTemplate(t)}>
+              {t.name}
+            </button>
+          ))}
+        </div>
+      )}
+      {combo.length > 0 && (
+        <p className="rx-quick-add-note">
+          Usual combo is based on drugs common across this patient's last 5 visits, not just the most recent one.
+        </p>
+      )}
+
       {debouncedSearch &&
         (searchResults && searchResults.length > 0 ? (
           <div className="search-results-anchor">

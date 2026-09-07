@@ -128,10 +128,46 @@ phase — the A-G plan is fully audited/closed per Phase G above):
     sequence through the real React click handler (not a raw script
     call), scrolls to its section and updates the active highlight
     correctly and immediately, each time.
-- [ ] **Phase UI-3 — Prescription entry redesign.** Search-first entry +
-  quick-add chips, including the "usual combo" suggestion described
-  above. Per-drug fields stay real editable controls; the mockup's
-  static tags were a display simplification only.
+- [x] **Phase UI-3 — Prescription entry redesign.** The three-button row
+  (Use template / Repeat last / Search drug) is gone from
+  `PrescriptionForm.tsx`. In its place: the search box is now the
+  primary, always-visible entry point, with a "Quick add:" chip row
+  underneath it -- one chip per saved template, plus the new "usual
+  combo" chip when one qualifies. Per-drug fields stayed exactly what
+  they already were (real `<select>`/`<input>` controls); only the
+  entry point above them changed, not the editing UI itself.
+  - `usualCombo()` (new, in `prescriptionDraft.ts` alongside this
+    project's existing pure-logic helpers) needed no new query: it's a
+    plain function over the same `pastPrescriptions` array
+    `Consultation.tsx` already fetches (full history, item-level
+    detail, newest first) — `PrescriptionForm`'s prop changed from
+    `lastPrescriptionItems` (one prescription) to `pastPrescriptions`
+    (the whole list) accordingly. Majority of the last 5 prescriptions,
+    minimum 2 to say anything is "usual" at all, each qualifying
+    medicine's fields taken from its own most recent occurrence (never
+    blended across visits) — chosen over plain "repeat last" specifically
+    so a one-off addition from a single visit doesn't get suggested
+    forever.
+  - New test: `scripts/prescription-draft-test.mjs` (6/6) — a genuine
+    unit test for a pure function, a first for this repo's `scripts/`
+    convention (every other script drives live staging). Transpiles
+    `prescriptionDraft.ts` on the fly via the already-installed
+    `typescript` package's `transpileModule` rather than duplicating the
+    logic in plain JS (which would drift from the real implementation)
+    or adding a new dependency (tsx/ts-node) — this project's Node
+    version (20) predates native TS support.
+  - Verified live as `doctor.a`, not just by the unit test: found a real
+    staging patient with exactly the setup needed via a **read-only**
+    Supabase MCP query (`docs/STATUS.md`'s own standing rule — inspect,
+    never alter), then wrote two real prescriptions for the same drug
+    through the actual UI (not direct SQL — the rule is specifically
+    against altering data *through MCP*, not against using the app
+    normally) to reach the 2-prescriptions-minimum threshold live. The
+    "Usual combo: Paracetamol" chip appeared after the second confirm,
+    and clicking it added a fully pre-filled, still-editable row using
+    that drug's most recent Type/Strength/Food/Frequency/Duration/
+    Quantity — removed again afterward without confirming, so no
+    redundant third prescription was left behind.
 - [ ] **Phase UI-4 — Consultation duration tracking.** New nullable
   `with_doctor_at`/`consultation_ended_at` columns on `visits`, set in
   the existing "Call next"/"Consultation done" mutations; live clock in
@@ -881,8 +917,9 @@ or confirm they're each still worth deferring.
 Two independent tracks are open now, not one:
 
 1. **The UI redesign initiative** (new section at the top of this file):
-   Phases UI-1 (layout shell) and UI-2 (section jump-nav) are done and
-   verified live; Phase UI-3 (prescription entry redesign) is next.
+   Phases UI-1 (layout shell), UI-2 (section jump-nav), and UI-3
+   (prescription entry redesign) are done and verified live; Phase UI-4
+   (consultation duration tracking) is next.
 2. **Phase G's own residual items** (below): every audited finding is
    fixed and verified; what's left is the human-only setup for the
    backup pipeline (`docs/runbook.md`'s "Pending setup" — age private

@@ -400,7 +400,7 @@ export function Consultation({ userId }: { userId: string }) {
                 key={current.id}
                 clinicId={clinicId}
                 visitId={current.id}
-                lastPrescriptionItems={prescriptions?.[0]?.prescription_items}
+                pastPrescriptions={prescriptions}
                 onActiveChange={setPrescribingActive}
               />
             </section>
