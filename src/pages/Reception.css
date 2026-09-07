@@ -432,8 +432,16 @@
    main axis (vertical, absorbing whatever space the banners don't use)
    and the cross axis (horizontal), which a fixed top margin never did:
    it only ever centered horizontally, leaving the card stranded near
-   the top of an otherwise empty page. */
+   the top of an otherwise empty page.
+   `width: 100%` is load-bearing, not decorative: a flex item with auto
+   margins on its cross axis sizes to its own content instead of
+   stretching (that's what auto margins are for -- they opt out of
+   stretch) -- without it, .signin shrank to whatever its narrowest
+   child needed (measured live: 235px against a 352px max-width), a
+   visibly wrong, too-narrow-and-tall rectangle. width: 100% makes it
+   fill up to max-width like the rest of this rule already assumed. */
 .signin {
+  width: 100%;
   max-width: 22rem;
   margin: auto;
   padding: var(--space-xl) var(--space-lg);
