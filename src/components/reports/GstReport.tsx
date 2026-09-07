@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaise } from '../../lib/money'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
 
 type Gst = { collections_paise: number; discount_paise: number; bill_count: number }
 
@@ -58,17 +60,17 @@ export function GstReport() {
           <label className="field-label" htmlFor="gst-start">
             From
           </label>
-          <input id="gst-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+          <Input id="gst-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
         </div>
         <div className="field">
           <label className="field-label" htmlFor="gst-end">
             To
           </label>
-          <input id="gst-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+          <Input id="gst-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
         </div>
-        <button type="submit" className="secondary-button" disabled={isFetching}>
+        <Button type="submit" variant="secondary" disabled={isFetching}>
           {isFetching ? 'Loading…' : 'Refresh'}
-        </button>
+        </Button>
       </form>
 
       {gst && (
@@ -88,9 +90,9 @@ export function GstReport() {
             </div>
           </div>
           <div className="action-row">
-            <button type="button" className="primary-button" onClick={exportCsv}>
+            <Button type="button" onClick={exportCsv}>
               Export CSV
-            </button>
+            </Button>
           </div>
         </>
       )}

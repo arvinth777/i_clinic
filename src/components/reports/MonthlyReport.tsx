@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaise } from '../../lib/money'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 
 type MonthRow = { month_start: string; collections_paise: number; patient_count: number; discount_paise: number }
 
@@ -22,27 +23,25 @@ export function MonthlyReport() {
   if (!months) return <p className="readout-empty">Loading…</p>
 
   return (
-    <div className="worklist-scroll">
-      <table className="worklist">
-        <thead>
-          <tr>
-            <th>Month</th>
-            <th>Collections</th>
-            <th>Patients</th>
-            <th>Discounts (subsidised care)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {[...months].reverse().map((m) => (
-            <tr key={m.month_start} className="worklist-row">
-              <td className="worklist-name-cell">{formatMonth(m.month_start)}</td>
-              <td className="worklist-wait-cell">{formatPaise(m.collections_paise)}</td>
-              <td className="worklist-wait-cell">{m.patient_count}</td>
-              <td className="worklist-wait-cell">{formatPaise(m.discount_paise)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Month</TableHead>
+          <TableHead>Collections</TableHead>
+          <TableHead>Patients</TableHead>
+          <TableHead>Discounts (subsidised care)</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {[...months].reverse().map((m) => (
+          <TableRow key={m.month_start}>
+            <TableCell className="font-medium">{formatMonth(m.month_start)}</TableCell>
+            <TableCell className="font-mono tabular-nums">{formatPaise(m.collections_paise)}</TableCell>
+            <TableCell className="font-mono tabular-nums">{m.patient_count}</TableCell>
+            <TableCell className="font-mono tabular-nums">{formatPaise(m.discount_paise)}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   )
 }
