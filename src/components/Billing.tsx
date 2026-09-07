@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
 import { formatDate } from '../lib/date'
 import { attemptOrQueue } from '../lib/offlineQueue'
+import { Button, buttonVariants } from './ui/button'
 import './Billing.css'
 
 type Visit = {
@@ -397,9 +398,9 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
       {waitingForDoctor && (
         <section className="record-section">
           <div className="action-row">
-            <motion.button type="button" className="secondary-button" whileTap={{ scale: 0.97 }} onClick={onClose}>
+            <Button type="button" variant="secondary" onClick={onClose}>
               Back to queue
-            </motion.button>
+            </Button>
           </div>
         </section>
       )}
@@ -430,16 +431,16 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
           <div className="action-row">
             <motion.button
               type="button"
-              className="primary-button"
+              className={buttonVariants({ variant: 'primary' })}
               whileTap={{ scale: 0.96, rotate: -1 }}
               disabled={confirmPayment.isPending || detailStillLoading}
               onClick={() => confirmPayment.mutate()}
             >
               {confirmPayment.isPending ? 'Confirming…' : detailStillLoading ? 'Loading receipt details…' : 'Confirm payment'}
             </motion.button>
-            <motion.button type="button" className="secondary-button" whileTap={{ scale: 0.97 }} onClick={onClose}>
+            <Button type="button" variant="secondary" onClick={onClose}>
               Back to queue
-            </motion.button>
+            </Button>
           </div>
           {confirmPayment.isError && <p className="form-error">Couldn't confirm — try again.</p>}
         </section>
@@ -455,12 +456,12 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
             {confirmedBill.pending && ' Not saved yet — waiting for a connection to actually confirm with the server.'}
           </p>
           <div className="action-row">
-            <motion.button type="button" className="secondary-button" whileTap={{ scale: 0.97 }} onClick={() => window.print()}>
+            <Button type="button" variant="secondary" onClick={() => window.print()}>
               Print again
-            </motion.button>
-            <motion.button type="button" className="primary-button" whileTap={{ scale: 0.97 }} onClick={onClose}>
+            </Button>
+            <Button type="button" onClick={onClose}>
               Back to queue
-            </motion.button>
+            </Button>
           </div>
         </section>
       )}

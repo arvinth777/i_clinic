@@ -4,6 +4,9 @@ import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
 import { formatDate } from '../lib/date'
 import { Drawer } from '../components/Drawer'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 
 type UnpaidBill = {
   bill_id: string
@@ -59,16 +62,16 @@ function SettleForm({ bill, onDone, onCancel }: { bill: UnpaidBill; onDone: () =
         <label className="field-label" htmlFor="settle-notes">
           Notes (optional)
         </label>
-        <input id="settle-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. paid in person on next visit" />
+        <Input id="settle-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. paid in person on next visit" />
       </div>
       {formError && <p className="form-error">{formError}</p>}
       <div className="action-row">
-        <button type="submit" className="primary-button" disabled={settle.isPending}>
+        <Button type="submit" disabled={settle.isPending}>
           {settle.isPending ? 'Saving…' : 'Mark settled'}
-        </button>
-        <button type="button" className="secondary-button" onClick={onCancel}>
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   )
@@ -105,34 +108,32 @@ export function UnpaidBills({ clinicId }: { clinicId: string }) {
       {(bills ?? []).length === 0 ? (
         <p className="readout-empty">Nothing owed right now.</p>
       ) : (
-        <div className="worklist-scroll">
-          <table className="worklist">
-            <thead>
-              <tr>
-                <th>Patient</th>
-                <th>Token</th>
-                <th>Billed on</th>
-                <th>Amount</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {(bills ?? []).map((b) => (
-                <tr key={b.bill_id} className="worklist-row">
-                  <td className="worklist-name-cell">{b.patient_name}</td>
-                  <td className="worklist-wait-cell">{b.token_number}</td>
-                  <td className="worklist-wait-cell">{formatDate(b.confirmed_at)}</td>
-                  <td className="worklist-wait-cell">{formatPaise(b.final_amount_paise)}</td>
-                  <td>
-                    <button type="button" className="secondary-button" onClick={() => setSettling(b)}>
-                      Settle
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Patient</TableHead>
+              <TableHead>Token</TableHead>
+              <TableHead>Billed on</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(bills ?? []).map((b) => (
+              <TableRow key={b.bill_id}>
+                <TableCell className="worklist-name-cell">{b.patient_name}</TableCell>
+                <TableCell className="worklist-wait-cell">{b.token_number}</TableCell>
+                <TableCell className="worklist-wait-cell">{formatDate(b.confirmed_at)}</TableCell>
+                <TableCell className="worklist-wait-cell">{formatPaise(b.final_amount_paise)}</TableCell>
+                <TableCell>
+                  <Button type="button" variant="secondary" onClick={() => setSettling(b)}>
+                    Settle
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
       <Drawer open={!!settling} onClose={() => setSettling(null)} title="Settle bill">
