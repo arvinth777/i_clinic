@@ -384,6 +384,18 @@ adjusting by feel:
   saturated, and the overdue-wait red override (`.flow-overdue`) still
   correctly overrides the new neutral ink.
 
+**Seventh round -- a real product question, not a visual one**: "what
+even is average wait now?", then, once explained (a live average of
+in-progress waits, not a historical/completed-wait metric -- and why it
+was showing an absurd ~467m figure, staging's own accumulated stale
+`waiting`-stage fixtures dragging the average up), the user's own
+verdict: "no it won't be useful." Replaced the amber tile's metric
+entirely -- a straight count of patients currently waiting past the
+existing 30-minute overdue threshold (`LONG_WAIT_MINUTES`, already used
+elsewhere for the same definition), not an average. "How many people am
+I making wait too long right now" is actionable in a way "what's the
+average" wasn't.
+
 ## Where we are
 
 Working through `docs/build-plan.md`, one phase per session, in order.
