@@ -542,6 +542,73 @@ full-opacity background over `TableRow`'s own translucent hover --
 harmless-looking but silently neutralizing the intended `/60` opacity
 on every clickable row in the app -- is gone too.
 
+**Fourteenth round -- "Do 1, 2, 3 now"**: the three items from the "what's
+left" summary, in one turn.
+
+1. **The login role-management feature**, planned two threads ago and
+   never built: `LoginsPanel.tsx` gets a "+ Grant role" action --
+   pick an existing login, pick a role it doesn't already hold,
+   confirm. Plain `user_roles` insert, no new backend -- its own RLS
+   (`user_roles_insert`, phase1_core_schema.sql) already lets an admin
+   do this for their own clinic, same trust model `removeRole`
+   already used. Verified live end-to-end (granted `admin` to
+   reception.a, confirmed it actually changed what she could see,
+   removed it again).
+   - **Caught a real bug during that same verification**: `removeRole`
+     deleted every role a user held at the clinic, not just the one
+     row's own role -- it filtered by `user_id` + `clinic_id` only,
+     never by `role`. Removing "admin" from someone who also held
+     "receptionist" silently dropped both. Found by accident (removed
+     a test grant and watched the person disappear from the list
+     entirely), fixed by scoping the delete to the specific role too,
+     re-verified (grant two roles, remove one, confirm the other
+     survives). The accidental staging-fixture damage from triggering
+     the bug (reception.a briefly held zero roles) was repaired
+     directly via `mcp__supabase__execute_sql` against staging only,
+     restoring the exact row that existed before.
+2. **Finished the design-system removal**, closing the gap the
+   Thirteenth round's "Next action" named: every remaining
+   `primary-button`/`secondary-button`, native `<select>`, and plain
+   native `<input>` in the app now uses the shared kit -- SignIn, the
+   lock-PIN setup form, LockScreen's unlock button, PrescriptionForm's
+   save-template action, and Stock's last 3 sub-forms
+   (`RecordPurchaseForm`/`TransferForm`/`AdjustStockForm`). Confirmed
+   via grep both before and after: zero `<select>` elements anywhere
+   in the app now (only checkboxes, radios, and two purpose-built
+   inputs with their own dedicated CSS were deliberately left native).
+   `Reception.css`'s now-fully-dead `.field select` rules (including
+   the old custom-chevron background-image hack) removed.
+3. **Fixed 3 of Phase G's Low/informational findings**: `GstReport`'s
+   and `RecordPurchaseForm`'s date defaults both built a `YYYY-MM-DD`
+   string via `toISOString().slice(0, 10)` -- UTC-converts first, so
+   for part of the day in IST (UTC+5:30) it silently reports
+   yesterday's date; new `lib/date.ts` `localDateStr()` builds it from
+   local parts instead, mirroring `formatDateOnly`'s existing fix for
+   the reverse direction. A template-applied prescription row can
+   arrive with a blank "quantity dispensed" (templates don't store it
+   -- genuinely per-visit, not a templating gap) but the validation
+   message never said so; copy fixed, verified live by applying a
+   template and reading the on-screen error before and after. Replaced
+   `isolation-test.mjs`'s stale "no edge functions deployed" line with
+   two real adversarial calls to `admin-create-login` (cross-clinic,
+   and no-admin-role) -- both correctly rejected, 21/21 checks passing
+   on a live staging run. Re-checked the `consultation_fee_paise`
+   int-vs-bigint finding directly across every migration -- bigint
+   everywhere already, doesn't reproduce, no change needed. Not fixed:
+   leaked-password protection is still disabled -- confirmed still
+   present via `mcp__supabase__get_advisors`, but it's a Supabase Auth
+   dashboard toggle with no code path or MCP tool that can reach it.
+
+Verification for the whole round: `tsc`/lint clean throughout (checked
+after every file group, not just once at the end); a full click-through
+across Reception, Stock (a complete record-purchase submission,
+start to finish, confirmed the stock table's numbers actually moved),
+Consultation (prescription template application), and Admin/Logins;
+a browser console sweep after a hard reload turned up zero live errors
+(one `Drawer is not defined` entry was stale, from an earlier round's
+mid-edit HMR state, gone after reload -- confirmed via grep that no
+`<Drawer>` reference exists in the current source).
+
 ## Where we are
 
 Working through `docs/build-plan.md`, one phase per session, in order.
@@ -1264,40 +1331,37 @@ or confirm they're each still worth deferring.
   was not pushed to production automatically in this session, since
   touching production wasn't something this session's instructions
   explicitly authorized.
-- **The isolation test's Edge Function check is stale** (`isolation-test.mjs`
-  hard-codes "no edge functions deployed" — three now exist:
-  `health`, `admin-create-login`, `backup-freshness`). Low urgency
-  (`admin-create-login`'s cross-clinic safety was traced by hand and
-  looks correct) but should be updated to actually probe it, not just
-  have its comment corrected, the next time this script is touched.
+- **The isolation test's Edge Function check was stale, now fixed**
+  (Fourteenth round, above): `isolation-test.mjs` no longer says "no
+  edge functions deployed" -- it now makes two real adversarial calls
+  to `admin-create-login` (cross-clinic, and no-admin-role), both
+  correctly rejected, 21/21 checks passing on a live staging run.
 
 ## Next action
 
 Two independent tracks are open now, not one:
 
 1. **The UI redesign initiative** (new section at the top of this file):
-   all five planned phases (UI-1 through UI-5) are done, and UI-5's own
-   named unfinished work is now closed too -- literally every table and
-   form in the app (Reception, Admin, Reports, Billing, Stock,
-   Suppliers, MergePatients, Long-term care, Needs reconciliation) is
-   on the shared Table/Button/Input/Select kit, no bare `.worklist`
-   table remains anywhere, and Reception/Admin/Unpaid/Stock have all
-   dropped the right-side Drawer for inline stage/list swaps (the
-   Tenth through Thirteenth rounds, above). What's left, undone because
-   nobody's asked yet: 3 of Stock's own sub-form components
-   (`RecordPurchaseForm`/`TransferForm`/`AdjustStockForm` -- not
-   `MonthlyCountForm`, converted in the Thirteenth round) still use
-   native `<select>`/`<input>` internally. The user's own "is this
-   elite yet" verdict still needs re-checking against the fuller
-   rollout, not assumed from where the last round
-   of feedback left off.
+   done. All five planned phases (UI-1 through UI-5), UI-5's own named
+   unfinished work, and everything the Twelfth/Thirteenth rounds'
+   "what's left" notes named are all closed now (Fourteenth round,
+   above) -- every table, button, select, and generic text input in
+   the app uses the shared Table/Button/Input/Select kit, confirmed
+   via grep both before and after (zero native `<select>` anywhere;
+   only checkboxes, radios, and two purpose-built inputs with their
+   own dedicated CSS stay native, deliberately). The one thing this
+   initiative was always going to leave open regardless: the user's
+   own "is this elite yet" verdict, which needs their eyes, not another
+   grep.
 2. **Phase G's own residual items** (below): every audited finding is
-   fixed and verified; what's left is the human-only setup for the
-   backup pipeline (`docs/runbook.md`'s "Pending setup" — age private
-   key into the password manager, `backup_reader`'s password, the R2
-   bucket/tokens, wiring the two health endpoints to an external uptime
-   monitor) and, at the maintainer's discretion, the Low/informational
-   findings nobody's assigned to a pass yet.
+   fixed and verified, including 3 of the 5 Low/informational findings
+   closed in the Fourteenth round. What's left: leaked-password
+   protection (a Supabase Auth dashboard toggle, confirmed still
+   disabled, no code path or MCP tool reaches it) and the human-only
+   setup for the backup pipeline (`docs/runbook.md`'s "Pending setup" —
+   age private key into the password manager, `backup_reader`'s
+   password, the R2 bucket/tokens, wiring the two health endpoints to
+   an external uptime monitor).
 
 Read this file (both "Phase G fix pass" sections and the new UI-redesign
 section above), `AGENTS.md`, `docs/architecture-spec.md`, and the PRD
