@@ -168,12 +168,37 @@ phase — the A-G plan is fully audited/closed per Phase G above):
     that drug's most recent Type/Strength/Food/Frequency/Duration/
     Quantity — removed again afterward without confirming, so no
     redundant third prescription was left behind.
-- [ ] **Phase UI-4 — Consultation duration tracking.** New nullable
-  `with_doctor_at`/`consultation_ended_at` columns on `visits`, set in
-  the existing "Call next"/"Consultation done" mutations; live clock in
-  the center-stage header. Needs a `docs/security-review.md` pass (new
-  columns on a table with an existing RLS history) even though it's
-  timestamps, not clinical content.
+- [x] **Phase UI-4 — Consultation duration tracking.** Migration
+  `20260907070000` adds nullable `with_doctor_at`/`consultation_ended_at`
+  to `visits` (applied to staging via `supabase db push`, not through
+  MCP — MCP stayed read-only per this file's own standing rule). No new
+  RPC or trigger: both are stamped by the exact same client update that
+  already flips `stage` in `callNext`/`consultationDone`
+  (`Consultation.tsx`), since there's no wrong-role case to guard against
+  here the way `follow_up_date`/`is_long_term` needed — a timestamp
+  recording when an already-permitted transition happened isn't a new
+  privilege boundary. Duration is never stored as its own column, only
+  ever computed from the two timestamps, so it can't drift.
+  `ConsultationClock.tsx` (new) ticks every second in the stage header,
+  recomputing from `Date.now()` each tick rather than incrementing a
+  counter. Deliberately does not render at all when `with_doctor_at` is
+  null -- true for every visit that was already `with_doctor` before
+  this migration landed -- rather than show a bogus/negative duration.
+  - Security-review pass, live against staging: RLS still enabled on
+    `visits` post-migration (`relrowsecurity=true`, confirmed via SQL,
+    not assumed from "it's just an ALTER TABLE"); Supabase security
+    advisor shows no new findings at all -- the exact same standing set
+    already accepted elsewhere in this file (the routine per-RPC
+    "authenticated can execute this" WARNs, `rls_auto_enable`, leaked-
+    password protection).
+  - Verified live end-to-end as `doctor.a`, DB state read directly
+    afterward rather than trusted from the UI alone: finished the
+    in-progress test visit from Phase UI-3 (`consultation_ended_at`
+    landed, `with_doctor_at` correctly still `null` since that visit
+    predated the migration), called the next patient in (a fresh
+    `with_doctor_at` landed, `consultation_ended_at` correctly `null`),
+    and watched the clock advance from 00:07 to 00:21 over a real ~14s
+    wait.
 - [ ] **Phase UI-5 — Visual language reconciliation.** Decide a real
   (non-cliché) hierarchy device for the new center-stage's section
   labels/tables — the "bland" root cause above is still unresolved, just
@@ -917,9 +942,9 @@ or confirm they're each still worth deferring.
 Two independent tracks are open now, not one:
 
 1. **The UI redesign initiative** (new section at the top of this file):
-   Phases UI-1 (layout shell), UI-2 (section jump-nav), and UI-3
-   (prescription entry redesign) are done and verified live; Phase UI-4
-   (consultation duration tracking) is next.
+   Phases UI-1 through UI-4 (layout shell, section jump-nav, prescription
+   entry redesign, consultation duration tracking) are done and verified
+   live; Phase UI-5 (visual language reconciliation) is last.
 2. **Phase G's own residual items** (below): every audited finding is
    fixed and verified; what's left is the human-only setup for the
    backup pipeline (`docs/runbook.md`'s "Pending setup" — age private

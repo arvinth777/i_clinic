@@ -117,6 +117,20 @@
   margin: 0;
 }
 
+/* Consultation-duration clock (ConsultationClock.tsx, Phase UI-4) --
+   pushed to the far end of the header, quiet mono numerals like every
+   other elapsed-time readout in the app (doctor-queue-meta, flow-stat). */
+.consultation-clock {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Jump-nav stepper (SectionStepper.tsx) -- purely a "scroll to" index, not
    a wizard: no step is ever gated or marked complete, so there's no
    checkmark/disabled state to style, only active vs. not. */

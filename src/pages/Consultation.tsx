@@ -12,6 +12,7 @@ import { CarePanel } from '../components/CarePanel'
 import { RepQueueRows } from '../components/RepQueueRows'
 import { TodayFlow, type TodayVisit } from '../components/TodayFlow'
 import { SectionStepper, type StepperSection } from '../components/SectionStepper'
+import { ConsultationClock } from '../components/ConsultationClock'
 import '../components/Worklist.css'
 import './Consultation.css'
 
@@ -36,6 +37,7 @@ type DoctorVisit = {
   complaint: string
   stage: string
   patient_id: string
+  with_doctor_at: string | null
   patients: { name: string; age: number | null; gender: string | null; address: string | null; phone: string | null } | null
 }
 
@@ -84,7 +86,7 @@ export function Consultation({ userId }: { userId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visits')
-        .select('id, token_number, arrived_at, complaint, stage, patient_id, patients(name, age, gender, address, phone)')
+        .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, patients(name, age, gender, address, phone)')
         .eq('clinic_id', clinicId)
         .in('stage', ['waiting', 'with_doctor'])
         .order('token_number', { ascending: true })
@@ -180,17 +182,28 @@ export function Consultation({ userId }: { userId: string }) {
     },
   })
 
-  function patchVisitStage(visitId: string, stage: string) {
-    queryClient.setQueryData<DoctorVisit[]>(queueKey, (old) => old?.map((v) => (v.id === visitId ? { ...v, stage } : v)))
+  function patchVisit(visitId: string, patch: Partial<DoctorVisit>) {
+    queryClient.setQueryData<DoctorVisit[]>(queueKey, (old) => old?.map((v) => (v.id === visitId ? { ...v, ...patch } : v)))
   }
 
   const callNext = useMutation({
     networkMode: 'always',
     mutationFn: async (visitId: string) => {
+      // with_doctor_at is purely for the consultation-duration clock/data
+      // reference (Phase UI-4) -- distinct from arrived_at (wait time).
+      // Stamped here, in the same update that flips the stage, since
+      // that's the one real moment this transition happens.
+      const withDoctorAt = new Date().toISOString()
       await attemptOrQueue({
-        attempt: () => supabase.from('visits').update({ stage: 'with_doctor' }).eq('id', visitId).eq('stage', 'waiting'),
-        queueItem: () => ({ kind: 'update', table: 'visits', payload: { stage: 'with_doctor' }, match: { id: visitId }, description: 'Call next patient' }),
-        applyOptimistic: () => patchVisitStage(visitId, 'with_doctor'),
+        attempt: () => supabase.from('visits').update({ stage: 'with_doctor', with_doctor_at: withDoctorAt }).eq('id', visitId).eq('stage', 'waiting'),
+        queueItem: () => ({
+          kind: 'update',
+          table: 'visits',
+          payload: { stage: 'with_doctor', with_doctor_at: withDoctorAt },
+          match: { id: visitId },
+          description: 'Call next patient',
+        }),
+        applyOptimistic: () => patchVisit(visitId, { stage: 'with_doctor', with_doctor_at: withDoctorAt }),
       })
     },
     onSuccess: () => {
@@ -221,10 +234,17 @@ export function Consultation({ userId }: { userId: string }) {
     networkMode: 'always',
     mutationFn: async () => {
       if (!current) return
+      const consultationEndedAt = new Date().toISOString()
       await attemptOrQueue({
-        attempt: () => supabase.from('visits').update({ stage: 'packing' }).eq('id', current.id),
-        queueItem: () => ({ kind: 'update', table: 'visits', payload: { stage: 'packing' }, match: { id: current.id }, description: `Finish consultation for ${current.patients?.name ?? 'a patient'}` }),
-        applyOptimistic: () => patchVisitStage(current.id, 'packing'),
+        attempt: () => supabase.from('visits').update({ stage: 'packing', consultation_ended_at: consultationEndedAt }).eq('id', current.id),
+        queueItem: () => ({
+          kind: 'update',
+          table: 'visits',
+          payload: { stage: 'packing', consultation_ended_at: consultationEndedAt },
+          match: { id: current.id },
+          description: `Finish consultation for ${current.patients?.name ?? 'a patient'}`,
+        }),
+        applyOptimistic: () => patchVisit(current.id, { stage: 'packing' }),
       })
     },
     onSuccess: () => {
@@ -287,6 +307,11 @@ export function Consultation({ userId }: { userId: string }) {
               <div className="stage-head">
                 <h2>{current.patients?.name}</h2>
                 <span className="doctor-queue-meta">Token {current.token_number}</span>
+                {/* Only set going forward -- a visit already with_doctor
+                    before this phase's migration has no with_doctor_at
+                    to compute from, so the clock just doesn't render
+                    rather than show a bogus/negative duration. */}
+                {current.with_doctor_at && <ConsultationClock startedAt={current.with_doctor_at} />}
               </div>
 
               <SectionStepper sections={STAGE_SECTIONS} />
