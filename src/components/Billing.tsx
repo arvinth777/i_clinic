@@ -228,15 +228,40 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
   }, [visitId])
 
   const detailKey = ['billing-detail', visitId]
+  const detailEnabled = visit?.stage === 'ready_at_reception' || visit?.stage === 'paid'
   const { data: detail } = useQuery({
     queryKey: detailKey,
-    enabled: visit?.stage === 'ready_at_reception' || visit?.stage === 'paid',
+    enabled: detailEnabled,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_visit_billing_detail', { p_visit_id: visitId })
       if (error) throw error
       return data as DetailRow[]
     },
   })
+  // Confirm/print must never fire from data that hasn't arrived yet --
+  // PrintableSlip would otherwise render "No medicines prescribed" for a
+  // patient who does have one, simply because this query hadn't resolved
+  // before the click (docs/STATUS.md's Medium finding). An explicit timer,
+  // not React Query's own fetchStatus/retry machinery: a real network
+  // failure doesn't reliably fail fast -- a fetch against a connection
+  // that's gone dark can hang far longer than any retry backoff assumes
+  // (confirmed live against a simulated outage: several retries' worth of
+  // backoff still wasn't enough). A fixed, short grace window is a bound
+  // this project controls directly, not one that depends on how quickly
+  // the network stack happens to notice it's offline. Once the window
+  // elapses, Confirm unblocks regardless -- a visit that was offline from
+  // the start still prints with whatever's cached (possibly nothing),
+  // same as Phase F's already-documented "never fetched while online"
+  // boundary; this only closes the narrow race where the request was
+  // genuinely about to succeed.
+  const [detailGraceElapsed, setDetailGraceElapsed] = useState(false)
+  useEffect(() => {
+    if (!detailEnabled) return
+    setDetailGraceElapsed(false)
+    const timer = setTimeout(() => setDetailGraceElapsed(true), 2000)
+    return () => clearTimeout(timer)
+  }, [detailEnabled, visitId])
+  const detailStillLoading = !detail && detailEnabled && !detailGraceElapsed
 
   const { data: clinic } = useQuery({
     queryKey: ['clinic-billing-info', clinicId],
@@ -407,10 +432,10 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
               type="button"
               className="primary-button"
               whileTap={{ scale: 0.96, rotate: -1 }}
-              disabled={confirmPayment.isPending}
+              disabled={confirmPayment.isPending || detailStillLoading}
               onClick={() => confirmPayment.mutate()}
             >
-              {confirmPayment.isPending ? 'Confirming…' : 'Confirm payment'}
+              {confirmPayment.isPending ? 'Confirming…' : detailStillLoading ? 'Loading receipt details…' : 'Confirm payment'}
             </motion.button>
             <motion.button type="button" className="secondary-button" whileTap={{ scale: 0.97 }} onClick={onClose}>
               Back to queue
