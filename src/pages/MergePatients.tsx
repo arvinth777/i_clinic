@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/date'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
 import './MergePatients.css'
 
 type Candidate = { id: string; name: string; age: number | null; phone: string | null; last_visit_at: string | null }
@@ -43,7 +45,7 @@ function PatientSearch({ label, clinicId, selected, onSelect }: { label: string;
         </div>
       ) : (
         <>
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or phone" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or phone" />
           {query.trim() && (results?.length ?? 0) > 0 && (
             <ul className="search-results">
               {results!.map((c) => (
@@ -103,16 +105,15 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
       {samePatient && <p className="form-error">Pick two different patients.</p>}
       {result && <p className={result.startsWith('Merged') ? 'readout-empty' : 'form-error'}>{result}</p>}
       <div className="action-row">
-        <button
+        <Button
           type="button"
-          className="primary-button"
           disabled={!bothSelected || samePatient || merge.isPending}
           onClick={() => {
             if (confirm(`Merge "${a?.name}" and "${b?.name}"? This cannot be undone.`)) merge.mutate()
           }}
         >
           {merge.isPending ? 'Merging…' : 'Merge'}
-        </button>
+        </Button>
       </div>
     </div>
   )
