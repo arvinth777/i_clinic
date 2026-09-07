@@ -3,6 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../../lib/money'
 import { Drawer } from '../Drawer'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 
 type Medicine = {
   id: string
@@ -15,6 +19,10 @@ type Medicine = {
 }
 
 const DRUG_TYPES = ['Tablet', 'Syrup', 'Capsule', 'Powder', 'Injection', 'Other'] as const
+// Radix Select.Item can't take value="" (it throws) -- this sentinel stands in
+// for the old native <option value="">—</option>, so a drug's type can still
+// be explicitly cleared back to blank, not just left unset on creation.
+const DRUG_TYPE_UNSET = '__unset__'
 
 type Draft = {
   name: string
@@ -116,48 +124,46 @@ export function DrugList({ clinicId }: { clinicId: string }) {
     <div>
       <div className="admin-toolbar">
         <h2 className="readout-heading">Drugs</h2>
-        <button type="button" className="primary-button" onClick={openNew}>
+        <Button type="button" onClick={openNew}>
           + Add drug
-        </button>
+        </Button>
       </div>
       {removeError && <p className="form-error">{removeError}</p>}
-      <div className="worklist-scroll">
-        <table className="worklist">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Price</th>
-              <th>Low stock at</th>
-              <th>Expiry</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {(medicines ?? []).map((m) => (
-              <tr key={m.id} className="worklist-row worklist-row-clickable" onClick={() => openEdit(m)}>
-                <td className="worklist-name-cell">{m.name}</td>
-                <td>{m.drug_type ?? '—'}</td>
-                <td className="worklist-wait-cell">{formatPaise(m.price_paise)}</td>
-                <td className="worklist-wait-cell">{m.low_stock_threshold ?? '—'}</td>
-                <td>{m.expiry_date ?? '—'}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="drug-row-remove"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (confirm(`Remove ${m.name}?`)) remove.mutate(m.id)
-                    }}
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead>Low stock at</TableHead>
+            <TableHead>Expiry</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(medicines ?? []).map((m) => (
+            <TableRow key={m.id} className="worklist-row-clickable" onClick={() => openEdit(m)}>
+              <TableCell className="worklist-name-cell">{m.name}</TableCell>
+              <TableCell>{m.drug_type ?? '—'}</TableCell>
+              <TableCell className="worklist-wait-cell">{formatPaise(m.price_paise)}</TableCell>
+              <TableCell className="worklist-wait-cell">{m.low_stock_threshold ?? '—'}</TableCell>
+              <TableCell>{m.expiry_date ?? '—'}</TableCell>
+              <TableCell>
+                <button
+                  type="button"
+                  className="drug-row-remove"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (confirm(`Remove ${m.name}?`)) remove.mutate(m.id)
+                  }}
+                >
+                  Remove
+                </button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
       <Drawer open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add drug' : (editing as Medicine | null)?.name ?? ''}>
         <form
@@ -170,26 +176,34 @@ export function DrugList({ clinicId }: { clinicId: string }) {
             <label className="field-label" htmlFor="drug-name">
               Name
             </label>
-            <input id="drug-name" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} required autoFocus />
+            <Input id="drug-name" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} required autoFocus />
           </div>
           <div className="field">
             <label className="field-label" htmlFor="drug-type">
               Type
             </label>
-            <select id="drug-type" value={draft.drug_type} onChange={(e) => setDraft((d) => ({ ...d, drug_type: e.target.value }))}>
-              <option value="">—</option>
-              {DRUG_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+            <Select
+              value={draft.drug_type || DRUG_TYPE_UNSET}
+              onValueChange={(v) => setDraft((d) => ({ ...d, drug_type: v === DRUG_TYPE_UNSET ? '' : v }))}
+            >
+              <SelectTrigger id="drug-type">
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={DRUG_TYPE_UNSET}>—</SelectItem>
+                {DRUG_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="field">
             <label className="field-label" htmlFor="drug-strengths">
               Strength options (comma-separated)
             </label>
-            <input
+            <Input
               id="drug-strengths"
               value={draft.strength_options}
               onChange={(e) => setDraft((d) => ({ ...d, strength_options: e.target.value }))}
@@ -200,13 +214,13 @@ export function DrugList({ clinicId }: { clinicId: string }) {
             <label className="field-label" htmlFor="drug-price">
               Price (₹)
             </label>
-            <input id="drug-price" inputMode="decimal" value={draft.price} onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))} required />
+            <Input id="drug-price" inputMode="decimal" value={draft.price} onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))} required />
           </div>
           <div className="field">
             <label className="field-label" htmlFor="drug-threshold">
               Low-stock threshold
             </label>
-            <input
+            <Input
               id="drug-threshold"
               type="number"
               min="0"
@@ -218,16 +232,16 @@ export function DrugList({ clinicId }: { clinicId: string }) {
             <label className="field-label" htmlFor="drug-expiry">
               Expiry date
             </label>
-            <input id="drug-expiry" type="date" value={draft.expiry_date} onChange={(e) => setDraft((d) => ({ ...d, expiry_date: e.target.value }))} />
+            <Input id="drug-expiry" type="date" value={draft.expiry_date} onChange={(e) => setDraft((d) => ({ ...d, expiry_date: e.target.value }))} />
           </div>
           {formError && <p className="form-error">{formError}</p>}
           <div className="action-row">
-            <button type="submit" className="primary-button" disabled={save.isPending}>
+            <Button type="submit" disabled={save.isPending}>
               {save.isPending ? 'Saving…' : 'Save'}
-            </button>
-            <button type="button" className="secondary-button" onClick={() => setEditing(null)}>
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setEditing(null)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </Drawer>

@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { Drawer } from '../Drawer'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 
 type FieldDef = { id: string; key: string; label: string; field_type: string; display_order: number }
 
@@ -97,45 +101,43 @@ export function CustomFieldList({ clinicId }: { clinicId: string }) {
     <div>
       <div className="admin-toolbar">
         <h2 className="readout-heading">Custom patient fields</h2>
-        <button type="button" className="primary-button" onClick={openNew}>
+        <Button type="button" onClick={openNew}>
           + Add field
-        </button>
+        </Button>
       </div>
-      <div className="worklist-scroll">
-        <table className="worklist">
-          <thead>
-            <tr>
-              <th>Label</th>
-              <th>Key</th>
-              <th>Type</th>
-              <th>Order</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {(fields ?? []).map((f) => (
-              <tr key={f.id} className="worklist-row worklist-row-clickable" onClick={() => openEdit(f)}>
-                <td className="worklist-name-cell">{f.label}</td>
-                <td className="worklist-wait-cell">{f.key}</td>
-                <td>{f.field_type}</td>
-                <td className="worklist-wait-cell">{f.display_order}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="drug-row-remove"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (confirm(`Remove the "${f.label}" field? Existing patient values for it are kept but no longer shown.`)) remove.mutate(f.id)
-                    }}
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Label</TableHead>
+            <TableHead>Key</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Order</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(fields ?? []).map((f) => (
+            <TableRow key={f.id} className="worklist-row-clickable" onClick={() => openEdit(f)}>
+              <TableCell className="worklist-name-cell">{f.label}</TableCell>
+              <TableCell className="worklist-wait-cell">{f.key}</TableCell>
+              <TableCell>{f.field_type}</TableCell>
+              <TableCell className="worklist-wait-cell">{f.display_order}</TableCell>
+              <TableCell>
+                <button
+                  type="button"
+                  className="drug-row-remove"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (confirm(`Remove the "${f.label}" field? Existing patient values for it are kept but no longer shown.`)) remove.mutate(f.id)
+                  }}
+                >
+                  Remove
+                </button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
       <Drawer open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add custom field' : (editing as FieldDef | null)?.label ?? ''}>
         <form
@@ -148,35 +150,40 @@ export function CustomFieldList({ clinicId }: { clinicId: string }) {
             <label className="field-label" htmlFor="field-label">
               Label
             </label>
-            <input id="field-label" value={label} onChange={(e) => setLabel(e.target.value)} required autoFocus placeholder="e.g. Pain score (0-10)" />
+            <Input id="field-label" value={label} onChange={(e) => setLabel(e.target.value)} required autoFocus placeholder="e.g. Pain score (0-10)" />
           </div>
           {editing === 'new' && label.trim() && <p className="readout-empty">Stored as: {slugify(label)}</p>}
           <div className="field">
             <label className="field-label" htmlFor="field-type">
               Type
             </label>
-            <select id="field-type" value={fieldType} onChange={(e) => setFieldType(e.target.value as (typeof FIELD_TYPES)[number])}>
-              {FIELD_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+            <Select value={fieldType} onValueChange={(v) => setFieldType(v as (typeof FIELD_TYPES)[number])}>
+              <SelectTrigger id="field-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FIELD_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="field">
             <label className="field-label" htmlFor="field-order">
               Display order
             </label>
-            <input id="field-order" type="number" value={displayOrder} onChange={(e) => setDisplayOrder(e.target.value)} />
+            <Input id="field-order" type="number" value={displayOrder} onChange={(e) => setDisplayOrder(e.target.value)} />
           </div>
           {formError && <p className="form-error">{formError}</p>}
           <div className="action-row">
-            <button type="submit" className="primary-button" disabled={save.isPending}>
+            <Button type="submit" disabled={save.isPending}>
               {save.isPending ? 'Saving…' : 'Save'}
-            </button>
-            <button type="button" className="secondary-button" onClick={() => setEditing(null)}>
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setEditing(null)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </Drawer>

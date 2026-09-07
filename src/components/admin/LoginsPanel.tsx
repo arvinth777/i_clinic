@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { Drawer } from '../Drawer'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 
 type Login = { user_id: string; email: string; role: string }
 
@@ -61,9 +65,8 @@ export function LoginsPanel({ clinicId }: { clinicId: string }) {
     <div>
       <div className="admin-toolbar">
         <h2 className="readout-heading">Logins</h2>
-        <button
+        <Button
           type="button"
-          className="primary-button"
           onClick={() => {
             setEmail('')
             setPassword('')
@@ -73,38 +76,36 @@ export function LoginsPanel({ clinicId }: { clinicId: string }) {
           }}
         >
           + Add login
-        </button>
+        </Button>
       </div>
-      <div className="worklist-scroll">
-        <table className="worklist">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Role</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {(logins ?? []).map((l) => (
-              <tr key={`${l.user_id}-${l.role}`} className="worklist-row">
-                <td className="worklist-name-cell">{l.email}</td>
-                <td>{l.role}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="drug-row-remove"
-                    onClick={() => {
-                      if (confirm(`Remove ${l.email}'s ${l.role} access to this clinic?`)) removeRole.mutate(l.user_id)
-                    }}
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(logins ?? []).map((l) => (
+            <TableRow key={`${l.user_id}-${l.role}`}>
+              <TableCell className="worklist-name-cell">{l.email}</TableCell>
+              <TableCell>{l.role}</TableCell>
+              <TableCell>
+                <button
+                  type="button"
+                  className="drug-row-remove"
+                  onClick={() => {
+                    if (confirm(`Remove ${l.email}'s ${l.role} access to this clinic?`)) removeRole.mutate(l.user_id)
+                  }}
+                >
+                  Remove
+                </button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
       <Drawer open={adding} onClose={() => setAdding(false)} title="Add login">
         <form
@@ -117,34 +118,39 @@ export function LoginsPanel({ clinicId }: { clinicId: string }) {
             <label className="field-label" htmlFor="login-email">
               Email
             </label>
-            <input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+            <Input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
           </div>
           <div className="field">
             <label className="field-label" htmlFor="login-password">
               Password
             </label>
-            <input id="login-password" type="text" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
+            <Input id="login-password" type="text" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
           </div>
           <div className="field">
             <label className="field-label" htmlFor="login-role">
               Role
             </label>
-            <select id="login-role" value={role} onChange={(e) => setRole(e.target.value as (typeof ROLES)[number])}>
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
+            <Select value={role} onValueChange={(v) => setRole(v as (typeof ROLES)[number])}>
+              <SelectTrigger id="login-role">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {formError && <p className="form-error">{formError}</p>}
           <div className="action-row">
-            <button type="submit" className="primary-button" disabled={create.isPending}>
+            <Button type="submit" disabled={create.isPending}>
               {create.isPending ? 'Creating…' : 'Create login'}
-            </button>
-            <button type="button" className="secondary-button" onClick={() => setAdding(false)}>
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setAdding(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </Drawer>

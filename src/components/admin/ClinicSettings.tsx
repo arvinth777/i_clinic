@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaiseForInput, parseRupeesToPaise } from '../../lib/money'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
 
 // clinics has no update policy at all (creating one is a migration/
 // service_role action) -- each field here goes through its own narrow
@@ -86,7 +88,7 @@ export function ClinicSettings({ clinicId }: { clinicId: string }) {
           <label className="field-label" htmlFor="clinic-upi-vpa">
             UPI ID (VPA)
           </label>
-          <input
+          <Input
             id="clinic-upi-vpa"
             value={upiVpa}
             onChange={(e) => setUpiVpa(e.target.value)}
@@ -98,28 +100,28 @@ export function ClinicSettings({ clinicId }: { clinicId: string }) {
           <label className="field-label" htmlFor="clinic-consultation-fee">
             Consultation fee (₹)
           </label>
-          <input id="clinic-consultation-fee" value={feeDraft} onChange={(e) => setFeeDraft(e.target.value)} placeholder="250" />
+          <Input id="clinic-consultation-fee" value={feeDraft} onChange={(e) => setFeeDraft(e.target.value)} placeholder="250" />
           <p className="field-hint">Charged flat on every visit. Only changes new visits and any open visit whose procedures/medicines are edited afterward.</p>
         </div>
         <div className="field">
           <label className="field-label" htmlFor="clinic-doctor-name">
             Doctor's name
           </label>
-          <input id="clinic-doctor-name" value={doctorName} onChange={(e) => setDoctorName(e.target.value)} placeholder="Dr. ..." />
+          <Input id="clinic-doctor-name" value={doctorName} onChange={(e) => setDoctorName(e.target.value)} placeholder="Dr. ..." />
         </div>
         <div className="field">
           <label className="field-label" htmlFor="clinic-doctor-reg-no">
             Doctor's registration number
           </label>
-          <input id="clinic-doctor-reg-no" value={doctorRegNo} onChange={(e) => setDoctorRegNo(e.target.value)} />
+          <Input id="clinic-doctor-reg-no" value={doctorRegNo} onChange={(e) => setDoctorRegNo(e.target.value)} />
           <p className="field-hint">Printed on certificates, sick-leave notes, and referral letters.</p>
         </div>
         {formError && <p className="form-error">{formError}</p>}
         {saved && !formError && <p className="readout-empty">Saved.</p>}
         <div className="action-row">
-          <button type="submit" className="primary-button" disabled={save.isPending}>
+          <Button type="submit" disabled={save.isPending}>
             {save.isPending ? 'Saving…' : 'Save'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { Drawer } from '../Drawer'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
 
 type Template = { id: string; name: string; prescription_template_items: { medicine_id: string }[] }
 
@@ -55,45 +58,43 @@ export function TemplateList({ clinicId }: { clinicId: string }) {
         <h2 className="readout-heading">Prescription templates</h2>
       </div>
       <p className="readout-empty">Doctors create these from the consultation screen. Here you can rename or remove one.</p>
-      <div className="worklist-scroll">
-        <table className="worklist">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Drugs</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {(templates ?? []).map((t) => (
-              <tr
-                key={t.id}
-                className="worklist-row worklist-row-clickable"
-                onClick={() => {
-                  setName(t.name)
-                  setFormError('')
-                  setRenaming(t)
-                }}
-              >
-                <td className="worklist-name-cell">{t.name}</td>
-                <td className="worklist-wait-cell">{t.prescription_template_items?.length ?? 0}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="drug-row-remove"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (confirm(`Remove template "${t.name}"?`)) remove.mutate(t.id)
-                    }}
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Drugs</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(templates ?? []).map((t) => (
+            <TableRow
+              key={t.id}
+              className="worklist-row-clickable"
+              onClick={() => {
+                setName(t.name)
+                setFormError('')
+                setRenaming(t)
+              }}
+            >
+              <TableCell className="worklist-name-cell">{t.name}</TableCell>
+              <TableCell className="worklist-wait-cell">{t.prescription_template_items?.length ?? 0}</TableCell>
+              <TableCell>
+                <button
+                  type="button"
+                  className="drug-row-remove"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (confirm(`Remove template "${t.name}"?`)) remove.mutate(t.id)
+                  }}
+                >
+                  Remove
+                </button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
       <Drawer open={renaming !== null} onClose={() => setRenaming(null)} title="Rename template">
         <form
@@ -106,16 +107,16 @@ export function TemplateList({ clinicId }: { clinicId: string }) {
             <label className="field-label" htmlFor="template-name">
               Name
             </label>
-            <input id="template-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+            <Input id="template-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
           </div>
           {formError && <p className="form-error">{formError}</p>}
           <div className="action-row">
-            <button type="submit" className="primary-button" disabled={rename.isPending}>
+            <Button type="submit" disabled={rename.isPending}>
               {rename.isPending ? 'Saving…' : 'Save'}
-            </button>
-            <button type="button" className="secondary-button" onClick={() => setRenaming(null)}>
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setRenaming(null)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </Drawer>
