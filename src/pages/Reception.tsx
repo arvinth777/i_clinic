@@ -135,83 +135,92 @@ export function Reception({ userId }: { userId: string }) {
 
   return (
     <div className="reception-page">
-      <div className="reception-toolbar">
-        <div className="search-field">
-          <svg
-            className="search-field-icon"
-            width="18"
-            height="18"
-            viewBox="0 0 18 18"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            aria-hidden="true"
-          >
-            <circle cx="7.5" cy="7.5" r="5.5" />
-            <line x1="15.5" y1="15.5" x2="11.4" y2="11.4" />
-          </svg>
-          <input
-            className="search-strip"
-            type="search"
-            placeholder="Search by name or phone"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && results && results.length > 0) {
-                e.preventDefault()
-                setSelected(results[0])
-              }
-            }}
-          />
-          {debouncedQuery && (results?.length ?? 0) > 0 && (
-            <ul className="search-results">
-              {results!.map((r) => (
-                <li key={r.id}>
-                  <motion.button
-                    type="button"
-                    className="search-result-button"
-                    whileTap={tap}
-                    onClick={() => setSelected(r)}
-                  >
-                    {r.name}
-                    {r.phone || r.age ? (
-                      <span className="search-result-meta">
-                        {' '}
-                        {r.phone ? `— ${r.phone}` : ''} {r.age ? `— ${r.age}y` : ''}
-                      </span>
-                    ) : null}
-                  </motion.button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {debouncedQuery && (results?.length ?? 0) === 0 && (
-            <div className="no-match">
-              <p>No matching patient found.</p>
+      <div className="reception-shell">
+        <div className="reception-rail">
+          <div className="search-field search-results-anchor">
+            <svg
+              className="search-field-icon"
+              width="18"
+              height="18"
+              viewBox="0 0 18 18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="7.5" cy="7.5" r="5.5" />
+              <line x1="15.5" y1="15.5" x2="11.4" y2="11.4" />
+            </svg>
+            <input
+              className="search-strip"
+              type="search"
+              placeholder="Search by name or phone"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && results && results.length > 0) {
+                  e.preventDefault()
+                  setSelected(results[0])
+                }
+              }}
+            />
+            {debouncedQuery && (results?.length ?? 0) > 0 && (
+              <ul className="search-results">
+                {results!.map((r) => (
+                  <li key={r.id}>
+                    <motion.button
+                      type="button"
+                      className="search-result-button"
+                      whileTap={tap}
+                      onClick={() => setSelected(r)}
+                    >
+                      {r.name}
+                      {r.phone || r.age ? (
+                        <span className="search-result-meta">
+                          {' '}
+                          {r.phone ? `— ${r.phone}` : ''} {r.age ? `— ${r.age}y` : ''}
+                        </span>
+                      ) : null}
+                    </motion.button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {debouncedQuery && (results?.length ?? 0) === 0 && (
+              <div className="no-match">
+                <p>No matching patient found.</p>
+              </div>
+            )}
+          </div>
+          <div className="rail-actions">
+            <motion.button type="button" className="secondary-button" whileTap={tap} onClick={() => setSelected('new')}>
+              + New patient
+            </motion.button>
+            <motion.button type="button" className="secondary-button" whileTap={tap} onClick={() => setRepFormOpen(true)}>
+              Check in pharma rep
+            </motion.button>
+          </div>
+
+          <FollowUpTodos clinicId={clinicId} />
+        </div>
+
+        <div className="reception-stage">
+          {billingVisitId ? (
+            <>
+              <button type="button" className="back-to-queue" onClick={() => setBillingVisitId(null)}>
+                ← Back to queue
+              </button>
+              <Billing key={billingVisitId} clinicId={clinicId} visitId={billingVisitId} onClose={() => setBillingVisitId(null)} />
+            </>
+          ) : (
+            <div className="worklist-panel">
+              <h2 className="readout-heading">Today's queue</h2>
+              <TokenList clinicId={clinicId} onSelectVisit={setBillingVisitId} />
             </div>
           )}
         </div>
-        <motion.button type="button" className="secondary-button" whileTap={tap} onClick={() => setSelected('new')}>
-          + New patient
-        </motion.button>
-        <motion.button type="button" className="secondary-button" whileTap={tap} onClick={() => setRepFormOpen(true)}>
-          Check in pharma rep
-        </motion.button>
       </div>
-
-      <FollowUpTodos clinicId={clinicId} />
-
-      <div className="worklist-panel">
-        <h2 className="readout-heading">Today's queue</h2>
-        <TokenList clinicId={clinicId} onSelectVisit={setBillingVisitId} />
-      </div>
-
-      <Drawer open={!!billingVisitId} onClose={() => setBillingVisitId(null)} title="Bill">
-        {billingVisitId && (
-          <Billing key={billingVisitId} clinicId={clinicId} visitId={billingVisitId} onClose={() => setBillingVisitId(null)} />
-        )}
-      </Drawer>
 
       <Drawer open={selected !== null && selected !== 'new'} onClose={reset} title={selected !== 'new' ? selected?.name : ''}>
         {selected && selected !== 'new' && (

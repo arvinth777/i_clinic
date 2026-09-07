@@ -3,6 +3,120 @@
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
 
+## UI redesign initiative (post Phase G, not on the lettered A-G plan)
+
+The user judged the shipped v4.2 visual/IA design "bland, cheap, and badly
+aligned" and no longer trusts `impeccable`/`hallmark` to fix it ("maybe my
+prompting was not clear") — asked for a fresh-eyes redesign instead of
+another skill pass. Two real findings grounded this before any redesign
+work started:
+
+- `src/pages/Reception.css`'s `.signin` used a fixed top margin, not
+  vertical centering — a genuine bug, not a taste issue.
+- Commit `b28d828` (same day as v4.2) deliberately stripped the tab-flag
+  section headings, the dashed "ticket-stub" token badge, and uppercase
+  field labels docs/design.md still documents as current/mandatory,
+  replacing them with plain bold text and a plain filled circle, reasoning
+  in its own comments that the removed shapes read as "AI-tell." Nothing
+  replaced them — every section is now the same font-weight/color as
+  surrounding body text, which is the actual mechanism behind "bland,"
+  not the palette. **design.md has been wrong about the shipped app since
+  that commit; not yet corrected — see Phase UI-5 below.**
+
+Agreed direction, via live mockups (visualize tool, not real code) before
+any implementation: replace the Drawer-overlay pattern with a persistent
+left rail (queue/quick-access) + a center stage (the selected record),
+for both Consultation and Reception. A four-section stepper (Overview /
+Prescription / Procedures & pricing / Documents) is **jump-navigation
+only**, never a gated wizard — explicitly chosen to preserve the "doctor
+doesn't lose time clicking through screens mid-exam" principle rather
+than reintroduce the failure mode the original one-screen design existed
+to prevent. Also agreed: a live consultation-duration clock (needs new
+`with_doctor_at`/`consultation_ended_at` timestamp columns — checked the
+schema, neither exists today, only `arrived_at`); and replacing the
+three-button "use template / repeat last / search drug" prescription
+entry with a single search box plus quiet suggestion chips, including a
+frequency-based "usual combo" chip (majority of the patient's last 5
+prescriptions, ≥2 minimum) computed client-side from data
+`Consultation.tsx`'s existing `past-prescriptions` query already fetches
+— no new table or RPC needed for that one.
+
+Phase plan (dependency-ordered; this is a new track, not a lettered
+phase — the A-G plan is fully audited/closed per Phase G above):
+
+- [x] **Phase UI-1 — Layout shell.** Replaced the Drawer with a left
+  rail (persistent, sticky within `.shell-content`'s own scroll, capped
+  height + independent scroll) + center stage, for both screens.
+  - Consultation: `TodayFlow` unchanged at the top; rail shows the queue
+    (token chit + name + stage/wait, current patient highlighted,
+    reps appended, per `RepQueueRows.tsx` — rewritten from `<tr>` to
+    `<li>` markup since Consultation was its only consumer, confirmed by
+    grep) — the rail is read-only awareness, not a way to jump to an
+    arbitrary patient (strict FCFS non-negotiable preserved: only "Call
+    next" advances the queue). Center stage renders the exact same
+    record content that used to live inside the Drawer (Comments,
+    Patient, Past visits, Past prescriptions, Write prescription,
+    PricingPanel, CarePanel, DocumentsPanel, Consultation done),
+    unchanged internally — this phase is shell-only, not a content
+    redesign. Dropped the worklist's per-column sort (Token/Name/Wait)
+    since a compact rail list has no column headers to sort by; the
+    query's own `order('token_number', ...)` already gives strict
+    arrival order, which is the more correct default for a FCFS queue
+    anyway.
+  - Reception: rail holds search + New patient/Check in rep quick
+    actions + `FollowUpTodos`; center stage shows the worklist
+    (`TokenList`) by default and swaps in place to `Billing` when a
+    billable row is clicked (no Drawer), with a "← Back to queue" link
+    added above it (`Billing.tsx` itself was untouched — its own
+    Cancel/Done buttons already call the same `onClose`). The three
+    small entry forms (check-in complaint, new-patient, rep check-in)
+    deliberately stay as Drawers — short single-purpose forms, not a
+    record worth a permanent view; not the pattern the user was
+    reacting to.
+  - Verified live in the browser as both `doctor.a` (sticky rail,
+    current-patient highlight, all record sections render, empty state
+    when no current patient) and `reception.a` (search dropdown
+    positions correctly in the narrower rail, clicking a billable row
+    swaps to Billing in place, "← Back to queue" returns to the
+    worklist) — not just typechecked. `npx tsc --noEmit` and `npm run
+    lint` both clean.
+  - One real bug caught and fixed during this phase, not before: the
+    rail's `@media (max-width: 900px)` mobile-collapse breakpoint was
+    invented rather than reusing `AppShell.css`'s own existing 720px
+    convention, and 900px turned out to be *wider* than this actual
+    browser pane's rendered width (889px) — silently defeating the
+    sticky rail on a perfectly ordinary desktop-width viewport. Caught
+    live via `getComputedStyle` showing `position: static` when it
+    should have been `sticky`, not by visual inspection alone. Fixed to
+    720px, matching the PRD's own "single-column on a mobile browser"
+    breakpoint already used elsewhere.
+  - **Found, not touched, out of scope for this phase**: `AGENTS.md` had
+    an uncommitted local change (the "## Stack" section removed) already
+    present in the working tree before this session started — not made
+    by this work, not committed, flagged to the user rather than
+    silently carried or discarded.
+- [ ] **Phase UI-2 — Section jump-nav.** The four-step stepper as pure
+  jump-navigation (confirmed answer, not yet built): click scrolls to an
+  anchor, active step tracks scroll position, nothing ever hidden.
+- [ ] **Phase UI-3 — Prescription entry redesign.** Search-first entry +
+  quick-add chips, including the "usual combo" suggestion described
+  above. Per-drug fields stay real editable controls; the mockup's
+  static tags were a display simplification only.
+- [ ] **Phase UI-4 — Consultation duration tracking.** New nullable
+  `with_doctor_at`/`consultation_ended_at` columns on `visits`, set in
+  the existing "Call next"/"Consultation done" mutations; live clock in
+  the center-stage header. Needs a `docs/security-review.md` pass (new
+  columns on a table with an existing RLS history) even though it's
+  timestamps, not clinical content.
+- [ ] **Phase UI-5 — Visual language reconciliation.** Decide a real
+  (non-cliché) hierarchy device for the new center-stage's section
+  labels/tables — the "bland" root cause above is still unresolved, just
+  relocated into the new layout — then rewrite `design.md` to match
+  what's actually shipped, closing the doc/code gap this session found.
+
+Not committed to git yet as of this write-up — do that as the last step
+of finishing Phase UI-1 (see "Next action").
+
 ## Where we are
 
 Working through `docs/build-plan.md`, one phase per session, in order.
@@ -734,13 +848,19 @@ or confirm they're each still worth deferring.
 
 ## Next action
 
-Read this file (especially both "Phase G fix pass" sections above),
-`AGENTS.md`, `docs/architecture-spec.md`, and the PRD. Every finding
-Phase G's audit raised has been fixed and verified; what's left is the
-human-only setup for the backup pipeline (`docs/runbook.md`'s "Pending
-setup" — age private key into the password manager, `backup_reader`'s
-password, the R2 bucket/tokens, wiring the two health endpoints to an
-external uptime monitor) and, at the maintainer's discretion, the
-Low/informational findings nobody's assigned to a pass yet. Once the
-human-only steps are done and a real restore drill has been run, this
-app is ready for a real patient.
+Two independent tracks are open now, not one:
+
+1. **The UI redesign initiative** (new section at the top of this file):
+   Phase UI-1 (layout shell) is done and verified live; Phase UI-2
+   (section jump-nav) is the next piece of that track.
+2. **Phase G's own residual items** (below): every audited finding is
+   fixed and verified; what's left is the human-only setup for the
+   backup pipeline (`docs/runbook.md`'s "Pending setup" — age private
+   key into the password manager, `backup_reader`'s password, the R2
+   bucket/tokens, wiring the two health endpoints to an external uptime
+   monitor) and, at the maintainer's discretion, the Low/informational
+   findings nobody's assigned to a pass yet.
+
+Read this file (both "Phase G fix pass" sections and the new UI-redesign
+section above), `AGENTS.md`, `docs/architecture-spec.md`, and the PRD
+before picking either back up.

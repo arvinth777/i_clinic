@@ -1,11 +1,12 @@
 /* genre: modern-minimal-operate · design-system: /design.md · designed-as-app
  *
- * Reception content -- one dense worklist, full width (see Worklist.css /
- * TokenList.tsx): no more search-on-the-left / queue-in-a-box-on-the-right.
- * Search sits in a toolbar above the table; checking a patient in, adding a
- * new patient, and opening a bill all happen in a Drawer overlay (see
- * Drawer.tsx) instead of a permanent second column. Shell chrome lives in
- * AppShell.css; tokens live in src/index.css.
+ * Reception content -- a left rail (search, quick actions, follow-ups due)
+ * beside a center stage: today's queue by default, swapping in place to
+ * the selected visit's bill (no Drawer for billing anymore -- by explicit
+ * user request, matching Consultation's own rail/stage split). Checking a
+ * patient in, adding a new patient, and checking in a rep stay as Drawers
+ * -- short, single-purpose forms, not a record worth a permanent view.
+ * Shell chrome lives in AppShell.css; tokens live in src/index.css.
  */
 
 .reception-page {
@@ -14,10 +15,57 @@
   gap: var(--space-lg);
 }
 
-.reception-toolbar {
+.reception-shell {
   display: flex;
   align-items: flex-start;
+  gap: var(--space-lg);
+}
+
+.reception-rail {
+  flex: 0 0 16rem;
+  position: sticky;
+  top: var(--space-md);
+  display: flex;
+  flex-direction: column;
   gap: var(--space-md);
+}
+
+.reception-stage {
+  flex: 1;
+  min-width: 0;
+}
+
+.rail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.back-to-queue {
+  display: inline-block;
+  margin-bottom: var(--space-md);
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.back-to-queue:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 720px) {
+  .reception-shell {
+    flex-direction: column;
+  }
+
+  .reception-rail {
+    position: static;
+    width: 100%;
+  }
 }
 
 .worklist-panel {

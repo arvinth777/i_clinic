@@ -5,14 +5,12 @@ import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { useClinicId } from '../lib/useClinicId'
 import { startOfToday, elapsedMinutes, formatElapsed } from '../lib/date'
-import { nextSortState, sortRows, type SortState } from '../lib/sort'
 import { PrescriptionForm } from '../components/PrescriptionForm'
 import { PricingPanel } from '../components/PricingPanel'
 import { DocumentsPanel } from '../components/DocumentsPanel'
 import { CarePanel } from '../components/CarePanel'
 import { RepQueueRows } from '../components/RepQueueRows'
 import { TodayFlow, type TodayVisit } from '../components/TodayFlow'
-import { Drawer } from '../components/Drawer'
 import '../components/Worklist.css'
 import './Consultation.css'
 
@@ -60,38 +58,11 @@ function formatDate(iso: string): string {
 
 const STAGE_LABEL: Record<string, string> = { waiting: 'Waiting', with_doctor: 'With doctor' }
 
-type SortKey = 'token' | 'name' | 'wait'
-
-function sortValue(v: DoctorVisit, key: SortKey): string | number {
-  switch (key) {
-    case 'token':
-      return v.token_number
-    case 'name':
-      return v.patients?.name ?? ''
-    case 'wait':
-      return elapsedMinutes(v.arrived_at)
-  }
-}
-
-function SortHeader({ label, sortKey, sort, onSort }: { label: string; sortKey: SortKey; sort: SortState<SortKey>; onSort: (k: SortKey) => void }) {
-  const active = sort?.key === sortKey
-  return (
-    <th>
-      <button type="button" className="worklist-sort" onClick={() => onSort(sortKey)}>
-        {label}
-        <span className="worklist-sort-arrow">{active ? (sort!.direction === 'asc' ? '▲' : '▼') : ''}</span>
-      </button>
-    </th>
-  )
-}
-
 export function Consultation({ userId }: { userId: string }) {
   const queryClient = useQueryClient()
   const { data: clinicId } = useClinicId(userId)
   const [commentBody, setCommentBody] = useState('')
   const [prescribingActive, setPrescribingActive] = useState(false)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [sort, setSort] = useState<SortState<SortKey>>(null)
   const [repCount, setRepCount] = useState(0)
 
   const queueKey = ['doctor-queue', clinicId]
@@ -148,7 +119,10 @@ export function Consultation({ userId }: { userId: string }) {
 
   const queue = visits?.filter((v) => v.stage === 'waiting') ?? []
   const current = visits?.find((v) => v.stage === 'with_doctor')
-  const rows = sortRows(visits ?? [], sort, sortValue)
+  // Already token_number ascending from the query -- strict arrival order,
+  // never re-sortable here (the rail is a queue readout, not a worklist the
+  // doctor picks through; only "Call next" advances it).
+  const rows = visits ?? []
 
   const { data: pastVisits } = useQuery({
     queryKey: ['past-visits', current?.patient_id, current?.id],
@@ -212,7 +186,6 @@ export function Consultation({ userId }: { userId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queueKey })
       queryClient.invalidateQueries({ queryKey: metricsKey })
-      setDrawerOpen(true)
     },
   })
 
@@ -247,7 +220,6 @@ export function Consultation({ userId }: { userId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queueKey })
       queryClient.invalidateQueries({ queryKey: metricsKey })
-      setDrawerOpen(false)
     },
   })
 
@@ -256,76 +228,59 @@ export function Consultation({ userId }: { userId: string }) {
   return (
     <div className="consultation-page">
       <TodayFlow visits={todayVisits} />
-
-      <div className="consultation-toolbar">
-        <h2 className="readout-heading">Queue</h2>
-        <motion.button
-          type="button"
-          className="primary-button"
-          whileTap={{ scale: 0.97 }}
-          disabled={queue.length === 0 || !!current || callNext.isPending}
-          onClick={() => callNext.mutate(queue[0].id)}
-        >
-          {callNext.isPending ? 'Calling…' : 'Call next'}
-        </motion.button>
-      </div>
       {callNext.isError && <p className="form-error">Couldn't save — try again.</p>}
 
-      {(!visits || visits.length === 0) && repCount === 0 ? (
-        <p className="readout-empty">Your queue is empty.</p>
-      ) : (
-        <div className="worklist-scroll">
-          <table className="worklist">
-            <thead>
-              <tr>
-                <SortHeader label="Token" sortKey="token" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
-                <SortHeader label="Name" sortKey="name" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
-                <th>Age · sex</th>
-                <th>Complaint</th>
-                <SortHeader label="Wait" sortKey="wait" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
-                <th>Stage</th>
-              </tr>
-            </thead>
-            <tbody>
+      <div className="consultation-shell">
+        <div className="consultation-rail">
+          <div className="rail-head">
+            <h2 className="readout-heading">Queue</h2>
+            <motion.button
+              type="button"
+              className="primary-button"
+              whileTap={{ scale: 0.97 }}
+              disabled={queue.length === 0 || !!current || callNext.isPending}
+              onClick={() => callNext.mutate(queue[0].id)}
+            >
+              {callNext.isPending ? 'Calling…' : 'Call next'}
+            </motion.button>
+          </div>
+
+          {(!visits || visits.length === 0) && repCount === 0 ? (
+            <p className="readout-empty">Your queue is empty.</p>
+          ) : (
+            <ul className="rail-list">
               {rows.map((v) => {
                 const overdue = elapsedMinutes(v.arrived_at) >= LONG_WAIT_MINUTES
                 const isCurrent = v.stage === 'with_doctor'
                 return (
-                  <tr
-                    key={v.id}
-                    className={isCurrent ? 'worklist-row worklist-row-clickable' : 'worklist-row'}
-                    onClick={isCurrent ? () => setDrawerOpen(true) : undefined}
-                    role={isCurrent ? 'button' : undefined}
-                    tabIndex={isCurrent ? 0 : undefined}
-                  >
-                    <td>
-                      <span className="readout-token">{v.token_number}</span>
-                    </td>
-                    <td className="worklist-name-cell">{v.patients?.name}</td>
-                    <td className="worklist-wait-cell">{formatAgeSex(v.patients?.age ?? null, v.patients?.gender ?? null)}</td>
-                    <td className="worklist-complaint-cell">{v.complaint}</td>
-                    <td className={overdue ? 'worklist-wait-cell doctor-queue-overdue' : 'worklist-wait-cell'}>{formatElapsed(v.arrived_at)}</td>
-                    <td>
-                      <span className="stage-pill">{STAGE_LABEL[v.stage] ?? v.stage}</span>
-                    </td>
-                  </tr>
+                  <li key={v.id} className={isCurrent ? 'rail-row rail-row-active' : 'rail-row'}>
+                    <span className="readout-token">{v.token_number}</span>
+                    <span className="rail-row-body">
+                      <span className="rail-row-name">{v.patients?.name}</span>
+                      <span className={overdue ? 'rail-row-meta doctor-queue-overdue' : 'rail-row-meta'}>
+                        {STAGE_LABEL[v.stage] ?? v.stage} · {formatElapsed(v.arrived_at)}
+                      </span>
+                    </span>
+                  </li>
                 )
               })}
               <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />
-            </tbody>
-          </table>
+            </ul>
+          )}
         </div>
-      )}
 
-      <Drawer
-        open={drawerOpen && !!current}
-        onClose={() => setDrawerOpen(false)}
-        title={current ? <>{current.patients?.name} <span className="doctor-queue-meta">Token {current.token_number}</span></> : ''}
-      >
-        {current && (
-          <>
-            <section className="record-section">
-              <h3 className="readout-heading">Comments</h3>
+        <div className="consultation-stage">
+          {!current ? (
+            <p className="readout-empty">Call next to begin a consultation.</p>
+          ) : (
+            <>
+              <div className="stage-head">
+                <h2>{current.patients?.name}</h2>
+                <span className="doctor-queue-meta">Token {current.token_number}</span>
+              </div>
+
+              <section className="record-section">
+                <h3 className="readout-heading">Comments</h3>
               {!comments || comments.length === 0 ? (
                 <p className="readout-empty">No comments yet.</p>
               ) : (
@@ -462,10 +417,11 @@ export function Consultation({ userId }: { userId: string }) {
                 </motion.button>
               </div>
             )}
-            {consultationDone.isError && <p className="form-error">Couldn't save — try again.</p>}
-          </>
-        )}
-      </Drawer>
+              {consultationDone.isError && <p className="form-error">Couldn't save — try again.</p>}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

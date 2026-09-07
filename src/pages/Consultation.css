@@ -1,15 +1,15 @@
 /* genre: modern-minimal-operate · design-system: /design.md · designed-as-app
  *
- * Consultation content -- one dense worklist, full width (see Worklist.css):
- * no more permanent queue-panel-left / record-panel-right split. Calling
- * the next patient opens their case-sheet in a Drawer overlay (see
- * Drawer.tsx) instead of filling a second column. Internal groups within
- * the drawer -- .record-section, .drug-row, .pricing-block -- stay ruled,
+ * Consultation content -- a persistent left rail (the queue, always
+ * visible, quick access) beside a center stage (the current patient's
+ * full record). Replaces the earlier full-width-worklist + Drawer-overlay
+ * pattern: a real permanent second column now, by explicit user request
+ * (this reopens design.md's earlier "no permanent second column" rule --
+ * recorded there, not silently overridden). Internal groups within the
+ * stage -- .record-section, .drug-row, .pricing-block -- stay ruled,
  * tab-flag-labelled sections, not nested cards, and all stay visible/
- * scrollable at once inside it: the doctor needs several of them at a
- * glance mid-consultation (see PRODUCT.md's "everything on one screen"
- * requirement -- that requirement is about the drawer's own contents, not
- * about the queue sitting permanently beside them).
+ * scrollable at once: the doctor needs several of them at a glance
+ * mid-consultation (PRODUCT.md's "everything on one screen" requirement).
  */
 
 .consultation-page {
@@ -18,15 +18,118 @@
   gap: var(--space-md);
 }
 
-.consultation-toolbar {
+.consultation-shell {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-lg);
+}
+
+/* Sticky within .shell-content's own scroll (see AppShell.css) -- the
+   queue stays reachable regardless of how far the doctor has scrolled
+   into the current patient's record. Capped and independently scrollable
+   since staging alone can carry hundreds of queued rows; a real clinic
+   day never will, but the rail must not silently break under either. */
+.consultation-rail {
+  flex: 0 0 15rem;
+  position: sticky;
+  top: var(--space-md);
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+  padding-right: var(--space-2xs);
+}
+
+.consultation-stage {
+  flex: 1;
+  min-width: 0;
+}
+
+.rail-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-md);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 
-.consultation-toolbar .readout-heading {
+.rail-head .readout-heading {
   margin: 0;
+}
+
+.rail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rail-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs);
+  border-radius: var(--radius-input);
+}
+
+.rail-row > .readout-token {
+  flex: none;
+}
+
+.rail-row-active {
+  background: var(--accent-wash);
+}
+
+.rail-row-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rail-row-name {
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-row-active .rail-row-name {
+  color: var(--accent);
+}
+
+.rail-row-meta {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.rail-row-rep {
+  align-items: flex-start;
+  justify-content: space-between;
+  opacity: 0.85;
+}
+
+.stage-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.stage-head h2 {
+  margin: 0;
+}
+
+/* Matches AppShell.css's own mobile collapse point (720px) -- the PRD's
+   "single-column layout" requirement for a mobile browser, not a
+   separate breakpoint invented for this one component. */
+@media (max-width: 720px) {
+  .consultation-shell {
+    flex-direction: column;
+  }
+
+  .consultation-rail {
+    position: static;
+    width: 100%;
+    max-height: none;
+  }
 }
 
 /* ============================================================

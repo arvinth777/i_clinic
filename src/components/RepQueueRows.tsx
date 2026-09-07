@@ -5,11 +5,11 @@ import { startOfToday, formatElapsed } from '../lib/date'
 
 type Rep = { id: string; rep_name: string; company: string; arrived_at: string }
 
-// Reps always render below every patient row in Consultation.tsx's table
-// -- this component owns only that appended block, never interleaved
+// Reps always render below every patient row in Consultation.tsx's queue
+// rail -- this component owns only that appended block, never interleaved
 // with the patient rows above it, so "always after every waiting
-// patient, including later arrivals" (PRD) holds regardless of which
-// column the doctor has the patient rows sorted by.
+// patient, including later arrivals" (PRD) holds regardless of arrival
+// order.
 export function RepQueueRows({ clinicId, onCountChange }: { clinicId: string; onCountChange?: (count: number) => void }) {
   const queryClient = useQueryClient()
   const queryKey = ['doctor-reps', clinicId]
@@ -62,18 +62,17 @@ export function RepQueueRows({ clinicId, onCountChange }: { clinicId: string; on
   return (
     <>
       {reps.map((rep) => (
-        <tr key={rep.id} className="worklist-row">
-          <td>—</td>
-          <td className="worklist-name-cell">{rep.rep_name}</td>
-          <td className="worklist-wait-cell">{rep.company}</td>
-          <td className="worklist-complaint-cell">Pharma rep</td>
-          <td className="worklist-wait-cell">{formatElapsed(rep.arrived_at)}</td>
-          <td>
-            <button type="button" className="secondary-button" disabled={markDone.isPending} onClick={() => markDone.mutate(rep.id)}>
-              Mark done
-            </button>
-          </td>
-        </tr>
+        <li key={rep.id} className="rail-row rail-row-rep">
+          <span className="rail-row-body">
+            <span className="rail-row-name">{rep.rep_name}</span>
+            <span className="rail-row-meta">
+              {rep.company} · Pharma rep · {formatElapsed(rep.arrived_at)}
+            </span>
+          </span>
+          <button type="button" className="secondary-button" disabled={markDone.isPending} onClick={() => markDone.mutate(rep.id)}>
+            Mark done
+          </button>
+        </li>
       ))}
     </>
   )
