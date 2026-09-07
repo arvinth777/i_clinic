@@ -497,10 +497,50 @@ already being rewritten. `MergePatients.tsx` only needed the
 Tailwind/Radix conversion (search inputs, Merge button) -- it never
 had a Drawer to begin with, being a single always-inline view.
 Not done, and not asked for: `RecordPurchaseForm`/`TransferForm`/
-`MonthlyCountForm`/`AdjustStockForm` (the components Stock's own
-actions render) still use native `<select>`/`<input>` internally --
-removing their Drawer wrapper didn't require touching their own
-markup, and nobody's asked for that layer yet.
+`AdjustStockForm` (the other 3 components Stock's own actions render)
+still use native `<select>`/`<input>` internally -- removing their
+Drawer wrapper didn't require touching their own markup, and nobody's
+asked for that layer yet. (`MonthlyCountForm` no longer belongs on
+this list -- see the Thirteenth round, below.)
+
+**Thirteenth round -- "the font inside is not the font that I want,"
+pointed at the queue table, then "see it across all the pages" once
+the real cause surfaced**: found via computed-style inspection, not
+guessed -- `TokenList`'s sortable column headers are a `<button
+className="worklist-sort">` nested inside the shared `TableHead`, and
+that class predates the Table primitive: it still hardcoded its own
+`font-family: var(--font-mono); text-transform: uppercase;
+letter-spacing: 0.06em` look from the old bare-`.worklist`-table era.
+The moment TokenList's table moved onto the shared `Table` primitive
+(Tenth round), that leftover rule started fighting `TableHead`'s own
+Inter/font-semibold treatment on every render -- two typographic
+systems on the same header text, neither fully winning. Fixed with
+`font: inherit`, confirmed via `getComputedStyle` before and after
+(mono/uppercase/13px/700 -> Inter/none/13px/600, an exact match with
+every other `TableHead` in the app now).
+
+That fix alone couldn't be what the user meant by "across all the
+pages," though -- grepped for `.worklist-sort` specifically and it's
+TokenList-only. So the "same problem elsewhere" had to be a different
+mechanism: found it by clicking through every remaining screen, not
+assumed -- Long-term care, Needs reconciliation, and Stock's monthly-
+count form were still literally the old bare `<table
+className="worklist">`, the exact "looks like markdown" complaint
+from the very first Stock-table round, just never gotten to. All
+three converted to Table/Button/Input/Select now; MonthlyCountForm's
+native select uses the same `value={x}` (not `|| undefined`) fix as
+NewPatientForm's gender field, since it has no "explicit clear to
+blank" requirement either. Long-term care's own `<h2>` still read
+"Long-term register" after the nav label was renamed two rounds ago --
+caught and fixed in the same pass, since the file was already open.
+
+Also cleaned up while in `Worklist.css`: `.worklist`/`.worklist-scroll`/
+plain `.worklist-row` are now genuinely dead (confirmed via grep --
+no bare `<table className="worklist">` remains anywhere in the app)
+and removed; a `.worklist-row-clickable:hover td` rule that painted a
+full-opacity background over `TableRow`'s own translucent hover --
+harmless-looking but silently neutralizing the intended `/60` opacity
+on every clickable row in the app -- is gone too.
 
 ## Where we are
 
@@ -1237,16 +1277,19 @@ Two independent tracks are open now, not one:
 
 1. **The UI redesign initiative** (new section at the top of this file):
    all five planned phases (UI-1 through UI-5) are done, and UI-5's own
-   named unfinished work is now closed too -- every screen (Reception,
-   Admin, Reports, Billing, Stock, Suppliers, MergePatients) has the
-   Tailwind/Radix component kit, and Reception/Admin/Unpaid/Stock have
-   all dropped the right-side Drawer for inline stage/list swaps (the
-   Tenth through Twelfth rounds, above). What's left, undone because
-   nobody's asked yet: the sub-form components Stock's own actions
-   render (`RecordPurchaseForm`/`TransferForm`/`MonthlyCountForm`/
-   `AdjustStockForm`) still use native `<select>`/`<input>` internally.
-   The user's own "is this elite yet" verdict still needs re-checking
-   against the fuller rollout, not assumed from where the last round
+   named unfinished work is now closed too -- literally every table and
+   form in the app (Reception, Admin, Reports, Billing, Stock,
+   Suppliers, MergePatients, Long-term care, Needs reconciliation) is
+   on the shared Table/Button/Input/Select kit, no bare `.worklist`
+   table remains anywhere, and Reception/Admin/Unpaid/Stock have all
+   dropped the right-side Drawer for inline stage/list swaps (the
+   Tenth through Thirteenth rounds, above). What's left, undone because
+   nobody's asked yet: 3 of Stock's own sub-form components
+   (`RecordPurchaseForm`/`TransferForm`/`AdjustStockForm` -- not
+   `MonthlyCountForm`, converted in the Thirteenth round) still use
+   native `<select>`/`<input>` internally. The user's own "is this
+   elite yet" verdict still needs re-checking against the fuller
+   rollout, not assumed from where the last round
    of feedback left off.
 2. **Phase G's own residual items** (below): every audited finding is
    fixed and verified; what's left is the human-only setup for the
