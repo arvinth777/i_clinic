@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 
 type Medicine = { id: string; name: string }
 type StockPoint = { id: string; name: string }
@@ -56,61 +59,73 @@ export function TransferForm({
         <label className="field-label" htmlFor="transfer-medicine">
           Drug
         </label>
-        <select id="transfer-medicine" value={medicineId} onChange={(e) => setMedicineId(e.target.value)} required autoFocus>
-          <option value="">— Choose —</option>
-          {medicines.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
+        <Select value={medicineId} onValueChange={setMedicineId}>
+          <SelectTrigger id="transfer-medicine" autoFocus>
+            <SelectValue placeholder="— Choose —" />
+          </SelectTrigger>
+          <SelectContent>
+            {medicines.map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                {m.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="field">
         <label className="field-label" htmlFor="transfer-from">
           From
         </label>
-        <select id="transfer-from" value={fromId} onChange={(e) => setFromId(e.target.value)} required>
-          <option value="">— Choose —</option>
-          {stockPoints.map((sp) => (
-            <option key={sp.id} value={sp.id}>
-              {sp.name}
-            </option>
-          ))}
-        </select>
+        <Select value={fromId} onValueChange={setFromId}>
+          <SelectTrigger id="transfer-from">
+            <SelectValue placeholder="— Choose —" />
+          </SelectTrigger>
+          <SelectContent>
+            {stockPoints.map((sp) => (
+              <SelectItem key={sp.id} value={sp.id}>
+                {sp.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="field">
         <label className="field-label" htmlFor="transfer-to">
           To
         </label>
-        <select id="transfer-to" value={toId} onChange={(e) => setToId(e.target.value)} required>
-          <option value="">— Choose —</option>
-          {stockPoints.map((sp) => (
-            <option key={sp.id} value={sp.id}>
-              {sp.name}
-            </option>
-          ))}
-        </select>
+        <Select value={toId} onValueChange={setToId}>
+          <SelectTrigger id="transfer-to">
+            <SelectValue placeholder="— Choose —" />
+          </SelectTrigger>
+          <SelectContent>
+            {stockPoints.map((sp) => (
+              <SelectItem key={sp.id} value={sp.id}>
+                {sp.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="field">
         <label className="field-label" htmlFor="transfer-quantity">
           Quantity
         </label>
-        <input id="transfer-quantity" type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
+        <Input id="transfer-quantity" type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
       </div>
       <div className="field">
         <label className="field-label" htmlFor="transfer-notes">
           Notes (optional)
         </label>
-        <input id="transfer-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <Input id="transfer-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
       {formError && <p className="form-error">{formError}</p>}
       <div className="action-row">
-        <button type="submit" className="primary-button" disabled={save.isPending}>
+        <Button type="submit" disabled={save.isPending}>
           {save.isPending ? 'Saving…' : 'Transfer'}
-        </button>
-        <button type="button" className="secondary-button" onClick={onCancel}>
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   )

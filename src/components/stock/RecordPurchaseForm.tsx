@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { parseRupeesToPaise } from '../../lib/money'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 
 type Medicine = { id: string; name: string }
 type StockPoint = { id: string; name: string }
@@ -83,55 +86,67 @@ export function RecordPurchaseForm({
         <label className="field-label" htmlFor="purchase-supplier">
           Supplier
         </label>
-        <select id="purchase-supplier" value={supplierId} onChange={(e) => setSupplierId(e.target.value)} required autoFocus>
-          <option value="">— Choose —</option>
-          {(suppliers ?? []).map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+        <Select value={supplierId} onValueChange={setSupplierId}>
+          <SelectTrigger id="purchase-supplier" autoFocus>
+            <SelectValue placeholder="— Choose —" />
+          </SelectTrigger>
+          <SelectContent>
+            {(suppliers ?? []).map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {(suppliers ?? []).length === 0 && <p className="field-hint">No suppliers yet — add one under the Suppliers tab first.</p>}
       </div>
       <div className="field">
         <label className="field-label" htmlFor="purchase-invoice">
           Invoice number
         </label>
-        <input id="purchase-invoice" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} required />
+        <Input id="purchase-invoice" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} required />
       </div>
       <div className="field">
         <label className="field-label" htmlFor="purchase-date">
           Date
         </label>
-        <input id="purchase-date" type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} required />
+        <Input id="purchase-date" type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} required />
       </div>
       <div className="field">
         <label className="field-label" htmlFor="purchase-stock-point">
           Stock point
         </label>
-        <select id="purchase-stock-point" value={stockPointId} onChange={(e) => setStockPointId(e.target.value)} required>
-          <option value="">— Choose —</option>
-          {stockPoints.map((sp) => (
-            <option key={sp.id} value={sp.id}>
-              {sp.name}
-            </option>
-          ))}
-        </select>
+        <Select value={stockPointId} onValueChange={setStockPointId}>
+          <SelectTrigger id="purchase-stock-point">
+            <SelectValue placeholder="— Choose —" />
+          </SelectTrigger>
+          <SelectContent>
+            {stockPoints.map((sp) => (
+              <SelectItem key={sp.id} value={sp.id}>
+                {sp.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="field">
         <span className="field-label">Drugs received</span>
         {items.map((item, i) => (
           <div key={i} className="action-row">
-            <select value={item.medicine_id} onChange={(e) => updateItem(i, { medicine_id: e.target.value })} required>
-              <option value="">— Drug —</option>
-              {medicines.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-            <input
+            <Select value={item.medicine_id} onValueChange={(v) => updateItem(i, { medicine_id: v })}>
+              <SelectTrigger>
+                <SelectValue placeholder="— Drug —" />
+              </SelectTrigger>
+              <SelectContent>
+                {medicines.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
               type="number"
               min="1"
               placeholder="Qty"
@@ -139,7 +154,7 @@ export function RecordPurchaseForm({
               onChange={(e) => updateItem(i, { quantity: e.target.value })}
               required
             />
-            <input
+            <Input
               inputMode="decimal"
               placeholder="Cost price (₹)"
               value={item.cost_price}
@@ -147,25 +162,25 @@ export function RecordPurchaseForm({
               required
             />
             {items.length > 1 && (
-              <button type="button" className="secondary-button" onClick={() => setItems((rows) => rows.filter((_, idx) => idx !== i))}>
+              <Button type="button" variant="secondary" onClick={() => setItems((rows) => rows.filter((_, idx) => idx !== i))}>
                 Remove
-              </button>
+              </Button>
             )}
           </div>
         ))}
-        <button type="button" className="secondary-button" onClick={() => setItems((rows) => [...rows, emptyItem])}>
+        <Button type="button" variant="secondary" onClick={() => setItems((rows) => [...rows, emptyItem])}>
           + Add another drug
-        </button>
+        </Button>
       </div>
 
       {formError && <p className="form-error">{formError}</p>}
       <div className="action-row">
-        <button type="submit" className="primary-button" disabled={save.isPending}>
+        <Button type="submit" disabled={save.isPending}>
           {save.isPending ? 'Saving…' : 'Save purchase'}
-        </button>
-        <button type="button" className="secondary-button" onClick={onCancel}>
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   )

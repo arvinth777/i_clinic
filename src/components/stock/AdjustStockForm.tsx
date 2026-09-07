@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 
 type Medicine = { id: string; name: string }
 type StockPoint = { id: string; name: string }
@@ -54,48 +57,56 @@ export function AdjustStockForm({
         <label className="field-label" htmlFor="adjust-medicine">
           Drug
         </label>
-        <select id="adjust-medicine" value={medicineId} onChange={(e) => setMedicineId(e.target.value)} required autoFocus>
-          <option value="">— Choose —</option>
-          {medicines.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
+        <Select value={medicineId} onValueChange={setMedicineId}>
+          <SelectTrigger id="adjust-medicine" autoFocus>
+            <SelectValue placeholder="— Choose —" />
+          </SelectTrigger>
+          <SelectContent>
+            {medicines.map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                {m.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="field">
         <label className="field-label" htmlFor="adjust-stock-point">
           Stock point
         </label>
-        <select id="adjust-stock-point" value={stockPointId} onChange={(e) => setStockPointId(e.target.value)} required>
-          <option value="">— Choose —</option>
-          {stockPoints.map((sp) => (
-            <option key={sp.id} value={sp.id}>
-              {sp.name}
-            </option>
-          ))}
-        </select>
+        <Select value={stockPointId} onValueChange={setStockPointId}>
+          <SelectTrigger id="adjust-stock-point">
+            <SelectValue placeholder="— Choose —" />
+          </SelectTrigger>
+          <SelectContent>
+            {stockPoints.map((sp) => (
+              <SelectItem key={sp.id} value={sp.id}>
+                {sp.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="field">
         <label className="field-label" htmlFor="adjust-delta">
           Change (use a minus sign to remove stock, e.g. -2)
         </label>
-        <input id="adjust-delta" type="number" value={delta} onChange={(e) => setDelta(e.target.value)} required />
+        <Input id="adjust-delta" type="number" value={delta} onChange={(e) => setDelta(e.target.value)} required />
       </div>
       <div className="field">
         <label className="field-label" htmlFor="adjust-reason">
           Reason
         </label>
-        <input id="adjust-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. damaged in transit" required />
+        <Input id="adjust-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. damaged in transit" required />
       </div>
       {formError && <p className="form-error">{formError}</p>}
       <div className="action-row">
-        <button type="submit" className="primary-button" disabled={save.isPending}>
+        <Button type="submit" disabled={save.isPending}>
           {save.isPending ? 'Saving…' : 'Adjust'}
-        </button>
-        <button type="button" className="secondary-button" onClick={onCancel}>
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   )

@@ -7,6 +7,8 @@ import { useIdleTimer } from '../lib/useIdleTimer'
 import { hasPin, setPin } from '../lib/pinLock'
 import { LockScreen } from './LockScreen'
 import { Drawer } from './Drawer'
+import { Button } from './ui/button'
+import { Input } from './ui/input'
 import './AppShell.css'
 
 // Per-station idle-lock timeout (docs/architecture-spec.md): the reception
@@ -44,19 +46,17 @@ function PinForm({ onDone }: { onDone: () => void }) {
         <label className="field-label" htmlFor="new-pin">
           New PIN (4-6 digits)
         </label>
-        <input id="new-pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPinDraft(e.target.value)} autoFocus />
+        <Input id="new-pin" type="password" inputMode="numeric" value={pin} onChange={(e) => setPinDraft(e.target.value)} autoFocus />
       </div>
       <div className="field">
         <label className="field-label" htmlFor="confirm-pin">
           Confirm PIN
         </label>
-        <input id="confirm-pin" type="password" inputMode="numeric" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        <Input id="confirm-pin" type="password" inputMode="numeric" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       </div>
       {error && <p className="form-error">{error}</p>}
       <div className="action-row">
-        <button type="submit" className="primary-button">
-          Save PIN
-        </button>
+        <Button type="submit">Save PIN</Button>
       </div>
     </form>
   )

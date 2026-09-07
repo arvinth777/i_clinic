@@ -426,16 +426,16 @@ export function PrescriptionForm({
             <label className="field-label" htmlFor="template-name">
               Template name
             </label>
-            <input
+            <Input
               id="template-name"
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
               placeholder="e.g. Standard analgesic set"
             />
           </div>
-          <motion.button type="submit" className="secondary-button" whileTap={{ scale: 0.97 }} disabled={saveTemplate.isPending || !templateName.trim()}>
+          <Button type="submit" variant="secondary" disabled={saveTemplate.isPending || !templateName.trim()}>
             {saveTemplate.isPending ? 'Saving…' : 'Save'}
-          </motion.button>
+          </Button>
         </form>
       )}
       {saveTemplate.isError && <p className="form-error">Couldn't save the template — try again.</p>}

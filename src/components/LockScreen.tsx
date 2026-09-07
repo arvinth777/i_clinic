@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { verifyPin } from '../lib/pinLock'
+import { Button } from './ui/button'
 import './LockScreen.css'
 
 // Requirement 12 (docs/architecture-spec.md): renders no application
@@ -52,9 +53,9 @@ export function LockScreen({ locked, onUnlock }: { locked: boolean; onUnlock: ()
             {error}
           </p>
         )}
-        <button type="submit" className="primary-button" disabled={checking || !pin}>
+        <Button type="submit" disabled={checking || !pin}>
           {checking ? 'Checking…' : 'Unlock'}
-        </button>
+        </Button>
       </form>
     </div>
   )

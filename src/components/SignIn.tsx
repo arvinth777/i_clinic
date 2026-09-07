@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
+import { Button } from './ui/button'
+import { Input } from './ui/input'
 import '../pages/Reception.css'
 
 export function SignIn() {
@@ -26,7 +27,7 @@ export function SignIn() {
         <label className="field-label" htmlFor="signin-email">
           Email
         </label>
-        <input
+        <Input
           id="signin-email"
           type="email"
           value={email}
@@ -40,7 +41,7 @@ export function SignIn() {
         <label className="field-label" htmlFor="signin-password">
           Password
         </label>
-        <input
+        <Input
           id="signin-password"
           type="password"
           value={password}
@@ -55,9 +56,9 @@ export function SignIn() {
         </p>
       )}
 
-      <motion.button type="submit" className="primary-button" whileTap={{ scale: 0.97 }} disabled={submitting}>
+      <Button type="submit" disabled={submitting}>
         {submitting ? 'Signing in…' : 'Sign in'}
-      </motion.button>
+      </Button>
     </form>
   )
 }
