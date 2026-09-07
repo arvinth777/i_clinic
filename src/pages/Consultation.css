@@ -677,29 +677,38 @@
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
+/* One bordered card holding calculated total / final amount / discount --
+   `.pricing-row:nth-child(odd)` used to shade alternating children for a
+   "ruled ledger" look, but the Final Amount <Input> sitting between the
+   two rows (an even child) broke that: both rows landed on odd positions,
+   so the tint painted two disconnected grey bars around a plain-looking
+   input instead of one shaded ledger. A single card reads as one summary
+   regardless of how many rows are in it. */
 .pricing-block {
-  padding-top: var(--space-md);
-  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
 }
 
-/* Ledger rows -- a faint alternating band per row (not per card) reads as
-   a ruled account book rather than a stack of cards; the fold-out padding
-   keeps the tint from touching the panel's own edge. */
 .pricing-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   font-size: var(--text-base);
-  padding: var(--space-xs) var(--space-sm);
-  margin: 0 calc(var(--space-sm) * -1);
+  color: var(--text-secondary);
 }
 
-.pricing-row:nth-child(odd) {
-  background: var(--surface-2);
+.pricing-block .field {
+  margin-bottom: 0;
 }
 
 .pricing-value {
   font-family: var(--font-mono);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--text);
 }
