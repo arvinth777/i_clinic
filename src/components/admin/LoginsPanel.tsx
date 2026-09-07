@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
@@ -13,10 +13,14 @@ const ROLES = ['doctor', 'receptionist', 'admin'] as const
 // list_clinic_logins/admin-create-login exist because a plain client query
 // can't join auth.users (outside the public schema) and can't create one
 // (needs the service role) -- see the migration/Edge Function for why.
-// Removing a role is a plain authenticated delete: user_roles' own RLS
-// already lets admin do that directly, no elevated path needed. This
-// revokes access for this clinic; it does not delete the underlying login,
-// which may hold a role at another clinic once a second one exists.
+// Granting or removing a role is a plain authenticated insert/delete
+// instead: user_roles' own RLS already lets an admin do both directly for
+// their own clinic (user_roles_insert/_delete, phase1_core_schema.sql), no
+// elevated path needed for either. This is also the "give the doctor admin
+// access too" feature -- an existing login just gets a second row, same
+// table, same identity. Removing a role revokes access for this clinic; it
+// does not delete the underlying login, which may hold a role at another
+// clinic once a second one exists.
 export function LoginsPanel({ clinicId }: { clinicId: string }) {
   const queryClient = useQueryClient()
   const queryKey = ['admin-logins', clinicId]
@@ -53,12 +57,122 @@ export function LoginsPanel({ clinicId }: { clinicId: string }) {
   })
 
   const removeRole = useMutation({
-    mutationFn: async (userId: string) => {
-      const { error } = await supabase.from('user_roles').delete().eq('user_id', userId).eq('clinic_id', clinicId)
+    // Scoped to this one role, not just this user+clinic -- a person who
+    // holds two roles here (e.g. the doctor also holding admin) must be
+    // able to lose one without losing both. Caught live: an unscoped
+    // delete silently dropped a second role it was never supposed to
+    // touch.
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const { error } = await supabase.from('user_roles').delete().eq('user_id', userId).eq('clinic_id', clinicId).eq('role', role)
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   })
+
+  // Existing logins collapsed to one entry per person (list_clinic_logins
+  // returns one row per role) so the picker below offers "this person",
+  // not "this person, three times."
+  const uniqueLogins = useMemo(() => {
+    const byUser = new Map<string, { user_id: string; email: string; roles: string[] }>()
+    for (const l of logins ?? []) {
+      const existing = byUser.get(l.user_id)
+      if (existing) existing.roles.push(l.role)
+      else byUser.set(l.user_id, { user_id: l.user_id, email: l.email, roles: [l.role] })
+    }
+    return Array.from(byUser.values())
+  }, [logins])
+
+  const [granting, setGranting] = useState(false)
+  const [grantUserId, setGrantUserId] = useState('')
+  const [grantRole, setGrantRole] = useState('')
+
+  const grantedUser = uniqueLogins.find((u) => u.user_id === grantUserId)
+  const grantableRoles = ROLES.filter((r) => !(grantedUser?.roles ?? []).includes(r))
+
+  // Roles as a set per clinic, not an enum on the user (schema comment,
+  // phase1_core_schema.sql) -- this is the "give the doctor admin access
+  // too" path: user_roles' own insert policy already lets an admin insert
+  // any role row for their own clinic, so this is a plain client insert,
+  // same trust model as removeRole above, no elevated RPC needed.
+  const grantRoleMutation = useMutation({
+    mutationFn: async () => {
+      if (!grantUserId || !grantRole) throw new Error('Choose a login and a role')
+      const { error } = await supabase.from('user_roles').insert({ user_id: grantUserId, clinic_id: clinicId, role: grantRole })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey })
+      setGranting(false)
+    },
+    onError: (e: Error) => setFormError(e.message),
+  })
+
+  if (granting) {
+    return (
+      <div>
+        <button type="button" className="back-to-queue" onClick={() => setGranting(false)}>
+          ← Back to logins
+        </button>
+        <h2 className="readout-heading">Grant an additional role</h2>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            grantRoleMutation.mutate()
+          }}
+        >
+          <div className="field">
+            <label className="field-label" htmlFor="grant-login">
+              Login
+            </label>
+            <Select
+              value={grantUserId}
+              onValueChange={(v) => {
+                setGrantUserId(v)
+                setGrantRole('')
+              }}
+            >
+              <SelectTrigger id="grant-login">
+                <SelectValue placeholder="— Choose —" />
+              </SelectTrigger>
+              <SelectContent>
+                {uniqueLogins.map((u) => (
+                  <SelectItem key={u.user_id} value={u.user_id}>
+                    {u.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="field">
+            <label className="field-label" htmlFor="grant-role">
+              Role to add
+            </label>
+            <Select value={grantRole} onValueChange={setGrantRole} disabled={!grantUserId || grantableRoles.length === 0}>
+              <SelectTrigger id="grant-role">
+                <SelectValue placeholder={grantUserId && grantableRoles.length === 0 ? 'Already has every role' : '— Choose —'} />
+              </SelectTrigger>
+              <SelectContent>
+                {grantableRoles.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {formError && <p className="form-error">{formError}</p>}
+          <div className="action-row">
+            <Button type="submit" disabled={!grantUserId || !grantRole || grantRoleMutation.isPending}>
+              {grantRoleMutation.isPending ? 'Granting…' : 'Grant role'}
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setGranting(false)}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </div>
+    )
+  }
 
   if (adding) {
     return (
@@ -120,18 +234,32 @@ export function LoginsPanel({ clinicId }: { clinicId: string }) {
     <div>
       <div className="admin-toolbar">
         <h2 className="readout-heading">Logins</h2>
-        <Button
-          type="button"
-          onClick={() => {
-            setEmail('')
-            setPassword('')
-            setRole('receptionist')
-            setFormError('')
-            setAdding(true)
-          }}
-        >
-          + Add login
-        </Button>
+        <div className="action-row">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setGrantUserId('')
+              setGrantRole('')
+              setFormError('')
+              setGranting(true)
+            }}
+          >
+            + Grant role
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              setEmail('')
+              setPassword('')
+              setRole('receptionist')
+              setFormError('')
+              setAdding(true)
+            }}
+          >
+            + Add login
+          </Button>
+        </div>
       </div>
       <Table>
         <TableHeader>
@@ -151,7 +279,7 @@ export function LoginsPanel({ clinicId }: { clinicId: string }) {
                   type="button"
                   className="drug-row-remove"
                   onClick={() => {
-                    if (confirm(`Remove ${l.email}'s ${l.role} access to this clinic?`)) removeRole.mutate(l.user_id)
+                    if (confirm(`Remove ${l.email}'s ${l.role} access to this clinic?`)) removeRole.mutate({ userId: l.user_id, role: l.role })
                   }}
                 >
                   Remove
