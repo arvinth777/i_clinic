@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
-import { Drawer } from '../Drawer'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Button } from '../ui/button'
 import { RecordPurchaseForm } from './RecordPurchaseForm'
@@ -59,6 +58,35 @@ export function StockList({ clinicId }: { clinicId: string }) {
 
   function quantityAt(medicineId: string, stockPointId: string): number {
     return stockRows?.find((r) => r.medicine_id === medicineId && r.stock_point_id === stockPointId)?.quantity ?? 0
+  }
+
+  if (action !== null) {
+    const titles: Record<Exclude<ActionKey, null>, string> = {
+      purchase: 'Record purchase',
+      transfer: 'Transfer stock',
+      count: 'Monthly count',
+      adjust: 'Adjust stock',
+    }
+    return (
+      <div>
+        <button type="button" className="back-to-queue" onClick={closeAction}>
+          ← Back to stock
+        </button>
+        <h2 className="readout-heading">{titles[action]}</h2>
+        {action === 'purchase' && (
+          <RecordPurchaseForm clinicId={clinicId} medicines={medicines ?? []} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
+        )}
+        {action === 'transfer' && (
+          <TransferForm clinicId={clinicId} medicines={medicines ?? []} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
+        )}
+        {action === 'count' && (
+          <MonthlyCountForm clinicId={clinicId} medicines={medicines ?? []} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
+        )}
+        {action === 'adjust' && (
+          <AdjustStockForm clinicId={clinicId} medicines={medicines ?? []} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
+        )}
+      </div>
+    )
   }
 
   return (
@@ -119,27 +147,6 @@ export function StockList({ clinicId }: { clinicId: string }) {
           })}
         </TableBody>
       </Table>
-
-      <Drawer open={action === 'purchase'} onClose={closeAction} title="Record purchase">
-        {action === 'purchase' && (
-          <RecordPurchaseForm clinicId={clinicId} medicines={medicines ?? []} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
-        )}
-      </Drawer>
-      <Drawer open={action === 'transfer'} onClose={closeAction} title="Transfer stock">
-        {action === 'transfer' && (
-          <TransferForm clinicId={clinicId} medicines={medicines ?? []} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
-        )}
-      </Drawer>
-      <Drawer open={action === 'count'} onClose={closeAction} title="Monthly count">
-        {action === 'count' && (
-          <MonthlyCountForm clinicId={clinicId} medicines={medicines ?? []} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
-        )}
-      </Drawer>
-      <Drawer open={action === 'adjust'} onClose={closeAction} title="Adjust stock">
-        {action === 'adjust' && (
-          <AdjustStockForm clinicId={clinicId} medicines={medicines ?? []} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
-        )}
-      </Drawer>
     </div>
   )
 }
