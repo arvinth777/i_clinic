@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../../lib/money'
-import { Drawer } from '../Drawer'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -120,52 +119,13 @@ export function DrugList({ clinicId }: { clinicId: string }) {
     onError: () => setRemoveError("Couldn't remove — it's already used in a prescription, bill, or stock record."),
   })
 
-  return (
-    <div>
-      <div className="admin-toolbar">
-        <h2 className="readout-heading">Drugs</h2>
-        <Button type="button" onClick={openNew}>
-          + Add drug
-        </Button>
-      </div>
-      {removeError && <p className="form-error">{removeError}</p>}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Price</TableHead>
-            <TableHead>Low stock at</TableHead>
-            <TableHead>Expiry</TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(medicines ?? []).map((m) => (
-            <TableRow key={m.id} className="worklist-row-clickable" onClick={() => openEdit(m)}>
-              <TableCell className="worklist-name-cell">{m.name}</TableCell>
-              <TableCell>{m.drug_type ?? '—'}</TableCell>
-              <TableCell className="worklist-wait-cell">{formatPaise(m.price_paise)}</TableCell>
-              <TableCell className="worklist-wait-cell">{m.low_stock_threshold ?? '—'}</TableCell>
-              <TableCell>{m.expiry_date ?? '—'}</TableCell>
-              <TableCell>
-                <button
-                  type="button"
-                  className="drug-row-remove"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (confirm(`Remove ${m.name}?`)) remove.mutate(m.id)
-                  }}
-                >
-                  Remove
-                </button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      <Drawer open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add drug' : (editing as Medicine | null)?.name ?? ''}>
+  if (editing !== null) {
+    return (
+      <div>
+        <button type="button" className="back-to-queue" onClick={() => setEditing(null)}>
+          ← Back to drugs
+        </button>
+        <h2 className="readout-heading">{editing === 'new' ? 'Add drug' : (editing as Medicine).name}</h2>
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -244,7 +204,54 @@ export function DrugList({ clinicId }: { clinicId: string }) {
             </Button>
           </div>
         </form>
-      </Drawer>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="admin-toolbar">
+        <h2 className="readout-heading">Drugs</h2>
+        <Button type="button" onClick={openNew}>
+          + Add drug
+        </Button>
+      </div>
+      {removeError && <p className="form-error">{removeError}</p>}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead>Low stock at</TableHead>
+            <TableHead>Expiry</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(medicines ?? []).map((m) => (
+            <TableRow key={m.id} className="worklist-row-clickable" onClick={() => openEdit(m)}>
+              <TableCell className="worklist-name-cell">{m.name}</TableCell>
+              <TableCell>{m.drug_type ?? '—'}</TableCell>
+              <TableCell className="worklist-wait-cell">{formatPaise(m.price_paise)}</TableCell>
+              <TableCell className="worklist-wait-cell">{m.low_stock_threshold ?? '—'}</TableCell>
+              <TableCell>{m.expiry_date ?? '—'}</TableCell>
+              <TableCell>
+                <button
+                  type="button"
+                  className="drug-row-remove"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (confirm(`Remove ${m.name}?`)) remove.mutate(m.id)
+                  }}
+                >
+                  Remove
+                </button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   )
 }
