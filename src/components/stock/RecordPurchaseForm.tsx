@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { parseRupeesToPaise } from '../../lib/money'
+import { localDateStr } from '../../lib/date'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
@@ -37,7 +38,7 @@ export function RecordPurchaseForm({
 
   const [supplierId, setSupplierId] = useState('')
   const [invoiceNumber, setInvoiceNumber] = useState('')
-  const [purchaseDate, setPurchaseDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [purchaseDate, setPurchaseDate] = useState(() => localDateStr(new Date()))
   const [stockPointId, setStockPointId] = useState('')
   const [items, setItems] = useState<ItemDraft[]>([emptyItem])
   const [formError, setFormError] = useState('')

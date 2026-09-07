@@ -397,7 +397,9 @@ export function PrescriptionForm({
                   <Input value={item.notes} onChange={(e) => updateDraft(item.key, { notes: e.target.value })} placeholder="Optional" />
                 </div>
               </div>
-              {!itemIsValid(item) && <span className="field-error">Type, food, frequency and a whole-number duration are required.</span>}
+              {!itemIsValid(item) && (
+                <span className="field-error">Type, food, frequency, and a whole-number duration and quantity dispensed are required.</span>
+              )}
             </div>
           ))}
         </div>

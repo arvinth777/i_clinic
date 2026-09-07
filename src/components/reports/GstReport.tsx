@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaise } from '../../lib/money'
+import { localDateStr } from '../../lib/date'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 
@@ -10,10 +11,10 @@ type Gst = { collections_paise: number; discount_paise: number; bill_count: numb
 function startOfMonthStr(): string {
   const d = new Date()
   d.setDate(1)
-  return d.toISOString().slice(0, 10)
+  return localDateStr(d)
 }
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)
+  return localDateStr(new Date())
 }
 
 export function GstReport() {

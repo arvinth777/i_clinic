@@ -143,7 +143,34 @@ async function main() {
   }
 
   report('Storage', null, 'not applicable -- no storage buckets exist on this project yet')
-  report('Edge Functions', null, 'not applicable -- no edge functions are deployed on this project yet')
+
+  // Edge Functions: admin-create-login is deployed and performs a real
+  // privileged write (auth.admin.createUser via the service role) --
+  // architecture-spec.md requires this be verified adversarially, not by
+  // reading the source. Its own internal check re-queries user_roles
+  // under the CALLER's JWT-bound client for the clinic_id the caller
+  // sent, trusting RLS rather than the client-supplied id alone; these
+  // two calls attempt the exact bypasses that check exists to stop.
+  {
+    const probeEmail = `isolation-test-should-not-exist-${Date.now()}@staging.test`
+    const { data, error } = await adminOnly.functions.invoke('admin-create-login', {
+      body: { email: probeEmail, password: 'Password@shouldfail1', role: 'receptionist', clinic_id: CLINIC_B_ID },
+    })
+    const rejected = !!error || !!data?.error
+    report('admin-create-login: admin.only (admin at clinic A only) creating a login at clinic B is rejected',
+      rejected,
+      rejected ? (data?.error ?? error?.message ?? 'rejected') : `unexpected success -- a real account was created: ${JSON.stringify(data)}`)
+  }
+  {
+    const probeEmail = `isolation-test-should-not-exist-${Date.now()}@staging.test`
+    const { data, error } = await receptionA.functions.invoke('admin-create-login', {
+      body: { email: probeEmail, password: 'Password@shouldfail1', role: 'receptionist', clinic_id: CLINIC_A_ID },
+    })
+    const rejected = !!error || !!data?.error
+    report('admin-create-login: reception.a (holds no admin role anywhere) creating a login at her own clinic is rejected',
+      rejected,
+      rejected ? (data?.error ?? error?.message ?? 'rejected') : `unexpected success -- a real account was created: ${JSON.stringify(data)}`)
+  }
 
   // ================================================================
   // Boundary 2: role-within-clinic

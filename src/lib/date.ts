@@ -30,3 +30,17 @@ export function formatDateOnly(dateOnly: string): string {
   const [y, m, d] = dateOnly.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
+
+// The other direction of formatDateOnly's fix: building a plain
+// YYYY-MM-DD from a Date, for a date-only RPC param (get_gst_report's
+// p_start_date/p_end_date) -- not for a timestamptz comparison, which
+// wants a real instant instead (see startOfToday above). d.toISOString()
+// converts to UTC first, which rolls the calendar date back a day for
+// part of the day in any timezone ahead of UTC (IST is UTC+5:30, so
+// midnight-5:30am IST would report yesterday's date).
+export function localDateStr(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
