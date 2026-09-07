@@ -1,11 +1,12 @@
 /* genre: modern-minimal-operate · design-system: /design.md · designed-as-app
  *
  * Reception content -- a left rail (search, quick actions, follow-ups due)
- * beside a center stage: today's queue by default, swapping in place to
- * the selected visit's bill (no Drawer for billing anymore -- by explicit
- * user request, matching Consultation's own rail/stage split). Checking a
- * patient in, adding a new patient, and checking in a rep stay as Drawers
- * -- short, single-purpose forms, not a record worth a permanent view.
+ * beside a center stage: today's queue by default, swapping in place for
+ * everything else (a selected visit's bill, the new-patient form, checking
+ * an existing patient in, checking in a rep) -- no right-side Drawer
+ * anywhere on this screen. Billing dropped its Drawer first; the user
+ * later asked for the same treatment everywhere else too, matching
+ * Consultation's own no-overlay rail/stage split.
  * Shell chrome lives in AppShell.css; tokens live in src/index.css.
  */
 

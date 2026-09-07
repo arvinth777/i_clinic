@@ -7,7 +7,6 @@ import { useClinicId } from '../lib/useClinicId'
 import { NewPatientForm, type NewPatientInput } from '../components/NewPatientForm'
 import { TokenList } from '../components/TokenList'
 import { Billing } from '../components/Billing'
-import { Drawer } from '../components/Drawer'
 import { FollowUpTodos } from '../components/FollowUpTodos'
 import { Button, buttonVariants } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -215,6 +214,83 @@ export function Reception({ userId }: { userId: string }) {
               </button>
               <Billing key={billingVisitId} clinicId={clinicId} visitId={billingVisitId} onClose={() => setBillingVisitId(null)} />
             </>
+          ) : selected === 'new' ? (
+            <>
+              <button type="button" className="back-to-queue" onClick={reset}>
+                ← Back to queue
+              </button>
+              <h2 className="readout-heading">New patient</h2>
+              <NewPatientForm clinicId={clinicId} initialName={debouncedQuery} onSubmit={(input: NewPatientInput) => checkInNew.mutate(input)} submitting={checkInNew.isPending} />
+              <div className="action-row">
+                <Button type="button" variant="secondary" onClick={reset}>
+                  Cancel
+                </Button>
+              </div>
+            </>
+          ) : selected ? (
+            <>
+              <button type="button" className="back-to-queue" onClick={reset}>
+                ← Back to queue
+              </button>
+              <h2 className="readout-heading">{selected.name}</h2>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  checkInExisting.mutate()
+                }}
+              >
+                <div className="field">
+                  <label className="field-label" htmlFor="complaint">
+                    Complaint
+                  </label>
+                  <Input id="complaint" value={complaint} onChange={(e) => setComplaint(e.target.value)} required autoFocus />
+                </div>
+                <div className="action-row">
+                  <motion.button type="submit" className={buttonVariants({ variant: 'primary' })} whileTap={stampTap} disabled={checkInExisting.isPending}>
+                    {checkInExisting.isPending ? 'Checking in…' : 'Check in'}
+                  </motion.button>
+                  <Button type="button" variant="secondary" onClick={reset}>
+                    Cancel
+                  </Button>
+                </div>
+                {checkInExisting.isError && <p className="form-error">Couldn't save — try again.</p>}
+              </form>
+            </>
+          ) : repFormOpen ? (
+            <>
+              <button type="button" className="back-to-queue" onClick={() => setRepFormOpen(false)}>
+                ← Back to queue
+              </button>
+              <h2 className="readout-heading">Check in pharma rep</h2>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  checkInRep.mutate()
+                }}
+              >
+                <div className="field">
+                  <label className="field-label" htmlFor="rep-name">
+                    Rep name
+                  </label>
+                  <Input id="rep-name" value={repName} onChange={(e) => setRepName(e.target.value)} required autoFocus />
+                </div>
+                <div className="field">
+                  <label className="field-label" htmlFor="rep-company">
+                    Company
+                  </label>
+                  <Input id="rep-company" value={repCompany} onChange={(e) => setRepCompany(e.target.value)} required />
+                </div>
+                <div className="action-row">
+                  <motion.button type="submit" className={buttonVariants({ variant: 'primary' })} whileTap={stampTap} disabled={checkInRep.isPending}>
+                    {checkInRep.isPending ? 'Checking in…' : 'Check in'}
+                  </motion.button>
+                  <Button type="button" variant="secondary" onClick={() => setRepFormOpen(false)}>
+                    Cancel
+                  </Button>
+                </div>
+                {checkInRep.isError && <p className="form-error">Couldn't save — try again.</p>}
+              </form>
+            </>
           ) : (
             <div className="worklist-panel">
               <h2 className="readout-heading">Today's queue</h2>
@@ -223,77 +299,6 @@ export function Reception({ userId }: { userId: string }) {
           )}
         </div>
       </div>
-
-      <Drawer open={selected !== null && selected !== 'new'} onClose={reset} title={selected !== 'new' ? selected?.name : ''}>
-        {selected && selected !== 'new' && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              checkInExisting.mutate()
-            }}
-          >
-            <div className="field">
-              <label className="field-label" htmlFor="complaint">
-                Complaint
-              </label>
-              <Input id="complaint" value={complaint} onChange={(e) => setComplaint(e.target.value)} required autoFocus />
-            </div>
-            <div className="action-row">
-              <motion.button type="submit" className={buttonVariants({ variant: 'primary' })} whileTap={stampTap} disabled={checkInExisting.isPending}>
-                {checkInExisting.isPending ? 'Checking in…' : 'Check in'}
-              </motion.button>
-              <Button type="button" variant="secondary" onClick={reset}>
-                Cancel
-              </Button>
-            </div>
-            {checkInExisting.isError && <p className="form-error">Couldn't save — try again.</p>}
-          </form>
-        )}
-      </Drawer>
-
-      <Drawer open={repFormOpen} onClose={() => setRepFormOpen(false)} title="Check in pharma rep">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            checkInRep.mutate()
-          }}
-        >
-          <div className="field">
-            <label className="field-label" htmlFor="rep-name">
-              Rep name
-            </label>
-            <Input id="rep-name" value={repName} onChange={(e) => setRepName(e.target.value)} required autoFocus />
-          </div>
-          <div className="field">
-            <label className="field-label" htmlFor="rep-company">
-              Company
-            </label>
-            <Input id="rep-company" value={repCompany} onChange={(e) => setRepCompany(e.target.value)} required />
-          </div>
-          <div className="action-row">
-            <motion.button type="submit" className={buttonVariants({ variant: 'primary' })} whileTap={stampTap} disabled={checkInRep.isPending}>
-              {checkInRep.isPending ? 'Checking in…' : 'Check in'}
-            </motion.button>
-            <Button type="button" variant="secondary" onClick={() => setRepFormOpen(false)}>
-              Cancel
-            </Button>
-          </div>
-          {checkInRep.isError && <p className="form-error">Couldn't save — try again.</p>}
-        </form>
-      </Drawer>
-
-      <Drawer open={selected === 'new'} onClose={reset} title="New patient">
-        {selected === 'new' && (
-          <>
-            <NewPatientForm clinicId={clinicId} initialName={debouncedQuery} onSubmit={(input: NewPatientInput) => checkInNew.mutate(input)} submitting={checkInNew.isPending} />
-            <div className="action-row">
-              <Button type="button" variant="secondary" onClick={reset}>
-                Cancel
-              </Button>
-            </div>
-          </>
-        )}
-      </Drawer>
     </div>
   )
 }
