@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../../lib/money'
-import { Drawer } from '../Drawer'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -69,6 +68,45 @@ export function ProcedureList({ clinicId }: { clinicId: string }) {
     onError: () => setRemoveError("Couldn't remove — it's already used on a visit or a bill."),
   })
 
+  if (editing !== null) {
+    return (
+      <div>
+        <button type="button" className="back-to-queue" onClick={() => setEditing(null)}>
+          ← Back to procedures
+        </button>
+        <h2 className="readout-heading">{editing === 'new' ? 'Add procedure' : (editing as Procedure).name}</h2>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            save.mutate()
+          }}
+        >
+          <div className="field">
+            <label className="field-label" htmlFor="proc-name">
+              Name
+            </label>
+            <Input id="proc-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+          </div>
+          <div className="field">
+            <label className="field-label" htmlFor="proc-price">
+              Default price (₹)
+            </label>
+            <Input id="proc-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} required />
+          </div>
+          {formError && <p className="form-error">{formError}</p>}
+          <div className="action-row">
+            <Button type="submit" disabled={save.isPending}>
+              {save.isPending ? 'Saving…' : 'Save'}
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setEditing(null)}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="admin-toolbar">
@@ -107,37 +145,6 @@ export function ProcedureList({ clinicId }: { clinicId: string }) {
           ))}
         </TableBody>
       </Table>
-
-      <Drawer open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add procedure' : (editing as Procedure | null)?.name ?? ''}>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            save.mutate()
-          }}
-        >
-          <div className="field">
-            <label className="field-label" htmlFor="proc-name">
-              Name
-            </label>
-            <Input id="proc-name" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
-          </div>
-          <div className="field">
-            <label className="field-label" htmlFor="proc-price">
-              Default price (₹)
-            </label>
-            <Input id="proc-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} required />
-          </div>
-          {formError && <p className="form-error">{formError}</p>}
-          <div className="action-row">
-            <Button type="submit" disabled={save.isPending}>
-              {save.isPending ? 'Saving…' : 'Save'}
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => setEditing(null)}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </Drawer>
     </div>
   )
 }

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
-import { Drawer } from '../Drawer'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -61,53 +60,13 @@ export function LoginsPanel({ clinicId }: { clinicId: string }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   })
 
-  return (
-    <div>
-      <div className="admin-toolbar">
-        <h2 className="readout-heading">Logins</h2>
-        <Button
-          type="button"
-          onClick={() => {
-            setEmail('')
-            setPassword('')
-            setRole('receptionist')
-            setFormError('')
-            setAdding(true)
-          }}
-        >
-          + Add login
-        </Button>
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(logins ?? []).map((l) => (
-            <TableRow key={`${l.user_id}-${l.role}`}>
-              <TableCell className="worklist-name-cell">{l.email}</TableCell>
-              <TableCell>{l.role}</TableCell>
-              <TableCell>
-                <button
-                  type="button"
-                  className="drug-row-remove"
-                  onClick={() => {
-                    if (confirm(`Remove ${l.email}'s ${l.role} access to this clinic?`)) removeRole.mutate(l.user_id)
-                  }}
-                >
-                  Remove
-                </button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      <Drawer open={adding} onClose={() => setAdding(false)} title="Add login">
+  if (adding) {
+    return (
+      <div>
+        <button type="button" className="back-to-queue" onClick={() => setAdding(false)}>
+          ← Back to logins
+        </button>
+        <h2 className="readout-heading">Add login</h2>
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -153,7 +112,55 @@ export function LoginsPanel({ clinicId }: { clinicId: string }) {
             </Button>
           </div>
         </form>
-      </Drawer>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="admin-toolbar">
+        <h2 className="readout-heading">Logins</h2>
+        <Button
+          type="button"
+          onClick={() => {
+            setEmail('')
+            setPassword('')
+            setRole('receptionist')
+            setFormError('')
+            setAdding(true)
+          }}
+        >
+          + Add login
+        </Button>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(logins ?? []).map((l) => (
+            <TableRow key={`${l.user_id}-${l.role}`}>
+              <TableCell className="worklist-name-cell">{l.email}</TableCell>
+              <TableCell>{l.role}</TableCell>
+              <TableCell>
+                <button
+                  type="button"
+                  className="drug-row-remove"
+                  onClick={() => {
+                    if (confirm(`Remove ${l.email}'s ${l.role} access to this clinic?`)) removeRole.mutate(l.user_id)
+                  }}
+                >
+                  Remove
+                </button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   )
 }

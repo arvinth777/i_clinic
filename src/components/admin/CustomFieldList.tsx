@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
-import { Drawer } from '../Drawer'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -97,49 +96,13 @@ export function CustomFieldList({ clinicId }: { clinicId: string }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   })
 
-  return (
-    <div>
-      <div className="admin-toolbar">
-        <h2 className="readout-heading">Custom patient fields</h2>
-        <Button type="button" onClick={openNew}>
-          + Add field
-        </Button>
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Label</TableHead>
-            <TableHead>Key</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Order</TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(fields ?? []).map((f) => (
-            <TableRow key={f.id} className="worklist-row-clickable" onClick={() => openEdit(f)}>
-              <TableCell className="worklist-name-cell">{f.label}</TableCell>
-              <TableCell className="worklist-wait-cell">{f.key}</TableCell>
-              <TableCell>{f.field_type}</TableCell>
-              <TableCell className="worklist-wait-cell">{f.display_order}</TableCell>
-              <TableCell>
-                <button
-                  type="button"
-                  className="drug-row-remove"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (confirm(`Remove the "${f.label}" field? Existing patient values for it are kept but no longer shown.`)) remove.mutate(f.id)
-                  }}
-                >
-                  Remove
-                </button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      <Drawer open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add custom field' : (editing as FieldDef | null)?.label ?? ''}>
+  if (editing !== null) {
+    return (
+      <div>
+        <button type="button" className="back-to-queue" onClick={() => setEditing(null)}>
+          ← Back to custom fields
+        </button>
+        <h2 className="readout-heading">{editing === 'new' ? 'Add custom field' : (editing as FieldDef).label}</h2>
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -186,7 +149,51 @@ export function CustomFieldList({ clinicId }: { clinicId: string }) {
             </Button>
           </div>
         </form>
-      </Drawer>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="admin-toolbar">
+        <h2 className="readout-heading">Custom patient fields</h2>
+        <Button type="button" onClick={openNew}>
+          + Add field
+        </Button>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Label</TableHead>
+            <TableHead>Key</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Order</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(fields ?? []).map((f) => (
+            <TableRow key={f.id} className="worklist-row-clickable" onClick={() => openEdit(f)}>
+              <TableCell className="worklist-name-cell">{f.label}</TableCell>
+              <TableCell className="worklist-wait-cell">{f.key}</TableCell>
+              <TableCell>{f.field_type}</TableCell>
+              <TableCell className="worklist-wait-cell">{f.display_order}</TableCell>
+              <TableCell>
+                <button
+                  type="button"
+                  className="drug-row-remove"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (confirm(`Remove the "${f.label}" field? Existing patient values for it are kept but no longer shown.`)) remove.mutate(f.id)
+                  }}
+                >
+                  Remove
+                </button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   )
 }
