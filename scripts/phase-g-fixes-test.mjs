@@ -241,6 +241,56 @@ async function pricingOf(visitId) {
   )
 }
 
+// ============================================================
+// Section 5: deferred item from Critical #1's own fix -- get_daily_report
+// double-counts a same-day original-then-correction pair. Decided:
+// count only the terminal bill in each chain, never the sum, plus a
+// separate corrections-today count/net line. Every assertion here is a
+// before/after delta around a known fixture (staging is shared,
+// ever-growing data -- an absolute total would be meaningless), same
+// convention as phase-e-test.mjs.
+//
+// Genuinely red before migration 20260907060000: corrections_today_count/
+// corrections_today_net_paise don't exist on the return row at all pre-
+// migration (the whole call errors, wrong column count expected), and
+// the collections delta would be original+corrected (double-counted)
+// rather than just corrected.
+// ============================================================
+{
+  const before = await doctorA.rpc('get_daily_report', {})
+  if (before.error) throw new Error(`fixture check failed: ${before.error.message}`)
+  const beforeRow = before.data[0]
+
+  const visitId = await makeVisit('phase g fix test: same-day correction reporting')
+  await readyForBilling(visitId, 20000)
+  const { data: billId, error: confirmErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' })
+  if (confirmErr) throw new Error(`fixture: confirm_bill failed: ${confirmErr.message}`)
+
+  // A same-day revision after confirming -- the exact shape that used to
+  // double-count: both the original (20000) and the correction (15000)
+  // confirmed today.
+  await doctorA.from('visit_pricing').update({ final_amount_paise: 15000 }).eq('visit_id', visitId)
+  const { error: correctErr } = await doctorA.rpc('correct_bill', { p_bill_id: billId })
+  if (correctErr) throw new Error(`fixture: correct_bill failed: ${correctErr.message}`)
+
+  const after = await doctorA.rpc('get_daily_report', {})
+  if (after.error) throw new Error(`fixture check failed: ${after.error.message}`)
+  const afterRow = after.data[0]
+
+  const collectionsDelta = afterRow.collections_paise - beforeRow.collections_paise
+  report(
+    'collections today counts only the corrected (terminal) amount, not the sum of original+correction',
+    collectionsDelta === 15000,
+    `delta ${collectionsDelta} (would be 35000 if double-counted, 20000 if only the stale original counted)`,
+  )
+
+  const correctionsCountDelta = afterRow.corrections_today_count - beforeRow.corrections_today_count
+  report('corrections_today_count increased by exactly 1', correctionsCountDelta === 1, `delta ${correctionsCountDelta}`)
+
+  const correctionsNetDelta = afterRow.corrections_today_net_paise - beforeRow.corrections_today_net_paise
+  report('corrections_today_net_paise reflects the -5000 adjustment (15000 - 20000)', correctionsNetDelta === -5000, `delta ${correctionsNetDelta}`)
+}
+
 console.log('\n== Summary ==')
 const failed = results.filter((r) => !r.pass)
 console.log(`${results.length - failed.length}/${results.length} passed`)

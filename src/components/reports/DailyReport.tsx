@@ -2,7 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaise } from '../../lib/money'
 
-type Daily = { collections_paise: number; patient_count: number; discount_paise: number; needs_reconciliation_count: number }
+type Daily = {
+  collections_paise: number
+  patient_count: number
+  discount_paise: number
+  needs_reconciliation_count: number
+  corrections_today_count: number
+  corrections_today_net_paise: number
+}
 type StockWarning = { medicine_name: string; total_quantity: number; low_stock_threshold: number | null }
 
 export function DailyReport() {
@@ -45,7 +52,21 @@ export function DailyReport() {
           <span className={daily.needs_reconciliation_count > 0 ? 'flow-stat-value flow-overdue' : 'flow-stat-value'}>{daily.needs_reconciliation_count}</span>
           <span className="flow-stat-label">Bills needing reconciliation</span>
         </div>
+        <div className="flow-stat">
+          <span className="flow-stat-value">{daily.corrections_today_count}</span>
+          <span className="flow-stat-label">
+            Corrections today
+            {daily.corrections_today_count > 0 ? ` (${formatPaise(daily.corrections_today_net_paise)} net)` : ''}
+          </span>
+        </div>
       </div>
+      {daily.corrections_today_count > 0 && (
+        <p className="readout-empty">
+          Collections above already includes today's correction(s), at the corrected amount -- a correction is counted
+          on the day it was entered, whichever day the original visit happened. This line is a heads-up that some of
+          today's collections came from adjusting an earlier bill, not a new visit today.
+        </p>
+      )}
 
       <section className="record-section">
         <h3 className="readout-heading">Stock warnings</h3>
