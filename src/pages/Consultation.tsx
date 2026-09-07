@@ -70,8 +70,6 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-const STAGE_LABEL: Record<string, string> = { waiting: 'Waiting', with_doctor: 'With doctor' }
-
 export function Consultation({ userId }: { userId: string }) {
   const queryClient = useQueryClient()
   const { data: clinicId } = useClinicId(userId)
@@ -284,13 +282,9 @@ export function Consultation({ userId }: { userId: string }) {
                 const isCurrent = v.stage === 'with_doctor'
                 return (
                   <li key={v.id} className={isCurrent ? 'rail-row rail-row-active' : 'rail-row'}>
-                    <span className="readout-token">{v.token_number}</span>
-                    <span className="rail-row-body">
-                      <span className="rail-row-name">{v.patients?.name}</span>
-                      <span className={overdue ? 'rail-row-meta doctor-queue-overdue' : 'rail-row-meta'}>
-                        {STAGE_LABEL[v.stage] ?? v.stage} · {formatElapsed(v.arrived_at)}
-                      </span>
-                    </span>
+                    <span className="rail-row-token">{v.token_number}</span>
+                    <span className="rail-row-name">{v.patients?.name}</span>
+                    <span className={overdue ? 'rail-row-wait doctor-queue-overdue' : 'rail-row-wait'}>{formatElapsed(v.arrived_at)}</span>
                   </li>
                 )
               })}

@@ -272,6 +272,56 @@ commit per round -- the intermediate colour-only attempt was superseded,
 not layered on, so committing it separately would leave a step in
 history that this same file says plainly not to trust.
 
+**Fourth round, after the full-Consultation rollout above**: two more
+concrete, named complaints -- "I do not like the fonts... search Google
+for elite and premium tech fonts," and "I do not like the left queue
+panel... it still looks like typical AI slop."
+- **Fonts**: researched directly via web search rather than guessed
+  (query: "best premium elite tech fonts 2026 ... SaaS product design
+  typeface"). Result: Geist (Vercel's own sans, paired with Geist Mono)
+  is named as the fast-rising default for developer-tool brand work, and
+  the specific pairing called "the gold standard for developer tools" is
+  Geist for headings with Inter kept for body-text legibility -- Söhne
+  (Stripe/Linear's own paid font) was also named but requires a
+  commercial licence, ruled out for that reason alone, not on taste.
+  Installed `@fontsource/geist-sans` and `@fontsource/geist-mono`
+  (self-hosted, matching this app's existing offline-first font
+  convention -- no Google Fonts CDN link). New `--font-display` token
+  (Geist Sans) applied to `h1`/`h2`/`h3` and `.readout-heading`; `--font`
+  (Inter) stays on body copy; `--font-mono` switched from JetBrains Mono
+  to Geist Mono, matched to Geist Sans by the same foundry rather than a
+  third unrelated typeface. Confirmed live via `getComputedStyle` (not
+  assumed from the CSS alone) that both faces actually load and render,
+  not silently falling back to a system font.
+  - Reverse-conclusion this docs section already recorded: real
+    components (Phase UI-5's Tailwind/Radix pass) plus a considered font
+    pairing is the actual "premium" combination -- this file already
+    disclosed Söhne as a paid-only option a future session might
+    reconsider if the maintainer ever wants to license it; Geist is the
+    free, current, actively-maintained choice for now.
+- **The queue rail**: diagnosed the "AI slop" complaint concretely
+  rather than re-guessing at colours -- a coloured circular token badge
+  next to two stacked lines of text (name, then stage/wait) is close to
+  *the* generic list pattern every AI-assisted scaffold reaches for by
+  default (a "contact card" list), and it doesn't even fit this data:
+  patients have no avatar/photo, so the circle was standing in for one
+  with just a number, which is exactly the "trying to look like
+  something instead of being something" tell. Rebuilt as a dense,
+  single-line row per Linear's own issue-list density: a small
+  fixed-width mono token tag (not a badge), the name as the one flexible
+  truncated element, wait time as trailing mono metadata -- no per-row
+  stage text at all now, since the *only* stage distinction the rail
+  actually needs (who's currently with the doctor) is already carried by
+  the active row's own background tint. `RepQueueRows.tsx` rebuilt to
+  match the same one-line shape, its "Mark done" button converted to the
+  new small `Button` variant. Net effect confirmed live, not just
+  reasoned about: roughly 15 rows now visible in the rail at once versus
+  ~4-5 before, which also directly addresses part of the earlier
+  "zoomed in" complaint as a side effect, not a separate fix.
+- **Still open**: the user has not yet reacted to this fourth round --
+  don't mark this phase's remaining "is this elite" question answered
+  until they have.
+
 ## Where we are
 
 Working through `docs/build-plan.md`, one phase per session, in order.

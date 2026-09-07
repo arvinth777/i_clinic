@@ -64,13 +64,17 @@
   --stage-ready: oklch(46% 0.1 320);
   --stage-paid: var(--success);
 
-  /* One workhorse family carries headings, body, and UI -- an Operate
-     surface doesn't need a second display face (Space Grotesk, dropped);
-     the paper identity comes from tone, rule, and stamp, not a second
-     typeface. Mono is reserved for actual numerals -- tokens, minutes,
-     rupees -- never for label text (see .readout-heading below). */
+  /* v4.5 font pass -- researched directly (search results in
+     docs/STATUS.md), not guessed: Geist for headings paired with Inter
+     for body is named as the current "gold standard" pairing for
+     developer-tool products, and Geist Mono (from the same foundry as
+     Geist Sans) replaces JetBrains Mono so the display/mono pair is
+     genuinely one coherent system, not a third unrelated typeface. Mono
+     is still reserved for actual numerals -- tokens, minutes, rupees --
+     never for label text (see .readout-heading below). */
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica Neue, Arial, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: 'Geist Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica Neue, Arial, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   /* Dense-operational-tool scale, not marketing-page scale -- the previous
      values (17px base, 32px --text-xl) read as "unusually big and zoomed
      out" once this ran on a real monitor next to real software. */
@@ -178,6 +182,7 @@
   --shadow-md: var(--shadow-md);
 
   --font-sans: var(--font);
+  --font-display: var(--font-display);
   --font-mono: var(--font-mono);
 }
 
@@ -252,7 +257,7 @@ body {
 h1,
 h2,
 h3 {
-  font-family: var(--font);
+  font-family: var(--font-display);
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.01em;
@@ -276,6 +281,7 @@ h3 {
   padding-left: var(--space-sm);
   border-left: 3px solid var(--border-strong);
   color: var(--text);
+  font-family: var(--font-display);
   font-size: var(--text-lg);
   font-weight: 700;
 }

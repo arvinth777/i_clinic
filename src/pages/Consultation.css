@@ -74,29 +74,43 @@
   padding: 0;
 }
 
+/* Dense, single-line rows (Linear's own issue-list density, not a
+   circular-avatar "contact card" list) -- a colour-filled circular
+   token badge next to two stacked lines of text was the exact generic
+   AI-scaffold list pattern the user called out by name. Token is a
+   plain fixed-width mono tag, not a badge; stage is conveyed by the
+   active row's own background, not repeated as text on every row. */
 .rail-row {
   display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-xs);
+  align-items: baseline;
+  gap: var(--space-xs);
+  padding: var(--space-2xs) var(--space-xs);
   border-radius: var(--radius-input);
+  line-height: 1.4;
 }
 
-.rail-row > .readout-token {
+.rail-row-token {
   flex: none;
+  width: 2rem;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 
 .rail-row-active {
   background: var(--accent-wash);
 }
 
-.rail-row-body {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+.rail-row-active .rail-row-token {
+  color: var(--accent);
 }
 
 .rail-row-name {
+  min-width: 0;
+  flex: 1;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--text);
   overflow: hidden;
@@ -108,15 +122,22 @@
   color: var(--accent);
 }
 
-.rail-row-meta {
+.rail-row-wait {
+  flex: none;
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 
 .rail-row-rep {
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   opacity: 0.85;
+}
+
+.rail-row-rep .rail-row-name {
+  font-weight: 400;
+  color: var(--text-secondary);
 }
 
 .stage-head {

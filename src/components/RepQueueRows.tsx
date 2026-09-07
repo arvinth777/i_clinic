@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { startOfToday, formatElapsed } from '../lib/date'
+import { Button } from './ui/button'
 
 type Rep = { id: string; rep_name: string; company: string; arrived_at: string }
 
@@ -63,15 +64,13 @@ export function RepQueueRows({ clinicId, onCountChange }: { clinicId: string; on
     <>
       {reps.map((rep) => (
         <li key={rep.id} className="rail-row rail-row-rep">
-          <span className="rail-row-body">
-            <span className="rail-row-name">{rep.rep_name}</span>
-            <span className="rail-row-meta">
-              {rep.company} · Pharma rep · {formatElapsed(rep.arrived_at)}
-            </span>
+          <span className="rail-row-name">
+            {rep.rep_name} · {rep.company}
           </span>
-          <button type="button" className="secondary-button" disabled={markDone.isPending} onClick={() => markDone.mutate(rep.id)}>
-            Mark done
-          </button>
+          <span className="rail-row-wait">{formatElapsed(rep.arrived_at)}</span>
+          <Button type="button" size="sm" variant="secondary" disabled={markDone.isPending} onClick={() => markDone.mutate(rep.id)}>
+            Done
+          </Button>
         </li>
       ))}
     </>
