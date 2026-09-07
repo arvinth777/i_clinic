@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
 import { formatDate } from '../lib/date'
-import { Drawer } from '../components/Drawer'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
@@ -100,6 +99,18 @@ export function UnpaidBills({ clinicId }: { clinicId: string }) {
     setSettling(null)
   }
 
+  if (settling !== null) {
+    return (
+      <div className="admin-page">
+        <button type="button" className="back-to-queue" onClick={() => setSettling(null)}>
+          ← Back to unpaid bills
+        </button>
+        <h2 className="readout-heading">Settle bill</h2>
+        <SettleForm bill={settling} onDone={onSettled} onCancel={() => setSettling(null)} />
+      </div>
+    )
+  }
+
   return (
     <div className="admin-page">
       <div className="admin-toolbar">
@@ -135,10 +146,6 @@ export function UnpaidBills({ clinicId }: { clinicId: string }) {
           </TableBody>
         </Table>
       )}
-
-      <Drawer open={!!settling} onClose={() => setSettling(null)} title="Settle bill">
-        {settling && <SettleForm bill={settling} onDone={onSettled} onCancel={() => setSettling(null)} />}
-      </Drawer>
     </div>
   )
 }
