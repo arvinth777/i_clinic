@@ -28,9 +28,14 @@ export function TodayFlow({ visits }: { visits: TodayVisit[] | undefined }) {
   const seenToday = visits?.filter((v) => v.stage !== 'waiting' && v.stage !== 'with_doctor').length ?? 0
   const total = waiting + withDoctor + seenToday
 
-  const waitingMinutes = (visits ?? []).filter((v) => v.stage === 'waiting').map((v) => elapsedMinutes(v.arrived_at))
-  const avgWait = waitingMinutes.length ? Math.round(waitingMinutes.reduce((sum, m) => sum + m, 0) / waitingMinutes.length) : null
-  const overdue = avgWait !== null && avgWait >= LONG_WAIT_MINUTES
+  // Replaces the old "average current wait" -- an average of live,
+  // in-progress waits, not a completed-wait metric, and not something
+  // the user found actually useful ("no it won't be useful," in
+  // conversation). A straight count of who's currently waiting *past*
+  // the threshold is the actionable version of the same underlying
+  // data: not "what's the number," but "how many people am I making
+  // wait too long, right now."
+  const overdueCount = (visits ?? []).filter((v) => v.stage === 'waiting' && elapsedMinutes(v.arrived_at) >= LONG_WAIT_MINUTES).length
 
   return (
     <div className="flow-widget">
@@ -47,8 +52,8 @@ export function TodayFlow({ visits }: { visits: TodayVisit[] | undefined }) {
           <span className="flow-tile-value">{seenToday}</span>
         </div>
         <div className="flow-tile flow-tile-amber">
-          <span className="flow-tile-label">Avg wait now</span>
-          <span className={overdue ? 'flow-tile-value flow-overdue' : 'flow-tile-value'}>{avgWait !== null ? `${avgWait}m` : '—'}</span>
+          <span className="flow-tile-label">Overdue (30m+)</span>
+          <span className={overdueCount > 0 ? 'flow-tile-value flow-overdue' : 'flow-tile-value'}>{overdueCount}</span>
         </div>
       </div>
       {total > 0 && (
