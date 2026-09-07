@@ -67,11 +67,19 @@
 }
 
 /* ============================================================
- * Print: the prescription + receipt slip. Hidden on screen; shown full-
- * page on print, everything else hidden via visibility (not display) so
- * the app's own layout doesn't need to be touched. Printed output stays
- * plain black-on-white regardless of the app's light/dark theme -- a
- * printer doesn't have a theme.
+ * Print: two separate documents in one print job, not one page mixing
+ * both (user: "is this a prescription or a bill? i think you are
+ * confusing the both" -- they were right). Page 1 is the doctor's
+ * letterhead document (user-supplied reference: a hospital letterhead
+ * template -- colour bar top and bottom, a clinic/doctor header block, a
+ * repeated footer): drugs and dosage, nothing about money. Page 2 is a
+ * plain transactional receipt: amounts and payment method, no doctor
+ * credentials, no colour. Hidden on screen; shown full-page on print,
+ * everything else hidden via visibility (not display) so the app's own
+ * layout doesn't need to be touched. Printed output stays plain
+ * black-on-white regardless of the app's light/dark theme -- a printer
+ * doesn't have a theme -- except the letterhead's own bars, which are
+ * the one deliberate spot of colour on an otherwise plain page.
  * ============================================================ */
 
 .print-area {
@@ -87,13 +95,54 @@
     visibility: visible;
   }
   .print-area {
-    display: block;
     position: absolute;
     inset: 0;
-    padding: 1cm;
     color: #000;
     background: #fff;
     font-size: 12pt;
+  }
+  .print-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+  .print-page-letterhead {
+    page-break-after: always;
+  }
+  .print-page-plain {
+    padding: 1cm;
+  }
+  .print-bar {
+    flex: none;
+    height: 10px;
+    background: #1d4ed8;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-content {
+    flex: 1;
+    padding: 1cm;
+  }
+  .print-letterhead {
+    margin-bottom: 0.75em;
+    padding-bottom: 0.5em;
+    border-bottom: 2px solid #1d4ed8;
+  }
+  .print-letterhead h1 {
+    margin: 0;
+    color: #1d4ed8;
+  }
+  .print-doctor-line {
+    margin: 0.15em 0 0;
+    font-weight: 700;
+  }
+  .print-contact-line {
+    margin: 0.15em 0 0;
+    font-size: 0.85em;
+    color: #333;
+  }
+  .print-page-plain h1 {
+    margin: 0 0 0.1em;
   }
   .print-table {
     width: 100%;
@@ -109,5 +158,15 @@
   .print-total-row td {
     font-weight: 700;
     border-top: 2px solid #000;
+  }
+  .print-footer {
+    margin-top: 1.5em;
+    padding-top: 0.5em;
+    border-top: 1px solid #999;
+    font-size: 0.8em;
+    color: #333;
+  }
+  .print-footer p {
+    margin: 0.1em 0;
   }
 }

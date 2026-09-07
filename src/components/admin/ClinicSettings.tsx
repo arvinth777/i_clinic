@@ -18,7 +18,7 @@ export function ClinicSettings({ clinicId }: { clinicId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clinics')
-        .select('name, upi_vpa, doctor_name, doctor_registration_number, consultation_fee_paise')
+        .select('name, upi_vpa, doctor_name, doctor_registration_number, address, phone, consultation_fee_paise')
         .eq('id', clinicId)
         .single()
       if (error) throw error
@@ -27,6 +27,8 @@ export function ClinicSettings({ clinicId }: { clinicId: string }) {
         upi_vpa: string | null
         doctor_name: string | null
         doctor_registration_number: string | null
+        address: string | null
+        phone: string | null
         consultation_fee_paise: number
       }
     },
@@ -35,6 +37,8 @@ export function ClinicSettings({ clinicId }: { clinicId: string }) {
   const [upiVpa, setUpiVpa] = useState('')
   const [doctorName, setDoctorName] = useState('')
   const [doctorRegNo, setDoctorRegNo] = useState('')
+  const [address, setAddress] = useState('')
+  const [phone, setPhone] = useState('')
   const [feeDraft, setFeeDraft] = useState('')
   const [formError, setFormError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -43,6 +47,8 @@ export function ClinicSettings({ clinicId }: { clinicId: string }) {
     setUpiVpa(clinic?.upi_vpa ?? '')
     setDoctorName(clinic?.doctor_name ?? '')
     setDoctorRegNo(clinic?.doctor_registration_number ?? '')
+    setAddress(clinic?.address ?? '')
+    setPhone(clinic?.phone ?? '')
     setFeeDraft(clinic ? formatPaiseForInput(clinic.consultation_fee_paise) : '')
   }, [clinic])
 
@@ -58,6 +64,12 @@ export function ClinicSettings({ clinicId }: { clinicId: string }) {
         p_doctor_registration_number: doctorRegNo,
       })
       if (doctorErr) throw doctorErr
+      const { error: contactErr } = await supabase.rpc('admin_set_clinic_contact_info', {
+        p_clinic_id: clinicId,
+        p_address: address,
+        p_phone: phone,
+      })
+      if (contactErr) throw contactErr
       const { error: feeErr } = await supabase.rpc('admin_set_clinic_fee', { p_clinic_id: clinicId, p_fee_paise: feePaise })
       if (feeErr) throw feeErr
     },
@@ -115,6 +127,19 @@ export function ClinicSettings({ clinicId }: { clinicId: string }) {
           </label>
           <Input id="clinic-doctor-reg-no" value={doctorRegNo} onChange={(e) => setDoctorRegNo(e.target.value)} />
           <p className="field-hint">Printed on certificates, sick-leave notes, and referral letters.</p>
+        </div>
+        <div className="field">
+          <label className="field-label" htmlFor="clinic-address">
+            Clinic address
+          </label>
+          <Input id="clinic-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, town, PIN code" />
+        </div>
+        <div className="field">
+          <label className="field-label" htmlFor="clinic-phone">
+            Clinic phone
+          </label>
+          <Input id="clinic-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 ..." />
+          <p className="field-hint">Address and phone print on the prescription/receipt letterhead.</p>
         </div>
         {formError && <p className="form-error">{formError}</p>}
         {saved && !formError && <p className="readout-empty">Saved.</p>}

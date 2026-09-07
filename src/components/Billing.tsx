@@ -62,61 +62,122 @@ function UpiQr({ vpa, amountPaise, payeeName }: { vpa: string; amountPaise: numb
   return <img className="upi-qr" src={dataUrl} width={220} height={220} alt="UPI payment QR code" />
 }
 
-function PrintableSlip({
-  clinicName,
+type ClinicPrintInfo = {
+  name: string
+  upi_vpa: string | null
+  doctor_name: string | null
+  doctor_registration_number: string | null
+  address: string | null
+  phone: string | null
+}
+
+// Two different documents, not one -- a prescription (the doctor's
+// document: drugs and dosage, nothing about money) and a bill/receipt
+// (the receptionist's document: amounts and payment method, nothing
+// about the doctor). User: "is this a prescription or a bill? i think
+// you are confusing the both" -- they were right, the two used to be
+// stacked on one letterhead-branded page. Now they're two <section>s in
+// the same print job (one window.print() still hands over both physical
+// pages together, matching the PRD's "prints the receipt with the
+// prescription" flow) with a forced page-break between them, each styled
+// for what it actually is.
+function PrintablePrescription({ clinic, visit, medicines }: { clinic: ClinicPrintInfo | undefined; visit: Visit; medicines: DetailRow[] }) {
+  // User-supplied reference: a hospital letterhead template (colour bar
+  // top and bottom, clinic/doctor block, a repeated footer). This is the
+  // one of the two documents that's actually a doctor's letterhead
+  // document -- contrast DocumentsPanel's PrintableDocument, which
+  // deliberately omits the clinic name because IT assumes real
+  // pre-printed letterhead paper; this one renders its own.
+  return (
+    <section className="print-page print-page-letterhead">
+      <div className="print-bar" />
+      <div className="print-content">
+        <header className="print-letterhead">
+          <h1>{clinic?.name}</h1>
+          {clinic?.doctor_name && (
+            <p className="print-doctor-line">
+              {clinic.doctor_name}
+              {clinic.doctor_registration_number ? ` — Reg. No. ${clinic.doctor_registration_number}` : ''}
+            </p>
+          )}
+          {(clinic?.address || clinic?.phone) && (
+            <p className="print-contact-line">{[clinic?.address, clinic?.phone].filter(Boolean).join(' · ')}</p>
+          )}
+        </header>
+
+        <p>
+          {visit.patients?.name} — Token {visit.token_number} — {formatDate(visit.arrived_at)}
+        </p>
+
+        <h2>Prescription</h2>
+        {medicines.length === 0 ? (
+          <p>No medicines prescribed.</p>
+        ) : (
+          <table className="print-table">
+            <thead>
+              <tr>
+                <th>Medicine</th>
+                <th>Type</th>
+                <th>Strength</th>
+                <th>Frequency</th>
+                <th>Food</th>
+                <th>Duration</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {medicines.map((m, i) => (
+                <tr key={i}>
+                  <td>{m.description}</td>
+                  <td>{m.drug_type}</td>
+                  <td>{m.strength}</td>
+                  <td>{m.dosage_frequency}</td>
+                  <td>{m.before_after_food}</td>
+                  <td>{m.duration_days} days</td>
+                  <td>{m.notes}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <footer className="print-footer">
+          <p>{[clinic?.name, clinic?.address].filter(Boolean).join(' · ')}</p>
+          {clinic?.phone && <p>{clinic.phone}</p>}
+        </footer>
+      </div>
+      <div className="print-bar" />
+    </section>
+  )
+}
+
+function PrintableReceipt({
+  clinic,
   visit,
-  detail,
+  billable,
   amountPaise,
   discountPaise,
   bill,
 }: {
-  clinicName: string | undefined
+  clinic: ClinicPrintInfo | undefined
   visit: Visit
-  detail: DetailRow[] | undefined
+  billable: DetailRow[]
   amountPaise: number
   discountPaise: number
   bill: Bill | null
 }) {
-  const medicines = (detail ?? []).filter((r) => r.kind === 'medicine')
-  const billable = detail ?? []
+  // Plain and transactional on purpose -- a payment record, not a
+  // doctor's document. Clinic name/address/phone are legitimate on a
+  // receipt (a real business's contact details); the doctor's name and
+  // registration number are not (that's a medical credential, and has
+  // nothing to do with who took the payment).
   return (
-    <div className="print-area">
-      <h1>{clinicName}</h1>
+    <section className="print-page print-page-plain">
+      <h1>{clinic?.name}</h1>
+      {(clinic?.address || clinic?.phone) && <p className="print-contact-line">{[clinic?.address, clinic?.phone].filter(Boolean).join(' · ')}</p>}
       <p>
         {visit.patients?.name} — Token {visit.token_number} — {formatDate(visit.arrived_at)}
       </p>
-
-      <h2>Prescription</h2>
-      {medicines.length === 0 ? (
-        <p>No medicines prescribed.</p>
-      ) : (
-        <table className="print-table">
-          <thead>
-            <tr>
-              <th>Medicine</th>
-              <th>Type</th>
-              <th>Strength</th>
-              <th>Frequency</th>
-              <th>Food</th>
-              <th>Duration</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {medicines.map((m, i) => (
-              <tr key={i}>
-                <td>{m.description}</td>
-                <td>{m.drug_type}</td>
-                <td>{m.strength}</td>
-                <td>{m.dosage_frequency}</td>
-                <td>{m.before_after_food}</td>
-                <td>{m.duration_days} days</td>
-                <td>{m.notes}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
 
       <h2>Receipt</h2>
       <table className="print-table">
@@ -142,6 +203,31 @@ function PrintableSlip({
           Paid via {bill.payment_method} on {formatDate(bill.confirmed_at)}
         </p>
       )}
+    </section>
+  )
+}
+
+function PrintableSlip({
+  clinic,
+  visit,
+  detail,
+  amountPaise,
+  discountPaise,
+  bill,
+}: {
+  clinic: ClinicPrintInfo | undefined
+  visit: Visit
+  detail: DetailRow[] | undefined
+  amountPaise: number
+  discountPaise: number
+  bill: Bill | null
+}) {
+  const medicines = (detail ?? []).filter((r) => r.kind === 'medicine')
+  const billable = detail ?? []
+  return (
+    <div className="print-area">
+      <PrintablePrescription clinic={clinic} visit={visit} medicines={medicines} />
+      <PrintableReceipt clinic={clinic} visit={visit} billable={billable} amountPaise={amountPaise} discountPaise={discountPaise} bill={bill} />
     </div>
   )
 }
@@ -265,11 +351,27 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
   const detailStillLoading = !detail && detailEnabled && !detailGraceElapsed
 
   const { data: clinic } = useQuery({
-    queryKey: ['clinic-billing-info', clinicId],
+    // Its own key, not shared with ClinicSettings.tsx's admin-form query --
+    // that one selects the same clinic row but its own overlapping-but-
+    // different field set, and two shapes racing under one React Query
+    // cache key is exactly the kind of bug that reads fine until the
+    // wrong component's fetch happens to win.
+    queryKey: ['clinic-print-info', clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clinics').select('name, upi_vpa').eq('id', clinicId).single()
+      const { data, error } = await supabase
+        .from('clinics')
+        .select('name, upi_vpa, doctor_name, doctor_registration_number, address, phone')
+        .eq('id', clinicId)
+        .single()
       if (error) throw error
-      return data as { name: string; upi_vpa: string | null }
+      return data as {
+        name: string
+        upi_vpa: string | null
+        doctor_name: string | null
+        doctor_registration_number: string | null
+        address: string | null
+        phone: string | null
+      }
     },
   })
 
@@ -467,7 +569,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
       )}
 
       <PrintableSlip
-        clinicName={clinic?.name}
+        clinic={clinic}
         visit={visit}
         detail={detail}
         amountPaise={amountPaise}
