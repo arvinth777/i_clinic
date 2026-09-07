@@ -64,6 +64,16 @@ const { data: patient } = await doctorA.from('patients').insert({ clinic_id: CLI
 const { data: visit } = await doctorA.from('visits').insert({ clinic_id: CLINIC_A_ID, patient_id: patient.id, arrived_at: new Date().toISOString(), complaint: 'dropdown position test' }).select('id').single()
 await doctorA.from('visits').update({ stage: 'with_doctor' }).eq('id', visit.id)
 
+// Clean up this script's own templates from earlier runs first -- left
+// unbounded, they accumulate (prescription_template_items cascades on
+// delete, per docs/STATUS.md), and templates render alphabetically by
+// name: a growing pile of "Dropdown Test Template <timestamp>" rows
+// pushes each new run's own fixture further down the list, which
+// reproduced as a real, worsening flake (the same class of mistake the
+// Procedures check below already had to correct for) before this cleanup
+// was added, not assumed.
+await doctorA.from('prescription_templates').delete().eq('clinic_id', CLINIC_A_ID).like('name', 'Dropdown Test Template%')
+
 // A template guarantees the Templates dropdown actually has something to
 // render, rather than depending on whatever templates staging happens to
 // already have.
@@ -114,9 +124,22 @@ await page.waitForTimeout(500)
 
 await page.locator('.worklist-row', { hasText: `Dropdown Position Test ${stamp}` }).click()
 await page.waitForSelector('.drawer-panel', { timeout: 10000 })
+// The drawer's own entrance transition (Drawer.tsx: 220ms) is still
+// moving right after the panel attaches -- a coordinate-based hit test
+// taken mid-transition can miss even though getBoundingClientRect()
+// already reports the final, settled position (caught as a real,
+// reproducible flake before adding this wait, not assumed).
+await page.waitForTimeout(400)
 
 // ---- Templates dropdown ----
-const templateItem = page.locator('.search-result-button', { hasText: `Dropdown Test Template ${stamp}` })
+// .first(), not matched by this run's own stamp text -- templates render
+// alphabetically by name (not by recency, unlike MergePatients' search
+// below), so *which* row is "first" depends on every other template
+// name already in staging, not just this script's own fixture. What
+// this check actually verifies -- the dropdown wrapper itself is
+// correctly anchored -- holds regardless of which specific template
+// happens to render first.
+const templateItem = page.locator('.field.search-results-anchor .search-result-button').first()
 await templateItem.waitFor({ state: 'attached', timeout: 5000 })
 const templateCheck = await checkDropdownReachable(page, templateItem)
 report('Templates dropdown is within the viewport', templateCheck.withinViewport, JSON.stringify(templateCheck.box))
