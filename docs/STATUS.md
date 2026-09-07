@@ -433,6 +433,56 @@ rename it" and "make it hidden by making a collapsible side menu bar."
   directly, not just visually), and the collapsed state survives a full
   page reload.
 
+**Tenth round -- closing UI-5's own named unfinished work**: "ok then
+change them as well," after the Stock table round (above) left
+Reception, Admin, Reports, and Billing as the explicitly-disclosed
+remainder. Parallelized across four background agents (one per
+screen, disjoint file sets, no shared state) plus a fifth doing
+Reports since it was small enough to finish first: every native
+`<table className="worklist">`, `.primary-button`/`.secondary-button`,
+native `<select>`, and native `<input>` on those four screens now uses
+the same `Table`/`Button`/`Select`/`Input` kit as Consultation and
+Stock. Each agent's diff was read in full before it landed, not
+trusted blind:
+- Caught and fixed one real regression the agents' own instructions
+  had introduced: DrugList's "Type" select lost the ability to
+  explicitly clear a set type back to blank, since Radix's
+  `Select.Item` can't hold `value=""` the way a native
+  `<option value="">` could. Fixed with a `__unset__` sentinel item
+  that maps back to `''` on write -- full parity restored, not just a
+  visual match.
+- Caught and fixed a second regression the same instructions caused
+  in a different file: NewPatientForm's gender select used
+  `value={form.gender || undefined}`, which flips the component
+  between controlled and uncontrolled the moment a gender is first
+  picked (a real React warning, caught live in the browser console,
+  not from reading code). Radix treats a plain `''` as "nothing
+  selected" for its own placeholder just fine, so the fix was simply
+  to stop coercing to `undefined` at all.
+- The "stamp" tap-animation convention (only a genuine commit action
+  like Confirm payment or Check in keeps `motion.button` +
+  `whileTap`) held up across every file with no exceptions needed.
+
+**Eleventh round -- the same afternoon, a different complaint**: while
+watching the Reception screen get exercised live in the browser pane
+for the round above, the user said "why is it opening in the right
+panel? i do not like it. change it like how we did for the doctor
+panel" -- the right-side `Drawer` overlay, for every remaining form on
+Reception/Admin/Unpaid. Asked which screens, rather than guessing
+across a dozen files on a name-only reference to "the doctor panel";
+answer was all three. Built and browser-verified Reception's own
+conversion first (New patient / check-in / pharma-rep forms now swap
+into the center stage in place of the queue table, exactly like
+Billing already did, instead of sliding in from the right) as the
+concrete reference, then Admin's DrugList as a second reference
+(list ⟷ edit-form swap, since Admin's shape -- a table plus an
+add/edit form -- differs from Reception's plain form-swap), then
+parallelized the remaining four Admin panels (Procedures, Templates,
+Custom fields, Logins) and Unpaid's settle form across two more
+background agents against those two references. No Drawer remains on
+Reception, Admin, or Unpaid; Stock and MergePatients still use it
+(out of scope -- not named in this round).
+
 ## Where we are
 
 Working through `docs/build-plan.md`, one phase per session, in order.
@@ -1167,12 +1217,15 @@ or confirm they're each still worth deferring.
 Two independent tracks are open now, not one:
 
 1. **The UI redesign initiative** (new section at the top of this file):
-   all five planned phases (UI-1 through UI-5) are done, but UI-5 itself
-   names real unfinished work rather than closing clean -- Reception,
-   Admin, Stock, and Billing still need the same Tailwind/Radix
-   component conversion Consultation just got, and the user's own "is
-   this elite yet" verdict needs re-checking against the fuller rollout,
-   not assumed from where the last round of feedback left off.
+   all five planned phases (UI-1 through UI-5) are done, and UI-5's own
+   named unfinished work is now closed too -- Reception, Admin,
+   Reports, and Billing all have the Tailwind/Radix component kit, and
+   Reception/Admin/Unpaid have also dropped the right-side Drawer for
+   inline stage/list swaps (the Tenth and Eleventh rounds, above).
+   Stock and MergePatients still use `Drawer` for their own forms --
+   nobody's asked for that yet, so it stays as is. The user's own "is
+   this elite yet" verdict still needs re-checking against the fuller
+   rollout, not assumed from where the last round of feedback left off.
 2. **Phase G's own residual items** (below): every audited finding is
    fixed and verified; what's left is the human-only setup for the
    backup pipeline (`docs/runbook.md`'s "Pending setup" — age private
