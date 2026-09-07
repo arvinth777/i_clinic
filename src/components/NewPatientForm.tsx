@@ -104,7 +104,7 @@ export function NewPatientForm({
         <label className="field-label" htmlFor="new-gender">
           Gender
         </label>
-        <Select value={form.gender || undefined} onValueChange={(v) => set('gender', v)}>
+        <Select value={form.gender} onValueChange={(v) => set('gender', v)}>
           <SelectTrigger id="new-gender">
             <SelectValue placeholder="—" />
           </SelectTrigger>
