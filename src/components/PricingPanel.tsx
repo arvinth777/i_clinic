@@ -101,7 +101,11 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
   })
 
   const proposalKey = ['pricing-proposal',visitId]
-  const proposalQuery = useQuery({queryKey:proposalKey,queryFn:async()=>{const pending=await listQueue();const cached=queryClient.getQueryData<PricingProposal>(proposalKey);if(cached&&pending.some(m=>m.clinicId===clinicId))return cached;const {data,error}=await supabase.rpc('get_pricing_proposal',{p_visit_id:visitId});if(error)throw error;return data as PricingProposal}})
+  const proposalQuery = useQuery({queryKey:proposalKey,queryFn:async()=>{const pending=await listQueue();const {data:{session}}=await supabase.auth.getSession();const cached=queryClient.getQueryData<PricingProposal>(proposalKey);if(cached&&pending.some(m=>{
+      if(m.clinicId!==clinicId||m.ownerId!==session?.user.id)return false
+      const payload=m.payload as {p_visit_id?:string;visit_id?:string}|undefined
+      return payload?.p_visit_id===visitId||payload?.visit_id===visitId||(m.table==='visit_procedures'&&!!visitProcedures?.some(p=>p.id===m.match?.id))
+    }))return cached;const {data,error}=await supabase.rpc('get_pricing_proposal',{p_visit_id:visitId});if(error)throw error;return data as PricingProposal}})
   const proposal = proposalQuery.data
   const displayedTotal = proposal?.total_paise ?? pricing?.calculated_total_paise
 

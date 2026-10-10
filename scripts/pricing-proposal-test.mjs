@@ -10,3 +10,5 @@ assert.equal(exports.changeProposal(added,lines=>[...lines,{kind:'procedure',qua
 assert.equal(exports.changeProposal(base,lines=>[...lines,{kind:'medicine',quantity:3,unit_price_paise:NaN}]),null)
 assert.equal(exports.changeProposal(base,()=>[{kind:'medicine',quantity:3,unit_price_paise:Number.MAX_SAFE_INTEGER}]),null)
 console.log('PASS: local reviewed lines retain integer paise; uncached prices and unsafe totals cannot be approved')
+
+assert.equal(exports.changeProposal(added,lines=>[...lines,{kind:'medicine',prescription_item_id:'item',quantity:3,unit_price_paise:1001}]).total_paise,28003,'lost-response optimistic retries do not duplicate reviewed lines')

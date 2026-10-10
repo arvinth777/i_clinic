@@ -2,7 +2,7 @@
 do $$ declare definition text; revised text; begin
  definition:=pg_get_viewdef('public.bills_needing_reconciliation'::regclass,true);
  revised:=regexp_replace(definition,'vp[.]final_amount_paise AS live_final_amount_paise',
-  'case when not vp.final_amount_set or not exists(select 1 from public.bill_line_items li where li.bill_id=b.id) then null else greatest(0,(select sum(li.line_total_paise) from public.bill_line_items li where li.bill_id=b.id)-(vp.calculated_total_paise-vp.final_amount_paise)) end AS live_final_amount_paise','i');
+  'case when not vp.final_amount_set or not exists(select 1 from public.bill_line_items li where li.bill_id=b.id) then null else greatest(0,(select sum(li.line_total_paise)::bigint from public.bill_line_items li where li.bill_id=b.id)-(vp.calculated_total_paise-vp.final_amount_paise)) end AS live_final_amount_paise','i');
  if revised=definition then raise exception 'correction view shape changed'; end if;
  execute 'create or replace view public.bills_needing_reconciliation with(security_invoker=true) as '||revised;
  definition:=pg_get_functiondef('public.correct_bill(uuid)'::regprocedure);
