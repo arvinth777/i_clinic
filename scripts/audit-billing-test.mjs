@@ -59,6 +59,14 @@ try {
   const direct = await reception.from('bills').insert({ clinic_id: clinicId, visit_id: await visit(), final_amount_paise: 100, pricing_revision_at_confirm: 0, payment_method: 'cash', confirmed_by: user.id })
   assert.ok(direct.error, 'direct bill inserts must not bypass the payment transaction')
   console.log('PASS: direct bill insert denied')
+  const medicine = value(await doctor.from('medicines').insert({ clinic_id: clinicId, name: `Audit medicine ${crypto.randomUUID()}`, price_paise: 100 }).select('id').single())
+  const rxVisit = await visit()
+  const prescriptionId = crypto.randomUUID()
+  const prescriptionArgs = { p_prescription_id: prescriptionId, p_visit_id: rxVisit, p_items: [{ id: crypto.randomUUID(), medicine_id: medicine.id, drug_type: 'Tablet', strength: 'Synthetic strength', dosage_frequency: '1-0-1', before_after_food: 'After food', duration_days: 5, quantity_dispensed: 10, notes: null }] }
+  assert.equal(value(await doctor.rpc('save_prescription', prescriptionArgs)), prescriptionId, 'doctor saves a complete prescription atomically')
+  assert.equal(value(await doctor.rpc('save_prescription', prescriptionArgs)), prescriptionId, 'replaying the same prescription does not duplicate it')
+  assert.ok((await reception.rpc('save_prescription', { ...prescriptionArgs, p_prescription_id: crypto.randomUUID() })).error, 'reception cannot prescribe')
+  console.log('PASS: complete prescription save is atomic, replayable, and doctor-only')
 } finally {
   await Promise.all(clients.map((client) => client.auth.signOut()))
 }
