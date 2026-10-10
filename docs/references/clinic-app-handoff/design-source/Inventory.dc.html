@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Inventory</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A4FB5}
+button,input,select{font-family:inherit;font-variant-numeric:tabular-nums}
+input::placeholder{color:#9AA3B0}
+input:focus,select:focus{outline:none;border-bottom-color:#1A4FB5 !important}
+button:focus-visible,a:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px;border-radius:6px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B; font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums">
+<dc-import name="Nav" active="inventory" user="Reception · Selvi" token="15" waiting="6" hint-size="100%,56px"></dc-import>
+
+<main style="box-sizing: border-box; padding: 32px 32px 56px">
+<div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 700; font-size: 26px; letter-spacing: -0.02em">Inventory</span>
+<span style="font-size: 14px; color: #5B6575">Stock goes down automatically when a bill or refill is paid.</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px 28px">
+<button type="button" onClick="{{fLow}}" style="display: flex; flex-direction: column; align-items: flex-start; padding: 0; border: 0; background: transparent; cursor: pointer"><span style="font-size: 13px; color: #7A8494">Low or out</span><span style="font-size: 22px; font-weight: 700; color: #93520A">{{lowCount}}</span></button>
+<button type="button" onClick="{{fExp}}" style="display: flex; flex-direction: column; align-items: flex-start; padding: 0; border: 0; background: transparent; cursor: pointer"><span style="font-size: 13px; color: #7A8494">Expiring in 90 days</span><span style="font-size: 22px; font-weight: 700; color: #B42318">{{expCount}}</span></button>
+<span style="display: flex; flex-direction: column"><span style="font-size: 13px; color: #7A8494">Stock value at cost</span><span style="font-size: 22px; font-weight: 700">₹48,320</span></span>
+</div>
+</div>
+
+<div role="tablist" style="display: flex; flex-wrap: wrap; gap: 2px; margin-left: -10px; border-bottom: 1px solid #EEF0F3; padding-bottom: 8px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+<button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{t.st}}">{{t.label}}</button>
+</sc-for>
+</div>
+
+<!-- STOCK -->
+<sc-if value="{{tStock}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<input type="text" aria-label="Search medicines" value="{{q}}" onChange="{{onQ}}" placeholder="Search medicine" style="width: 280px; max-width: 100%; height: 40px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B">
+<div style="display: flex; gap: 2px">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+<button type="button" onClick="{{f.pick}}" style="height: 34px; padding: 0 12px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{f.st}}">{{f.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="overflow-x: auto">
+<div style="min-width: 760px; display: flex; flex-direction: column">
+<div style="display: grid; grid-template-columns: minmax(0, 2fr) 110px 110px 120px 90px minmax(0, 1.2fr); gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #E3E6EB; font-size: 13px; color: #7A8494">
+<span>Medicine</span><span style="text-align: right">On hand</span><span style="text-align: right">Reorder at</span><span>Nearest expiry</span><span style="text-align: right">Price</span><span>Status</span>
+</div>
+<sc-for list="{{stock}}" as="m" hint-placeholder-count="10">
+<button type="button" onClick="{{m.toggle}}" aria-expanded="{{m.open}}" style="display: grid; grid-template-columns: minmax(0, 2fr) 110px 110px 120px 90px minmax(0, 1.2fr); gap: 12px; align-items: baseline; padding: 12px 0; border: 0; border-bottom: 1px solid #EEF0F3; background: transparent; text-align: left; color: #141C2B; font-size: 15px; cursor: pointer">
+<span style="display: flex; flex-direction: column; min-width: 0"><span style="font-weight: 600">{{m.name}}</span><span style="font-size: 13px; color: #7A8494">{{m.where}}</span></span>
+<span style="text-align: right; font-weight: 600; {{m.qtySt}}">{{m.qty}}</span>
+<span style="text-align: right; color: #7A8494">{{m.reorder}}</span>
+<span style="{{m.expSt}}">{{m.exp}}</span>
+<span style="text-align: right; color: #5B6575">{{m.price}}</span>
+<span style="font-size: 14px; font-weight: 600; {{m.statusSt}}">{{m.status}}</span>
+</button>
+<sc-if value="{{m.open}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 10px 0 16px 16px; border-bottom: 1px solid #EEF0F3; font-size: 14px">
+<sc-for list="{{m.batches}}" as="bt" hint-placeholder-count="2">
+<span style="color: #5B6575">Batch <b style="color: #141C2B">{{bt.no}}</b> · {{bt.qty}} · expires {{bt.exp}} · {{bt.loc}}</span>
+</sc-for>
+<span style="display: flex; gap: 4px; margin: 6px 0 0 -10px">
+<button type="button" onClick="{{gotoPurchase}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-size: 14px; font-weight: 600; cursor: pointer">Receive stock</button>
+<button type="button" onClick="{{gotoAdjust}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-size: 14px; font-weight: 600; cursor: pointer">Adjust</button>
+<button type="button" onClick="{{gotoTransfer}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-size: 14px; font-weight: 600; cursor: pointer">Move to shelf</button>
+</span>
+</div>
+</sc-if>
+</sc-for>
+<sc-if value="{{noStock}}" hint-placeholder-val="{{ false }}"><span style="padding: 24px 0; color: #9AA3B0">No medicines match.</span></sc-if>
+</div>
+</div>
+</sc-if>
+
+<!-- PURCHASES -->
+<sc-if value="{{tPurch}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px">
+<span style="font-size: 14px; color: #5B6575">Stock received from suppliers. Prices for patients stay as set in the medicine list.</span>
+<a href="Suppliers.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none">Suppliers & purchase history →</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 14px; background: #F6F7F9">
+<span style="font-weight: 600">Receive stock · invoice from Sri Balaji Pharma</span>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 14px 20px">
+<sc-for list="{{recvFields}}" as="rf" hint-placeholder-count="6">
+<label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">{{rf.label}}</span><input type="text" value="{{rf.value}}" style="height: 36px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B"></label>
+</sc-for>
+</div>
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<button type="button" onClick="{{receive}}" style="height: 40px; padding: 0 16px; border: 0; border-radius: 10px; background: #141C2B; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer">Add to stock</button>
+<span style="font-size: 14px; color: #1F7A4D; font-weight: 600">{{recvMsg}}</span>
+</span>
+</div>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{purchases}}" as="p" hint-placeholder-count="4">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; padding: 12px 0; border-bottom: 1px solid #EEF0F3">
+<span style="display: flex; flex-direction: column"><span style="font-weight: 600">{{p.what}}</span><span style="font-size: 13px; color: #7A8494">{{p.from}}</span></span>
+<span style="text-align: right; display: flex; flex-direction: column"><span style="font-weight: 600">{{p.amount}}</span><span style="font-size: 13px; color: #7A8494">{{p.date}}</span></span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<!-- TRANSFERS -->
+<sc-if value="{{tTrans}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 14px; color: #5B6575">Move stock between the store room and the dispensing shelf, or out to the satellite camp.</span>
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 20px; padding: 20px; border-radius: 14px; background: #F6F7F9">
+<label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">Medicine</span><input type="text" value="Pregabid 75 mg" style="width: 200px; height: 36px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B"></label>
+<label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">From</span><input type="text" value="Store room" style="width: 140px; height: 36px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B"></label>
+<label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">To</span><input type="text" value="Shelf" style="width: 140px; height: 36px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B"></label>
+<label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">Quantity</span><input type="number" value="30" style="width: 90px; height: 36px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B"></label>
+<button type="button" onClick="{{transfer}}" style="height: 40px; padding: 0 16px; border: 0; border-radius: 10px; background: #141C2B; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer">Move</button>
+</div>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{transfers}}" as="tr" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #EEF0F3"><span>{{tr.what}}</span><span style="font-size: 13px; color: #7A8494">{{tr.when}}</span></div>
+</sc-for>
+</div>
+</sc-if>
+
+<!-- ADJUSTMENTS -->
+<sc-if value="{{tAdj}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 14px; color: #5B6575">Every change outside a sale is logged with a reason and who made it.</span>
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 20px; padding: 20px; border-radius: 14px; background: #F6F7F9">
+<label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">Medicine</span><input type="text" value="Duzela 20 mg" style="width: 200px; height: 36px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B"></label>
+<label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">Change</span><input type="number" value="-10" style="width: 90px; height: 36px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B"></label>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">Reason</span>
+<div style="display: flex; gap: 2px; margin-left: -12px">
+<sc-for list="{{reasons}}" as="rs" hint-placeholder-count="4">
+<button type="button" onClick="{{rs.pick}}" style="height: 34px; padding: 0 12px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{rs.st}}">{{rs.label}}</button>
+</sc-for>
+</div></div>
+<button type="button" onClick="{{adjust}}" style="height: 40px; padding: 0 16px; border: 0; border-radius: 10px; background: #141C2B; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer">Save adjustment</button>
+</div>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{adjs}}" as="a" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #EEF0F3"><span>{{a.what}}</span><span style="font-size: 13px; color: #7A8494">{{a.when}}</span></div>
+</sc-for>
+</div>
+</sc-if>
+
+<!-- COUNT -->
+<sc-if value="{{tCount}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px">
+<span style="font-size: 14px; color: #5B6575">Count the shelf and type what you see. Differences become adjustments when you save.</span>
+<span style="font-size: 14px; font-weight: 600; {{countSumSt}}">{{countSum}}</span>
+</div>
+<div style="display: flex; flex-direction: column; max-width: 760px">
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 100px 110px 100px; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #E3E6EB; font-size: 13px; color: #7A8494">
+<span>Medicine</span><span style="text-align: right">Expected</span><span>Counted</span><span style="text-align: right">Difference</span>
+</div>
+<sc-for list="{{counts}}" as="c" hint-placeholder-count="6">
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 100px 110px 100px; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid #EEF0F3">
+<span style="font-weight: 600">{{c.name}}</span>
+<span style="text-align: right; color: #5B6575">{{c.expected}}</span>
+<input type="number" min="0" aria-label="Counted {{c.name}}" value="{{c.counted}}" onChange="{{c.onChange}}" placeholder="—" style="width: 90px; height: 34px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B">
+<span style="text-align: right; font-weight: 600; {{c.diffSt}}">{{c.diff}}</span>
+</div>
+</sc-for>
+</div>
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<button type="button" onClick="{{saveCount}}" style="height: 42px; padding: 0 18px; border: 0; border-radius: 10px; background: #1A4FB5; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer">Save count</button>
+<span style="font-size: 14px; color: #1F7A4D; font-weight: 600">{{countMsg}}</span>
+</span>
+</sc-if>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+var MEDS = [
+  { name: 'Ultracet 37.5/325', unit: 'tab', qty: 4, reorder: 50, exp: 'Jan 2027', days: 113, price: 12, where: 'Shelf', batches: [{ no: 'UC2310', qty: 4, exp: 'Jan 2027', loc: 'Shelf' }] },
+  { name: 'Gabapin 300 mg', unit: 'tab', qty: 0, reorder: 30, exp: '—', days: 999, price: 9.4, where: '—', batches: [] },
+  { name: 'Lactulose syrup 200 ml', unit: 'bottle', qty: 3, reorder: 10, exp: 'Mar 2027', days: 170, price: 186, where: 'Shelf', batches: [{ no: 'LX118', qty: 3, exp: 'Mar 2027', loc: 'Shelf' }] },
+  { name: 'Duzela 20 mg', unit: 'cap', qty: 90, reorder: 60, exp: 'Nov 2026', days: 51, price: 13.2, where: 'Shelf 40 · Store 50', batches: [{ no: 'DZ2211', qty: 40, exp: 'Nov 2026', loc: 'Shelf' }, { no: 'DZ2402', qty: 50, exp: 'Aug 2027', loc: 'Store room' }] },
+  { name: 'Myoril 4 mg', unit: 'cap', qty: 70, reorder: 50, exp: 'Dec 2026', days: 82, price: 11.4, where: 'Shelf', batches: [{ no: 'MY0912', qty: 70, exp: 'Dec 2026', loc: 'Shelf' }] },
+  { name: 'Pregabid 75 mg', unit: 'cap', qty: 120, reorder: 100, exp: 'Dec 2026', days: 82, price: 14.5, where: 'Shelf 60 · Store 60', batches: [{ no: 'PG2311', qty: 40, exp: 'Dec 2026', loc: 'Shelf' }, { no: 'PG2405', qty: 80, exp: 'Mar 2027', loc: 'Shelf 20 · Store 60' }] },
+  { name: 'Nurokind-OD 1500 mcg', unit: 'tab', qty: 200, reorder: 100, exp: 'Aug 2027', days: 325, price: 9.8, where: 'Shelf 100 · Store 100', batches: [{ no: 'NK7713', qty: 200, exp: 'Aug 2027', loc: 'Shelf 100 · Store 100' }] },
+  { name: 'Amitone 10 mg', unit: 'tab', qty: 100, reorder: 50, exp: 'May 2027', days: 233, price: 1.8, where: 'Shelf', batches: [{ no: 'AM4410', qty: 100, exp: 'May 2027', loc: 'Shelf' }] },
+  { name: 'Zerodol-P', unit: 'tab', qty: 150, reorder: 60, exp: 'Jun 2027', days: 264, price: 4.6, where: 'Shelf', batches: [{ no: 'ZP0021', qty: 150, exp: 'Jun 2027', loc: 'Shelf' }] },
+  { name: 'Pan 40 mg', unit: 'tab', qty: 120, reorder: 60, exp: 'Apr 2027', days: 203, price: 7.2, where: 'Shelf', batches: [{ no: 'PN3390', qty: 120, exp: 'Apr 2027', loc: 'Shelf' }] },
+  { name: 'Glycomet 500 mg', unit: 'tab', qty: 240, reorder: 120, exp: 'Feb 2027', days: 142, price: 2.1, where: 'Shelf', batches: [{ no: 'GL8802', qty: 240, exp: 'Feb 2027', loc: 'Shelf' }] },
+  { name: 'Myospaz gel 30 g', unit: 'tube', qty: 12, reorder: 10, exp: 'Sep 2027', days: 355, price: 168, where: 'Shelf', batches: [{ no: 'MS1201', qty: 12, exp: 'Sep 2027', loc: 'Shelf' }] }
+];
+function rupee(n) { return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+var ON = 'background: #EAF0FC; color: #1A4FB5';
+var OFF = 'background: transparent; color: #5B6575';
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = { tab: 'stock', filter: 'all', q: '', open: -1, reason: 'Expired', counts: {}, countMsg: '', recvMsg: '',
+      purchases: [
+        { what: 'Pregabid 75 × 200 · Nurokind-OD × 300 · Pan 40 × 200', from: 'Sri Balaji Pharma · inv SBP/2291', amount: '₹6,840', date: '4 Oct' },
+        { what: 'Duzela 20 × 100 · Amitone 10 × 200', from: 'Kongu Medical Agencies · inv KMA-778', amount: '₹1,980', date: '27 Sep' },
+        { what: 'Lactulose syrup × 12 · Myospaz gel × 20', from: 'Salem Surgicals · inv 0412', amount: '₹4,120', date: '18 Sep' }
+      ],
+      transfers: [{ what: 'Nurokind-OD × 100 · Store room → Shelf', when: 'Selvi · 9:20 today' }, { what: 'Pan 40 × 30 · Shelf → Omalur camp kit', when: 'Anand · 3 Oct' }],
+      adjs: [{ what: 'Myoril 4 mg −6 · damaged strips', when: 'Selvi · 1 Oct' }, { what: 'Pregabid 75 +2 · count correction', when: 'Anand · 28 Sep' }] };
+  }
+  renderVals() {
+    var self = this, s = this.state;
+    var status = function (m) { return m.qty === 0 ? 'out' : m.qty < m.reorder ? 'low' : m.days <= 90 ? 'exp' : 'ok'; };
+    var term = s.q.trim().toLowerCase();
+    var shown = MEDS.filter(function (m) {
+      var st = status(m);
+      if (term && m.name.toLowerCase().indexOf(term) === -1) return false;
+      if (s.filter === 'low') return st === 'low' || st === 'out';
+      if (s.filter === 'exp') return m.days <= 90;
+      return true;
+    });
+    var tabs = [['stock', 'Stock'], ['purch', 'Purchases'], ['trans', 'Transfers'], ['adj', 'Adjustments'], ['count', 'Physical count']];
+    var counts = MEDS.slice(3, 9).map(function (m) {
+      var c = s.counts[m.name], has = c !== undefined && c !== '', d = has ? c - m.qty : 0;
+      return { name: m.name, expected: m.qty, counted: has ? c : '', diff: has ? (d > 0 ? '+' + d : String(d)) : '—',
+        diffSt: !has ? 'color: #9AA3B0' : d === 0 ? 'color: #1F7A4D' : 'color: #B42318',
+        onChange: function (e) { var nc = Object.assign({}, s.counts); nc[m.name] = e.target.value === '' ? '' : parseInt(e.target.value, 10); self.setState({ counts: nc, countMsg: '' }); } };
+    });
+    var entered = counts.filter(function (c) { return c.counted !== ''; });
+    var off = entered.filter(function (c) { return c.diff !== '0'; }).length;
+    var go = function (t) { return function () { self.setState({ tab: t }); }; };
+    return {
+      tabs: tabs.map(function (t) { return { label: t[1], on: s.tab === t[0], st: s.tab === t[0] ? ON : OFF, pick: go(t[0]) }; }),
+      tStock: s.tab === 'stock', tPurch: s.tab === 'purch', tTrans: s.tab === 'trans', tAdj: s.tab === 'adj', tCount: s.tab === 'count',
+      lowCount: MEDS.filter(function (m) { var x = status(m); return x === 'low' || x === 'out'; }).length,
+      expCount: MEDS.filter(function (m) { return m.days <= 90; }).length,
+      fLow: function () { self.setState({ tab: 'stock', filter: 'low' }); }, fExp: function () { self.setState({ tab: 'stock', filter: 'exp' }); },
+      q: s.q, onQ: function (e) { self.setState({ q: e.target.value }); },
+      filters: [['all', 'All'], ['low', 'Low or out'], ['exp', 'Expiring soon']].map(function (f) { return { label: f[1], st: s.filter === f[0] ? ON : OFF, pick: function () { self.setState({ filter: f[0] }); } }; }),
+      stock: shown.map(function (m) {
+        var st = status(m), i = MEDS.indexOf(m);
+        return { name: m.name, where: m.where, qty: m.qty + ' ' + m.unit + (m.qty === 1 ? '' : 's'), reorder: m.reorder, exp: m.exp, price: rupee(m.price),
+          qtySt: st === 'out' ? 'color: #B42318' : st === 'low' ? 'color: #93520A' : '',
+          expSt: m.days <= 60 ? 'color: #B42318; font-weight: 600' : m.days <= 90 ? 'color: #93520A' : 'color: #5B6575',
+          status: st === 'out' ? 'Out of stock · order' : st === 'low' ? 'Low · order ' + (m.reorder * 2 - m.qty) : m.days <= 60 ? 'Expires in ' + m.days + ' days · use first' : st === 'exp' ? 'Expires in ' + m.days + ' days' : 'OK',
+          statusSt: st === 'out' ? 'color: #B42318' : st === 'low' ? 'color: #93520A' : m.days <= 60 ? 'color: #B42318' : st === 'exp' ? 'color: #93520A' : 'color: #9AA3B0; font-weight: 500',
+          open: s.open === i, batches: m.batches, toggle: function () { self.setState({ open: s.open === i ? -1 : i }); } };
+      }),
+      noStock: shown.length === 0,
+      gotoPurchase: go('purch'), gotoAdjust: go('adj'), gotoTransfer: go('trans'),
+      recvFields: [['Invoice no.', 'SBP/2317'], ['Medicine', 'Ultracet 37.5/325'], ['Batch', 'UC2409'], ['Expiry', '09/2027'], ['Quantity', '100'], ['Cost per unit', '₹8.40']].map(function (r) { return { label: r[0], value: r[1] }; }),
+      receive: function () { self.setState({ recvMsg: 'Ultracet +100 added · batch UC2409', purchases: [{ what: 'Ultracet 37.5/325 × 100', from: 'Sri Balaji Pharma · inv SBP/2317', amount: '₹840', date: 'Today' }].concat(s.purchases) }); },
+      recvMsg: s.recvMsg, purchases: s.purchases,
+      transfers: s.transfers, transfer: function () { self.setState({ transfers: [{ what: 'Pregabid 75 × 30 · Store room → Shelf', when: 'Selvi · just now' }].concat(s.transfers) }); },
+      adjs: s.adjs,
+      reasons: ['Expired', 'Damaged', 'Returned to supplier', 'Count correction'].map(function (r) { return { label: r, st: s.reason === r ? ON : OFF, pick: function () { self.setState({ reason: r }); } }; }),
+      adjust: function () { self.setState({ adjs: [{ what: 'Duzela 20 mg −10 · ' + s.reason.toLowerCase(), when: 'Selvi · just now' }].concat(s.adjs) }); },
+      counts: counts,
+      countSum: entered.length ? entered.length + ' of ' + counts.length + ' counted · ' + off + ' different' : 'Nothing counted yet',
+      countSumSt: off ? 'color: #B42318' : 'color: #5B6575',
+      saveCount: function () { self.setState({ countMsg: entered.length ? 'Count saved · ' + off + ' adjustment' + (off === 1 ? '' : 's') + ' logged' : 'Enter at least one count' }); },
+      countMsg: s.countMsg
+    };
+  }
+}
+</script>
+</body>
+</html>

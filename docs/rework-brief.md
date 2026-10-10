@@ -6,6 +6,13 @@ authorization to delete existing features or records.
 
 ## Purpose
 
+New UI direction: see `docs/ui-handoff-plan.md` and the preserved
+`docs/references/clinic-app-handoff/` screenshots/prototypes. The user confirmed
+on 2026-10-10 that the agreed clinic rules below remain in force while adopting
+that UI. The subsequent user-approved `docs/ui-handoff-decisions.md` resolves
+prescription filling and supersedes earlier queue ordering, price-snapshot timing
+and partial-supply rules. Where that addendum is silent, this brief governs.
+
 A personal clinical tool for the doctor and receptionist. The primary
 job is fast digital prescription writing, with patient details filled
 from reception and useful history available when a patient returns.
@@ -49,7 +56,7 @@ not assume the old phase checklist proves the product is useful.
 8. Recorded payments support a simple revenue view, including Cash/UPI
    totals and the link back to the patient and visit.
 
-The existing integer-money, doctor-controlled consultation final amount, immutable
+The existing integer-money, doctor-approved consultation pricing, immutable
 paid bills, transactional/idempotent stock deduction, RLS, offline
 printing, and durable queued-write requirements remain in force.
 The only agreed consultation-fee exception is a refill-only sale.
@@ -57,6 +64,9 @@ Reception may confirm a refill total at saved unit prices without doctor
 approval, entering supplied quantities at saved catalog prices. Both doctor
 and receptionist can set catalog unit prices; reception cannot override a
 bill line price or give discounts. Only the doctor can discount a refill.
+The addendum allows reception to reduce supplied quantities without new approval,
+using approval-time prices and the fixed doctor discount capped at subtotal.
+Record shortfalls; only the doctor can approve quantities above the approved cap.
 Prompt cross-device sync requires connectivity; queued offline work
 must be visibly pending rather than appearing delivered to the other
 station.

@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Billing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A4FB5}
+button,input{font-family:inherit;font-variant-numeric:tabular-nums}
+input::placeholder{color:#9AA3B0}
+input:focus{outline:none;border-bottom-color:#1A4FB5 !important}
+button:focus-visible,a:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px;border-radius:6px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B; font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums">
+<dc-import name="Nav" active="billing" user="Reception · Selvi" token="15" waiting="6" event="{{navEvent}}" sync="{{sync}}" hint-size="100%,56px"></dc-import>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; min-height: calc(100vh - 56px)">
+
+<nav aria-label="Bills to collect" style="flex: 1 1 240px; max-width: 280px; min-width: 0; box-sizing: border-box; padding: 32px 0 32px 32px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #7A8494; margin-bottom: 6px">To collect</span>
+<sc-for list="{{queue}}" as="b" hint-placeholder-count="2">
+<button type="button" onClick="{{b.pick}}" style="display: flex; flex-direction: column; align-items: flex-start; padding: 10px 12px; border: 0; border-radius: 10px; text-align: left; cursor: pointer; {{b.st}}">
+<span style="font-weight: 600; color: #141C2B">{{b.title}}</span>
+<span style="font-size: 13px; color: #7A8494">{{b.sub}}</span>
+</button>
+</sc-for>
+<a href="More.dc.html" style="margin-top: 14px; padding-left: 12px; font-size: 14px; font-weight: 600; text-decoration: none">Unpaid bills (2) →</a>
+<a href="Refill.dc.html" style="padding-left: 12px; font-size: 14px; font-weight: 600; text-decoration: none">New refill sale →</a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 32px 48px">
+<div style="max-width: 720px; display: flex; flex-direction: column; gap: 28px">
+
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #7A8494">{{bill.no}} · {{bill.approved}}</span>
+<span style="font-weight: 700; font-size: 26px; letter-spacing: -0.02em">{{bill.title}}</span>
+<a href="Patient.dc.html" style="font-size: 14px; text-decoration: none">{{bill.patient}} →</a>
+</div>
+
+<section style="display: flex; flex-direction: column">
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 150px 90px 90px; gap: 12px; padding: 0 0 8px; border-bottom: 1px solid #E3E6EB; font-size: 13px; color: #7A8494">
+<span>Item</span><span>Supplied</span><span style="text-align: right">Price</span><span style="text-align: right">Amount</span>
+</div>
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="4">
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 150px 90px 90px; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #EEF0F3">
+<span style="display: flex; flex-direction: column; min-width: 0">
+<span style="font-weight: 600">{{l.name}}</span>
+<span style="font-size: 13px; {{l.noteSt}}">{{l.note}}</span>
+</span>
+<span style="display: flex; align-items: center; gap: 4px">
+<sc-if value="{{l.isMed}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{l.minus}}" aria-label="One less" style="width: 32px; height: 32px; border: 0; border-radius: 8px; background: #F2F4F7; color: #141C2B; font-size: 16px; cursor: pointer">−</button>
+<span style="min-width: 34px; text-align: center; font-weight: 600">{{l.qty}}</span>
+<button type="button" onClick="{{l.plus}}" aria-label="One more" style="width: 32px; height: 32px; border: 0; border-radius: 8px; background: #F2F4F7; color: #141C2B; font-size: 16px; cursor: pointer">+</button>
+<span style="font-size: 12px; color: #9AA3B0">/ {{l.rx}}</span>
+</sc-if>
+<sc-if value="{{l.notMed}}" hint-placeholder-val="{{ false }}"><span style="color: #9AA3B0">—</span></sc-if>
+</span>
+<span style="text-align: right; color: #5B6575">{{l.price}}</span>
+<span style="text-align: right; font-weight: 600; {{l.amtSt}}">{{l.amount}}</span>
+</div>
+</sc-for>
+<div style="display: flex; justify-content: space-between; align-items: baseline; padding: 16px 0 0">
+<span style="font-size: 13px; color: #7A8494">Prices and discount are set by the doctor · locked</span>
+<span style="font-size: 22px; font-weight: 700">{{total}}</span>
+</div>
+<sc-if value="{{changed}}" hint-placeholder-val="{{ false }}">
+<span style="padding-top: 6px; font-size: 13px; color: #93520A">Lower than the approved {{approvedTotal}} because fewer units were supplied.</span>
+</sc-if>
+<div style="display: {{askDisplay}}; gap: 4px; margin: 8px 0 0 -10px">
+<button type="button" onClick="{{askDoctor}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-weight: 600; font-size: 14px; cursor: pointer">{{askLabel}}</button>
+</div>
+</section>
+
+<sc-if value="{{unpaid}}" hint-placeholder-val="{{ true }}">
+<section style="display: flex; flex-direction: column; gap: 16px">
+<span style="font-size: 13px; color: #7A8494">Payment</span>
+<div style="display: flex; gap: 2px; margin-left: -12px">
+<sc-for list="{{methods}}" as="m" hint-placeholder-count="2">
+<button type="button" onClick="{{m.pick}}" style="height: 40px; padding: 0 18px; border: 0; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; {{m.st}}">{{m.label}}</button>
+</sc-for>
+</div>
+<sc-if value="{{isCash}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 28px">
+<label style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #7A8494">Received</span>
+<input type="number" min="0" value="{{received}}" onChange="{{onReceived}}" placeholder="₹" style="width: 140px; height: 38px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 18px; color: #141C2B">
+</label>
+<div style="display: flex; gap: 2px">
+<sc-for list="{{quick}}" as="qk" hint-placeholder-count="3">
+<button type="button" onClick="{{qk.pick}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: #F2F4F7; color: #141C2B; font-size: 14px; cursor: pointer">{{qk.label}}</button>
+</sc-for>
+</div>
+<span style="font-size: 15px; {{changeSt}}">{{changeText}}</span>
+</div>
+</sc-if>
+<sc-if value="{{isUpi}}" hint-placeholder-val="{{ false }}">
+<label style="display: flex; flex-direction: column; gap: 4px; max-width: 320px">
+<span style="font-size: 13px; color: #7A8494">UPI reference (last 4 digits)</span>
+<input type="text" value="{{upiRef}}" onChange="{{onUpi}}" placeholder="Optional" style="height: 38px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 16px; color: #141C2B">
+</label>
+</sc-if>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+<button type="button" onClick="{{markPaid}}" aria-disabled="{{cantPay}}" style="height: 48px; padding: 0 24px; border: 0; border-radius: 10px; font-weight: 600; font-size: 15px; {{payBtnSt}}">{{payLabel}}</button>
+<button type="button" onClick="{{payLater}}" style="height: 48px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; color: #5B6575; font-size: 15px; cursor: pointer">Pay later</button>
+</div>
+<sc-if value="{{laterOn}}" hint-placeholder-val="{{ false }}">
+<span role="status" style="font-size: 14px; color: #93520A; font-weight: 600">Moved to Unpaid bills. Medicines are still released — note it on the patient's next visit.</span>
+</sc-if>
+</section>
+</sc-if>
+
+<sc-if value="{{paid}}" hint-placeholder-val="{{ false }}">
+<section role="status" style="display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 14px; background: #F2FAF5">
+<span style="font-weight: 700; font-size: 20px; color: #1F7A4D">{{paidLine}}</span>
+<span style="font-size: 14px; color: #5B6575">{{stockLine}}</span>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" style="height: 42px; padding: 0 16px; border: 0; border-radius: 10px; background: #141C2B; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer">Print receipt</button>
+<button type="button" style="height: 42px; padding: 0 16px; border: 0; border-radius: 10px; background: #FFFFFF; color: #141C2B; font-weight: 600; font-size: 14px; cursor: pointer">Print prescription</button>
+<a href="Reception.dc.html" style="display: flex; align-items: center; height: 42px; padding: 0 14px; color: #1A4FB5; font-weight: 600; font-size: 14px; text-decoration: none">Back to queue →</a>
+</div>
+</section>
+</sc-if>
+</div>
+</main>
+
+<aside style="flex: 1 1 380px; max-width: 480px; min-width: 0; align-self: stretch; box-sizing: border-box; padding: 32px; background: #F6F7F9">
+<div style="position: sticky; top: 24px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 13px; color: #7A8494">Receipt preview</span>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 28px 26px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(20,28,43,0.06), 0 10px 30px rgba(20,28,43,0.08); font-size: 13px">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 2px; padding-bottom: 12px; border-bottom: 1px dashed #D5DAE1; text-align: center">
+<span style="font-weight: 700; font-size: 15px; color: #1A4FB5">SALEM PAIN &amp; PALLIATIVE CARE CLINIC</span>
+<span style="color: #5B6575">108, Swarnapuri Annex, Omalur Main Road, Salem 636 004</span>
+<span style="color: #5B6575">Cell 90955 96999</span>
+</div>
+<div style="display: flex; justify-content: space-between"><span>{{bill.no}}</span><span>10/10/2026 · 11:06</span></div>
+<div>{{bill.patient}}</div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 0; border-top: 1px dashed #D5DAE1; border-bottom: 1px dashed #D5DAE1">
+<sc-for list="{{lines}}" as="r" hint-placeholder-count="4">
+<div style="display: flex; justify-content: space-between; gap: 10px"><span>{{r.receipt}}</span><span>{{r.amount}}</span></div>
+</sc-for>
+</div>
+<div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 15px"><span>Total</span><span>{{total}}</span></div>
+<div style="color: #5B6575">{{receiptPay}}</div>
+<div style="padding-top: 8px; text-align: center; color: #9AA3B0">Thank you · Review {{bill.review}}</div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+var BILLS = [
+  { key: 'b14', no: 'Bill 1015', title: '#14 Murugan K', patient: 'Murugan K · P-0142 · 58 M', approved: 'approved by Dr. Kirupakaran · 11:04', review: '24 Oct', approvedTotal: 800,
+    lines: [
+      { name: 'Consultation', kind: 'fee', amount: 300 },
+      { name: 'Pregabid 75 mg', kind: 'med', unit: 'cap', rx: 15, stock: 120, price: 14.5 },
+      { name: 'Nurokind-OD 1500 mcg', kind: 'med', unit: 'tab', rx: 30, stock: 200, price: 9.8 },
+      { name: 'Ultracet 37.5/325', kind: 'med', unit: 'tab', rx: 5, stock: 4, price: 12, sos: true },
+      { name: 'Discount · round off', kind: 'disc', amount: -59.5, note: 'Approved by doctor' }
+    ] },
+  { key: 'b11', no: 'Bill 1012', title: '#11 Arul P', patient: 'Arul P · P-0211 · 39 M', approved: 'approved by Dr. Kirupakaran · 10:12', review: '24 Oct', approvedTotal: 860, done: 'UPI · ref 4821',
+    lines: [
+      { name: 'Consultation', kind: 'fee', amount: 300 },
+      { name: 'Myoril 4 mg', kind: 'med', unit: 'cap', rx: 10, stock: 70, price: 11.4 },
+      { name: 'Zerodol-P', kind: 'med', unit: 'tab', rx: 10, stock: 150, price: 4.6 },
+      { name: 'Pan 40 mg', kind: 'med', unit: 'tab', rx: 10, stock: 120, price: 7.2 },
+      { name: 'Myospaz gel 30 g', kind: 'med', unit: 'tube', rx: 1, stock: 12, price: 168 },
+      { name: 'Discount · round off', kind: 'disc', amount: -0.0 }
+    ] }
+];
+function rupee(n) { var neg = n < 0; n = Math.abs(n); return (neg ? '− ' : '') + '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+var ON = 'background: #EAF0FC; color: #1A4FB5';
+var OFF = 'background: transparent; color: #5B6575';
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    var q = {}; BILLS.forEach(function (b) { q[b.key] = b.lines.map(function (l) { return l.kind === 'med' ? Math.min(l.rx, l.stock) : null; }); });
+    this.state = { sel: 'b14', qty: q, method: 'cash', received: '', upi: '', status: { b14: 'open', b11: 'paid' }, asked: false, later: false, saving: false };
+  }
+  renderVals() {
+    var self = this, s = this.state, b = BILLS.filter(function (x) { return x.key === s.sel; })[0];
+    var qty = s.qty[b.key], status = s.status[b.key];
+    var total = 0;
+    var lines = b.lines.map(function (l, i) {
+      var isMed = l.kind === 'med', amt = isMed ? qty[i] * l.price : l.amount;
+      total += amt;
+      var short = isMed && l.rx > l.stock;
+      var note = isMed ? (short ? 'Only ' + l.stock + ' in stock · ' + (l.rx - qty[i]) + ' short — tell the patient' : l.rx - qty[i] > 0 ? (l.rx - qty[i]) + ' not supplied' : (l.sos ? 'SOS · ' : '') + l.stock + ' in stock') : (l.note || 'Fixed fee');
+      var set = function (d) { return function () {
+        if (status !== 'open') return;
+        var nq = qty.slice(); nq[i] = Math.max(0, Math.min(l.rx, l.stock, nq[i] + d));
+        var all = Object.assign({}, s.qty); all[b.key] = nq; self.setState({ qty: all });
+      }; };
+      return { name: l.name, isMed: isMed, notMed: !isMed, qty: isMed ? qty[i] : '', rx: l.rx || '', note: note,
+        noteSt: short ? 'color: #93520A' : l.kind === 'disc' ? 'color: #1F7A4D' : 'color: #7A8494',
+        price: isMed ? rupee(l.price) : '', amount: rupee(amt), amtSt: l.kind === 'disc' ? 'color: #1F7A4D' : '',
+        receipt: isMed ? l.name + ' × ' + qty[i] : l.name, minus: set(-1), plus: set(1) };
+    }).filter(function (l, i) { return !(b.lines[i].kind === 'disc' && b.lines[i].amount === 0); });
+    total = Math.round(total * 100) / 100;
+    var rec = parseFloat(s.received);
+    var cashOk = s.method !== 'cash' || (rec >= total);
+    var change = rec - total;
+    var round = function (n) { return Math.ceil(total / n) * n; };
+    var quick = [total, round(100), round(500)].filter(function (v, i, a) { return a.indexOf(v) === i; });
+    var paidInfo = status === 'paid' ? (b.done || (s.method === 'cash' ? 'Cash · received ' + rupee(rec) + ' · change ' + rupee(change) : 'UPI' + (s.upi ? ' · ref ' + s.upi : ''))) : '';
+    return {
+      navEvent: status === 'paid' && b.key === 'b14' ? '#14 paid · ' + rupee(total) : '',
+      sync: s.saving ? 'saving' : 'saved',
+      queue: BILLS.map(function (x) {
+        var st = s.status[x.key];
+        return { title: x.title, sub: st === 'paid' ? 'Paid' : st === 'later' ? 'Pay later' : 'Ready · approved ' + rupee(x.approvedTotal),
+          st: x.key === s.sel ? 'background: #F2F4F7' : 'background: transparent', pick: function () { self.setState({ sel: x.key, received: '', upi: '', asked: false }); } };
+      }),
+      bill: { no: b.no, title: b.title, patient: b.patient, approved: b.approved, review: b.review },
+      lines: lines, total: rupee(total), approvedTotal: rupee(b.approvedTotal), changed: status === 'open' && total < b.approvedTotal,
+      askLabel: s.asked ? 'Sent to doctor · waiting for reply' : 'Ask doctor to change price or discount',
+      askDoctor: function () { self.setState({ asked: true }); },
+      askDisplay: status === 'paid' ? 'none' : 'flex',
+      unpaid: status !== 'paid', paid: status === 'paid', laterOn: status === 'later',
+      methods: [['cash', 'Cash'], ['upi', 'UPI']].map(function (m) { return { label: m[1], st: s.method === m[0] ? ON : OFF, pick: function () { self.setState({ method: m[0] }); } }; }),
+      isCash: s.method === 'cash', isUpi: s.method === 'upi',
+      received: s.received, onReceived: function (e) { self.setState({ received: e.target.value }); },
+      quick: quick.map(function (v) { return { label: rupee(v), pick: function () { self.setState({ received: String(v) }); } }; }),
+      changeText: isNaN(rec) ? 'Enter amount received' : rec < total ? rupee(total - rec) + ' still due' : 'Change to return: ' + rupee(change),
+      changeSt: !isNaN(rec) && rec < total ? 'color: #B42318; font-weight: 600' : !isNaN(rec) ? 'color: #141C2B; font-weight: 700' : 'color: #9AA3B0',
+      upiRef: s.upi, onUpi: function (e) { self.setState({ upi: e.target.value.replace(/\D/g, '').slice(0, 4) }); },
+      cantPay: !cashOk, payBtnSt: cashOk ? 'background: #1A4FB5; color: #FFFFFF; cursor: pointer' : 'background: #EEF0F3; color: #9AA3B0; cursor: not-allowed',
+      payLabel: s.saving ? 'Saving…' : 'Mark paid · ' + rupee(total),
+      markPaid: function () {
+        if (!cashOk || s.saving) return;
+        self.setState({ saving: true });
+        setTimeout(function () { var st = Object.assign({}, s.status); st[b.key] = 'paid'; self.setState({ status: st, saving: false }); }, 700);
+      },
+      payLater: function () { var st = Object.assign({}, s.status); st[b.key] = 'later'; self.setState({ status: st }); },
+      paidLine: 'Paid ' + rupee(total) + ' · ' + paidInfo,
+      stockLine: 'Stock updated: ' + b.lines.filter(function (l) { return l.kind === 'med'; }).map(function (l) { return l.name.split(' ')[0] + ' −' + qty[b.lines.indexOf(l)]; }).join(' · ') + '. Visit saved to the patient record.',
+      receiptPay: status === 'paid' ? 'Paid · ' + paidInfo : status === 'later' ? 'Unpaid · pay later' : 'Not paid yet'
+    };
+  }
+}
+</script>
+</body>
+</html>

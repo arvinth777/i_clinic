@@ -3,6 +3,61 @@
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
 
+## New UI handoff assessment — 2026-10-10
+
+### Decision addendum received
+
+- Recorded the user's governing addendum in `docs/ui-handoff-decisions.md` and
+  updated the plan, AGENTS.md, PRD, product and rework guidance. Earlier pending
+  prescription questions below are resolved by this addendum.
+- Accepted logged queue reordering, Not here/return, explicit no-show after a
+  configurable 30-minute default, and Called/Sent in acknowledgement. Accepted
+  saved diagnosis/advice, non-blocking diagnosis/review reminders, explicit
+  tablet/capsule quantity suggestions and logged NSAID-allergy choices. Finish
+  and Call next stay separate; skipped drafts and other clinical warnings remain
+  out of scope.
+- Accepted audited catalog prices, approval-time price snapshots and partial
+  supply with a fixed doctor discount capped at the reduced subtotal. Preserve
+  the ₹250 fee, name-only pharmacy exception, procedure charges and paid history.
+- Source gaps recorded: existing prices freeze at prescription insertion;
+  trusted approvals contain totals rather than complete line snapshots; source
+  contains generic custom patient fields but no dedicated allergy/NSAID model.
+  Actual allergy field definitions still need verification before warning logic.
+- Delivery is five separate PR steps, stacked above the existing audit PR.
+  Current branch `codex/clinic-ui-handoff-spec` contains step 1 documentation and
+  all 34 preserved reference files. No runtime feature is implemented by this
+  step, and no database, deployment or authentication change is included.
+- Required checks are recorded per PR, including 1440/390 layouts, backend roles,
+  integer money, offline reload, regressions and review. Physical short/typical/
+  continuation prescription and receipt evidence remains a release gate. No
+  clinic-printer sign-off has occurred. Verified source-reference hashes,
+  document links, integer acceptance examples, documentation-only scope and
+  diff whitespace. Runtime tests are not applicable to this documentation-only
+  change and have not been rerun. Step 1 is prepared for its draft PR;
+  implementation steps 2–5 and their acceptance checks remain outstanding.
+
+- Inspected the supplied Downloads/clinic-app-handoff screenshots and prototype
+  source against the current application. Preserved the complete handoff under
+  `docs/references/clinic-app-handoff/`; `Minimal.dc.html` is the prescription
+  screen. Its prototype runtime `support.js` is absent, so HTML is a reference
+  for a React rebuild, not a runnable production implementation.
+- User explicitly confirmed that existing rules remain: ₹250 consultation,
+  catalog unit prices editable by both doctor and reception, doctor-only
+  discounts, and visually verified name-only pharmacy sales without patient
+  history, queue, fee or digital-prescription eligibility requirements.
+- Added `docs/ui-handoff-plan.md`: per-screen source mapping, confirmed scope,
+  prototype-only/conflicting behaviour, prescription persistence/print gaps and
+  implementation sequence. Linked it from the rework brief. Inspected all 15
+  screenshots; no prototype records or clinical warning logic were imported.
+- Initial assessment, superseded by the addendum above: whether the mockup completely specifies the user's major
+  prescription-filling changes or they have additional requirements. Do not
+  infer new mandatory clinical fields, queue transitions, quantity conversion,
+  partial dispensing or primary PIN authentication from the mockup alone.
+- At the initial assessment, only reference/documentation changes were uncommitted on
+  `codex/clinic-audit-fixes`; application source and databases are unchanged.
+  Next: resolve the prescription question, implement the accepted UI in coherent
+  passes, then browser/offline/print/regression verification and review.
+
 ## Quantity billing and pharmacy sales — 2026-10-10
 
 - Implemented the two remaining audit items after the user confirmed the unit

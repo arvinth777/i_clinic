@@ -7,6 +7,10 @@ Clinic app for a two-person pain-relief and palliative-care clinic.
 - Read `docs/STATUS.md` and `prd-clinic-management-system.md` before work.
   `docs/rework-brief.md` records the current clinical scope and supersedes
   older pricing/refill assumptions. Requirements are not proof of implementation.
+- For UI, queue, prescription, pricing or dispensing work, read
+  `docs/ui-handoff-decisions.md` and `docs/ui-handoff-plan.md`. The user's addendum
+  supersedes conflicting earlier rules and prototype behaviour; deliver one PR
+  per plan step and retain the physical-printer release gate.
 - Read the relevant section of `docs/technical-decisions.md` before changing
   search, schema, realtime, offline, or messaging. Read `docs/design.md` before UI work.
 - Update the relevant document when a decision changes, and `docs/STATUS.md`
@@ -17,7 +21,7 @@ Clinic app for a two-person pain-relief and palliative-care clinic.
 These are decided. Do not relitigate them, and do not silently violate them.
 
 1. **Money is integers.** Store paise as `bigint`, never float. Consultation is 25000 paise (₹250) flat for a consultation visit. Refill-only sales have no consultation fee and do not enter the doctor's queue (user decision, 2026-10-10). Medicine charges = quantity supplied × unit price; the unit must be explicit and consistent with stock deduction. Existing medicine units/counts require staff confirmation before quantity billing; see `docs/rework-brief.md`.
-2. **The doctor sets the final payable amount for consultation visits**; both doctor and receptionist can set saved catalog unit prices. Reception cannot override a bill's unit prices or give discounts. For refill-only sales, reception visually verifies the old prescription and bills by customer name alone, without a patient record/history, token, or consultation fee. Reception can confirm the saved-price total without doctor approval; only the doctor can discount (user decisions, 2026-10-10). Discount = calculated total − final amount, recorded automatically.
+2. **The doctor approves consultation bill quantities, prices and discount**; bill prices freeze at approval. Both doctor and reception can edit catalog unit prices with an actor/time/old/new audit. Reception may reduce supplied quantities within approved quantities and available stock: recalculate with the fixed doctor discount, capped at the new subtotal, and record shortfalls. Reception cannot override bill prices or grant discounts. Name-only refill sales retain visual verification and saved-price confirmation without a patient record/history, token, consultation fee or doctor approval; only the doctor can discount. See the addendum for exact rules.
 3. **Paid bills are immutable.** A correction writes a new row referencing the original. Never UPDATE a paid bill in place.
 4. **Stock deduction and bill confirmation happen in one transaction**, and the operation is idempotent — a double-clicked confirm must never deduct twice.
 5. **RLS is on for every table from day one.** This app is reachable from outside the clinic.

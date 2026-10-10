@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>App map</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a:hover{background:#EAF0FC}
+a:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 640px; box-sizing: border-box; padding: 48px 56px; background: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B; display: flex; flex-direction: column; gap: 30px">
+<div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #1A4FB5">Walkthrough · Saturday 10 October</span>
+<span style="font-size: 34px; font-weight: 700; letter-spacing: -0.02em">One visit, from the front desk and back</span>
+</div>
+<span style="max-width: 400px; font-size: 15px; color: #5B6575">Press Play and click any step. The story follows Murugan K, token #14, through every screen.</span>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px">
+<a href="SignIn.dc.html" style="display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: 14px; background: #F6F7F9; color: #141C2B; text-decoration: none">
+<span style="font-weight: 700; color: #1A4FB5">01</span><span style="font-weight: 700; font-size: 17px">Sign in</span><span style="font-size: 14px; color: #5B6575">Pick your name, 4-digit PIN. Locks itself when idle.</span></a>
+<a href="Reception.dc.html" style="display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: 14px; background: #F6F7F9; color: #141C2B; text-decoration: none">
+<span style="font-weight: 700; color: #1A4FB5">02</span><span style="font-weight: 700; font-size: 17px">Check in</span><span style="font-size: 14px; color: #5B6575">Reception finds or registers the patient and issues a token.</span></a>
+<a href="Doctor.dc.html" style="display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: 14px; background: #F6F7F9; color: #141C2B; text-decoration: none">
+<span style="font-weight: 700; color: #1A4FB5">03</span><span style="font-weight: 700; font-size: 17px">Doctor calls</span><span style="font-size: 14px; color: #5B6575">Reception sees "Doctor called #14", taps Sent in. Details and history are ready.</span></a>
+<a href="Minimal.dc.html" style="display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: 14px; background: #F6F7F9; color: #141C2B; text-decoration: none">
+<span style="font-weight: 700; color: #1A4FB5">04</span><span style="font-weight: 700; font-size: 17px">Prescribe &amp; approve</span><span style="font-size: 14px; color: #5B6575">Prescription on the letterhead. Doctor approves fee and any discount.</span></a>
+<a href="Billing.dc.html" style="display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: 14px; background: #F6F7F9; color: #141C2B; text-decoration: none">
+<span style="font-weight: 700; color: #1A4FB5">05</span><span style="font-weight: 700; font-size: 17px">Supply &amp; collect</span><span style="font-size: 14px; color: #5B6575">Quantities × locked prices. Cash or UPI, print receipt and Rx.</span></a>
+<a href="Patient.dc.html" style="display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: 14px; background: #141C2B; color: #FFFFFF; text-decoration: none">
+<span style="font-weight: 700; color: #9DBBF5">06</span><span style="font-weight: 700; font-size: 17px">On the record</span><span style="font-size: 14px; color: #C8D0DC">Visit, prescription, bill and payment join the patient's history.</span></a>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #7A8494">Also at the desk</span>
+<a href="Refill.dc.html" style="padding: 6px 8px; margin: 0 -8px; border-radius: 8px; font-size: 15px; font-weight: 600; color: #1A4FB5; text-decoration: none">Refill-only sale — no token, no fee</a>
+<a href="Lock.dc.html" style="padding: 6px 8px; margin: 0 -8px; border-radius: 8px; font-size: 15px; font-weight: 600; color: #1A4FB5; text-decoration: none">Screen lock</a>
+<a href="States.dc.html" style="padding: 6px 8px; margin: 0 -8px; border-radius: 8px; font-size: 15px; font-weight: 600; color: #1A4FB5; text-decoration: none">Offline, loading, error, saving</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #7A8494">Stock &amp; money</span>
+<a href="Inventory.dc.html" style="padding: 6px 8px; margin: 0 -8px; border-radius: 8px; font-size: 15px; font-weight: 600; color: #1A4FB5; text-decoration: none">Inventory — stock, expiry, counts</a>
+<a href="Suppliers.dc.html" style="padding: 6px 8px; margin: 0 -8px; border-radius: 8px; font-size: 15px; font-weight: 600; color: #1A4FB5; text-decoration: none">Suppliers &amp; purchases</a>
+<a href="Reports.dc.html" style="padding: 6px 8px; margin: 0 -8px; border-radius: 8px; font-size: 15px; font-weight: 600; color: #1A4FB5; text-decoration: none">Reports &amp; close the day</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #7A8494">Housekeeping</span>
+<a href="More.dc.html" style="padding: 6px 8px; margin: 0 -8px; border-radius: 8px; font-size: 15px; font-weight: 600; color: #1A4FB5; text-decoration: none">Unpaid, corrections, follow-ups, documents, duplicates, reps</a>
+<a href="Settings.dc.html" style="padding: 6px 8px; margin: 0 -8px; border-radius: 8px; font-size: 15px; font-weight: 600; color: #1A4FB5; text-decoration: none">Admin &amp; settings</a>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":640}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

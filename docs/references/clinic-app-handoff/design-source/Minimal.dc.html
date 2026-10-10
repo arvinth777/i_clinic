@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prescription — minimal</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A4FB5}a:hover{color:#123E8C}
+button,input,textarea{font-family:inherit;font-variant-numeric:tabular-nums}
+button{transition:background-color .12s,color .12s}
+input::placeholder,textarea::placeholder{color:#9AA3B0}
+input:focus,textarea:focus{outline:none}
+button:focus-visible,input[type=checkbox]:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px;border-radius:6px}
+input[type=text]:focus,input[type=number]:focus,textarea:focus{border-bottom-color:#1A4FB5 !important;box-shadow:0 1px 0 0 #1A4FB5}
+textarea{field-sizing:content}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B; font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums">
+
+<dc-import name="Nav" active="doctor" user="Dr. G. P. Kirupakaran" token="{{token}}" waiting="{{waiting}}" event="{{navEvent}}" sync="{{sync}}" hint-size="100%,56px"></dc-import>
+
+<!-- Prescription bar -->
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 8px 32px; border-bottom: 1px solid #EEF0F3; font-size: 14px">
+<span style="display: flex; align-items: center; gap: 16px">
+<a href="Doctor.dc.html" style="display: flex; align-items: center; height: 36px; color: #5B6575; text-decoration: none">← Workspace</a>
+<span style="font-weight: 600">{{barTitle}}</span>
+</span>
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px">
+<sc-if value="{{hasArrival}}" hint-placeholder-val="{{ false }}">
+<span role="status" style="font-weight: 600; {{arrSt}}">{{arrival}}</span>
+</sc-if>
+<button type="button" onClick="{{openQueue}}" style="height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #141C2B; font-size: 14px; cursor: pointer">Queue · {{waiting}} waiting</button>
+<sc-if value="{{canSkip}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{askSkip}}" style="height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-size: 14px; cursor: pointer">Skip</button>
+</sc-if>
+</span>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; min-height: calc(100vh - 110px)">
+
+<!-- ===== Form ===== -->
+<div style="flex: 999 1 600px; min-width: 0; box-sizing: border-box; padding: 36px 32px 0">
+<div style="max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px">
+
+<sc-if value="{{idle}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 96px 0">
+<span style="font-weight: 700; font-size: 24px; letter-spacing: -0.02em">No one waiting</span>
+<span style="font-size: 15px; color: #5B6575">The next patient appears here as soon as reception checks them in.</span>
+<sc-if value="{{idleHasDrafts}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{openQueue}}" style="align-self: flex-start; margin: 10px 0 0 -10px; height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-weight: 600; font-size: 15px; cursor: pointer">{{idleDraftText}}</button>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{notIdle}}" hint-placeholder-val="{{ true }}">
+
+<!-- Patient -->
+<section style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px">
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-weight: 700; font-size: 26px; letter-spacing: -0.02em; line-height: 1.15">{{patientName}}</span>
+<span style="font-size: 14px; color: #5B6575">{{patientLine}}</span>
+<sc-if value="{{hasAllergy}}" hint-placeholder-val="{{ true }}">
+<span style="font-size: 14px; font-weight: 600; color: #B42318">{{allergyText}}</span>
+</sc-if>
+</div>
+<sc-if value="{{hasHistory}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 4px">
+<button type="button" onClick="{{openHistory}}" style="height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-size: 14px; font-weight: 600; cursor: pointer">History</button>
+<button type="button" onClick="{{repeatLast}}" style="height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-size: 14px; font-weight: 600; cursor: pointer">Repeat last Rx</button>
+</div>
+</sc-if>
+</section>
+
+<!-- Complaints & diagnosis -->
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 28px">
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #7A8494">Complaints</span>
+<textarea rows="2" value="{{cc}}" onChange="{{onCc}}" placeholder="What brought them in" style="resize: none; min-height: 48px; padding: 0 0 8px; border: 0; border-bottom: 1px solid #E3E6EB; background: transparent; font-size: 15px; line-height: 1.55; color: #141C2B"></textarea>
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #7A8494">Diagnosis</span>
+<textarea rows="2" value="{{dx}}" onChange="{{onDx}}" placeholder="Working or final diagnosis" style="resize: none; min-height: 48px; padding: 0 0 8px; border: 0; border-bottom: 1px solid #E3E6EB; background: transparent; font-size: 15px; line-height: 1.55; color: #141C2B"></textarea>
+</label>
+</section>
+
+<!-- Medicines -->
+<section style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; color: #7A8494">Medicines</span>
+
+<div style="position: relative">
+<input type="text" aria-label="Add medicine" autocomplete="off" value="{{query}}" onChange="{{onQuery}}" onKeyDown="{{onKey}}" onFocus="{{onFocus}}" onBlur="{{onBlur}}" placeholder="Add a medicine or a saved set…" style="width: 100%; box-sizing: border-box; height: 48px; padding: 0 0 0 0; border: 0; border-bottom: 1.5px solid #1A4FB5; background: transparent; font-size: 17px; color: #141C2B">
+<sc-if value="{{hasSugg}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; z-index: 20; left: -12px; right: -12px; top: 54px; padding: 6px; border-radius: 12px; background: #FFFFFF; box-shadow: 0 12px 36px rgba(20,28,43,0.14), 0 0 0 1px #EEF0F3; display: flex; flex-direction: column">
+<sc-for list="{{items}}" as="s" hint-placeholder-count="3">
+<button type="button" onClick="{{s.add}}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 0; border-radius: 8px; text-align: left; cursor: pointer; {{s.rowSt}}">
+<span style="display: flex; flex-direction: column; min-width: 0">
+<span style="font-size: 15px; font-weight: 600; color: #141C2B">{{s.label}} <span style="font-weight: 400; color: #7A8494">{{s.extra}}</span></span>
+<span style="font-size: 13px; color: #7A8494">{{s.sub}}</span>
+</span>
+<span style="font-size: 12px; font-weight: 600; flex-shrink: 0; {{s.tagSt}}">{{s.tag}}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+<sc-if value="{{noMeds}}" hint-placeholder-val="{{ false }}">
+<span style="padding: 14px 0; font-size: 14px; color: #9AA3B0">Nothing added yet.</span>
+</sc-if>
+
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{meds}}" as="m" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; border-bottom: 1px solid #EEF0F3">
+<div style="display: flex; align-items: center; gap: 4px">
+<button type="button" onClick="{{m.toggle}}" aria-expanded="{{m.open}}" style="flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; padding: 14px 0; border: 0; background: transparent; text-align: left; color: #141C2B; cursor: pointer">
+<span style="flex: 1 1 220px; min-width: 0; font-size: 15px"><b style="font-weight: 600">{{m.name}} {{m.strength}}</b> <span style="color: #9AA3B0">{{m.form}}</span></span>
+<span style="font-size: 15px; font-weight: 600">{{m.pattern}}</span>
+<span style="font-size: 14px; color: #5B6575; min-width: 90px">{{m.foodShort}}</span>
+<span style="font-size: 14px; color: #5B6575; min-width: 44px; text-align: right">{{m.days}} d</span>
+<sc-if value="{{m.flag}}" hint-placeholder-val="{{ false }}">
+<span aria-label="Needs attention" style="width: 8px; height: 8px; border-radius: 50%; align-self: center; {{m.dotSt}}"></span>
+</sc-if>
+</button>
+<button type="button" onClick="{{m.remove}}" aria-label="Remove medicine" style="width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: #B4BBC6; cursor: pointer">
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+</button>
+</div>
+
+<sc-if value="{{m.open}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: center; gap: 10px 12px; padding: 2px 0 18px">
+<sc-if value="{{m.multiStrength}}" hint-placeholder-val="{{ true }}">
+<span style="font-size: 13px; color: #7A8494">Strength</span>
+<div style="display: flex; flex-wrap: wrap; gap: 2px">
+<sc-for list="{{m.strengthOpts}}" as="so" hint-placeholder-count="2">
+<button type="button" onClick="{{so.pick}}" style="height: 34px; padding: 0 12px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{so.st}}">{{so.label}}</button>
+</sc-for>
+</div>
+</sc-if>
+
+<span style="font-size: 13px; color: #7A8494">Dose</span>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 2px">
+<sc-for list="{{m.presets}}" as="pr" hint-placeholder-count="6">
+<button type="button" onClick="{{pr.pick}}" style="height: 34px; padding: 0 11px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{pr.st}}">{{pr.label}}</button>
+</sc-for>
+</div>
+
+<sc-if value="{{m.showPills}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 13px; color: #7A8494"></span>
+<div style="display: flex; align-items: center; gap: 6px">
+<sc-for list="{{m.doses}}" as="d" hint-placeholder-count="3">
+<button type="button" onClick="{{d.toggle}}" aria-label="{{d.aria}}" style="height: 34px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #E3E6EB; border-radius: 8px; background: #FFFFFF; cursor: pointer">
+<span style="font-size: 12px; color: #7A8494">{{d.short}}</span>
+<span style="font-size: 15px; font-weight: 700; color: #141C2B">{{d.v}}</span>
+</button>
+</sc-for>
+<span style="font-size: 12px; color: #9AA3B0">tap: 1 → ½ → 0</span>
+</div>
+</sc-if>
+
+<span style="font-size: 13px; color: #7A8494">Food</span>
+<div style="display: flex; flex-wrap: wrap; gap: 2px">
+<sc-for list="{{m.foods}}" as="fo" hint-placeholder-count="3">
+<button type="button" onClick="{{fo.pick}}" style="height: 34px; padding: 0 12px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{fo.st}}">{{fo.label}}</button>
+</sc-for>
+</div>
+
+<span style="font-size: 13px; color: #7A8494">Days</span>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 2px">
+<sc-for list="{{m.dayOpts}}" as="dy" hint-placeholder-count="5">
+<button type="button" onClick="{{dy.pick}}" style="width: 40px; height: 34px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{dy.st}}">{{dy.label}}</button>
+</sc-for>
+<input type="number" min="1" aria-label="Custom number of days" value="{{m.days}}" onChange="{{m.onDays}}" style="width: 52px; height: 34px; box-sizing: border-box; margin-left: 8px; padding: 0 2px; border: 0; border-bottom: 1px solid #E3E6EB; background: transparent; font-size: 14px; color: #141C2B">
+</div>
+
+<span style="font-size: 13px; color: #7A8494">Note</span>
+<input type="text" aria-label="Route or special instructions" value="{{m.note}}" onChange="{{m.onNote}}" placeholder="Optional instructions" style="height: 34px; box-sizing: border-box; padding: 0; border: 0; border-bottom: 1px solid #E3E6EB; background: transparent; font-size: 14px; color: #141C2B">
+</div>
+</sc-if>
+
+<sc-if value="{{m.hasProblem}}" hint-placeholder-val="{{ false }}">
+<span style="padding: 0 0 14px; font-size: 13px; font-weight: 600; color: #93520A">{{m.problem}}</span>
+</sc-if>
+<sc-if value="{{m.lowStock}}" hint-placeholder-val="{{ false }}">
+<span style="padding: 0 0 14px; font-size: 13px; color: #93520A">{{m.stockMsg}}</span>
+</sc-if>
+<sc-for list="{{m.alerts}}" as="al" hint-placeholder-count="0">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 0 0 14px; font-size: 13px">
+<span style="flex: 1 1 280px; font-weight: 600; {{al.color}}">{{al.text}}</span>
+<span style="display: flex; gap: 2px">
+<button type="button" onClick="{{al.remove}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #141C2B; font-size: 13px; font-weight: 600; text-decoration: underline; cursor: pointer">Remove</button>
+<button type="button" onClick="{{al.keep}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-size: 13px; font-weight: 600; text-decoration: underline; cursor: pointer">Keep</button>
+</span>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</section>
+
+<!-- Advice & review -->
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 28px">
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #7A8494">Advice</span>
+<textarea rows="2" value="{{advice}}" onChange="{{onAdvice}}" placeholder="Advice, tests, precautions" style="resize: none; min-height: 48px; padding: 0 0 8px; border: 0; border-bottom: 1px solid #E3E6EB; background: transparent; font-size: 15px; line-height: 1.55; color: #141C2B"></textarea>
+</label>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #7A8494">Review <span style="color: #141C2B; font-weight: 600">{{fupShort}}</span></span>
+<div style="display: flex; flex-wrap: wrap; gap: 2px; margin-left: -12px">
+<sc-for list="{{fups}}" as="u" hint-placeholder-count="5">
+<button type="button" onClick="{{u.pick}}" style="height: 34px; padding: 0 12px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{u.st}}">{{u.label}}</button>
+</sc-for>
+</div>
+</div>
+</section>
+
+<!-- Finish -->
+<div style="position: sticky; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; padding: 16px 0 24px; background: #FFFFFF; border-top: 1px solid #EEF0F3">
+<span style="font-size: 14px; color: #5B6575">{{summary}}</span>
+<button type="button" onClick="{{openReview}}" style="height: 46px; padding: 0 22px; border: 0; border-radius: 10px; background: #1A4FB5; color: #FFFFFF; font-weight: 600; font-size: 15px; cursor: pointer">{{finishLabel}}</button>
+</div>
+</sc-if>
+</div>
+</div>
+
+<!-- ===== Preview ===== -->
+<aside style="flex: 1 1 520px; max-width: 680px; min-width: 0; align-self: stretch; box-sizing: border-box; padding: 36px 32px; background: #F6F7F9">
+<sc-if value="{{notIdle}}" hint-placeholder-val="{{ true }}">
+<div style="position: sticky; top: 24px; display: flex; flex-direction: column; gap: 10px">
+<div style="position: relative; width: 100%; aspect-ratio: 1055 / 1491; container-type: inline-size; background: #FFFFFF; overflow: hidden; box-shadow: 0 1px 2px rgba(20,28,43,0.06), 0 10px 30px rgba(20,28,43,0.08)">
+<img src="/_blob/bfcfa3fc6e605bde80e18047baa24622" alt="Prescription on clinic letterhead" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block">
+<span style="position: absolute; left: 11.5%; top: 23.6%; font-size: 1.85cqw; color: #141C2B">{{ref}}</span>
+<span style="position: absolute; left: 79.5%; top: 23.5%; padding: 0 0.6cqw; background: #FFFFFF; font-size: 1.85cqw; color: #141C2B">10/10/2026</span>
+<div style="position: absolute; left: 6%; right: 6%; top: 28%; bottom: 9.6%; display: flex; flex-direction: column; gap: 1.3cqw; font-size: 1.9cqw; line-height: 1.4; color: #141C2B; overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1cqw; padding-bottom: 1cqw; border-bottom: 0.15cqw solid #D5DAE1">
+<span><b>Patient:</b> {{patientName}}</span>
+<span>{{previewVitals}}</span>
+</div>
+<div style="display: flex; gap: 1cqw"><b style="flex-shrink: 0">C/o:</b><span style="white-space: pre-line">{{ccText}}</span></div>
+<div style="display: flex; gap: 1cqw"><b style="flex-shrink: 0">Dx:</b><span style="white-space: pre-line">{{dxText}}</span></div>
+<div style="font-weight: 700; font-size: 4cqw; color: #1A4FB5; line-height: 1; margin-top: 0.4cqw">℞</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 2cqw; font-size: 1.55cqw; color: #5B6575; border-bottom: 0.15cqw solid #D5DAE1; padding-bottom: 0.5cqw">
+<span>Medicine / strength</span><span>Dosage &amp; duration</span>
+</div>
+<sc-for list="{{meds}}" as="p" hint-placeholder-count="3">
+<button type="button" onClick="{{p.select}}" aria-label="Edit {{p.name}}" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 2cqw; margin: 0 -1cqw; padding: 0.4cqw 1cqw; border: 0; border-radius: 0.8cqw; text-align: left; font: inherit; color: inherit; cursor: pointer; {{p.paperSt}}">
+<span style="display: flex; flex-direction: column">
+<span><b>{{p.n}}. {{p.name}} {{p.strength}}</b> {{p.form}}</span>
+<span style="font-size: 1.55cqw; color: #5B6575">{{p.generic}}</span>
+</span>
+<span style="display: flex; flex-direction: column">
+<span><b>{{p.pattern}}</b> · {{p.foodText}}</span>
+<span style="font-size: 1.65cqw">{{p.daysText}}{{p.noteText}}</span>
+</span>
+</button>
+</sc-for>
+<sc-if value="{{hasAdvice}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 1cqw; margin-top: 0.4cqw"><b style="flex-shrink: 0">Advice:</b><span style="white-space: pre-line">{{advice}}</span></div>
+</sc-if>
+<div style="margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; gap: 2cqw">
+<span><b>Review:</b> {{fupText}}</span>
+<span style="display: flex; flex-direction: column; align-items: center; gap: 0.3cqw">
+<span style="width: 22cqw; border-top: 0.15cqw solid #141C2B"></span>
+<span style="font-size: 1.55cqw; color: #5B6575">Signature / Reg. No.</span>
+</span>
+</div>
+</div>
+</div>
+<sc-if value="{{longRx}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 13px; color: #93520A">Long prescription — the last lines may not fit on one page. Shorten advice or split the Rx.</span>
+</sc-if>
+</div>
+</sc-if>
+</aside>
+</div>
+
+<!-- ===== Queue ===== -->
+<sc-if value="{{drawerQueue}}" hint-placeholder-val="{{ false }}">
+<div style="position: fixed; inset: 0; z-index: 40; display: flex; justify-content: flex-end">
+<button type="button" aria-label="Close queue" onClick="{{closeDrawer}}" style="position: absolute; inset: 0; border: 0; background: rgba(20,28,43,0.24); cursor: default"></button>
+<div role="dialog" aria-modal="true" aria-labelledby="q-title" style="position: relative; width: 380px; max-width: 100vw; height: 100vh; overflow: auto; box-sizing: border-box; padding: 24px 28px; background: #FFFFFF; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
+<span id="q-title" style="font-weight: 700; font-size: 18px">Queue</span>
+<button type="button" onClick="{{closeDrawer}}" style="height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-size: 14px; cursor: pointer">Close</button>
+</div>
+<sc-if value="{{notIdle}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; align-items: baseline; gap: 14px; padding: 12px 0; border-bottom: 1px solid #EEF0F3">
+<span style="width: 36px; font-weight: 700">#{{token}}</span>
+<span style="flex: 1; color: #1A4FB5; font-weight: 600">With you now</span>
+</div>
+</sc-if>
+<sc-if value="{{noWaiting}}" hint-placeholder-val="{{ false }}">
+<span style="padding: 12px 0; font-size: 14px; color: #7A8494">No one else waiting.</span>
+</sc-if>
+<sc-for list="{{queue}}" as="qq" hint-placeholder-count="5">
+<div style="display: flex; align-items: baseline; gap: 14px; padding: 12px 0; border-bottom: 1px solid #EEF0F3">
+<span style="width: 36px; font-weight: 700">#{{qq.token}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<span><b style="font-weight: 600">{{qq.name}}</b> <span style="color: #7A8494">{{qq.meta}}</span></span>
+<span style="font-size: 13px; color: #7A8494">{{qq.reason}} · {{qq.kind}}</span>
+</span>
+<span style="font-size: 13px; color: #7A8494">{{qq.wait}} min</span>
+</div>
+</sc-for>
+<span style="margin-top: 22px; font-size: 13px; color: #7A8494">Drafts on hold</span>
+<sc-for list="{{drafts}}" as="dr" hint-placeholder-count="0">
+<div style="display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid #EEF0F3">
+<span style="width: 36px; font-weight: 700">#{{dr.token}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600">{{dr.name}}</span><span style="font-size: 13px; color: #7A8494">{{dr.detail}}</span></span>
+<button type="button" onClick="{{dr.reopen}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-weight: 600; font-size: 14px; cursor: pointer">Reopen</button>
+</div>
+</sc-for>
+<sc-if value="{{noDrafts}}" hint-placeholder-val="{{ true }}"><span style="padding: 8px 0; font-size: 14px; color: #9AA3B0">None. Skipped patients are kept here.</span></sc-if>
+</div>
+</div>
+</sc-if>
+
+<!-- ===== History ===== -->
+<sc-if value="{{drawerHistory}}" hint-placeholder-val="{{ false }}">
+<div style="position: fixed; inset: 0; z-index: 40; display: flex; justify-content: flex-end">
+<button type="button" aria-label="Close history" onClick="{{closeDrawer}}" style="position: absolute; inset: 0; border: 0; background: rgba(20,28,43,0.24); cursor: default"></button>
+<div role="dialog" aria-modal="true" aria-labelledby="h-title" style="position: relative; width: 420px; max-width: 100vw; height: 100vh; overflow: auto; box-sizing: border-box; padding: 24px 28px; background: #FFFFFF; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<span id="h-title" style="font-weight: 700; font-size: 18px">Past visits</span>
+<button type="button" onClick="{{closeDrawer}}" style="height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-size: 14px; cursor: pointer">Close</button>
+</div>
+<sc-for list="{{history}}" as="hv" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 6px; padding-bottom: 20px; border-bottom: 1px solid #EEF0F3; font-size: 14px">
+<span style="font-weight: 700; font-size: 15px">{{hv.date}} <span style="font-weight: 400; color: #7A8494">· {{hv.ago}}</span></span>
+<span><span style="color: #7A8494">C/o</span> {{hv.cc}}</span>
+<span><span style="color: #7A8494">Dx</span> {{hv.dx}}</span>
+<sc-for list="{{hv.rx}}" as="hr" hint-placeholder-count="2">
+<span><b style="font-weight: 600">{{hr.name}}</b> <span style="color: #5B6575">{{hr.line}}</span></span>
+</sc-for>
+<span style="color: #5B6575">{{hv.note}}</span>
+<button type="button" onClick="{{hv.use}}" style="align-self: flex-start; height: 34px; margin-left: -10px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-size: 14px; font-weight: 600; cursor: pointer">Use these medicines</button>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<!-- ===== Review before next ===== -->
+<sc-if value="{{modalReview}}" hint-placeholder-val="{{ false }}">
+<div style="position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box">
+<button type="button" aria-label="Close" onClick="{{closeModal}}" style="position: absolute; inset: 0; border: 0; background: rgba(20,28,43,0.32); cursor: default"></button>
+<div role="dialog" aria-modal="true" aria-labelledby="rv-title" style="position: relative; width: 100%; max-width: 520px; max-height: calc(100vh - 48px); overflow: auto; box-sizing: border-box; padding: 28px; border-radius: 16px; background: #FFFFFF; box-shadow: 0 24px 64px rgba(20,28,43,0.20); display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span id="rv-title" style="font-weight: 700; font-size: 20px; letter-spacing: -0.01em">{{modalTitle}}</span>
+<span style="font-size: 14px; color: #7A8494">{{doneLine}}</span>
+</div>
+
+<sc-if value="{{chk.cc.missing}}" hint-placeholder-val="{{ false }}">
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #7A8494">Complaints</span>
+<textarea rows="2" value="{{cc}}" onChange="{{onCc}}" placeholder="What brought them in" style="resize: none; padding: 0 0 8px; border: 0; border-bottom: 1.5px solid #1A4FB5; background: transparent; font-size: 15px; color: #141C2B"></textarea>
+</label>
+</sc-if>
+<sc-if value="{{chk.dx.missing}}" hint-placeholder-val="{{ false }}">
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #7A8494">Diagnosis</span>
+<textarea rows="2" aria-label="Diagnosis" value="{{dx}}" onChange="{{onDx}}" placeholder="Working or final diagnosis" style="resize: none; padding: 0 0 8px; border: 0; border-bottom: 1.5px solid #1A4FB5; background: transparent; font-size: 15px; color: #141C2B"></textarea>
+</label>
+</sc-if>
+<sc-if value="{{chk.meds.missing}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; color: #7A8494">Medicines</span>
+<sc-if value="{{noMeds}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px">
+<span>Nothing prescribed.</span>
+<button type="button" onClick="{{closeModal}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-weight: 600; font-size: 14px; cursor: pointer">Go back and add</button>
+</div>
+</sc-if>
+<sc-for list="{{medIssues}}" as="mi" hint-placeholder-count="0">
+<div style="display: flex; flex-direction: column; gap: 4px; font-size: 14px">
+<span style="font-weight: 600; {{mi.color}}">{{mi.text}}</span>
+<span style="display: flex; flex-wrap: wrap; gap: 2px; margin-left: -10px">
+<sc-if value="{{mi.isAllergy}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{mi.remove}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #141C2B; font-weight: 600; font-size: 14px; text-decoration: underline; cursor: pointer">Remove</button>
+<button type="button" onClick="{{mi.ack}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-weight: 600; font-size: 14px; text-decoration: underline; cursor: pointer">Keep</button>
+</sc-if>
+<sc-if value="{{mi.isDose}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{mi.p1}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: #F2F4F7; color: #141C2B; font-size: 14px; cursor: pointer">1-0-1</button>
+<button type="button" onClick="{{mi.p2}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: #F2F4F7; color: #141C2B; font-size: 14px; cursor: pointer">1-0-0</button>
+<button type="button" onClick="{{mi.p3}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: #F2F4F7; color: #141C2B; font-size: 14px; cursor: pointer">0-0-1</button>
+</sc-if>
+<sc-if value="{{mi.isDays}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{mi.d5}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: #F2F4F7; color: #141C2B; font-size: 14px; cursor: pointer">5 d</button>
+<button type="button" onClick="{{mi.d7}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: #F2F4F7; color: #141C2B; font-size: 14px; cursor: pointer">7 d</button>
+<button type="button" onClick="{{mi.d15}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: #F2F4F7; color: #141C2B; font-size: 14px; cursor: pointer">15 d</button>
+</sc-if>
+</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{chk.fup.missing}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #7A8494">Review</span>
+<div style="display: flex; flex-wrap: wrap; gap: 2px; margin-left: -12px">
+<sc-for list="{{fups}}" as="u" hint-placeholder-count="5">
+<button type="button" onClick="{{u.pick}}" style="height: 34px; padding: 0 12px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{u.st}}">{{u.label}}</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid #EEF0F3">
+<span style="font-size: 13px; color: #7A8494">Charges you approve · reception can't change these</span>
+<div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span>Consultation</span><span>{{ch.fee}}</span></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span>Medicines · {{ch.medNote}}</span><span>{{ch.meds}}</span></div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin-left: -12px">
+<sc-for list="{{discOpts}}" as="dsc" hint-placeholder-count="4">
+<button type="button" onClick="{{dsc.pick}}" style="height: 32px; padding: 0 12px; border: 0; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; {{dsc.st}}">{{dsc.label}}</button>
+</sc-for>
+</div>
+<sc-if value="{{ch.hasDisc}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: #1F7A4D"><span>Discount · {{ch.discLabel}}</span><span>− {{ch.disc}}</span></div>
+</sc-if>
+<div style="display: flex; justify-content: space-between; gap: 12px; font-size: 17px; font-weight: 700"><span>To collect</span><span>{{ch.total}}</span></div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 6px">
+<label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #5B6575; cursor: pointer">
+<input type="checkbox" checked="{{print}}" onChange="{{togglePrint}}" style="width: 16px; height: 16px; accent-color: #1A4FB5">
+Print a copy
+</label>
+<div style="display: flex; gap: 6px">
+<button type="button" onClick="{{closeModal}}" style="height: 44px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; color: #5B6575; font-weight: 600; font-size: 15px; cursor: pointer">Back</button>
+<button type="button" onClick="{{confirm}}" aria-disabled="{{notReady}}" style="height: 44px; padding: 0 20px; border: 0; border-radius: 10px; font-weight: 600; font-size: 15px; {{confirmSt}}">{{sendLabel}}</button>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<!-- ===== Skip ===== -->
+<sc-if value="{{modalSkip}}" hint-placeholder-val="{{ false }}">
+<div style="position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box">
+<button type="button" aria-label="Close" onClick="{{closeModal}}" style="position: absolute; inset: 0; border: 0; background: rgba(20,28,43,0.32); cursor: default"></button>
+<div role="dialog" aria-modal="true" aria-labelledby="sk-title" style="position: relative; width: 100%; max-width: 420px; box-sizing: border-box; padding: 28px; border-radius: 16px; background: #FFFFFF; box-shadow: 0 24px 64px rgba(20,28,43,0.20); display: flex; flex-direction: column; gap: 10px">
+<span id="sk-title" style="font-weight: 700; font-size: 19px">Skip to #{{nextToken}}?</span>
+<span style="font-size: 15px; color: #5B6575">#{{token}} is saved as a draft. Nothing goes to billing yet.</span>
+<div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 10px">
+<button type="button" onClick="{{closeModal}}" style="height: 44px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; color: #5B6575; font-weight: 600; font-size: 15px; cursor: pointer">Cancel</button>
+<button type="button" onClick="{{skipConfirm}}" style="height: 44px; padding: 0 18px; border: 0; border-radius: 10px; background: #141C2B; color: #FFFFFF; font-weight: 600; font-size: 15px; cursor: pointer">Save draft &amp; skip</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<!-- ===== Notifications ===== -->
+<div aria-live="polite" style="position: fixed; z-index: 60; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: calc(100vw - 32px)">
+<sc-for list="{{notes}}" as="n" hint-placeholder-count="0">
+<div style="display: flex; align-items: center; gap: 14px; min-height: 44px; padding: 0 8px 0 18px; border-radius: 12px; background: #141C2B; color: #FFFFFF; font-size: 14px; box-shadow: 0 10px 30px rgba(20,28,43,0.24)">
+<span>{{n.title}}</span>
+<sc-if value="{{n.undoable}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{n.undo}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #9DBBF5; font-weight: 600; font-size: 14px; cursor: pointer">Undo</button>
+</sc-if>
+<button type="button" onClick="{{n.dismiss}}" aria-label="Dismiss" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: #8A94A6; cursor: pointer">
+<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+</button>
+</div>
+</sc-for>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+var CATALOG = [
+  { id: 'pregabid', name: 'Pregabid', generic: 'Pregabalin', form: 'Cap', strengths: ['75 mg', '150 mg'], dose: [0,0,1], food: 'After', days: 15, stock: 120, last: true, cls: 'gabapentinoids' },
+  { id: 'nurokind', name: 'Nurokind-OD', generic: 'Methylcobalamin', form: 'Tab', strengths: ['1500 mcg'], dose: [1,0,0], food: 'After', days: 30, stock: 200 },
+  { id: 'ultracet', name: 'Ultracet', generic: 'Tramadol + Paracetamol', form: 'Tab', strengths: ['37.5/325'], dose: [1,0,1], food: 'After', days: 5, stock: 4 },
+  { id: 'duzela', name: 'Duzela', generic: 'Duloxetine', form: 'Cap', strengths: ['20 mg', '30 mg'], dose: [0,0,1], food: 'After', days: 30, stock: 90 },
+  { id: 'amitone', name: 'Amitone', generic: 'Amitriptyline', form: 'Tab', strengths: ['10 mg', '25 mg'], dose: [0,0,1], food: 'After', days: 15, stock: 100 },
+  { id: 'gabapin', name: 'Gabapin', generic: 'Gabapentin', form: 'Tab', strengths: ['100 mg', '300 mg'], dose: [0,0,1], food: 'After', days: 15, stock: 50, cls: 'gabapentinoids' },
+  { id: 'myoril', name: 'Myoril', generic: 'Thiocolchicoside', form: 'Cap', strengths: ['4 mg', '8 mg'], dose: [1,0,1], food: 'After', days: 5, stock: 70 },
+  { id: 'zerodol', name: 'Zerodol-P', generic: 'Aceclofenac + Paracetamol', form: 'Tab', strengths: ['100/325'], dose: [1,0,1], food: 'After', days: 5, stock: 150, nsaid: true },
+  { id: 'etoshine', name: 'Etoshine', generic: 'Etoricoxib', form: 'Tab', strengths: ['60 mg', '90 mg'], dose: [0,0,1], food: 'After', days: 5, stock: 60, nsaid: true },
+  { id: 'pan', name: 'Pan', generic: 'Pantoprazole', form: 'Tab', strengths: ['40 mg'], dose: [1,0,0], food: 'Before', days: 15, stock: 120 },
+  { id: 'glycomet', name: 'Glycomet', generic: 'Metformin', form: 'Tab', strengths: ['500 mg', '1 g'], dose: [1,0,1], food: 'After', days: 30, stock: 240, last: true }
+];
+var SETS = [
+  { label: 'Neuropathy start', items: [{ id: 'pregabid', cfg: {} }, { id: 'nurokind', cfg: {} }] },
+  { label: 'Acute low back pain', items: [{ id: 'myoril', cfg: {} }, { id: 'ultracet', cfg: { sos: true } }, { id: 'pan', cfg: { days: 5 } }] },
+  { label: 'Neuropathic pain + sleep', items: [{ id: 'duzela', cfg: {} }, { id: 'amitone', cfg: { dose: [0,0,0.5] } }] }
+];
+var INTERACTIONS = [
+  { a: 'ultracet', b: 'duzela', text: 'Tramadol with duloxetine — serotonin-syndrome and seizure risk.' },
+  { a: 'ultracet', b: 'amitone', text: 'Tramadol with amitriptyline — serotonin-syndrome and seizure risk.' }
+];
+var HISTORY = [
+  { date: '12 Sep 2026', ago: '4 weeks ago', cc: 'Burning feet at night × 3 weeks.', dx: 'Diabetic peripheral neuropathy.', rx: [{ id: 'pregabid', line: '75 mg · 0-0-1 · 15 d' }, { id: 'glycomet', line: '500 mg · 1-0-1 · 30 d' }], note: 'RBS 188. Asked to review sugars with diabetologist.' },
+  { date: '08 Aug 2026', ago: '2 months ago', cc: 'Tingling and numbness in both feet.', dx: 'Peripheral neuropathy, to evaluate.', rx: [{ id: 'nurokind', line: '1500 mcg · 1-0-0 · 30 d' }], note: 'Advised HbA1c and Vit B12.' }
+];
+var QUEUE = [
+  { reason: 'Neck pain', kind: 'New', meta: '34 y · F', wait: 12, v: { wt: '58 kg', ht: '160 cm', bp: '118/76' } },
+  { reason: 'Refill · Pregabid', kind: 'Follow-up', meta: '61 y · M', wait: 9, v: { wt: '80 kg', ht: '172 cm', bp: '142/88' } },
+  { reason: 'Knee pain', kind: 'New', meta: '52 y · F', wait: 6, v: { wt: '69 kg', ht: '155 cm', bp: '130/84' } },
+  { reason: 'Post-op pain review', kind: 'Follow-up', meta: '45 y · M', wait: 4, v: { wt: '74 kg', ht: '170 cm', bp: '124/80' } },
+  { reason: 'Headache', kind: 'New', meta: '29 y · F', wait: 2, v: { wt: '52 kg', ht: '158 cm', bp: '110/70' } },
+  { reason: 'Cancer pain review', kind: 'Follow-up', meta: '67 y · M', wait: 1, v: { wt: '61 kg', ht: '166 cm', bp: '128/82' } }
+];
+var FAVS = ['pregabid', 'ultracet', 'duzela', 'myoril', 'pan', 'glycomet'];
+var ALL_TOKENS = [15, 16, 17, 18, 19, 20];
+var PT = {
+  14: { name: 'Murugan K', kind: 'Follow-up', allergy: 'Allergic to NSAIDs', nsaid: true, line: '58 M · follow-up · 72 kg · 168 cm · BP 138/86 · RBS 162', short: '58 y / M', vit: 'Wt 72 kg · Ht 168 cm · BP 138/86',
+    last: [{ id: 'pregabid' }, { id: 'glycomet' }], history: HISTORY },
+  15: { name: 'Lakshmi R', last: [], history: [] },
+  16: { name: 'Selvaraj M', last: [{ id: 'pregabid', cfg: { days: 30 } }],
+    history: [{ date: '10 Sep 2026', ago: '1 month ago', cc: 'Burning pain left chest wall after shingles.', dx: 'Post-herpetic neuralgia.', rx: [{ id: 'pregabid', line: '75 mg · 0-0-1 · 30 d' }], note: 'Review in 1 month.' }] },
+  17: { name: 'Kavitha S', last: [], history: [] },
+  18: { name: 'Ramesh A', last: [{ id: 'ultracet', cfg: { sos: true } }, { id: 'pan', cfg: { days: 5 } }],
+    history: [{ date: '26 Sep 2026', ago: '2 weeks ago', cc: 'Pain at incision after hernia repair.', dx: 'Post-surgical pain.', rx: [{ id: 'ultracet', line: 'SOS · 5 d' }, { id: 'pan', line: '40 mg · 1-0-0 · 5 d' }], note: 'Wound healing well.' }] },
+  19: { name: 'Priya N', last: [], history: [] },
+  20: { name: 'Govindan T', last: [{ id: 'duzela' }, { id: 'pan', cfg: { days: 30 } }],
+    history: [{ date: '3 Oct 2026', ago: '1 week ago', cc: 'Bone pain, constipation.', dx: 'Ca prostate with bone metastases — palliative.', rx: [{ id: 'duzela', line: '20 mg · 0-0-1 · 30 d' }, { id: 'pan', line: '40 mg · 1-0-0 · 30 d' }], note: 'Family asked about hospice options.' }] }
+};
+function ptOf(t) {
+  var p = PT[t] || { name: 'Walk-in', last: [], history: [] }, q = QUEUE[t - 15];
+  if (t === 14 || !q) return p;
+  var newPt = q.kind === 'New';
+  return Object.assign({ kind: q.kind, allergy: '', nsaid: false,
+    line: q.meta.replace(' y · ', ' ') + ' · ' + (newPt ? 'first visit' : 'follow-up') + ' · ' + q.v.wt + ' · ' + q.v.ht + ' · BP ' + q.v.bp,
+    short: q.meta.replace(' · ', ' / '), vit: 'Wt ' + q.v.wt + ' · Ht ' + q.v.ht + ' · BP ' + q.v.bp }, p);
+}
+var RED_TXT = 'color: #B42318';
+var AMB_TXT = 'color: #93520A';
+var PRESETS = [
+  { label: '1-0-1', dose: [1,0,1] }, { label: '1-1-1', dose: [1,1,1] }, { label: '1-0-0', dose: [1,0,0] },
+  { label: '0-0-1', dose: [0,0,1] }, { label: 'SOS', sos: true }, { label: 'Custom', custom: true }
+];
+var FOODS = [{ k: 'Before', label: 'Before food', short: 'before food' }, { k: 'After', label: 'After food', short: 'after food' }, { k: 'Empty', label: 'Empty stomach', short: 'empty stomach' }];
+var DAYS = [3, 5, 7, 15, 30];
+var FUPS = [{ label: '5 days', d: 5 }, { label: '1 week', d: 7 }, { label: '2 weeks', d: 14 }, { label: '1 month', d: 30 }, { label: 'SOS', d: null }];
+var ON = 'background: #EAF0FC; color: #1A4FB5';
+var OFF = 'background: transparent; color: #5B6575';
+var DOSE_NAMES = ['Morning', 'Noon', 'Night'];
+var DOSE_SHORT = ['M', 'A', 'N'];
+
+function find(id) { for (var i = 0; i < CATALOG.length; i++) if (CATALOG[i].id === id) return CATALOG[i]; return null; }
+function makeMed(c, extra) { return Object.assign({ id: c.id, s: 0, dose: c.dose.slice(), sos: false, custom: false, food: c.food, days: c.days, note: '', ack: false, ackDup: false, ackInt: false }, extra || {}); }
+function fmt(v) { return v === 0.5 ? '½' : String(v); }
+function same(a, b) { return a[0] === b[0] && a[1] === b[1] && a[2] === b[2]; }
+function isPreset(d) { return PRESETS.some(function (p) { return p.dose && same(p.dose, d); }); }
+function addDays(n) { var d = new Date(2026, 9, 10); d.setDate(d.getDate() + n); var p = function (x) { return (x < 10 ? '0' : '') + x; }; return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear(); }
+function shortDate(n) { var d = new Date(2026, 9, 10); d.setDate(d.getDate() + n); return d.getDate() + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]; }
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      token: 14, done: [], drafts: [], query: '', hi: 0, open: -1, modal: null, notes: [], print: true, drawer: null, disc: 'none',
+      cc: 'Burning and tingling in both feet, worse at night × 2 months.\nLow back pain × 1 week.',
+      dx: '',
+      meds: [
+        makeMed(find('pregabid')),
+        makeMed(find('nurokind')),
+        makeMed(find('ultracet'), { sos: true, days: 5 })
+      ],
+      advice: 'Daily foot check, no barefoot walking.\nHbA1c and Vit B12 before next visit.',
+      fup: undefined
+    };
+  }
+
+  snapshot() {
+    var s = this.state;
+    return { token: s.token, cc: s.cc, dx: s.dx, meds: s.meds, advice: s.advice, fup: s.fup, open: s.open, idle: !!s.idle, disc: s.disc, arrival: null, done: s.done || [], drafts: s.drafts || [] };
+  }
+
+  pendingOf(token, done, drafts, idle) {
+    return ALL_TOKENS.filter(function (t) { return (idle || t !== token) && done.indexOf(t) < 0 && !drafts.some(function (d) { return d.token === t; }); });
+  }
+
+  loadNext(opts) {
+    var self = this, s = this.state;
+    opts = opts || {};
+    var done = opts.done || s.done || [], drafts = opts.drafts || s.drafts || [];
+    var pend = this.pendingOf(s.token, done, drafts, false);
+    var blank = { modal: null, query: '', dx: '', meds: [], advice: '', fup: undefined, open: -1, disc: 'none', drawer: null, done: done, drafts: drafts };
+    clearTimeout(this._arr);
+    if (!pend.length) { this.setState(Object.assign(blank, { idle: true, cc: '', arrival: null })); return; }
+    var t = pend[0], q = QUEUE[t - 15];
+    this.setState(Object.assign(blank, { idle: false, token: t, cc: q ? q.reason : '', arrival: 'calling' }));
+    this._arr = setTimeout(function () { self.setState({ arrival: 'in' }); self._arr = setTimeout(function () { self.setState({ arrival: null }); }, 4000); }, 2200);
+  }
+
+  syncPulse() {
+    var self = this;
+    this.setState({ sync: 'saving' });
+    clearTimeout(this._sy);
+    this._sy = setTimeout(function () { self.setState({ sync: 'saved' }); }, 900);
+  }
+
+  addCustom(name) {
+    if (!name) return;
+    var id = 'x' + Date.now();
+    CATALOG.push({ id: id, name: name, generic: '', form: 'Tab', strengths: [''], dose: [1,0,1], food: 'After', days: 5, stock: 99999, custom: true });
+    this.addMed(id);
+  }
+
+  pushNote(n, ttl) {
+    var self = this;
+    this.setState(function (st) { return { notes: st.notes.slice(-1).concat([n]) }; });
+    setTimeout(function () { self.setState(function (st) { return { notes: st.notes.filter(function (x) { return x.id !== n.id; }) }; }); }, ttl || 6000);
+  }
+
+  addMed(id) {
+    var c = find(id); if (!c) return;
+    var meds = this.state.meds;
+    for (var i = 0; i < meds.length; i++) if (meds[i].id === id) { this.setState({ query: '', hi: 0, open: i }); this.pushNote({ id: Date.now(), title: c.name + ' is already on the prescription' }, 3000); return; }
+    this.setState({ query: '', hi: 0, meds: meds.concat([makeMed(c)]), open: meds.length });
+  }
+
+  applySet(set) {
+    var s = this.state;
+    var inRx = {}; s.meds.forEach(function (m) { inRx[m.id] = true; });
+    var add = set.items.filter(function (it) { return !inRx[it.id]; }).map(function (it) { return makeMed(find(it.id), it.cfg); });
+    this.setState({ query: '', hi: 0, meds: s.meds.concat(add), open: -1 });
+    this.pushNote({ id: Date.now(), title: add.length ? set.label + ' · ' + add.length + ' added' : 'Already on the prescription' }, 3500);
+  }
+
+  upd(i, patch) {
+    this.setState({ meds: this.state.meds.map(function (m, j) { return j === i ? Object.assign({}, m, patch) : m; }) });
+  }
+
+  renderVals() {
+    var self = this, s = this.state;
+    var q = (s.query || '').trim().toLowerCase();
+    var pt = ptOf(s.token);
+    var pend = this.pendingOf(s.token, s.done || [], s.drafts || [], !!s.idle);
+    var waiting = pend.length, nextT = pend[0];
+    var inRx = {}; s.meds.forEach(function (m) { inRx[m.id] = true; });
+
+    var rank = function (c) {
+      var n = c.name.toLowerCase(), g = c.generic.toLowerCase();
+      var r = n.indexOf(q) === 0 ? 0 : g.indexOf(q) === 0 ? 1 : 2;
+      return r + (inRx[c.id] ? 3 : 0);
+    };
+    var medHits = q ? CATALOG.filter(function (c) { return (c.name + ' ' + c.generic).toLowerCase().indexOf(q) !== -1; })
+      .sort(function (a, b) { return rank(a) - rank(b); }).slice(0, 5) : [];
+    var setHits = q ? SETS.filter(function (st) { return st.label.toLowerCase().indexOf(q) !== -1; }).slice(0, 2) : [];
+    var medItem = function (c) {
+      var tag = inRx[c.id] ? 'On Rx' : (c.nsaid && pt.nsaid) ? 'Allergy' : c.stock < 10 ? 'Low stock' : '';
+      return {
+        label: c.name, extra: c.strengths.join(' / '), sub: c.generic + ' · usually ' + c.dose.map(fmt).join('-') + ', ' + c.days + ' d',
+        tag: tag, tagSt: tag === 'Allergy' ? RED_TXT : tag === 'Low stock' ? AMB_TXT : 'color: #7A8494',
+        go: function () { self.addMed(c.id); }
+      };
+    };
+    var setItem = function (st) {
+      return {
+        label: st.label, extra: 'set', sub: st.items.map(function (it) { return find(it.id).name; }).join(' + '),
+        tag: st.items.length + ' meds', tagSt: 'color: #7A8494',
+        go: function () { self.applySet(st); }
+      };
+    };
+    var raw;
+    if (q) {
+      raw = medHits.map(medItem).concat(setHits.map(setItem));
+      var typed = s.query.trim();
+      var exact = CATALOG.some(function (c) { return c.name.toLowerCase() === q; });
+      if (!exact && (!medHits.length || q.length >= 6)) raw.push({ label: 'Add “' + typed + '”', extra: '', sub: raw.length ? 'Not the one? Add it as typed' : 'Not in your list — add it as typed, then set the dose', tag: '', tagSt: '', go: function () { self.addCustom(typed); } });
+    } else {
+      raw = SETS.map(setItem).concat(FAVS.filter(function (id) { return !inRx[id]; }).slice(0, 3).map(function (id) {
+        var it = medItem(find(id)); it.tag = 'Frequent'; return it;
+      }));
+    }
+    if (!s.focus || s.idle) raw = [];
+    var hi = Math.min(s.hi, Math.max(0, raw.length - 1));
+    var items = raw.map(function (it, i) {
+      return Object.assign({}, it, { add: it.go, rowSt: i === hi ? 'background: #F2F5FB' : 'background: transparent' });
+    });
+
+    var unresolved = 0, lowCount = 0;
+    var meds = s.meds.map(function (m, i) {
+      var c = find(m.id);
+      var perDay = m.sos ? 1 : m.dose[0] + m.dose[1] + m.dose[2];
+      var units = Math.ceil(perDay * (m.days || 0));
+      var unitWord = c.form.toLowerCase() + (units === 1 ? '' : 's');
+      var foodObj = FOODS.filter(function (f) { return f.k === m.food; })[0];
+      var open = s.open === i;
+      var earlier = s.meds.slice(0, i);
+      var alerts = [];
+      if (c.nsaid && !m.ack && pt.nsaid) alerts.push({ text: 'NSAID — patient is allergic.', color: RED_TXT, key: 'ack' });
+      if (c.cls && !m.ackDup) {
+        var prior = earlier.filter(function (o) { return find(o.id).cls === c.cls; })[0];
+        if (prior) alerts.push({ text: 'Same class as ' + find(prior.id).name + ' — usually one is enough.', color: AMB_TXT, key: 'ackDup' });
+      }
+      if (!m.ackInt) {
+        var hit = INTERACTIONS.filter(function (p) { var o = p.a === m.id ? p.b : p.b === m.id ? p.a : null; return o && earlier.some(function (e) { return e.id === o; }); })[0];
+        if (hit) alerts.push({ text: hit.text, color: AMB_TXT, key: 'ackInt' });
+      }
+      var removeFn = function () {
+        var removed = m, idx = i;
+        self.setState({ meds: s.meds.filter(function (_, j) { return j !== i; }), open: -1 });
+        self.pushNote({ id: Date.now(), title: c.name + ' removed', undoable: true,
+          undoFn: function () { self.setState(function (st) { var arr = st.meds.slice(); arr.splice(idx, 0, removed); return { meds: arr }; }); } }, 5000);
+      };
+      var alertVals = alerts.map(function (a) {
+        return { text: a.text, color: a.color, remove: removeFn, keep: function () { var p = {}; p[a.key] = true; self.upd(i, p); } };
+      });
+      var hasAlert = alerts.length > 0;
+      var low = c.stock < units;
+      var noDose = !m.sos && perDay === 0, noDays = !(m.days > 0);
+      var problem = noDose ? 'No dose set — pick a frequency.' : noDays ? 'No duration set.' : '';
+      if (hasAlert) unresolved++;
+      if (low) lowCount++;
+      var showPills = !m.sos && (m.custom || !isPreset(m.dose));
+      return {
+        n: i + 1, name: c.name, form: c.form.toLowerCase(), generic: c.generic, days: m.days, note: m.note, open: open,
+        strength: c.strengths[m.s],
+        pattern: m.sos ? 'SOS' : m.dose.map(fmt).join('-'),
+        foodText: foodObj.label, foodShort: foodObj.short,
+        daysText: (m.days || 0) + ' days (' + (m.sos ? 'max ' : '') + units + ' ' + unitWord + ')',
+        noteText: m.note ? ' · ' + m.note : '',
+        alerts: alertVals, showPills: showPills, lowStock: low && !noDays && !noDose,
+        problem: problem, hasProblem: !!problem, noDose: noDose,
+        multiStrength: c.strengths.length > 1,
+        stockMsg: 'Only ' + c.stock + ' in stock (needs ' + units + ') — reception will dispense partial or substitute.',
+        flag: hasAlert || low || !!problem,
+        dotSt: hasAlert ? 'background: #D92D20' : 'background: #E59A2E',
+        paperSt: open ? 'background: rgba(26,79,181,0.07)' : 'background: transparent',
+        toggle: function () { self.setState({ open: open ? -1 : i }); },
+        select: function () { self.setState({ open: i }); },
+        remove: removeFn,
+        onDays: function (e) { self.upd(i, { days: parseInt(e.target.value, 10) || 0 }); },
+        onNote: function (e) { self.upd(i, { note: e.target.value }); },
+        strengthOpts: c.strengths.map(function (lab, k) {
+          return { label: lab, st: m.s === k ? ON : OFF, pick: function () { self.upd(i, { s: k }); } };
+        }),
+        presets: PRESETS.map(function (p) {
+          var active = p.custom ? showPills : p.sos ? m.sos : (!m.sos && !showPills && same(p.dose, m.dose));
+          return { label: p.label, st: active ? ON : OFF, pick: function () {
+            self.upd(i, p.custom ? { custom: true, sos: false } : p.sos ? { sos: true, custom: false } : { sos: false, custom: false, dose: p.dose.slice() });
+          } };
+        }),
+        doses: m.dose.map(function (v, k) {
+          return {
+            v: fmt(v), short: DOSE_SHORT[k], aria: DOSE_NAMES[k] + ' dose ' + fmt(v),
+            toggle: function () { var d = m.dose.slice(); d[k] = d[k] === 0 ? 1 : d[k] === 1 ? 0.5 : 0; self.upd(i, { dose: d, sos: false, custom: true }); }
+          };
+        }),
+        foods: FOODS.map(function (f) {
+          return { label: f.label, st: m.food === f.k ? ON : OFF, pick: function () { self.upd(i, { food: f.k }); } };
+        }),
+        dayOpts: DAYS.map(function (d) {
+          return { label: String(d), st: m.days === d ? ON : OFF, pick: function () { self.upd(i, { days: d }); } };
+        })
+      };
+    });
+
+    var fups = FUPS.map(function (f) {
+      return { label: f.label, st: s.fup === f.d ? ON : OFF, pick: function () { self.setState({ fup: f.d }); } };
+    });
+    var pad = function (n) { return ('000000' + n).slice(-6); };
+    var medIssues = [];
+    s.meds.forEach(function (m, i) {
+      var c = find(m.id);
+      meds[i].alerts.forEach(function (a) { medIssues.push({ text: c.name + ': ' + a.text, isAllergy: true, isDays: false, isDose: false, color: a.color, remove: a.remove, ack: a.keep }); });
+      if (meds[i].noDose) medIssues.push({ text: c.name + ' has no dose.', isAllergy: false, isDays: false, isDose: true, color: 'color: #141C2B',
+        p1: function () { self.upd(i, { dose: [1,0,1], custom: false }); }, p2: function () { self.upd(i, { dose: [1,0,0], custom: false }); }, p3: function () { self.upd(i, { dose: [0,0,1], custom: false }); } });
+      if (!(m.days > 0)) medIssues.push({ text: c.name + ' has no duration.', isAllergy: false, isDays: true, isDose: false, color: 'color: #141C2B',
+        d5: function () { self.upd(i, { days: 5 }); }, d7: function () { self.upd(i, { days: 7 }); }, d15: function () { self.upd(i, { days: 15 }); } });
+    });
+    var ccOk = !!(s.cc && s.cc.trim()), dxOk = !!(s.dx && s.dx.trim());
+    var medsOk = meds.length > 0 && medIssues.length === 0, fupOk = s.fup !== undefined;
+    var flags = [ccOk, dxOk, medsOk, fupOk];
+    var names = ['Complaints', 'Diagnosis', 'Medicines', 'Review'];
+    var missing = flags.filter(function (f) { return !f; }).length, allOk = missing === 0;
+    var doneNames = names.filter(function (_, k) { return flags[k]; });
+    var chk = { cc: { missing: !ccOk }, dx: { missing: !dxOk }, meds: { missing: !medsOk }, fup: { missing: !fupOk } };
+    var notes = (s.notes || []).map(function (n) {
+      return {
+        title: n.title, undoable: !!n.undoable,
+        undo: function () { if (n.undoFn) n.undoFn(); self.setState(function (st) { return { notes: st.notes.filter(function (x) { return x.id !== n.id; }) }; }); },
+        dismiss: function () { self.setState(function (st) { return { notes: st.notes.filter(function (x) { return x.id !== n.id; }) }; }); }
+      };
+    });
+
+    var PRICE = { pregabid: 14.5, nurokind: 9.8, ultracet: 12, duzela: 13.2, amitone: 1.8, gabapin: 6.5, myoril: 11.4, zerodol: 4.6, etoshine: 9.9, pan: 7.2, glycomet: 2.1 };
+    var rupee = function (n) { return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); };
+    var medSum = 0, unpriced = 0;
+    s.meds.forEach(function (m) {
+      var c = find(m.id), per = m.sos ? 1 : m.dose[0] + m.dose[1] + m.dose[2];
+      var qty = Math.min(Math.ceil(per * (m.days || 0)), c.stock);
+      if (PRICE[m.id] == null) unpriced++; else medSum += qty * PRICE[m.id];
+    });
+    var feeAmt = pt.kind === 'New' ? 400 : 300;
+    medSum = Math.round(medSum * 100) / 100;
+    var gross = feeAmt + medSum;
+    var roundOff = Math.round((gross % 100) * 100) / 100;
+    var discAmt = s.disc === 'round' ? roundOff : s.disc === 'ten' ? Math.round(gross * 0.1 * 100) / 100 : s.disc === 'waive' ? feeAmt : 0;
+    var DISCS = [['none', 'No discount'], ['round', 'Round off'], ['ten', '10% off'], ['waive', 'Waive consultation']];
+    var ch = { fee: rupee(feeAmt) + ' · ' + (pt.kind === 'New' ? 'new patient' : 'follow-up'), meds: rupee(medSum), medNote: 'supplied qty × saved price' + (unpriced ? ' · ' + unpriced + ' priced at reception' : ''),
+      hasDisc: discAmt > 0, disc: rupee(discAmt), discLabel: (DISCS.filter(function (d) { return d[0] === s.disc; })[0] || ['', ''])[1], total: rupee(gross - discAmt) };
+
+    return {
+      ch: ch,
+      patientName: pt.name,
+      discOpts: DISCS.filter(function (d) { return d[0] !== 'round' || roundOff > 0; }).map(function (d) { return { label: d[0] === 'round' ? 'Round off ' + rupee(roundOff) : d[1], st: s.disc === d[0] ? ON : OFF, pick: function () { self.setState({ disc: d[0] }); } }; }),
+      navEvent: s.arrival === 'calling' ? 'Calling #' + s.token + '…' : s.arrival === 'in' ? 'Reception sent in #' + s.token : '',
+      sync: s.sync || 'saved',
+      barTitle: s.idle ? 'Prescription' : 'Prescription · #' + s.token + ' · ' + pt.name,
+      hasArrival: !!s.arrival && !s.idle,
+      arrival: s.arrival === 'calling' ? 'Called · waiting for reception to send #' + s.token + ' in…' : 'Reception sent #' + s.token + ' in',
+      arrSt: s.arrival === 'calling' ? 'color: #93520A' : 'color: #1A4FB5',
+      hasAllergy: !!pt.allergy, allergyText: pt.allergy || '',
+      hasHistory: pt.history.length > 0 || pt.last.length > 0,
+      token: s.token, waiting: waiting, query: s.query,
+      cc: s.cc, dx: s.dx, advice: s.advice,
+      ccText: s.cc || '—', dxText: s.dx || '—', hasAdvice: !!(s.advice && s.advice.trim()),
+      ref: 'SPC-' + pad(s.token),
+      items: items, hasSugg: items.length > 0,
+      meds: meds, noMeds: meds.length === 0, fups: fups,
+      fupText: s.fup === undefined ? '—' : s.fup === null ? 'SOS' : addDays(s.fup),
+      fupShort: s.fup === undefined ? '' : s.fup === null ? '· SOS' : '· ' + shortDate(s.fup),
+      summary: allOk ? (lowCount ? lowCount + ' low on stock — reception will handle' : 'Ready') : missing + ' to fill before sending',
+      idle: !!s.idle, notIdle: !s.idle, canSkip: !s.idle && waiting > 0, noWaiting: waiting === 0,
+      nowText: s.idle ? 'Queue empty' : 'Now #' + s.token,
+      finishLabel: waiting > 0 ? 'Finish · call #' + nextT : 'Finish',
+      sendLabel: waiting > 0 ? 'Send · call #' + nextT : 'Send',
+      longRx: ((s.cc || '').split('\n').length + (s.dx || '').split('\n').length + (s.advice || '').split('\n').length + meds.length * 2.3 + 6) > 30,
+      patientLine: pt.line || '',
+      previewVitals: (pt.short || '') + ' · ' + (pt.vit || ''),
+      onFocus: function () { clearTimeout(self._bt); self.setState({ focus: true }); },
+      onBlur: function () { clearTimeout(self._bt); self._bt = setTimeout(function () { self.setState({ focus: false, hi: 0 }); }, 160); },
+      nextToken: nextT || '', chk: chk, medIssues: medIssues, notes: notes, print: s.print,
+      modalReview: s.modal === 'review', modalSkip: s.modal === 'skip',
+      modalTitle: allOk ? 'Send to reception?' : missing + ' thing' + (missing === 1 ? '' : 's') + ' left',
+      doneLine: allOk ? 'Everything is filled in.' : (doneNames.length ? 'Done: ' + doneNames.join(', ') : 'Fill these in to send.'),
+      notReady: !allOk,
+      confirmSt: allOk ? 'background: #1A4FB5; color: #FFFFFF; cursor: pointer' : 'background: #EEF0F3; color: #9AA3B0; cursor: not-allowed',
+      openReview: function () { self.setState({ modal: 'review', query: '' }); },
+      askSkip: function () { self.setState({ modal: 'skip' }); },
+      closeModal: function () { self.setState({ modal: null }); },
+      togglePrint: function () { self.setState({ print: !s.print }); },
+      confirm: function () {
+        if (!allOk) return;
+        var t = s.token, id = Date.now(), snap = self.snapshot();
+        self.loadNext({ done: (s.done || []).concat([t]), drafts: (s.drafts || []).filter(function (x) { return x.token !== t; }) });
+        self.syncPulse();
+        self.pushNote({ id: id, title: 'Sent to reception · ' + ch.total + ' approved' + (waiting > 0 ? ' · #' + nextT + ' called' : ''), undoable: true,
+          undoFn: function () { clearTimeout(self._arr); self.setState(Object.assign({}, snap, { notes: [] })); self.syncPulse(); } }, 7000);
+      },
+      drafts: (s.drafts || []).map(function (d) {
+        return { token: d.token, name: ptOf(d.token).name, detail: d.meds.length + ' medicine' + (d.meds.length === 1 ? '' : 's') + (d.dx ? ' · ' + d.dx.split('\n')[0] : ' · no diagnosis yet'),
+          reopen: function () {
+            var cur = self.snapshot(), keep = (s.drafts || []).filter(function (x) { return x.token !== d.token; });
+            if (!s.idle && cur.token !== d.token && (cur.meds.length || (cur.dx || '').trim())) keep = keep.concat([cur]);
+            clearTimeout(self._arr);
+            var heldCur = keep.some(function (x) { return x.token === s.token; });
+            self.setState(Object.assign({}, d, { drafts: keep, done: s.done || [], idle: false, drawer: null, modal: null, arrival: null, disc: d.disc || 'none' }));
+            self.pushNote({ id: Date.now(), title: '#' + d.token + ' reopened' + (s.idle ? '' : heldCur ? ' · #' + s.token + ' kept as a draft' : ' · #' + s.token + ' back in the queue') }, 4000);
+          } };
+      }),
+      noDrafts: !(s.drafts || []).length,
+      idleHasDrafts: !!s.idle && (s.drafts || []).length > 0,
+      idleDraftText: (s.drafts || []).length + ' draft' + ((s.drafts || []).length === 1 ? '' : 's') + ' on hold — finish ' + ((s.drafts || []).length === 1 ? 'it' : 'them') + ' →',
+      skipConfirm: function () {
+        var t = s.token, snap = self.snapshot();
+        self.loadNext({ drafts: (s.drafts || []).filter(function (x) { return x.token !== t; }).concat([snap]) });
+        self.syncPulse();
+        self.pushNote({ id: Date.now(), title: '#' + t + ' saved as draft' }, 4000);
+      },
+      onCc: function (e) { self.setState({ cc: e.target.value }); },
+      onDx: function (e) { self.setState({ dx: e.target.value }); },
+      onAdvice: function (e) { self.setState({ advice: e.target.value }); },
+      onQuery: function (e) { self.setState({ query: e.target.value, hi: 0 }); },
+      onKey: function (e) {
+        if (e.key === 'ArrowDown' && raw.length) { e.preventDefault(); self.setState({ hi: (hi + 1) % raw.length }); }
+        else if (e.key === 'ArrowUp' && raw.length) { e.preventDefault(); self.setState({ hi: (hi - 1 + raw.length) % raw.length }); }
+        else if (e.key === 'Enter' && raw.length && q) { e.preventDefault(); raw[hi].go(); }
+        else if (e.key === 'Escape') { if (q) self.setState({ query: '', hi: 0 }); else e.target.blur(); }
+      },
+      repeatLast: function () {
+        var add = pt.last.filter(function (l) { return !inRx[l.id]; }).map(function (l) { return makeMed(find(l.id), l.cfg); });
+        if (add.length) self.setState({ meds: s.meds.concat(add) });
+        self.pushNote({ id: Date.now(), title: add.length ? 'Last Rx added' : 'Already on the prescription' }, 3000);
+      },
+      drawerQueue: s.drawer === 'queue', drawerHistory: s.drawer === 'history',
+      openQueue: function () { self.setState({ drawer: 'queue' }); },
+      openHistory: function () { self.setState({ drawer: 'history' }); },
+      closeDrawer: function () { self.setState({ drawer: null }); },
+      queue: pend.map(function (t) {
+        var qq = QUEUE[t - 15];
+        return { token: t, name: ptOf(t).name, reason: qq.reason, kind: qq.kind, meta: qq.meta, wait: qq.wait };
+      }),
+      history: pt.history.map(function (hv) {
+        return {
+          date: hv.date, ago: hv.ago, cc: hv.cc, dx: hv.dx, note: hv.note,
+          rx: hv.rx.map(function (r) { return { name: find(r.id).name, line: r.line }; }),
+          use: function () {
+            var add = hv.rx.filter(function (r) { return !inRx[r.id]; }).map(function (r) { return makeMed(find(r.id)); });
+            self.setState({ drawer: null, meds: s.meds.concat(add) });
+            self.pushNote({ id: Date.now(), title: add.length ? add.length + ' added from ' + hv.date : 'Already on the prescription' }, 3000);
+          }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

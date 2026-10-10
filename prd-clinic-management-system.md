@@ -2,6 +2,14 @@
 
 ## Current rework priorities — 2026-10-10
 
+The user-approved [UI handoff addendum](docs/ui-handoff-decisions.md) governs
+queue reorder/absence/no-show/Sent in, saved prescription fields and warnings,
+approval-time price snapshots, price audits, partial dispensing and completion
+gates. It supersedes conflicting older requirements below. Where it is silent,
+the rework brief applies. [The implementation plan](docs/ui-handoff-plan.md)
+assigns one pull request per step. Physical clinic-printer sign-off is required
+before release; requirements here are not evidence that these features exist.
+
 The user clarified that fast digital prescription writing and useful
 patient history are the centre of the personal clinical app. Reception
 check-in, a shared live token queue, Cash/UPI billing, stock deduction,
@@ -65,12 +73,12 @@ implementation progress is in docs/STATUS.md.
 ## Features
 
 ### Token Queue
-Digitises the existing first-come-first-serve token system rather than replacing it.
-
-- Receptionist issues the next token number at check-in. Numbers climb continuously and never reset.
-- Calling ahead doesn't earn a better position — arrival order is the only ordering rule, matching how it already works.
-- The queue is visible on both the receptionist's and the doctor's screens, in token order.
-- The pharmacist needs no screen: they call numbers in sequence.
+Reception issues the next token at check-in. Tokens identify visits; queue order
+is separate and reception may move waiting patients up/down with an optional
+reason and a logged, doctor-visible move. Calling ahead gives no automatic priority.
+The shared queue supports Called/Sent in, Not here/return and explicit timed
+No-show under the addendum. No visit is deleted or removed automatically.
+The pharmacist still needs no screen.
 
 ### Patient Check-In
 - Receptionist searches by phone number or name before creating anything new.

@@ -1,5 +1,9 @@
 # Product
 
+Current requirements: `docs/ui-handoff-decisions.md` supersedes older queue,
+pricing, dispensing and prescription behaviour below. Where it is silent,
+`docs/rework-brief.md` governs. Progress is recorded in `docs/STATUS.md`.
+
 <!-- impeccable:product-schema 1 -->
 
 ## Platform
@@ -9,7 +13,7 @@ web
 ## Users
 
 - **Doctor** — an anaesthetist practising pain relief and palliative care, one of two staff. Writes prescriptions, performs and prices procedures, and is the sole person who sets each patient's final payable amount (full price, reduced, or free). Also checks the day's numbers remotely from home.
-- **Receptionist** — issues tokens, captures patient details, opens the bill, collects payment, manages stock alongside the doctor. Her screen only ever displays the amount the doctor set; she cannot change it.
+- **Receptionist** — issues tokens, manages queue order/absence, captures details, collects payment and manages stock/catalog prices. She may reduce medicine supply within the approved quantity and available stock; the bill recalculates with the fixed doctor discount. She cannot override bill prices or grant discounts.
 - **Pharmacist** — works entirely without a screen or login. Calls the next token number aloud, packs medicines with the doctor, and explains dosage to the patient at reception.
 - **Admin** — configuration login (procedures/prices, drug list, suppliers, templates, custom fields, logins).
 - **Pharma reps** (~5-6/week) — checked in by the receptionist, always queued behind every waiting patient regardless of arrival order.
@@ -26,9 +30,9 @@ whole populated document on blank paper. Refill-only sales bypass the
 doctor's queue and consultation fee. Medicines charge by quantity supplied
 × unit price. These are requirements awaiting implementation, not claims
 about the current app. Reception may confirm refill totals at saved unit
-prices without doctor approval, but cannot change prices or give discounts.
-Only the doctor can discount a refill; consultation final amounts remain
-doctor-controlled.
+prices without doctor approval. Both clinical roles edit catalog prices; reception
+cannot override a bill's snapshotted prices or give discounts. Only the doctor
+can discount a refill. Consultation approval and partial supply follow the addendum.
 
 Not a generic clinic-management SaaS. Three things a neighboring product would not copy faithfully: the doctor stays sole arbiter of price and discount per patient (matching how a socially-adjusted palliative practice actually prices care, rather than fixed-price billing); it is built to keep working through India's variable connectivity — durable offline write queue, zero-connectivity browser printing, and instant doctor-to-receptionist sync are treated as core, not edge cases; and no patient ever has to use an app — token, print, and WhatsApp (PDF, never a link) are the only patient-facing channels.
 
@@ -39,14 +43,15 @@ Runs on staff-owned browsers inside and outside the clinic (the doctor checks nu
 ## Capabilities and Constraints
 
 - Money is stored as integer paise, never float, anywhere including tests.
-- The doctor sets the final payable amount; the receptionist's price field is read-only. Discount = calculated total − final amount, recorded automatically, never justified or typed in separately.
+- The doctor approves consultation quantities, unit prices and discount. Reception can reduce supply within approved quantities and stock; the fixed discount is capped at the reduced subtotal. Bill unit prices and discount controls remain read-only for reception.
 - Paid bills are immutable; a correction writes a new row referencing the original.
-- Stock deduction and bill confirmation happen atomically and idempotently (a double-clicked confirm never deducts twice); a deduction that would go below zero still applies and is flagged into that day's stock warnings rather than blocking a live patient.
+- Stock deduction and bill confirmation happen atomically and idempotently (a double-clicked confirm never deducts twice). New dispensing cannot exceed available stock. Preserve historical negative stock and allow inventory reconciliation to correct it.
 - Row-level security is on for every table; this app is reachable from outside the clinic network.
 - Realtime events invalidate a query and trigger a refetch — never a direct patch to state (sockets drop on sleep/wifi flap).
 - The prescription must print with zero connectivity (browser print of what's on screen, no server round trip).
 - Writes queue durably (IndexedDB, not localStorage) and survive a refresh, with an explicit "not saved yet" state.
-- WhatsApp delivery (prescription/receipt as PDF, refill and follow-up reminders, pre-registration) goes through the Meta Cloud API directly, no BSP; pre-registration never grants queue priority — token order is still strictly by physical arrival.
+- WhatsApp remains deferred. Pre-registration gives no automatic queue priority;
+  reception may reorder waiting patients under the addendum's audited workflow.
 - Deliberately out of v0: a pharmacist login, a second doctor's queue, patient-facing portal/app, SMS fallback, appointment booking, ambient AI scribing, ABDM integration, batch-level medicine expiry.
 - Full detail lives in `AGENTS.md` (non-negotiables, technical decisions) and `prd-clinic-management-system.md` (complete spec, screens, forms, edge cases) — read both before proposing a feature.
 
