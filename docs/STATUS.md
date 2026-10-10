@@ -25,7 +25,7 @@ Update it before ending a session or when a block of work completes.
   Actual allergy field definitions still need verification before warning logic.
 - Delivery is five separate PR steps, stacked above the existing audit PR.
   Current branch `codex/clinic-ui-handoff-spec` contains step 1 documentation and
-  all 34 preserved reference files. No runtime feature is implemented by this
+  the 33 versioned handoff reference files. No runtime feature is implemented by this
   step, and no database, deployment or authentication change is included.
 - Required checks are recorded per PR, including 1440/390 layouts, backend roles,
   integer money, offline reload, regressions and review. Physical short/typical/
@@ -33,8 +33,13 @@ Update it before ending a session or when a block of work completes.
   clinic-printer sign-off has occurred. Verified source-reference hashes,
   document links, integer acceptance examples, documentation-only scope and
   diff whitespace. Runtime tests are not applicable to this documentation-only
-  change and have not been rerun. Step 1 is prepared for its draft PR;
-  implementation steps 2–5 and their acceptance checks remain outstanding.
+  change and have not been rerun. Step 1 is published as draft PR #2:
+  https://github.com/arvinth777/i_clinic/pull/2, based on the audit-fixes branch
+  (PR #1). Remote head matched `fc256e8`; this publication checkpoint follows.
+  GitHub showed GitGuardian and Vercel checks successful, Supabase Preview skipped.
+  No merge performed; code review remains required before merge. Implementation
+  steps 2–5 and all runtime/physical acceptance checks remain outstanding.
+  Next: shared UI foundation in a separate branch/PR above this specification.
 
 - Inspected the supplied Downloads/clinic-app-handoff screenshots and prototype
   source against the current application. Preserved the complete handoff under
