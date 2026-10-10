@@ -200,7 +200,7 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
       await attemptOrQueue({
         clinicId,
         attempt: (accessToken) => supabase.from('visit_procedures').delete().eq('id', id).setHeader('Authorization', `Bearer ${accessToken}`),
-        queueItem: () => ({ kind: 'delete', table: 'visit_procedures', match: { id }, description: `Remove procedure "${removed?.procedures?.name ?? ''}"` }),
+        queueItem: () => ({ kind: 'delete', table: 'visit_procedures', match: { id }, payload:{visit_id:visitId}, description: `Remove procedure "${removed?.procedures?.name ?? ''}"` }),
         applyOptimistic: () => {
           queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => old?.filter((r) => r.id !== id))
           if (removed) patchTotal(-removed.price_paise,lines=>lines.filter(l=>l.kind!=='procedure'||l.visit_procedure_id!==removed.id))
