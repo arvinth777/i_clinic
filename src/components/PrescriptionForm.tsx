@@ -95,12 +95,20 @@ export function PrescriptionForm({
         .from('medicines')
         .select('id, name, stock_unit, unit_confirmed_at')
         .eq('clinic_id', clinicId)
-        .not('unit_confirmed_at', 'is', null)
         .ilike('name', `%${debouncedSearch}%`)
         .order('name', { ascending: true })
         .limit(20)
       if (error) throw error
       return data as MedicineResult[]
+    },
+  })
+
+  const { data: medicineUnits } = useQuery({
+    queryKey: ['prescription-medicine-units', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('medicines').select('id, stock_unit').eq('clinic_id', clinicId)
+      if (error) throw error
+      return data as { id: string; stock_unit: string | null }[]
     },
   })
 
@@ -143,6 +151,7 @@ export function PrescriptionForm({
       setNewMedicinePrice('')
       setNewMedicineUnit('')
       queryClient.invalidateQueries({ queryKey: ['medicine-search', clinicId] })
+      queryClient.invalidateQueries({ queryKey: ['prescription-medicine-units', clinicId] })
     },
   })
 
@@ -300,7 +309,7 @@ export function PrescriptionForm({
             <ul className="search-results">
               {searchResults.map((m) => (
                 <li key={m.id}>
-                  <button type="button" className="search-result-button" onClick={() => addFromSearch(m)}>
+                  <button type="button" className="search-result-button" disabled={!m.unit_confirmed_at} onClick={() => addFromSearch(m)}>
                     <span>{m.name}</span>
                   </button>
                 </li>
@@ -413,7 +422,7 @@ export function PrescriptionForm({
                   />
                 </div>
                 <div className="field">
-                  <label className="field-label">Quantity supplied (confirmed stock unit)</label>
+                  <label className="field-label">Quantity supplied ({medicineUnits?.find((m) => m.id === item.medicineId)?.stock_unit ?? 'confirm unit under Stock'})</label>
                   <Input
                     type="number"
                     min="1"

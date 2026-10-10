@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
@@ -41,9 +41,15 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
       if (search.trim()) query = query.ilike('customer_name', `%${search.trim()}%`)
       const { data, error } = await query.order('created_at', { ascending: false }).limit(50)
       if (error) throw error
-      return data as unknown as Sale[]
+      const rows = data as unknown as Sale[]
+      const waiting = (client.getQueryData<Sale[]>(salesKey) ?? []).filter((local) => local.pending && (!rows.some((row) => row.id === local.id) || (local.bill_id === 'pending' && !rows.find((row) => row.id === local.id)?.bill_id)))
+      return [...waiting, ...rows.filter((row) => !waiting.some((local) => local.id === row.id))]
     },
   })
+  useEffect(() => {
+    const channel = supabase.channel(`pharmacy-${clinicId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'pharmacy_sales', filter: `clinic_id=eq.${clinicId}` }, () => client.invalidateQueries({ queryKey: ['pharmacy-sales', clinicId] })).subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [clinicId, client])
   const { data: clinic } = useQuery({
     queryKey: ['clinic-print-info', clinicId],
     queryFn: async () => {
@@ -62,9 +68,9 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
   function refresh() {
     client.invalidateQueries({ queryKey: ['pharmacy-sales', clinicId] })
     client.invalidateQueries({ queryKey: ['stock', clinicId] })
-    client.invalidateQueries({ queryKey: ['daily-report'] })
-    client.invalidateQueries({ queryKey: ['monthly-report'] })
-    client.invalidateQueries({ queryKey: ['gst-report'] })
+    client.invalidateQueries({ queryKey: ['report-daily'] })
+    client.invalidateQueries({ queryKey: ['report-monthly'] })
+    client.invalidateQueries({ queryKey: ['report-gst'] })
   }
   const save = useMutation({
     networkMode: 'always',
@@ -99,10 +105,11 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
       const amount = parseRupeesToPaise(finalInput)
       if (!selected || amount === null) throw new Error('Enter a valid payable amount')
       const payload = { p_sale_id: selected.id, p_final_amount_paise: amount }
-      await attemptOrQueue({ clinicId,
+      const result = await attemptOrQueue({ clinicId,
         attempt: (token) => supabase.rpc('set_pharmacy_sale_amount', payload).setHeader('Authorization', `Bearer ${token}`),
         queueItem: () => ({ kind: 'rpc', rpc: 'set_pharmacy_sale_amount', payload, description: 'Doctor pharmacy discount or correction' }),
       })
+      if (result.queued) client.setQueryData<Sale[]>(salesKey, (old) => old?.map((s) => s.id === selected.id ? { ...s, pending: true, final_amount_paise: amount, bill_id: s.bill_id ? 'pending' : null, bills: s.bills ? { ...s.bills, pending: true, final_amount_paise: amount } : null } : s))
     },
     onSuccess: () => { setFinalInput(''); refresh() },
   })

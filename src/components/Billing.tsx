@@ -264,6 +264,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
       <h2 className="form-heading">
         {visit.patients?.name} <span className="doctor-queue-meta">Token {visit.token_number}</span>
       </h2>
+      {detail?.some((row) => row.kind === 'medicine' && !row.stock_unit) && visit.stage !== 'paid' && <p className="form-error">Confirm medicine units under Stock and ask the doctor to review supplied quantities before payment.</p>}
       {openBill.isError && <p className="form-error">Couldn't open the bill — try again.</p>}
 
       <section className="record-section">
