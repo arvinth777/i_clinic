@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patient documents — synthetic UI fixture</title>
+<div id="root"></div>
+<script type="module">
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { PatientDocuments } from '../../../src/components/PatientDocuments'
+import { queryClient } from '../../../src/lib/queryClient'
+import { supabase } from '../../../src/lib/supabase'
+import '../../../src/index.css'
+import '../../../src/pages/Reception.css'
+import '../../../src/pages/Stock.css'
+import '@fontsource/hanken-grotesk/400.css'
+import '@fontsource/hanken-grotesk/500.css'
+import '@fontsource/hanken-grotesk/600.css'
+import '@fontsource/hanken-grotesk/700.css'
+const clinic = '10000000-0000-4000-8000-000000000001'
+const patient = '20000000-0000-4000-8000-000000000001'
+const imageFixture = new URLSearchParams(location.search).has('image')
+const fixture = { id: '40000000-0000-4000-8000-000000000001', clinic_id: clinic, patient_id: patient, title: 'Synthetic MRI report', category: 'MRI', examination_date: '2026-10-10', note: 'Synthetic PDF for viewer testing only.', mime_type: imageFixture ? 'image/png' : 'application/pdf', size_bytes: 100, created_at: '2026-10-10T10:00:00Z', status: 'ready' }
+const nativeFetch = window.fetch.bind(window)
+supabase.auth.getSession = async () => ({ data: { session: { user: { id: '30000000-0000-4000-8000-000000000001' }, access_token: 'synthetic-token' } }, error: null })
+window.fetch = async (url, options) => {
+  const address = new URL(String(url), location.origin)
+  if (address.origin === location.origin) return nativeFetch(url, options)
+  const action = address.searchParams.get('action')
+  if (address.pathname.endsWith('/patient-documents')) {
+    if (action === 'status') return Response.json({ configured: true, connected: true, email: 'synthetic@example.test' })
+    if (action === 'content') return nativeFetch(imageFixture ? '/docs/references/clinic-app-handoff/assets/letterhead-a4.png' : '/docs/evidence/ui-handoff/short.pdf')
+    if (action === 'link') return Response.json({ url: 'https://drive.google.com/file/d/synthetic-fixture/view' })
+  }
+  if (address.pathname.endsWith('/patient_files')) return Response.json([fixture])
+  throw new Error('Fixture blocks all other network requests')
+}
+createRoot(document.getElementById('root')).render(React.createElement(QueryClientProvider, { client: queryClient }, React.createElement('main', { style: { padding: 'var(--space-lg)' } }, React.createElement('p', null, 'Synthetic UI fixture · no real Google account or patient data'), React.createElement(PatientDocuments, {clinicId: clinic, patientId: patient}))))
+</script>

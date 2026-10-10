@@ -13,3 +13,7 @@ verify_jwt = false
 # supabase/functions/backup-freshness/index.ts.
 [functions.backup-freshness]
 verify_jwt = false
+
+# JWT validation is also explicit through Auth.getUser in the handler.
+[functions.patient-documents]
+verify_jwt = true

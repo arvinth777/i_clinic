@@ -65,3 +65,17 @@ font faces before opening browser print. React Query uses `networkMode: always`
 so cached assets work without connectivity. Missing assets surface an inline
 error; request identity and unmount cleanup cancel stale print requests.
 Document reprints reuse the issued record and never insert another document.
+
+## Private patient attachments — 2026-10-10
+
+Files live in clinic-owned Google Drive; Supabase stores doctor-only metadata
+and encrypted server-only refresh credentials. A single authenticated Edge
+Function validates clinic/doctor/patient on each request and proxies uploads
+and downloads. OAuth uses drive.file and one-use user/clinic-bound state.
+A dedicated IndexedDB queue stores bytes before upload and shares the global
+pending count without blocking the clinical queue. Client IDs plus reserved
+Drive IDs make retries idempotent; MIME/signature/size/checksum validation
+protect the file boundary. The browser PDF renderer requires an unsandboxed
+PDF iframe; HTML/SVG are rejected and responses are forced to the stored
+allowlisted MIME. Signature validation is not an antivirus scan.
+Setup and known operational limits: `patient-documents-setup.md`.
