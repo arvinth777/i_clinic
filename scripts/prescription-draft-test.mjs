@@ -16,7 +16,7 @@ const source = readFileSync(new URL('../src/lib/prescriptionDraft.ts', import.me
 const { outputText } = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
 })
-const { usualCombo } = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
+const { usualCombo, newDraftItem, suggestedQuantity } = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
 
 let passed = 0
 function check(name, actual, expected) {
@@ -85,3 +85,12 @@ const sixPrescriptions = [
 check('only the last 5 prescriptions are ever considered', usualCombo(sixPrescriptions), [])
 
 console.log(`\n${passed}/${passed} passed`)
+
+const draft = { ...newDraftItem('m1', 'Synthetic tablet'), durationDays: '5' }
+check('twice daily for five days suggests ten tablets', suggestedQuantity(draft, 'tablet'), 10)
+check('half tablet twice daily for five days suggests five tablets', suggestedQuantity({ ...draft, dosageFrequency: '0.5-0-0.5' }, 'tablet'), 5)
+check('SOS has no inferred quantity', suggestedQuantity({ ...draft, dosageFrequency: 'SOS' }, 'tablet'), null)
+check('bottle has no inferred quantity', suggestedQuantity(draft, 'bottle'), null)
+check('strip has no inferred quantity', suggestedQuantity(draft, 'strip'), null)
+check('non-whole supply needs explicit quantity', suggestedQuantity({ ...draft, dosageFrequency: '0.5-0-0', durationDays: '1' }, 'tablet'), null)
+check('typed instructions have no inferred quantity', suggestedQuantity({ ...draft, dosageFrequency: 'every other day' }, 'tablet'), null)

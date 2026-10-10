@@ -3,6 +3,31 @@
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
 
+## Handoff implementation — prescription and doctor workspace, 2026-10-10
+
+- The actual doctor view now follows Doctor.dc.html: open patient workspace,
+  history/notes and a grey right-hand waiting list. Start prescription opens
+  the split editor/letterhead preview; returning to the workspace retains edits.
+- Compact expandable medicine rows, combined medicine/set search, accessible
+  custom-frequency entry, explicit quantity suggestions and diagnosis/advice
+  fields are connected to the existing prescription save. Drafts persist in
+  account/clinic/visit-bound IndexedDB; issued print snapshots retain clinical
+  fields. Review dates continue through CarePanel, now with durable offline saves.
+- Added/applied staging-only migration 20261010120000 for diagnosis/advice and
+  custom dosing; compatible saved-set constraint follows in 20261010121000.
+  Doctor/reception RPC test failed on the missing signature before application,
+  then passed clinical readback, doctor-only save and duplicate retry checks.
+- Existing draft tests plus seven quantity-suggestion boundaries and existing
+  print/receipt tests passed; production build passed, lint has seven existing
+  warnings. Browser confirmed the new doctor layout and side-by-side A4 preview.
+- Still in progress: final visual/offline/print pagination checks, all clinic
+  screen ports, price audit/approval-time snapshots, queue/partial-supply
+  addendum and review. Staging has no allergy custom field; asked for the real
+  source instead of fabricating an NSAID warning. Physical sign-off outstanding.
+- Shared foundation commit a7bc804 is pushed; draft PR creation via gh was
+  unavailable (CLI absent), so publication will use the existing GitHub browser.
+  Nothing is merged or released. Continue implementation and verification.
+
 ## Handoff implementation — shared foundation, 2026-10-10
 
 - Corrected the previous handoff-only result after the user reported that the

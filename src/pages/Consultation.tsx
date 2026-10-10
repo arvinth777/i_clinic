@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { useClinicId } from '../lib/useClinicId'
@@ -11,9 +10,8 @@ import { DocumentsPanel } from '../components/DocumentsPanel'
 import { CarePanel } from '../components/CarePanel'
 import { RepQueueRows } from '../components/RepQueueRows'
 import { TodayFlow, type TodayVisit } from '../components/TodayFlow'
-import { SectionStepper, type StepperSection } from '../components/SectionStepper'
 import { ConsultationClock } from '../components/ConsultationClock'
-import { Button, buttonVariants } from '../components/ui/button'
+import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import '../components/Worklist.css'
 import './Consultation.css'
@@ -22,15 +20,6 @@ import './Consultation.css'
 // shown as a plain elapsed time -- reserving colour for something that
 // actually needs attention, not decoration.
 const LONG_WAIT_MINUTES = 30
-
-// Jump-nav only (confirmed explicitly, not a gated wizard) -- every id
-// here must match a real section id rendered below.
-const STAGE_SECTIONS: StepperSection[] = [
-  { id: 'stage-overview', label: 'Overview' },
-  { id: 'stage-prescription', label: 'Prescription' },
-  { id: 'stage-procedures', label: 'Procedures & pricing' },
-  { id: 'stage-documents', label: 'Documents & follow-up' },
-]
 
 type DoctorVisit = {
   id: string
@@ -57,7 +46,7 @@ type PrescriptionItem = {
   medicines: { name: string } | null
 }
 
-type Prescription = { id: string; visit_id: string; created_at: string; prescription_items: PrescriptionItem[] }
+type Prescription = { diagnosis: string | null; advice: string | null; id: string; visit_id: string; created_at: string; prescription_items: PrescriptionItem[] }
 
 type Comment = { id: string; body: string; created_at: string }
 
@@ -73,6 +62,7 @@ function formatDate(iso: string): string {
 export function Consultation({ userId }: { userId: string }) {
   const queryClient = useQueryClient()
   const { data: clinicId } = useClinicId(userId)
+  const [workspace, setWorkspace] = useState<'overview' | 'prescription'>('overview')
   const [commentBody, setCommentBody] = useState('')
   const [prescribingActive, setPrescribingActive] = useState(false)
   const [repCount, setRepCount] = useState(0)
@@ -159,7 +149,7 @@ export function Consultation({ userId }: { userId: string }) {
       const { data, error } = await supabase
         .from('prescriptions')
         .select(
-          'id, visit_id, created_at, visits!inner(patient_id), prescription_items(medicine_id, drug_type, strength, before_after_food, dosage_frequency, duration_days, quantity_dispensed, notes, medicines(name))',
+          'id, visit_id, created_at, diagnosis, advice, visits!inner(patient_id), prescription_items(medicine_id, drug_type, strength, before_after_food, dosage_frequency, duration_days, quantity_dispensed, notes, medicines(name))',
         )
         .eq('visits.patient_id', current!.patient_id)
         .order('created_at', { ascending: false })
@@ -260,206 +250,68 @@ export function Consultation({ userId }: { userId: string }) {
   if (!clinicId) return null
 
   return (
-    <div className="consultation-page">
-      <TodayFlow visits={todayVisits} />
-      {callNext.isError && <p className="form-error">Couldn't save — try again.</p>}
-
+    <div className={`consultation-page ${workspace === 'prescription' && current ? 'consultation-prescribing' : ''}`}>
+      {callNext.isError && <p className="form-error">Couldn't call the next patient — try again.</p>}
       <div className="consultation-shell">
-        <div className="consultation-rail">
+        <aside className="consultation-rail" aria-label="Waiting patients">
+          <TodayFlow visits={todayVisits} />
           <div className="rail-head">
-            <h2 className="readout-heading">Queue</h2>
-            <Button
-              type="button"
-              disabled={queue.length === 0 || !!current || callNext.isPending}
-              onClick={() => callNext.mutate(queue[0].id)}
-            >
+            <h2 className="readout-heading">Waiting · {queue.length}</h2>
+            <Button disabled={queue.length === 0 || !!current || callNext.isPending} onClick={() => callNext.mutate(queue[0].id)}>
               {callNext.isPending ? 'Calling…' : 'Call next'}
             </Button>
           </div>
-
-          {(!visits || visits.length === 0) && repCount === 0 ? (
-            <p className="readout-empty">Your queue is empty.</p>
-          ) : (
-            <ul className="rail-list">
-              {rows.map((v) => {
-                const overdue = elapsedMinutes(v.arrived_at) >= LONG_WAIT_MINUTES
-                const isCurrent = v.stage === 'with_doctor'
-                return (
-                  <li key={v.id} className={isCurrent ? 'rail-row rail-row-active' : 'rail-row'}>
-                    <span className="rail-row-token">{v.token_number}</span>
-                    <span className="rail-row-name">{v.patients?.name}</span>
-                    <span className={overdue ? 'rail-row-wait doctor-queue-overdue' : 'rail-row-wait'}>{formatElapsed(v.arrived_at)}</span>
-                  </li>
-                )
-              })}
-              <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />
-            </ul>
-          )}
-        </div>
-
+          {rows.length === 0 && repCount === 0 && <p className="readout-empty">Your queue is empty.</p>}
+          <ul className="rail-list">
+            {rows.map(v => <li key={v.id} className={v.stage === 'with_doctor' ? 'rail-row rail-row-active' : 'rail-row'}>
+              <span className="rail-row-token">#{v.token_number}</span>
+              <span className="rail-row-name">{v.patients?.name}<small>{v.stage === 'with_doctor' ? 'With doctor' : v.complaint}</small></span>
+              <span className={elapsedMinutes(v.arrived_at) >= LONG_WAIT_MINUTES ? 'rail-row-wait doctor-queue-overdue' : 'rail-row-wait'}>{formatElapsed(v.arrived_at)}</span>
+            </li>)}
+            <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />
+          </ul>
+        </aside>
         <div className="consultation-stage">
-          {!current ? (
-            <p className="readout-empty">Call next to begin a consultation.</p>
-          ) : (
-            <>
-              <div className="stage-head">
-                <h2>{current.patients?.name}</h2>
-                <span className="doctor-queue-meta">Token {current.token_number}</span>
-                {/* Only set going forward -- a visit already with_doctor
-                    before this phase's migration has no with_doctor_at
-                    to compute from, so the clock just doesn't render
-                    rather than show a bogus/negative duration. */}
-                {current.with_doctor_at && <ConsultationClock startedAt={current.with_doctor_at} />}
+          {!current ? <div className="doctor-idle"><h2>Ready for the next patient</h2><p className="readout-empty">Call next to begin a consultation.</p></div> : <>
+            {workspace === 'prescription' && <div className="rx-toolbar"><Button variant="ghost" onClick={() => setWorkspace('overview')}>← Workspace</Button><strong>Prescription · #{current.token_number} · {current.patients?.name}</strong></div>}
+            <div className="doctor-overview" hidden={workspace !== 'overview'}>
+              <p className="doctor-queue-meta">#{current.token_number} · With doctor</p>
+              <div className="stage-head"><h2>{current.patients?.name}</h2>{current.with_doctor_at && <ConsultationClock startedAt={current.with_doctor_at} />}</div>
+              <div className="doctor-patient-summary"><p>{formatAgeSex(current.patients?.age ?? null, current.patients?.gender ?? null)}{current.patients?.phone ? ` · ${current.patients.phone}` : ''}</p><Button onClick={() => setWorkspace('prescription')}>{prescribingActive ? 'Continue prescription →' : 'Start prescription →'}</Button></div>
+              <div className="doctor-context">
+                <section><h3>Today, from reception</h3><p>{current.complaint || 'No complaint recorded.'}</p></section>
+                <section><h3>Last prescription</h3><p>{prescriptions?.[0]?.prescription_items.map(item => [item.medicines?.name, item.dosage_frequency].filter(Boolean).join(' ')).join(' · ') || 'No prescription on record.'}</p></section>
               </div>
-
-              <SectionStepper sections={STAGE_SECTIONS} />
-
-              <div id="stage-overview">
-              <section className="record-section">
-                <h3 className="readout-heading">Comments</h3>
-              {!comments || comments.length === 0 ? (
-                <p className="readout-empty">No comments yet.</p>
-              ) : (
-                <ul className="comment-list">
-                  {comments.map((c) => (
-                    <li key={c.id} className="comment-item">
-                      <span className="comment-date">{formatDate(c.created_at)}</span>
-                      <p>{c.body}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <form
-                className="action-row"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  if (commentBody.trim()) addComment.mutate()
-                }}
-              >
-                <div className="field comment-field">
-                  <label className="field-label" htmlFor="comment-body">
-                    Add a comment
-                  </label>
-                  <Input
-                    id="comment-body"
-                    value={commentBody}
-                    onChange={(e) => setCommentBody(e.target.value)}
-                    placeholder="Something worth remembering next time"
-                  />
-                </div>
-                <Button type="submit" variant="secondary" disabled={addComment.isPending || !commentBody.trim()}>
-                  {addComment.isPending ? 'Adding…' : 'Add'}
-                </Button>
-              </form>
-              {addComment.isError && <p className="form-error">Couldn't save — try again.</p>}
-            </section>
-
-            <section className="record-section">
-              <h3 className="readout-heading">Patient</h3>
-              <dl className="field-list">
-                <div className="field-row">
-                  <dt>Age / sex</dt>
-                  <dd>{formatAgeSex(current.patients?.age ?? null, current.patients?.gender ?? null)}</dd>
-                </div>
-                {(current.patients?.address || current.patients?.phone) && (
-                  <div className="field-row">
-                    <dt>Contact</dt>
-                    <dd>{[current.patients?.address, current.patients?.phone].filter(Boolean).join(' · ')}</dd>
-                  </div>
-                )}
-                <div className="field-row">
-                  <dt>Complaint</dt>
-                  <dd>{current.complaint}</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="record-section">
-              <h3 className="readout-heading">Past visits</h3>
-              {!pastVisits || pastVisits.length === 0 ? (
-                <p className="readout-empty">No past visits.</p>
-              ) : (
-                <ul className="past-visit-list">
-                  {pastVisits.map((v) => (
-                    <li key={v.id} className="past-visit-item">
-                      <span className="comment-date">{formatDate(v.arrived_at)}</span>
-                      <p>{v.complaint}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="record-section">
-              <h3 className="readout-heading">Past prescriptions</h3>
-              {!prescriptions || prescriptions.length === 0 ? (
-                <p className="readout-empty">No prescriptions on record yet.</p>
-              ) : (
-                <ul className="past-visit-list">
-                  {prescriptions.map((p) => (
-                    <li key={p.id} className="past-visit-item">
-                      <span className="comment-date">{formatDate(p.created_at)}</span>
-                      <p>
-                        {p.prescription_items
-                          .map((item) => [item.medicines?.name, item.dosage_frequency].filter(Boolean).join(' — '))
-                          .join(', ')}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-              </div>
-
-              <div id="stage-prescription">
-            <section className="record-section">
-              <h3 className="readout-heading">Write prescription</h3>
-              <PrescriptionForm
-                userId={userId}
-                visit={current}
-                key={current.id}
-                clinicId={clinicId}
-                visitId={current.id}
-                pastPrescriptions={prescriptions}
-                onActiveChange={setPrescribingActive}
-              />
-            </section>
-              </div>
-
-              <div id="stage-procedures">
-            <PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} />
-              </div>
-
-              <div id="stage-documents">
-            <CarePanel key={`care-${current.id}`} visitId={current.id} patientId={current.patient_id} />
-
-            <DocumentsPanel
-              key={`docs-${current.id}`}
-              clinicId={clinicId}
-              visitId={current.id}
-              patientName={current.patients?.name ?? ''}
-              patientAge={current.patients?.age ?? null}
-              complaint={current.complaint}
-              issuedBy={userId}
-            />
-
-            {!prescribingActive && (
-              <div className="action-row">
-                <motion.button
-                  type="button"
-                  className={buttonVariants({ variant: 'primary' })}
-                  whileTap={{ scale: 0.96, rotate: -1 }}
-                  disabled={consultationDone.isPending}
-                  onClick={() => consultationDone.mutate()}
-                >
-                  {consultationDone.isPending ? 'Saving…' : 'Consultation done'}
-                </motion.button>
-              </div>
-            )}
-              {consultationDone.isError && <p className="form-error">Couldn't save — try again.</p>}
-              </div>
-            </>
-          )}
+              <section className="record-section"><h3 className="readout-heading">History</h3>
+                {!pastVisits?.length ? <p className="readout-empty">No past visits.</p> : <ul className="past-visit-list">{pastVisits.map(v => <li key={v.id} className="history-row">
+                  <time>{formatDate(v.arrived_at)}</time><div><p>{v.complaint}</p>{prescriptions?.filter(p => p.visit_id === v.id).map(p => <div key={p.id}>
+                    {p.diagnosis && <p>{p.diagnosis}</p>}
+                    <p className="field-hint">{p.prescription_items.map(item => [item.medicines?.name, item.dosage_frequency, `${item.duration_days} days`].filter(Boolean).join(' ')).join(' · ')}</p>
+                    {p.advice && <p className="field-hint">{p.advice}</p>}
+                  </div>)}</div>
+                </li>)}</ul>}
+              </section>
+              <section className="record-section"><h3 className="readout-heading">Personal notes</h3>
+                {!!comments?.length && <ul className="comment-list">{comments.map(c => <li key={c.id} className="comment-item"><span className="comment-date">{formatDate(c.created_at)}</span><p>{c.body}</p></li>)}</ul>}
+                <form className="action-row" onSubmit={e => { e.preventDefault(); if (commentBody.trim()) addComment.mutate() }}>
+                  <div className="field comment-field"><label className="field-label" htmlFor="comment-body">Something worth remembering next time</label><Input id="comment-body" value={commentBody} onChange={e => setCommentBody(e.target.value)} /></div>
+                  <Button type="submit" variant="secondary" disabled={addComment.isPending || !commentBody.trim()}>{addComment.isPending ? 'Adding…' : 'Add note'}</Button>
+                </form>
+                {addComment.isError && <p className="form-error">Couldn't save the note — try again.</p>}
+                {current.patients?.address && <p className="field-hint">Address: {current.patients.address}</p>}
+              </section>
+            </div>
+            <div id="stage-prescription" hidden={workspace !== 'prescription'}>
+              <PrescriptionForm userId={userId} visit={current} key={current.id} clinicId={clinicId} visitId={current.id} pastPrescriptions={prescriptions} onActiveChange={setPrescribingActive}>
+                <CarePanel clinicId={clinicId} key={`care-${current.id}`} visitId={current.id} patientId={current.patient_id} />
+                <details className="rx-support"><summary>Procedures &amp; bill approval</summary><PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} /></details>
+                <details className="rx-support"><summary>Documents</summary><DocumentsPanel key={`docs-${current.id}`} clinicId={clinicId} visitId={current.id} patientName={current.patients?.name ?? ''} patientAge={current.patients?.age ?? null} complaint={current.complaint} issuedBy={userId} /></details>
+                <div className="action-row rx-actions"><Button disabled={prescribingActive || consultationDone.isPending || !prescriptions?.some(p => p.visit_id === current.id && p.prescription_items.length > 0)} onClick={() => consultationDone.mutate()}>{consultationDone.isPending ? 'Saving…' : 'Finish consultation'}</Button></div>
+                {prescribingActive && <p className="field-hint">Review and confirm the prescription before finishing.</p>}
+                {consultationDone.isError && <p className="form-error">Couldn't finish — try again.</p>}
+              </PrescriptionForm>
+            </div>
+          </>}
         </div>
       </div>
     </div>

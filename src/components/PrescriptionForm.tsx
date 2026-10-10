@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
-import { mergePrescriptionPrint, readPrescriptionPrint, savePrescriptionPrint } from '../lib/prescriptionPrint'
+import { mergePrescriptionPrint, readPrescriptionPrint, savePrescriptionPrint, readPrescriptionDraft, savePrescriptionDraft } from '../lib/prescriptionPrint'
 import { PrintablePrescription, type PrintVisit, type ClinicPrintInfo, type DetailRow } from './VisitPrintout'
+import { LetterheadPreview } from './LetterheadPreview'
+import './PrescriptionForm.css'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { parseRupeesToPaise } from '../lib/money'
 import { Button, buttonVariants } from './ui/button'
@@ -15,6 +17,7 @@ import {
   itemRow,
   itemIsValid,
   usualCombo,
+  suggestedQuantity,
   type DraftItem,
   type PastPrescription,
   type Template,
@@ -22,7 +25,7 @@ import {
 
 const DRUG_TYPES = ['Tablet', 'Syrup', 'Capsule', 'Powder', 'Injection', 'Other'] as const
 const FOOD_OPTIONS = ['Before food', 'After food', 'Either'] as const
-const FREQUENCY_OPTIONS = ['1-0-1', '1-1-1', '0-0-1', '1-0-0', 'SOS', 'Other'] as const
+const FREQUENCY_OPTIONS = ['1-0-1', '1-1-1', '0-0-1', '1-0-0', 'SOS'] as const
 
 type MedicineResult = { id: string; name: string; stock_unit?: string | null; unit_confirmed_at?: string | null }
 
@@ -33,12 +36,14 @@ export function PrescriptionForm({
   visit,
   pastPrescriptions,
   onActiveChange,
+  children,
 }: {
   clinicId: string
   visitId: string
   userId: string
   visit: PrintVisit
   pastPrescriptions: PastPrescription[] | undefined
+  children?: ReactNode
   onActiveChange: (active: boolean) => void
 }) {
   const queryClient = useQueryClient()
@@ -54,7 +59,16 @@ export function PrescriptionForm({
   })
   const confirmationId = useRef<string | null>(null)
   const newMedicineIdentity = useRef<{ id: string; name: string } | null>(null)
+  const [diagnosis, setDiagnosis] = useState('')
+  const [advice, setAdvice] = useState('')
+  const { data: followUp } = useQuery({ queryKey: ['visit-follow-up', visitId], queryFn: async () => {
+    const { data, error } = await supabase.from('visits').select('follow_up_date').eq('id', visitId).single()
+    if (error) throw error
+    return data as { follow_up_date: string | null }
+  } })
   const [draftItems, setDraftItems] = useState<DraftItem[]>([])
+  const [draftLoaded, setDraftLoaded] = useState(false)
+  const [draftStorageError, setDraftStorageError] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -64,8 +78,36 @@ export function PrescriptionForm({
   const [newMedicinePrice, setNewMedicinePrice] = useState('')
 
   useEffect(() => {
-    onActiveChange(draftItems.length > 0)
-  }, [draftItems.length, onActiveChange])
+    if (!printed || !followUp || printed.visit.follow_up_date === followUp.follow_up_date) return
+    const updated = { ...printed, visit: { ...printed.visit, follow_up_date: followUp.follow_up_date } }
+    savePrescriptionPrint(userId, clinicId, updated).then(() => queryClient.setQueryData(printKey, updated)).catch(() => setDraftStorageError(true))
+    // Keys are derived from the same owner, clinic and visit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [printed, followUp, userId, clinicId, visitId, queryClient])
+  useEffect(() => {
+    let active = true
+    readPrescriptionDraft(userId, clinicId, visitId).then(draft => {
+      if (!active) return
+      if (draft) { setDraftItems(draft.items); setDiagnosis(draft.diagnosis); setAdvice(draft.advice) }
+      setDraftLoaded(true)
+    }).catch(() => { if (active) setDraftStorageError(true) })
+    return () => { active = false }
+  }, [userId, clinicId, visitId])
+  useEffect(() => {
+    if (!draftLoaded) return
+    savePrescriptionDraft(userId, clinicId, visitId, { items: draftItems, diagnosis, advice })
+      .then(() => setDraftStorageError(false)).catch(() => setDraftStorageError(true))
+  }, [draftLoaded, draftItems, diagnosis, advice, userId, clinicId, visitId])
+  useEffect(() => {
+    if (!draftItems.length && !diagnosis && !advice) return
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [draftItems.length, diagnosis, advice])
+
+  useEffect(() => {
+    onActiveChange(draftItems.length > 0 || !!diagnosis || !!advice)
+  }, [draftItems.length, diagnosis, advice, onActiveChange])
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 250)
@@ -210,13 +252,13 @@ export function PrescriptionForm({
         ...itemRow(item), prescription_id: prescriptionId, kind: 'medicine', description: item.medicineName, unit_price_paise: 0,
       }))
       const snapshot = mergePrescriptionPrint({ visit, medicines: previousMedicines, prescriptionIds: previousIds }, {
-        visit, clinic: clinic ?? previous?.clinic,
+        visit: { ...visit, diagnosis, advice, follow_up_date: followUp?.follow_up_date }, clinic: clinic ?? previous?.clinic,
         medicines, prescriptionIds: [prescriptionId],
       })
       // Retain reviewed instructions before the network call, including a crash during save.
       await savePrescriptionPrint(userId, clinicId, snapshot)
       queryClient.setQueryData(printKey, snapshot)
-      const payload = { p_prescription_id: prescriptionId, p_visit_id: visitId, p_items: itemRows }
+      const payload = { p_prescription_id: prescriptionId, p_visit_id: visitId, p_items: itemRows, p_diagnosis: diagnosis, p_advice: advice }
       await attemptOrQueue({
         clinicId,
         attempt: (accessToken) => supabase.rpc('save_prescription', payload).setHeader('Authorization', `Bearer ${accessToken}`),
@@ -227,13 +269,28 @@ export function PrescriptionForm({
       confirmationId.current = null
       queryClient.invalidateQueries({ queryKey: ['past-prescriptions'] })
       setDraftItems([])
+      setDiagnosis('')
+      setAdvice('')
       setReviewOpen(false)
     },
   })
 
+  const existingMedicines: DetailRow[] = (pastPrescriptions ?? []).filter(p => p.visit_id === visitId).flatMap(p => p.prescription_items.map(item => ({ ...item, before_after_food: item.before_after_food ?? null, kind: 'medicine', description: item.medicines?.name ?? 'Medicine', unit_price_paise: 0 })))
+  const previewVisit = draftItems.length || diagnosis || advice ? { ...visit, diagnosis, advice, follow_up_date: followUp?.follow_up_date } : printed?.visit ?? visit
+  const previewMedicines: DetailRow[] = draftItems.length ? draftItems.map(item => ({
+    ...itemRow(item), kind: 'medicine', description: item.medicineName, unit_price_paise: 0,
+  })) : printed?.medicines ?? existingMedicines
+  const preview = <LetterheadPreview><PrintablePrescription clinic={clinic ?? printed?.clinic} visit={previewVisit} medicines={previewMedicines} /></LetterheadPreview>
+
+  if (!draftLoaded) return <p className={draftStorageError ? 'form-error' : 'field-hint'}>{draftStorageError ? 'Could not read the saved draft. Reload before editing so it is not overwritten.' : 'Loading saved prescription…'}</p>
+
   if (reviewOpen) {
     return (
-      <div>
+      <div className="rx-workspace"><div className="rx-editor">
+        <h3 className="readout-heading">Review prescription</h3>
+        <p>{diagnosis ? `Diagnosis: ${diagnosis}` : 'Reminder: no diagnosis entered.'}</p>
+        {advice && <p>Advice: {advice}</p>}
+        {!followUp?.follow_up_date && <p className="field-hint">Reminder: no review date set.</p>}
         <ul className="review-list">
           {draftItems.map((item) => (
             <li key={item.key} className="review-item">
@@ -262,14 +319,21 @@ export function PrescriptionForm({
           </motion.button>
         </div>
         {confirm.isError && <p className="form-error">Couldn't save — try again.</p>}
-      </div>
+      </div>{preview}</div>
     )
   }
 
   const hasQuickAdd = combo.length > 0 || (templates && templates.length > 0)
 
   return (
-    <div>
+    <div className="rx-workspace"><div className="rx-editor">
+      {draftStorageError && <p className="form-error" role="alert">Draft not saved on this device. Keep this page open and retry before leaving.</p>}
+      {(draftItems.length > 0 || diagnosis || advice) && <p className="field-hint" role="status">Draft on this device · not issued yet</p>}
+      <div className="rx-patient"><h2>{visit.patients?.name}</h2><p>{[visit.patients?.age != null ? `${visit.patients.age} years` : '', visit.patients?.gender, `Token #${visit.token_number}`].filter(Boolean).join(' · ')}</p></div>
+      <div className="rx-clinical-fields">
+        <div className="field"><span className="field-label">Complaints, from reception</span><p>{visit.complaint || 'No complaint recorded.'}</p></div>
+        <label className="field"><span className="field-label">Diagnosis</span><textarea value={diagnosis} onChange={e => setDiagnosis(e.target.value)} maxLength={10000} rows={2} placeholder="Working or final diagnosis" /></label>
+      </div>
       {printed && (
         <>
           <Button type="button" variant="secondary" onClick={() => window.print()}>Print prescription</Button>
@@ -277,15 +341,16 @@ export function PrescriptionForm({
         </>
       )}
       {confirm.isError && <p className="form-error">Not saved yet — the local print copy is available. Review and retry the prescription.</p>}
-      <div className="field">
+      <div className="field search-results-anchor">
         <label className="field-label" htmlFor="drug-search">
-          Search drugs
+          Medicines
         </label>
         <Input
           id="drug-search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search a drug to add…"
+          placeholder="Add a medicine or a saved set…"
+          onKeyDown={e => { if (e.key === 'Enter' && searchResults?.[0]?.unit_confirmed_at) { e.preventDefault(); addFromSearch(searchResults[0]) } }}
         />
       </div>
 
@@ -297,7 +362,7 @@ export function PrescriptionForm({
               Usual combo: {combo.map((c) => c.medicineName).join(' + ')}
             </button>
           )}
-          {templates?.map((t) => (
+          {templates?.filter(t => !debouncedSearch || t.name.toLowerCase().includes(debouncedSearch.toLowerCase())).slice(0, debouncedSearch ? 20 : 5).map((t) => (
             <button key={t.id} type="button" className="rx-chip" onClick={() => applyTemplate(t)}>
               {t.name}
             </button>
@@ -324,7 +389,7 @@ export function PrescriptionForm({
             </ul>
           </div>
         ) : (
-          <div className="no-match">
+          <div className="rx-new-medicine">
             <p>No drug named "{debouncedSearch}" in the list.</p>
             <p className="field-hint">Existing medicines need unit confirmation under Stock before they can be supplied.</p>
             <div className="field">
@@ -361,18 +426,19 @@ export function PrescriptionForm({
       {draftItems.length > 0 && (
         <div className="drug-row-list">
           {draftItems.map((item) => (
-            <div key={item.key} className="drug-row">
-              <div className="drug-row-head">
-                <span className="drug-row-name">{item.medicineName}</span>
-                <button type="button" className="drug-row-remove" onClick={() => removeDraft(item.key)}>
+            <details key={item.key} className="drug-row" open={!itemIsValid(item)}>
+              <summary className="drug-row-head">
+                <span className="drug-row-name">{item.medicineName} <span className="field-hint">{item.strength}</span></span>
+                <span className="drug-row-summary">{item.dosageFrequency} · {item.durationDays || '—'} days</span>
+                <button type="button" className="drug-row-remove" onClick={e => { e.preventDefault(); removeDraft(item.key) }}>
                   Remove
                 </button>
-              </div>
+              </summary>
               <div className="drug-row-fields">
                 <div className="field">
                   <label className="field-label">Type</label>
                   <Select value={item.drugType} onValueChange={(v) => updateDraft(item.key, { drugType: v })}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label={`Type for ${item.medicineName}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -386,12 +452,12 @@ export function PrescriptionForm({
                 </div>
                 <div className="field">
                   <label className="field-label">Strength</label>
-                  <Input value={item.strength} onChange={(e) => updateDraft(item.key, { strength: e.target.value })} placeholder="500mg" />
+                  <Input aria-label={`Strength for ${item.medicineName}`} value={item.strength} onChange={(e) => updateDraft(item.key, { strength: e.target.value })} placeholder="500mg" />
                 </div>
                 <div className="field">
                   <label className="field-label">Food</label>
                   <Select value={item.beforeAfterFood} onValueChange={(v) => updateDraft(item.key, { beforeAfterFood: v })}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label={`Food for ${item.medicineName}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -405,18 +471,7 @@ export function PrescriptionForm({
                 </div>
                 <div className="field">
                   <label className="field-label">Frequency</label>
-                  <Select value={item.dosageFrequency} onValueChange={(v) => updateDraft(item.key, { dosageFrequency: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FREQUENCY_OPTIONS.map((f) => (
-                        <SelectItem key={f} value={f}>
-                          {f}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input aria-label={`Frequency for ${item.medicineName}`} list="rx-frequencies" value={item.dosageFrequency} maxLength={200} onChange={e => updateDraft(item.key, { dosageFrequency: e.target.value })} placeholder="1-0-1, SOS, or type instructions" />
                 </div>
                 <div className="field">
                   <label className="field-label">Duration (days)</label>
@@ -424,6 +479,7 @@ export function PrescriptionForm({
                     type="number"
                     min="1"
                     step="1"
+                    aria-label={`Duration for ${item.medicineName}`}
                     value={item.durationDays}
                     onChange={(e) => updateDraft(item.key, { durationDays: e.target.value })}
                   />
@@ -434,25 +490,29 @@ export function PrescriptionForm({
                     type="number"
                     min="1"
                     step="1"
+                    aria-label={`Quantity for ${item.medicineName}`}
                     value={item.quantityDispensed}
                     onChange={(e) => updateDraft(item.key, { quantityDispensed: e.target.value })}
                   />
+                  {suggestedQuantity(item, medicineUnits?.find(m => m.id === item.medicineId)?.stock_unit) != null && <Button type="button" variant="ghost" size="sm" onClick={() => updateDraft(item.key, { quantityDispensed: String(suggestedQuantity(item, medicineUnits?.find(m => m.id === item.medicineId)?.stock_unit)) })}>Use suggested {suggestedQuantity(item, medicineUnits?.find(m => m.id === item.medicineId)?.stock_unit)}</Button>}
                 </div>
                 <div className="field drug-row-notes">
                   <label className="field-label">Note</label>
-                  <Input value={item.notes} onChange={(e) => updateDraft(item.key, { notes: e.target.value })} placeholder="Optional" />
+                  <Input aria-label={`Note for ${item.medicineName}`} value={item.notes} onChange={(e) => updateDraft(item.key, { notes: e.target.value })} placeholder="Optional" />
                 </div>
               </div>
               {!itemIsValid(item) && (
                 <span className="field-error">Type, food, frequency, and a whole-number duration and quantity dispensed are required.</span>
               )}
-            </div>
+            </details>
           ))}
         </div>
       )}
 
+      <datalist id="rx-frequencies">{FREQUENCY_OPTIONS.map(value => <option key={value} value={value} />)}</datalist>
+      <label className="field rx-advice"><span className="field-label">Advice / investigations</span><textarea value={advice} onChange={e => setAdvice(e.target.value)} maxLength={10000} rows={2} placeholder="Instructions, investigations and advice" /></label>
       {draftItems.length > 0 && (
-        <div className="action-row">
+        <div className="action-row rx-actions">
           <Button type="button" disabled={!canReview} onClick={() => setReviewOpen(true)}>
             Review prescription
           </Button>
@@ -487,6 +547,7 @@ export function PrescriptionForm({
         </form>
       )}
       {saveTemplate.isError && <p className="form-error">Couldn't save the template — try again.</p>}
-    </div>
+      {children}
+    </div>{preview}</div>
   )
 }

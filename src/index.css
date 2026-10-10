@@ -63,9 +63,15 @@
   --page-padding: 2rem;
   --page-top: 2.25rem;
   --content-width: 74rem;
+  --doctor-side-width: 23.75rem;
   --side-width: 26.25rem;
   --editor-width: 47.5rem;
   --status-dot-size: 0.4375rem;
+  --paper-width: 210mm;
+  --paper-height: 297mm;
+  --paper-header: 64mm;
+  --paper-footer: 24mm;
+  --preview-width: 32.5rem;
   color-scheme: light;
 }
 

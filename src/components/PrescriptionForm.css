@@ -1,0 +1,27 @@
+.rx-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, var(--preview-width)); align-items: start; min-height: 100%; }
+.rx-editor { min-width: 0; padding: var(--page-top) var(--page-padding); }
+.rx-editor > * { max-width: var(--editor-width); margin-inline: auto; }
+.rx-patient { margin-bottom: var(--space-xl); }
+.rx-patient h2 { font-size: var(--text-xl); font-weight: 700; margin: 0 0 var(--space-2xs); }
+.rx-patient p { font-size: var(--text-sm); color: var(--text-secondary); margin: 0; }
+.rx-clinical-fields { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-bottom: var(--space-lg); }
+.rx-clinical-fields p { margin: 0; white-space: pre-wrap; }
+.rx-editor textarea { resize: vertical; min-height: var(--header-height); width: 100%; border: 0; border-bottom: 1px solid var(--border-strong); background: transparent; color: var(--text); font: inherit; padding: var(--space-xs) 0; }
+.rx-editor textarea:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-color: var(--accent); }
+.rx-editor #drug-search { border-color: var(--accent); font-size: var(--text-base); }
+.rx-editor .drug-row { border: 0; border-bottom: 1px solid var(--border); border-radius: 0; padding: 0; }
+.rx-editor .drug-row-head { cursor: pointer; list-style: none; padding: var(--space-md) 0; margin: 0; flex-wrap: wrap; }
+.rx-editor .drug-row-head::-webkit-details-marker { display: none; }
+.rx-editor .drug-row-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.drug-row-summary { color: var(--text-secondary); font-size: var(--text-sm); }
+.rx-editor .drug-row-fields { padding-block: var(--space-sm) var(--space-lg); }
+.rx-advice { margin-top: var(--space-xl); }
+.rx-actions { padding-block: var(--space-md); border-top: 1px solid var(--border); justify-content: flex-end; }
+.rx-new-medicine { padding: var(--space-md); background: var(--surface-2); border-radius: var(--radius-input); }
+.rx-preview { min-width: 0; padding: var(--page-top) var(--page-padding); background: var(--surface-2); align-self: stretch; }
+.rx-preview-label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-xs); color: var(--text-tertiary); font-size: var(--text-xs); margin-bottom: var(--space-lg); }
+.rx-paper-frame > div { width: var(--paper-width); }
+.rx-paper-frame .prescription-sheet { box-shadow: var(--shadow-drawer); }
+.rx-preview > .field-hint { margin-top: var(--space-md); }
+@media (max-width: 1000px) { .rx-workspace { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 720px) { .rx-editor, .rx-preview { padding: var(--space-lg) var(--space-md); } .rx-clinical-fields { grid-template-columns: 1fr; } }

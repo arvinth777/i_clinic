@@ -1,61 +1,29 @@
-/* genre: modern-minimal-operate · design-system: /design.md · designed-as-app
- *
- * Consultation content -- a persistent left rail (the queue, always
- * visible, quick access) beside a center stage (the current patient's
- * full record). Replaces the earlier full-width-worklist + Drawer-overlay
- * pattern: a real permanent second column now, by explicit user request
- * (this reopens design.md's earlier "no permanent second column" rule --
- * recorded there, not silently overridden). Internal groups within the
- * stage -- .record-section, .drug-row, .pricing-block -- stay ruled,
- * tab-flag-labelled sections, not nested cards, and all stay visible/
- * scrollable at once: the doctor needs several of them at a glance
- * mid-consultation (PRODUCT.md's "everything on one screen" requirement).
- */
-
-.consultation-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.consultation-shell {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-lg);
-}
-
-/* Sticky within .shell-content's own scroll (see AppShell.css) -- the
-   queue stays reachable regardless of how far the doctor has scrolled
-   into the current patient's record. Capped and independently scrollable
-   since staging alone can carry hundreds of queued rows; a real clinic
-   day never will, but the rail must not silently break under either. */
-/* v4.5: both the rail and the stage read as real elevated panels
-   (background + border + radius + shadow) rather than bare content
-   floating on the page background -- Linear/Stripe both group content
-   this way. */
-.consultation-rail {
-  flex: 0 0 16rem;
-  position: sticky;
-  top: var(--space-md);
-  max-height: calc(100vh - 6rem);
-  overflow-y: auto;
-  padding: var(--space-md) var(--space-sm);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-sm);
-}
-
-.consultation-stage {
-  flex: 1;
-  min-width: 0;
-  padding: var(--space-xl);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-md);
-}
-
+/* Layout ported from Doctor.dc.html. */
+.consultation-page { min-height: 100%; }
+.consultation-shell { display: flex; align-items: stretch; min-height: 100%; }
+.consultation-rail { order: 2; flex: 0 0 var(--doctor-side-width); min-width: 0; background: var(--surface-2); padding: var(--page-top) var(--page-padding); }
+.consultation-stage { flex: 1; min-width: 0; padding: var(--space-xl) var(--page-padding); }
+.consultation-stage > * { max-width: var(--editor-width); margin-inline: auto; }
+.consultation-prescribing .consultation-rail { display: none; }
+.consultation-prescribing .consultation-stage { padding: 0; }
+.consultation-prescribing .consultation-stage > * { max-width: none; }
+.rx-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-md); padding: var(--space-xs) var(--page-padding); border-bottom: 1px solid var(--border); font-size: var(--text-sm); }
+.doctor-patient-summary { display: flex; flex-wrap: wrap; gap: var(--space-md); justify-content: space-between; align-items: center; margin-bottom: var(--space-xl); }
+.doctor-patient-summary p { margin: 0; color: var(--text-secondary); }
+.consultation-stage .stage-head { margin-bottom: var(--space-xs); flex-wrap: wrap; }
+.consultation-stage .stage-head h2 { font-size: var(--text-3xl); font-weight: 700; }
+.consultation-rail .rail-row { padding: var(--space-md) 0; gap: var(--space-sm); border-bottom: 1px solid var(--border); border-radius: 0; }
+.consultation-rail .rail-row-token { text-align: left; font-weight: 600; color: var(--text); }
+.consultation-rail .rail-row-name { white-space: normal; }
+.rail-row-name small { display: block; font-size: var(--text-xs); color: var(--text-tertiary); margin-top: var(--space-2xs); }
+.doctor-context { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-bottom: var(--space-xl); }
+.doctor-context h3 { font-size: var(--text-xs); color: var(--text-tertiary); font-weight: 400; margin: 0 0 var(--space-xs); }
+.doctor-context p { margin: 0; }
+.history-row { display: grid; grid-template-columns: auto 1fr; gap: var(--space-lg); padding: var(--space-lg) 0; border-top: 1px solid var(--border); }
+.history-row p { margin: 0 0 var(--space-2xs); }
+.history-row time { font-size: var(--text-sm); font-weight: 600; }
+.rx-support { margin-top: var(--space-lg); padding-block: var(--space-md); border-top: 1px solid var(--border); }
+.rx-support > summary { cursor: pointer; font-weight: 600; }
 .rail-head {
   display: flex;
   align-items: center;
@@ -266,146 +234,9 @@
  * from today's visits for this clinic at render time.
  * ============================================================ */
 
-.flow-widget {
-  margin: var(--space-xs) 0 var(--space-lg);
-}
-
-/* Plain inline stat line -- still used by Reports (DailyReport.tsx,
-   GstReport.tsx); TodayFlow.tsx moved to the bento tiles below but this
-   pair of classes stays for its other callers, checked directly via grep
-   before touching this block a second time. */
-.flow-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-md) var(--space-lg);
-  margin-bottom: var(--space-xs);
-}
-
-.flow-stat {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: var(--space-2xs);
-}
-
-.flow-stat-value {
-  font-family: var(--font-mono);
-  font-size: var(--text-base);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.flow-stat-label {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-/* Bento grid (user-directed reference: websiteprompts.com/design/
-   bento-grid) -- varied but aligned tiles, not a uniform row: the
-   "Waiting" tile is the wide hero (the one number the doctor actually
-   acts on), the other two are equal-width supporting tiles. */
-.flow-grid {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
-  gap: var(--space-md);
-  margin-bottom: var(--space-lg);
-}
-
-.flow-tile {
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: var(--space-lg);
-  min-height: 9.5rem;
-  padding: var(--space-lg) var(--space-xl);
-  border-radius: var(--radius-card);
-}
-
-.flow-tile-hero {
-  background: var(--tile-hero);
-  color: var(--tile-hero-ink);
-}
-
-.flow-tile-ring {
-  position: absolute;
-  right: -1.5rem;
-  bottom: -2rem;
-  color: var(--tile-hero-ink);
-  pointer-events: none;
-}
-
-.flow-tile-mint {
-  background: var(--tile-mint);
-  color: var(--tile-pale-ink);
-}
-
-.flow-tile-amber {
-  background: var(--tile-amber);
-  color: var(--tile-pale-ink);
-}
-
-.flow-tile-label {
-  font-size: var(--text-sm);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0.75;
-}
-
-.flow-tile-value {
-  font-family: var(--font-display);
-  font-size: var(--text-3xl);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  z-index: 1;
-}
-
-.flow-overdue {
-  color: var(--danger);
-}
-
-@media (max-width: 560px) {
-  .flow-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.flow-bar {
-  display: flex;
-  height: 8px;
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-  background: var(--surface-2);
-}
-
-.flow-bar-segment {
-  min-width: 3px;
-}
-
-.flow-bar-waiting {
-  background: var(--stage-waiting);
-}
-
-.flow-bar-with-doctor {
-  background: var(--stage-with-doctor);
-}
-
-.flow-bar-seen {
-  background: var(--stage-paid);
-}
-
-.doctor-queue-meta {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
+.flow-widget { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: baseline; margin-bottom: var(--space-lg); }
+.flow-widget strong { font-size: var(--text-sm); font-weight: 600; }
+.flow-widget span { font-size: var(--text-xs); color: var(--text-tertiary); }
 .doctor-queue-overdue {
   color: var(--danger);
   font-weight: 700;
@@ -712,3 +543,10 @@
   font-variant-numeric: tabular-nums;
   color: var(--text);
 }
+
+@media (max-width: 900px) {
+  .consultation-shell { flex-direction: column; }
+  .consultation-rail { flex-basis: auto; width: 100%; order: 2; }
+  .consultation-stage, .consultation-rail { padding: var(--space-lg) var(--space-md); }
+}
+@media (max-width: 520px) { .doctor-context, .history-row { grid-template-columns: 1fr; gap: var(--space-sm); } }

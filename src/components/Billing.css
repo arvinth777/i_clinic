@@ -171,3 +171,42 @@
     margin: 0.1em 0;
   }
 }
+
+/* Physical dimensions are shared by the preview and browser print. */
+.prescription-sheet { position: relative; width: var(--paper-width); min-height: var(--paper-height); background: #fff; color: #141C2B; font-family: var(--font); font-size: 10pt; line-height: 1.45; }
+.prescription-letterhead { position: absolute; inset: 0; width: var(--paper-width); height: var(--paper-height); z-index: 0; }
+.prescription-paper-content { position: relative; z-index: 1; width: 90%; margin-inline: auto; border-collapse: collapse; table-layout: fixed; }
+.prescription-paper-content td { vertical-align: top; overflow-wrap: anywhere; }
+.prescription-paper-content td:first-child:not([colspan]) { width: 64%; }
+.prescription-header-space { height: var(--paper-header); }
+.prescription-reference, .prescription-patient { display: flex; justify-content: space-between; gap: var(--space-md); }
+.prescription-reference { padding-inline: var(--space-xl) var(--space-sm); padding-block: var(--space-sm) var(--space-lg); }
+.prescription-patient { padding-bottom: var(--space-sm); border-bottom: 1px solid var(--border-strong); margin-bottom: var(--space-sm); }
+.prescription-note { padding-bottom: var(--space-sm); white-space: pre-wrap; }
+.prescription-rx { color: #1A4FB5; font-size: 22pt; font-weight: 600; }
+.prescription-column-labels { color: #5B6575; font-size: 8pt; border-bottom: 1px solid #DCE1E8; }
+.prescription-medicine td { padding: var(--space-sm) var(--space-sm) var(--space-sm) 0; }
+.prescription-medicine p { margin: var(--space-2xs) 0 0; white-space: pre-wrap; }
+.prescription-signature { display: flex; justify-content: space-between; gap: var(--space-md); padding-top: var(--space-xl); font-size: 9pt; }
+.prescription-signature > span:last-child { text-align: right; }
+.prescription-footer-space { height: var(--paper-footer); }
+@media print {
+  @page { size: A4; margin: 0; }
+  .prescription-sheet { display: block; min-height: 0; break-after: page; }
+  .prescription-letterhead { display: none; }
+  .prescription-header-space img, .prescription-footer-space img { display: block; }
+  .prescription-sheet { background: #fff url(/letterhead-a4.png) left top / var(--paper-width) var(--paper-height) repeat-y; box-decoration-break: clone; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .prescription-paper-content thead { display: table-header-group; }
+  .prescription-paper-content tfoot { display: table-footer-group; }
+  .prescription-medicine, .prescription-note { break-inside: avoid; }
+  .rx-preview { display: none !important; }
+}
+
+.prescription-paper-content { height: var(--paper-height); }
+.prescription-paper-content tbody tr { height: 1px; }
+.prescription-paper-content tbody .prescription-fill { height: auto; }
+.prescription-header-space, .prescription-footer-space { position: relative; overflow: hidden; }
+.prescription-header-space img, .prescription-footer-space img { display: none; position: absolute; width: var(--paper-width); height: var(--paper-height); max-width: none; left: calc(var(--paper-width) * -0.05); }
+.prescription-header-space img { top: 0; }
+.prescription-footer-space img { bottom: 0; }
+@media print { .prescription-header-space img, .prescription-footer-space img { display: block; } }

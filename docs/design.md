@@ -31,6 +31,9 @@ number-heavy displays use tabular figures rather than a separate mono font.
 | nav-padding / page-padding / page-top | 28 / 32 / 36 px |
 | content-width / side-width / editor-width | 1184 / 420 / 760 px |
 | status-dot-size | 7 px |
+| paper-width / height / header / footer | 210 / 297 / 64 / 24 mm, supplied A4 artwork |
+| doctor-side-width | 380 px |
+| preview-width | 520 px |
 | shadow-sm / md | none; page sections are flat |
 | shadow-drawer | 0 8px 32px #141C2B1A; overlays only |
 

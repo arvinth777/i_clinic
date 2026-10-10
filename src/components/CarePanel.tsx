@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { attemptOrQueue } from '../lib/offlineQueue'
 import { supabase } from '../lib/supabase'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -7,7 +8,7 @@ import { Input } from './ui/input'
 type PatientLongTerm = { is_long_term: boolean; long_term_review_interval_days: number | null }
 type VisitFollowUp = { follow_up_date: string | null }
 
-export function CarePanel({ visitId, patientId }: { visitId: string; patientId: string }) {
+export function CarePanel({ visitId, patientId, clinicId }: { visitId: string; patientId: string; clinicId: string }) {
   const queryClient = useQueryClient()
 
   const longTermKey = ['patient-long-term', patientId]
@@ -56,16 +57,21 @@ export function CarePanel({ visitId, patientId }: { visitId: string; patientId: 
   })
 
   const saveFollowUp = useMutation({
+    networkMode: 'always',
     mutationFn: async () => {
-      const { error } = await supabase.rpc('set_visit_follow_up', { p_visit_id: visitId, p_follow_up_date: followUpDate || null })
-      if (error) throw error
+      const payload = { p_visit_id: visitId, p_follow_up_date: followUpDate || null }
+      await attemptOrQueue({ clinicId,
+        attempt: token => supabase.rpc('set_visit_follow_up', payload).setHeader('Authorization', `Bearer ${token}`),
+        queueItem: () => ({ kind: 'rpc', rpc: 'set_visit_follow_up', payload, description: 'Save review date' }),
+        applyOptimistic: () => queryClient.setQueryData(followUpKey, { follow_up_date: payload.p_follow_up_date }),
+      })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: followUpKey }),
   })
 
   return (
-    <section className="record-section">
-      <h3 className="readout-heading">Follow-up &amp; long-term care</h3>
+    <section className="record-section care-panel">
+      <h3 className="readout-heading">Review</h3>
 
       <form
         className="field"
@@ -86,7 +92,7 @@ export function CarePanel({ visitId, patientId }: { visitId: string; patientId: 
         {saveFollowUp.isError && <p className="form-error">Couldn't save — try again.</p>}
       </form>
 
-      <form
+      <details className="rx-support"><summary>Long-term care</summary><form
         className="field"
         onSubmit={(e) => {
           e.preventDefault()
@@ -110,7 +116,7 @@ export function CarePanel({ visitId, patientId }: { visitId: string; patientId: 
           </Button>
         </div>
         {saveLongTerm.isError && <p className="form-error">Couldn't save — try again.</p>}
-      </form>
+      </form></details>
     </section>
   )
 }

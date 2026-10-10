@@ -7,7 +7,11 @@ export type PrintVisit = {
   token_number: number
   stage: string
   arrived_at: string
-  patients: { name: string } | null
+  complaint?: string
+  diagnosis?: string | null
+  advice?: string | null
+  follow_up_date?: string | null
+  patients: { name: string; age?: number | null; gender?: string | null } | null
 }
 
 export type DetailRow = {
@@ -50,71 +54,31 @@ export type ClinicPrintInfo = {
 // prescription" flow) with a forced page-break between them, each styled
 // for what it actually is.
 export function PrintablePrescription({ clinic, visit, medicines }: { clinic: ClinicPrintInfo | undefined; visit: PrintVisit; medicines: DetailRow[] }) {
-  // User-supplied reference: a hospital letterhead template (colour bar
-  // top and bottom, clinic/doctor block, a repeated footer). This is the
-  // one of the two documents that's actually a doctor's letterhead
-  // document -- contrast DocumentsPanel's PrintableDocument, which
-  // deliberately omits the clinic name because IT assumes real
-  // pre-printed letterhead paper; this one renders its own.
   return (
-    <section className="print-page print-page-letterhead">
-      <div className="print-bar" />
-      <div className="print-content">
-        <header className="print-letterhead">
-          <h1>{clinic?.name}</h1>
-          {clinic?.doctor_name && (
-            <p className="print-doctor-line">
-              {clinic.doctor_name}
-              {clinic.doctor_registration_number ? ` — Reg. No. ${clinic.doctor_registration_number}` : ''}
-            </p>
-          )}
-          {(clinic?.address || clinic?.phone) && (
-            <p className="print-contact-line">{[clinic?.address, clinic?.phone].filter(Boolean).join(' · ')}</p>
-          )}
-        </header>
-
-        <p>
-          {visit.patients?.name} — Token {visit.token_number} — {formatDate(visit.arrived_at)}
-        </p>
-
-        <h2>Prescription</h2>
-        {medicines.length === 0 ? (
-          <p>No medicines prescribed.</p>
-        ) : (
-          <table className="print-table">
-            <thead>
-              <tr>
-                <th>Medicine</th>
-                <th>Type</th>
-                <th>Strength</th>
-                <th>Frequency</th>
-                <th>Food</th>
-                <th>Duration</th>
-                <th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {medicines.map((m, i) => (
-                <tr key={i}>
-                  <td>{m.description}</td>
-                  <td>{m.drug_type}</td>
-                  <td>{m.strength}</td>
-                  <td>{m.dosage_frequency}</td>
-                  <td>{m.before_after_food}</td>
-                  <td>{m.duration_days} days</td>
-                  <td>{m.notes}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        <footer className="print-footer">
-          <p>{[clinic?.name, clinic?.address].filter(Boolean).join(' · ')}</p>
-          {clinic?.phone && <p>{clinic.phone}</p>}
-        </footer>
-      </div>
-      <div className="print-bar" />
+    <section className="print-page prescription-sheet">
+      <img className="prescription-letterhead" src="/letterhead-a4.png" alt="Salem Pain and Palliative Care Clinic letterhead" />
+      <table className="prescription-paper-content">
+        <thead><tr><td colSpan={2}>
+          <div className="prescription-header-space"><img src="/letterhead-a4.png" alt="" /></div>
+          <div className="prescription-reference"><span>#{visit.token_number}</span><span>{formatDate(visit.arrived_at)}</span></div>
+          <div className="prescription-patient"><strong>Patient: {visit.patients?.name}</strong><span>{[visit.patients?.age != null ? `${visit.patients.age} years` : '', visit.patients?.gender].filter(Boolean).join(' · ')}</span></div>
+        </td></tr></thead>
+        <tbody>
+          {visit.complaint && <tr><td colSpan={2} className="prescription-note"><strong>Complaints: </strong>{visit.complaint}</td></tr>}
+          {visit.diagnosis && <tr><td colSpan={2} className="prescription-note"><strong>Diagnosis: </strong>{visit.diagnosis}</td></tr>}
+          <tr><td colSpan={2} className="prescription-rx">℞</td></tr>
+          <tr className="prescription-column-labels"><td>Medicine / strength</td><td>Dosage &amp; duration</td></tr>
+          {medicines.length === 0 ? <tr><td colSpan={2}>No medicines added.</td></tr> : medicines.map((m, i) => (
+            <tr className="prescription-medicine" key={i}>
+              <td><strong>{i + 1}. {m.description} {m.strength}</strong>{m.drug_type && <span> · {m.drug_type}</span>}{m.notes && <p>{m.notes}</p>}</td>
+              <td><strong>{m.dosage_frequency}</strong><p>{[m.before_after_food, m.duration_days ? `${m.duration_days} days` : ''].filter(Boolean).join(' · ')}</p></td>
+            </tr>
+          ))}
+          {visit.advice && <tr><td colSpan={2} className="prescription-note"><strong>Advice / investigations: </strong>{visit.advice}</td></tr>}
+          <tr className="prescription-fill"><td colSpan={2} /></tr>
+        </tbody>
+        <tfoot><tr><td colSpan={2}><div className="prescription-signature"><span>Review: {visit.follow_up_date ? formatDate(visit.follow_up_date) : '—'}</span><span>{clinic?.doctor_name}<br />Signature / {clinic?.doctor_registration_number || 'Registration No.'}</span></div></td></tr><tr><td colSpan={2}><div className="prescription-footer-space"><img src="/letterhead-a4.png" alt="" /></div></td></tr></tfoot>
+      </table>
     </section>
   )
 }

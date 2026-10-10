@@ -136,3 +136,13 @@ export function itemIsValid(item: DraftItem): boolean {
     quantity > 0
   )
 }
+
+// Only a whole quantity in the same stock unit can be suggested safely.
+export function suggestedQuantity(item: DraftItem, stockUnit: string | null | undefined): number | null {
+  if (!/^(tablets?|capsules?)$/i.test(stockUnit ?? '') || !/^(Tablet|Capsule)$/.test(item.drugType)) return null
+  if (!/^\d+(?:\.\d+)?-\d+(?:\.\d+)?-\d+(?:\.\d+)?$/.test(item.dosageFrequency)) return null
+  const days = Number(item.durationDays)
+  if (!Number.isSafeInteger(days) || days <= 0) return null
+  const quantity = item.dosageFrequency.split('-').reduce((sum, dose) => sum + Number(dose), 0) * days
+  return Number.isSafeInteger(quantity) && quantity > 0 ? quantity : null
+}

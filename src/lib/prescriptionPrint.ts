@@ -1,4 +1,5 @@
 import { createStore, get, set } from 'idb-keyval'
+import type { DraftItem } from './prescriptionDraft'
 import type { ClinicPrintInfo, DetailRow, PrintVisit } from '../components/VisitPrintout'
 
 export type PrescriptionPrintSnapshot = { visit: PrintVisit; clinic?: ClinicPrintInfo; medicines: DetailRow[]; prescriptionIds: string[] }
@@ -16,3 +17,7 @@ export function mergePrescriptionPrint(previous: PrescriptionPrintSnapshot, curr
 
 export const readPrescriptionPrint = (ownerId: string, clinicId: string, visitId: string) => get<PrescriptionPrintSnapshot>(key(ownerId, clinicId, visitId), store)
 export const savePrescriptionPrint = (ownerId: string, clinicId: string, snapshot: PrescriptionPrintSnapshot) => set(key(ownerId, clinicId, snapshot.visit.id), snapshot, store)
+
+export type PrescriptionDraft = { items: DraftItem[]; diagnosis: string; advice: string }
+export const readPrescriptionDraft = (ownerId: string, clinicId: string, visitId: string) => get<PrescriptionDraft>(`draft:${key(ownerId, clinicId, visitId)}`, store)
+export const savePrescriptionDraft = (ownerId: string, clinicId: string, visitId: string, draft: PrescriptionDraft) => set(`draft:${key(ownerId, clinicId, visitId)}`, draft, store)
