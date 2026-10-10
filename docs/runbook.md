@@ -7,41 +7,45 @@ value ever belongs in this file or anywhere else in the repo.
 
 ## Environment verification — 2026-10-10
 
-The sections below describe the intended operating setup. The following
-inspection found that it is not currently verified as a working deployment:
+The operating workflow below is intended guidance; these are the verified
+current differences that must be resolved before clinic use:
 
 | Surface | Observed state |
 |---|---|
-| GitHub | Public repo `arvinth777/i_clinic`; default `main` at `584f24b` before this workflow update |
-| Release branch | `production` at `9aca0ad` before this update, 117 commits behind `main`; contains planning documents only, no application, package.json, or migrations |
-| Historical deployment | GitHub recorded a successful Vercel **Production** deployment of `main` at `584f24b` on 2026-09-07; its URL was `https://i-clinic-3hre7hxg9-arvinth777s-projects.vercel.app` |
-| Accessible Vercel project | `i_clinic`, ID `prj_LnzNR3k0F74Gbg240PKHHJLdPHQF`; linked to this repo with **main as its production branch**, not the branch split described below |
-| Current Vercel deployment/config | No deployments or environment variables returned for `i_clinic`; the historical `i-clinic` project and deployment returned 404 through the authenticated Vercel API |
-| Staging database | Documented ref `cofnrcgsolluyhghutah`; its health hostname failed DNS resolution from this machine |
-| Production database | Documented ref `rmuhpgpvgvwchovlgxae`; its health hostname also failed DNS resolution |
-| Supabase account access | CLI project listing failed with `Invalid access token`; no authenticated schema, role, migration, or advisor verification was possible |
-| Backups | Latest three GitHub backup runs returned failure; the latest job supplied no step results, so its cause is not established |
+| GitHub | Public repo `arvinth777/i_clinic`; default `main`; workflow/planning update `a220a14` pushed |
+| Release branch | Before this update, `production` was `9aca0ad`, 117 commits behind main, with planning documents only; this update copies guidance/skills only, not historical application code |
+| Historical deployment | GitHub recorded a successful Vercel Production deployment of main `584f24b` on 2026-09-07; the old `i-clinic` project/deployment returned 404 through authenticated Vercel API |
+| Current Vercel project | `i_clinic`, ID `prj_LnzNR3k0F74Gbg240PKHHJLdPHQF`, created during this inspection's CLI auto-link/setup; GitHub connection uses **main as production**, contrary to the intended branch split |
+| Current Vercel deployment/config | Main push automatically built/deployed `a220a14` as Production, state READY, alias `https://iclinic-theta.vercel.app`; no project environment variables were configured. Build status does not establish a working clinic app |
+| Staging database | `clinic-staging`, ref `cofnrcgsolluyhghutah`, Singapore; restored, CLI `ACTIVE_HEALTHY`; all 40 local migration versions match remote through `20260907080000` |
+| Production database | `clinic-prod`, ref `rmuhpgpvgvwchovlgxae`, Mumbai; restored, CLI `ACTIVE_HEALTHY`; dashboard shows no migration history and zero public tables |
+| Edge Functions | Staging has `health`, `admin-create-login`, `backup-freshness`; production function listing is empty |
+| Security advisor | Staging: 0 errors / 23 warnings, including callable SECURITY DEFINER functions. Grants and internal role/clinic checks need review; these warnings alone do not establish an exploitable defect. Production overview reports no issues, but has no clinic schema |
+| Backups | Latest three GitHub backup runs failed; latest job supplied no step results, so cause is not established. Neither dashboard lists a scheduled backup |
 
-DNS failure does not establish that a database was deleted or paused. An old
-successful deployment record does not establish a currently reachable app.
+Both projects were initially paused. User reauthenticated the CLI and explicitly
+authorized restoring both; restoration is complete. No schema migration or
+patient-data edit was performed. Migration history equality is not proof of
+schema equality, RLS effectiveness, or tenant isolation.
+
+The Vercel CLI's inspection auto-created/linked the current project and ignored
+`.vercel` metadata. The subsequent authorized main push triggered its GitHub
+automatic production build. No environment-variable write or deliberate app
+promotion was performed. `src/lib/supabase.ts` requires both public frontend
+variables; the deployment cannot be treated as configured merely because it built.
 The similarly named `pain-palliative-care-clinic1` Vercel project belongs to
-`arvinth777/pain-palliative-care-clinic`, a different repository; do not relink
-this checkout to it merely because the clinic names look similar.
+`arvinth777/pain-palliative-care-clinic`, a different repository.
 
-The Vercel CLI linked this checkout to the existing `i_clinic` project during
-inspection and created ignored `.vercel` metadata. No frontend deployment,
-environment-variable write, migration, or patient-data change was performed.
+**Recovery next steps:** decide the backend/ongoing hosting budget, reconcile
+Vercel's production branch and preview/production variable scoping, then prepare
+a separately reviewed application release and staging-first database promotion.
+Do not merge all historical main commits as part of a tools/doc update. Review
+the staging advisor warnings and verify role/RLS behaviour. Repair backups and
+verify a restore before relying on them. No clinical record contents were read.
 
-**Recovery next steps:** reconnect Supabase with `supabase login`, confirm both
-project refs and actual migration histories, then obtain the correct public
-frontend URL/anon key for each environment through authenticated project access.
-Before enabling deployments, explicitly reconcile Vercel's production-branch
-setting with the chosen release workflow and verify preview/production variable
-scoping. Do not push all 117 historical main commits into the release branch as
-part of a tools/doc update. Verify backups and a restore before relying on them.
-
-Sources inspected: GitHub branches/deployment status/Actions APIs and authenticated
-Vercel project/deployment/environment metadata. Database state remains unverified.
+Sources: GitHub branch/deployment/Actions APIs, authenticated Vercel metadata,
+Supabase CLI project/migration/function listings, and Supabase dashboard metadata.
+Student-offer comparison and unaccepted recommendation: `docs/hosting-options.md`.
 
 ## Account inventory (where each thing lives)
 

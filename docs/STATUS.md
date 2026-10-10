@@ -20,25 +20,38 @@ Update it before ending a session or when a block of work completes.
   hooks or auto-generated instructions. New Codex session required to expose
   MCP tools; the graph warned about cross-language field resolution limitations.
   Setup details are in `docs/development-tools.md`.
-- Environment audit: GitHub main is current, but production is 117 commits
-  behind and contains planning docs only. Accessible Vercel `i_clinic` has no
-  deployments/env vars and uses main as its production branch, contrary to
-  the old runbook. The historic September deployment/project returned 404 via
-  Vercel API. Both documented Supabase hostnames failed DNS; CLI login is
-  invalid. Latest three backup runs failed. Recorded facts and recovery steps
-  at the top of `docs/runbook.md`; no database or frontend config changes made.
-- Publishing plan: narrowly scoped docs and selected skill files to main;
-  the same guidance/planning files with a branch-specific STATUS to production.
-  No historical app-code promotion, migration, or deployment is included.
-- Verification: guidance/skill metadata checks and `git diff --check` passed;
-  `npm run build` passed with the existing large-bundle warning; `npm run lint`
-  exited successfully with seven existing warnings. No application source,
-  migration, billing, or patient-data change is included.
-- Pending: Supabase reauthentication requested; advisor/schema/live environment
-  verification remains unavailable. Prescription mockup currently shows the
-  On the page variant selected; no placement edits or production implementation
-  were submitted. Billing/stock units and refill prescription selection remain
-  unresolved before feature implementation.
+- Main workflow/planning/selected-skills commit `a220a14` was pushed. Production
+  guidance/skills update `41e6504` was pushed and both remote heads verified.
+  Production retains planning-only history, not a working application release.
+- The final main audit/status/hosting comparison update is prepared locally.
+  Its push is pending user permission for the incidental production rebuild
+  during clinic hours; main is currently Vercel's production branch.
+- User reauthenticated Supabase and authorized resuming both projects. Both now
+  report ACTIVE_HEALTHY. Staging's 40 migration versions match local history;
+  production has no migration history, public tables, or Edge Functions.
+  Staging has three Edge Functions; advisor shows 0 errors and 23 warnings,
+  including callable SECURITY DEFINER functions requiring a grant/role review.
+  No schema changes or patient record reads/writes were performed.
+- Vercel CLI auto-setup created/linked current `i_clinic`, with main configured
+  as production. Main push triggered a READY production build; project frontend
+  environment variables are absent. The build is not a verified working app.
+  Historic deployment lookup returned 404; latest three backup runs failed.
+  Actual environment findings and recovery steps are in `docs/runbook.md`.
+- Checked student benefits in primary sources; recorded an unaccepted recommendation
+  in `docs/hosting-options.md`: retain PostgreSQL/Supabase while reworking the app,
+  assess file storage separately, use useful testing/monitoring/credential offers,
+  and avoid a MongoDB rewrite solely for a similar free storage limit and a longer
+  inactivity pause. Appwrite now limits Education to six months; no provider change
+  or new student service signup is authorized by this comparison.
+- Verification: guidance/skill metadata checks and diff whitespace checks passed;
+  application build passed with an existing large-bundle warning; lint exited
+  successfully with seven existing warnings. No application source, migration,
+  billing, or patient-data change is included. Later updates are documentation only.
+- Next: choose the hosting budget, reconcile deployment settings, review staging
+  security warnings, and repair/test backups before a separate app release.
+  Prescription mockup shows On the page selected; no production implementation
+  exists for the new layout. Billing/stock units and refill prescription selection
+  remain unresolved before feature implementation.
 
 ## Rework request — 2026-10-10
 
