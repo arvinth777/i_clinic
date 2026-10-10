@@ -48,6 +48,17 @@ try {
   const forged = await confirm(id, approved, 100)
   assert.ok(forged.error, 'reception cannot replace an approved amount while claiming the approved revision')
   console.log('PASS: forged amount rejected')
+  value(await doctor.from('visit_pricing').update({ final_amount_paise: 18000 }).eq('visit_id', id))
+  const billId = value(await confirm(id, approved))
+  const bill = value(await reception.from('bills').select('final_amount_paise, needs_reconciliation').eq('id', billId).single())
+  assert.equal(bill.final_amount_paise, 22000, 'legitimate older doctor approval must keep the amount collected offline')
+  assert.equal(bill.needs_reconciliation, true, 'older approval must be flagged for doctor reconciliation')
+  assert.equal(value(await confirm(id, approved)), billId, 'confirmation must stay idempotent')
+  console.log('PASS: approved stale snapshot retained, flagged, and idempotent')
+  const user = value(await reception.auth.getUser()).user
+  const direct = await reception.from('bills').insert({ clinic_id: clinicId, visit_id: await visit(), final_amount_paise: 100, pricing_revision_at_confirm: 0, payment_method: 'cash', confirmed_by: user.id })
+  assert.ok(direct.error, 'direct bill inserts must not bypass the payment transaction')
+  console.log('PASS: direct bill insert denied')
 } finally {
   await Promise.all(clients.map((client) => client.auth.signOut()))
 }
