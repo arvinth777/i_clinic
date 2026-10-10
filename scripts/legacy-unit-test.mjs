@@ -13,7 +13,6 @@ function env(path) {
 const app = env('.env.local')
 const passwords = env('.env.test-users.local')
 assert.equal(new URL(app.VITE_SUPABASE_URL).hostname, 'cofnrcgsolluyhghutah.supabase.co', 'tests must target staging')
-const clinicId = '23e03361-9d6c-49f5-83b7-ad57f4a0c5ce'
 const clients = []
 async function signIn(role, password, clinic = 'a') {
   const client = createClient(app.VITE_SUPABASE_URL, app.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false }, realtime: { transport: ws } })
@@ -28,19 +27,6 @@ function value(result) {
   return result.data
 }
 let doctor, reception
-async function visit(name = `Audit synthetic ${crypto.randomUUID()}`, arrivedAt = new Date().toISOString()) {
-  const patient = value(await doctor.from('patients').insert({ clinic_id: clinicId, name, age: 40 }).select('id').single())
-  return value(await doctor.from('visits').insert({ clinic_id: clinicId, patient_id: patient.id, arrived_at: arrivedAt, complaint: 'Synthetic audit fixture' }).select('id').single()).id
-}
-async function ready(id, amount = 22000) {
-  value(await doctor.from('visit_pricing').update({ final_amount_paise: amount }).eq('visit_id', id))
-  value(await doctor.from('visits').update({ stage: 'packing' }).eq('id', id))
-  value(await reception.from('visits').update({ stage: 'ready_at_reception' }).eq('id', id))
-  return value(await reception.from('visit_pricing').select('final_amount_paise, revision_number').eq('visit_id', id).single())
-}
-function confirm(id, snapshot, amount = snapshot.final_amount_paise) {
-  return reception.rpc('confirm_bill', { p_visit_id: id, p_payment_method: 'cash', p_snapshot_final_amount_paise: amount, p_snapshot_revision_number: snapshot.revision_number })
-}
 try {
   doctor = await signIn('doctor', passwords.TEST_DOCTOR_A_PASSWORD)
   reception = await signIn('reception', passwords.TEST_RECEPTION_A_PASSWORD)
@@ -57,6 +43,13 @@ try {
   }
   value(await doctor.from('visit_pricing').update({ final_amount_paise: 26000 }).eq('visit_id', visitId))
   assert.equal(value(await doctor.from('visit_pricing').select('final_amount_set').eq('visit_id', visitId).single()).final_amount_set, true)
+  const historical = value(await doctor.from('prescription_items')
+    .select('prescriptions!inner(visit_id, visits!inner(stage))').is('unit_price_paise', null)
+    .eq('prescriptions.visits.stage', 'paid').limit(1))[0]
+  assert.ok(historical, 'staging has a paid pre-upgrade fixture')
+  const paidVisitId = historical.prescriptions.visit_id
+  const paidPricing = value(await doctor.from('visit_pricing').select('final_amount_paise').eq('visit_id', paidVisitId).single())
+  value(await doctor.from('visit_pricing').update({ final_amount_paise: paidPricing.final_amount_paise }).eq('visit_id', paidVisitId))
   console.log('PASS: legacy unit review requires a fresh doctor approval; confirmed fixture remains usable')
 } finally {
   await Promise.all(clients.map(client => client.auth.signOut()))
