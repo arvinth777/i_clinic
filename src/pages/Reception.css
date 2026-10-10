@@ -1,53 +1,16 @@
-/* genre: modern-minimal-operate · design-system: /design.md · designed-as-app
- *
- * Reception content -- a left rail (search, quick actions, follow-ups due)
- * beside a center stage: today's queue by default, swapping in place for
- * everything else (a selected visit's bill, the new-patient form, checking
- * an existing patient in, checking in a rep) -- no right-side Drawer
- * anywhere on this screen. Billing dropped its Drawer first; the user
- * later asked for the same treatment everywhere else too, matching
- * Consultation's own no-overlay rail/stage split.
- * Shell chrome lives in AppShell.css; tokens live in src/index.css.
- */
-
-.reception-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-}
-
-.reception-shell {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-lg);
-}
-
-/* v4.5: real elevated panels, matching Consultation's own rail/stage --
-   see Consultation.css for the fuller rationale. */
-.reception-rail {
-  flex: 0 0 16rem;
-  position: sticky;
-  top: var(--space-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  padding: var(--space-md);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-sm);
-}
-
-.reception-stage {
-  flex: 1;
-  min-width: 0;
-  padding: var(--space-xl);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-md);
-}
-
+/* Reception.dc.html: persistent queue beside the check-in panel. */
+.reception-page, .reception-shell { min-height: 100%; }
+.reception-shell { display: flex; align-items: stretch; }
+.reception-rail { order: 2; flex: 0 0 var(--side-width); min-width: 0; padding: var(--page-top) var(--page-padding); background: var(--surface-2); display: flex; flex-direction: column; gap: var(--space-lg); }
+.reception-rail .readout-heading { margin-bottom: var(--space-xs); }
+.reception-rail .search-field { flex: none; }
+.reception-stage { flex: 1; min-width: 0; padding: var(--page-top) var(--page-padding); }
+.reception-stage > * { max-width: var(--editor-width); margin-inline: auto; }
+.reception-followups { padding-top: var(--space-md); border-top: 1px solid var(--border); }
+.reception-followups summary { cursor: pointer; font-size: var(--text-sm); color: var(--accent); }
+.reception-billing .reception-rail { display: none; }
+.reception-billing .reception-stage { padding: var(--page-top) var(--page-padding); }
+.reception-billing .reception-stage > * { max-width: none; }
 .rail-actions {
   display: flex;
   flex-direction: column;
@@ -75,10 +38,8 @@
     flex-direction: column;
   }
 
-  .reception-rail {
-    position: static;
-    width: 100%;
-  }
+  .reception-rail { position: static; width: 100%; flex-basis: auto; order: 0; padding: var(--space-lg) var(--space-md); }
+  .reception-stage { padding: var(--space-lg) var(--space-md); }
 }
 
 .worklist-panel {
@@ -403,7 +364,7 @@
 
 .signin-screen { display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: 0; }
 .signin-welcome { display: flex; flex-direction: column; justify-content: space-between; background: var(--surface-2); padding: var(--space-xl); }
-.signin-welcome h1 { font-size: var(--text-3xl); margin-block: var(--space-md); }
+.signin-welcome h1 { font-size: var(--text-welcome); line-height: var(--line-title); letter-spacing: var(--tracking-title); margin-block: var(--space-md); }
 .signin-welcome p { color: var(--text-secondary); }
 .signin { width: 100%; max-width: var(--side-width); margin: auto; padding: var(--page-padding); }
 .signin-heading { font-size: var(--text-xl); font-weight: 600; margin: 0 0 var(--space-xs); }
@@ -415,3 +376,13 @@
   .signin-welcome > p { display: none; }
   .signin { padding: var(--space-lg); }
 }
+
+.reception-rail .search-strip { background: transparent; border: 0; border-bottom: 1px solid var(--accent); border-radius: 0; padding-left: var(--space-lg); }
+.reception-rail .search-field-icon { left: 0; }
+.reception-rail .rail-actions { align-items: flex-start; }
+
+.reception-queue-head .readout-heading { font-size: var(--text-metric); }
+.field-label { font-weight: 400; }
+.signin-welcome strong, .signin-welcome > div > p { font-size: var(--text-input); }
+.reception-stage .worklist-panel > .readout-heading { font-size: var(--text-metric); }
+.reception-search-head + .field-hint { font-size: var(--text-sm); }

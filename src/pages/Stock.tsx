@@ -16,12 +16,14 @@ export function Stock({ clinicId }: { clinicId: string }) {
   const [tab, setTab] = useState<TabKey>('stock')
 
   return (
-    <div className="admin-page">
+    <div className="admin-page inventory-page">
+      <div className="page-heading"><h1>Inventory</h1><p>Stock goes down automatically when a bill or refill is paid.</p></div>
       <nav className="admin-tabs">
         {TABS.map((t) => (
           <button
             key={t.key}
             type="button"
+            aria-current={t.key === tab ? 'page' : undefined}
             className={t.key === tab ? 'shell-nav-item active' : 'shell-nav-item'}
             onClick={() => setTab(t.key)}
           >

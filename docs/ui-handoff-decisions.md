@@ -105,3 +105,12 @@ one receipt, on the clinic printer. Confirm letterhead alignment and no clipping
 Save evidence and the user's sign-off against the tested revision. A browser PDF
 alone verifies rendering, not physical printer alignment. Release only after
 sign-off. No physical printer checks or sign-off have occurred yet.
+
+## Clarification during implementation — 2026-10-10
+
+The user confirmed there is no existing allergy source: the allergy information
+in the handoff is mock data. They explicitly authorized rewriting the entire
+frontend as needed to match the supplied HTML. Visual fidelity is the priority
+of this integration; preserve real app workflows and do not fabricate clinical
+warnings or introduce a new allergy data model from the sample. This supersedes
+the earlier assumption that existing allergy data was already held.

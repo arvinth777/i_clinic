@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaise } from '../../lib/money'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Table, TableBody, TableCell, TableRow } from '../ui/table'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 
@@ -18,7 +18,7 @@ type PurchaseHistoryRow = {
 export function Suppliers({ clinicId }: { clinicId: string }) {
   const queryClient = useQueryClient()
   const queryKey = ['suppliers', clinicId]
-  const { data: suppliers } = useQuery({
+  const { data: suppliers, error: supplierError } = useQuery({
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase.from('suppliers').select('id, name, phone, address').eq('clinic_id', clinicId).order('name')
@@ -27,6 +27,7 @@ export function Suppliers({ clinicId }: { clinicId: string }) {
     },
   })
 
+  const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<'new' | null>(null)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -59,7 +60,7 @@ export function Suppliers({ clinicId }: { clinicId: string }) {
     onError: (e: Error) => setFormError(e.message),
   })
 
-  const { data: history } = useQuery({
+  const { data: history, error: historyError } = useQuery({
     queryKey: ['supplier-purchase-history', historyFor?.id],
     enabled: !!historyFor,
     queryFn: async () => {
@@ -130,13 +131,12 @@ export function Suppliers({ clinicId }: { clinicId: string }) {
     )
   }
 
-  if (historyFor) {
-    return (
+  const historyPanel = historyFor && (
       <div>
-        <button type="button" className="back-to-queue" onClick={() => setHistoryFor(null)}>
-          ← Back to suppliers
-        </button>
-        <h2 className="readout-heading">{historyFor.name} — purchase history</h2>
+        <h2 className="readout-heading">{historyFor.name}</h2>
+        <p className="field-hint">{[historyFor.phone, historyFor.address].filter(Boolean).join(' · ') || 'No contact details recorded.'}</p>
+        <h3 className="record-section">Purchase history</h3>
+        {historyError && <p className="form-error">Couldn't load purchase history.</p>}
         {(history ?? []).length === 0 && <p className="field-hint">No purchases recorded yet.</p>}
         {(history ?? []).map((p) => (
           <div key={p.id} className="field">
@@ -158,7 +158,6 @@ export function Suppliers({ clinicId }: { clinicId: string }) {
         ))}
       </div>
     )
-  }
 
   return (
     <div>
@@ -168,36 +167,12 @@ export function Suppliers({ clinicId }: { clinicId: string }) {
           + Add supplier
         </Button>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(suppliers ?? []).map((s) => (
-            <TableRow key={s.id} className="worklist-row-clickable" onClick={() => setHistoryFor(s)}>
-              <TableCell className="worklist-name-cell">{s.name}</TableCell>
-              <TableCell>{s.phone ?? '—'}</TableCell>
-              <TableCell>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setHistoryFor(s)
-                  }}
-                >
-                  Purchase history
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="supplier-workspace"><aside className="record-sidebar">
+        <Input aria-label="Search suppliers" placeholder="Search suppliers…" value={search} onChange={e => setSearch(e.target.value)} />
+        {supplierError && <p className="form-error">Couldn't load suppliers.</p>}
+        {(suppliers ?? []).filter(s => s.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())).map(s => <button key={s.id} className="record-selector" aria-pressed={historyFor?.id === s.id} onClick={() => setHistoryFor(s)}><strong>{s.name}</strong><small>{s.phone ?? 'No phone recorded'}</small></button>)}
+        {suppliers?.length === 0 && <p className="readout-empty">No suppliers added yet.</p>}
+      </aside><div className="supplier-detail">{historyPanel || <p className="readout-empty">Choose a supplier to view their contact details and purchases.</p>}</div></div>
     </div>
   )
 }

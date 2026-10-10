@@ -3,6 +3,8 @@ import { StagingBanner } from './components/StagingBanner'
 import { OfflineQueueBanner } from './components/OfflineQueueBanner'
 import { SignIn } from './components/SignIn'
 import { AppShell, type ShellSection } from './components/AppShell'
+import { Patients } from './pages/Patients'
+import { BillingDesk } from './pages/BillingDesk'
 import { Reception } from './pages/Reception'
 import { Consultation } from './pages/Consultation'
 import { Admin } from './pages/Admin'
@@ -29,8 +31,10 @@ function App() {
 
   const sections: ShellSection[] = []
   if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'reception', label: 'Reception' })
-  if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'unpaid', label: 'Unpaid' })
+  if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'unpaid', label: 'Unpaid bills' })
+  if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'billing', label: 'Billing' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'consultation', label: 'Doctor' })
+  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'patients', label: 'Patients' })
   if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'stock', label: 'Inventory' })
   if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'pharmacy', label: 'Refills' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'merge', label: 'Merge patients' })
@@ -82,6 +86,8 @@ function App() {
         onSelectSection={setManualSection}
       >
         {activeSection === 'reception' && <Reception userId={session.user.id} />}
+        {activeSection === 'patients' && clinicId && <Patients clinicId={clinicId} isDoctor={!!roles?.some(r => r.role === 'doctor')} canBill={!!roles?.some(r => r.role === 'receptionist')} />}
+        {activeSection === 'billing' && clinicId && <BillingDesk clinicId={clinicId} />}
         {activeSection === 'unpaid' && clinicId && <UnpaidBills clinicId={clinicId} />}
         {activeSection === 'consultation' && <Consultation userId={session.user.id} />}
         {activeSection === 'pharmacy' && clinicId && <PharmacyBills clinicId={clinicId} isDoctor={roles?.some((r) => r.role === 'doctor') ?? false} />}

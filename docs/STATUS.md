@@ -3,6 +3,45 @@
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
 
+## Frontend screen port and typography verification — 2026-10-10
+
+- Current branch `codex/clinic-screens-handoff`, stacked over prescription branch
+  c7d31f8 and UI foundation a7bc804. Uncommitted at this checkpoint: reception,
+  billing, patient history, inventory/suppliers, refills, reports, settings and
+  supporting navigation ports, print corrections, screenshots and verification.
+- User explicitly requested fonts/sizes from the original `design-source` HTML.
+  Compared all 16 sources; locally bundled Hanken Grotesk 400/500/600/700,
+  15px body, 13px labels, 14px nav/buttons, exact 26/30/34px heading roles and
+  A4-scaled print typography are recorded in docs/design.md. Browser measured
+  the loaded family and computed heading sizes. Preserved real-data differences.
+- Patient history is now a real searchable page, with saved diagnosis/advice and
+  doctor-only personal notes; reception can view existing paid receipts. Real
+  inventory filters, quantity/unit/expiry columns, supplier histories, and
+  monthly collection bars reuse existing queries. No mock allergy/data imported.
+- Browser: doctor/reception/Patients/Inventory/Refills/Reports navigation;
+  390px checks found no page overflow; synthetic reception check-in appeared
+  on the open doctor screen without reload (observed within 10.5s, not a precise
+  latency benchmark). Saved clinical fields read back in patient history.
+- Offline production-build reload retained diagnosis/advice draft. Found and
+  fixed TanStack's initially-online state causing misleading status after reload;
+  true/false initialization assertion passed. Hidden-preview zero-size measurement
+  was guarded after a NaN zoom warning.
+- PDF checks found overlapping continuation text. Corrected the repeated header
+  to stay below Chromium's 25%-of-page limit. Short/typical Rx each use one A4
+  page; 30-item Rx uses four with all medicines; receipt one page. Combined
+  output is five pages with a plain receipt and complete final-page letterhead. Generated
+  fixtures use actual production print components, no patient records. Real
+  printer alignment/sign-off is still required. No physical print claim.
+- Fresh quantity/pharmacy suite (five groups), audit billing suite (six groups),
+  clinical-field save/role/isolation suite, draft/quantity suggestions, receipt
+  snapshots and expiry checks passed. Lint: seven existing warnings. Build passes
+  with existing large-bundle warning. Final checks/PR publication in progress.
+- Explicitly unfinished: new queue states/reorder/no-show/Sent-in migration;
+  approval-time price freeze and catalog price audit; partial supply/shortfalls;
+  complete end-to-end regression, security advisor and independent review;
+  physical printer sign-off. These are draft PRs, not a finished release. Prod
+  database/main branches remain unchanged.
+
 ## Handoff implementation — prescription and doctor workspace, 2026-10-10
 
 - The actual doctor view now follows Doctor.dc.html: open patient workspace,
@@ -22,8 +61,9 @@ Update it before ending a session or when a block of work completes.
   warnings. Browser confirmed the new doctor layout and side-by-side A4 preview.
 - Still in progress: final visual/offline/print pagination checks, all clinic
   screen ports, price audit/approval-time snapshots, queue/partial-supply
-  addendum and review. Staging has no allergy custom field; asked for the real
-  source instead of fabricating an NSAID warning. Physical sign-off outstanding.
+  addendum and review. User confirmed allergy information is mock data, with no existing source;
+  do not implement a mock clinical warning. They explicitly authorized rewriting
+  the frontend to match the supplied HTML; recorded in the decision addendum. Physical sign-off outstanding.
 - Shared foundation commit a7bc804 is pushed; draft PR creation via gh was
   unavailable (CLI absent), so publication will use the existing GitHub browser.
   Nothing is merged or released. Continue implementation and verification.

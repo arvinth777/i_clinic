@@ -3,15 +3,16 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { startOfToday, elapsedMinutes, formatElapsed } from '../lib/date'
 import { nextSortState, sortRows, type SortState } from '../lib/sort'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
+import { Button } from './ui/button'
 import './Worklist.css'
 
 type Visit = {
   id: string
   token_number: number
   stage: string
+  complaint: string
   arrived_at: string
-  patients: { name: string } | null
+  patients: { name: string; age: number | null; gender: string | null } | null
 }
 
 // Colour alone is never the signal -- shape carries it too, so the stage
@@ -21,8 +22,8 @@ type Visit = {
 const STAGES: Record<string, { label: string; color: string }> = {
   waiting: { label: 'Waiting', color: 'var(--stage-waiting)' },
   with_doctor: { label: 'With doctor', color: 'var(--stage-with-doctor)' },
-  packing: { label: 'Packing', color: 'var(--stage-packing)' },
-  ready_at_reception: { label: 'Ready at reception', color: 'var(--stage-ready)' },
+  packing: { label: 'Ready to bill', color: 'var(--stage-packing)' },
+  ready_at_reception: { label: 'Ready to bill', color: 'var(--stage-ready)' },
   paid: { label: 'Paid', color: 'var(--stage-paid)' },
 }
 
@@ -105,24 +106,13 @@ function sortValue(v: Visit, key: SortKey): string | number {
   }
 }
 
-function SortHeader({ label, sortKey, sort, onSort }: { label: string; sortKey: SortKey; sort: SortState<SortKey>; onSort: (k: SortKey) => void }) {
-  const active = sort?.key === sortKey
-  return (
-    <TableHead>
-      <button type="button" className="worklist-sort" onClick={() => onSort(sortKey)}>
-        {label}
-        <span className="worklist-sort-arrow">{active ? (sort!.direction === 'asc' ? '▲' : '▼') : ''}</span>
-      </button>
-    </TableHead>
-  )
-}
-
 export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSelectVisit?: (visitId: string) => void }) {
   const queryClient = useQueryClient()
   const queryKey = ['visits-today', clinicId]
+  const [filter, setFilter] = useState<'active' | 'done' | 'all'>('active')
   const [sort, setSort] = useState<SortState<SortKey>>(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey,
     queryFn: async () => {
       // "Today" alone used to be the whole filter -- but a visit that's
@@ -135,7 +125,7 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
       // pile up here indefinitely.
       const { data, error } = await supabase
         .from('visits')
-        .select('id, token_number, stage, arrived_at, patients(name)')
+        .select('id, token_number, stage, arrived_at, complaint, patients(name, age, gender)')
         .eq('clinic_id', clinicId)
         .or(`arrived_at.gte.${startOfToday()},stage.neq.paid`)
         .order('arrived_at', { ascending: true })
@@ -165,50 +155,21 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clinicId])
 
-  if (isLoading) return null
-  if (!data || data.length === 0) return <p className="readout-empty">No patients yet today.</p>
-
-  const rows = sortRows(data, sort, sortValue)
-
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <SortHeader label="Token" sortKey="token" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
-          <SortHeader label="Name" sortKey="name" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
-          <SortHeader label="Stage" sortKey="stage" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
-          <SortHeader label="Wait" sortKey="wait" sort={sort} onSort={(k) => setSort(nextSortState(sort, k))} />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((v) => {
-          const clickable = !!onSelectVisit && BILLABLE_STAGES.has(v.stage)
-          return (
-            <TableRow
-              key={v.id}
-              className={clickable ? 'worklist-row-clickable' : undefined}
-              onClick={clickable ? () => onSelectVisit!(v.id) : undefined}
-              onKeyDown={clickable ? (event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  onSelectVisit!(v.id)
-                }
-              } : undefined}
-              role={clickable ? 'button' : undefined}
-              tabIndex={clickable ? 0 : undefined}
-            >
-              <TableCell>
-                <span className="readout-token">{v.token_number}</span>
-              </TableCell>
-              <TableCell className="worklist-name-cell">{v.patients?.name}</TableCell>
-              <TableCell>
-                <StageGlyph stage={v.stage} />
-              </TableCell>
-              <TableCell className="worklist-wait-cell">{formatElapsed(v.arrived_at)}</TableCell>
-            </TableRow>
-          )
-        })}
-      </TableBody>
-    </Table>
-  )
+  if (isLoading) return <p className="readout-empty">Loading queue…</p>
+  if (isError && !data) return <p className="form-error">Couldn't load the queue. Check the connection and retry.</p>
+  const rows = sortRows((data ?? []).filter(v => filter === 'all' || (filter === 'done' ? v.stage === 'paid' : v.stage !== 'paid')), sort, sortValue)
+  return <div className="queue-worklist">
+    <div className="queue-tools">
+      <div className="queue-filters" aria-label="Queue filter">{(['active', 'done', 'all'] as const).map(value => <button key={value} className="shell-nav-item" aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === 'done' ? 'Done today' : value === 'active' ? 'Active' : 'All'}</button>)}</div>
+      <details className="queue-sort"><summary>Sort</summary>{(['token', 'name', 'stage', 'wait'] as const).map(key => <button key={key} className="shell-nav-item" onClick={() => setSort(nextSortState(sort, key))}>{key}{sort?.key === key ? sort.direction === 'asc' ? ' ↑' : ' ↓' : ''}</button>)}</details>
+    </div>
+    {!rows.length && <p className="readout-empty">No patients in this view.</p>}
+    <ul className="queue-patients">{rows.map(v => <li className="queue-patient" key={v.id}>
+      <strong className="queue-token">#{v.token_number}</strong>
+      <div className="queue-patient-name"><strong>{v.patients?.name}</strong> <span>{[v.patients?.age, v.patients?.gender].filter(Boolean).join(' ')}</span><p>{v.complaint}</p></div>
+      <time className="queue-time" dateTime={v.arrived_at} title={new Date(v.arrived_at).toLocaleString()}>{formatElapsed(v.arrived_at)}</time>
+      <StageGlyph stage={v.stage} />
+      <div className="queue-action">{onSelectVisit && BILLABLE_STAGES.has(v.stage) && <Button variant="secondary" size="sm" onClick={() => onSelectVisit(v.id)}>{v.stage === 'paid' ? 'Receipt' : 'Bill'}</Button>}</div>
+    </li>)}</ul>
+  </div>
 }

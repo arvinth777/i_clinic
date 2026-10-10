@@ -17,7 +17,7 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
   const client = useQueryClient()
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
+  const [creating, setCreating] = useState(true)
   const [saleId, setSaleId] = useState(() => crypto.randomUUID())
   const [name, setName] = useState('')
   const [items, setItems] = useState<Item[]>([{ medicineId: '', quantity: '' }])
@@ -116,8 +116,8 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
   function openNew() {
     setSearch(''); setSaleId(crypto.randomUUID()); setName(''); setItems([{ medicineId: '', quantity: '' }]); setVerified(false); setCreating(true); setSelectedId(null); save.reset(); confirm.reset(); discount.reset()
   }
-  if (creating) return <div className="admin-page">
-    <h2 className="readout-heading">New pharmacy bill</h2>
+  const createPanel = <div className="admin-page">
+    <h2 className="readout-heading">Refill-only sale</h2>
     <p className="field-hint">Medicine-only sale. No patient file, consultation fee or queue token.</p>
     <form onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
       <div className="field"><label className="field-label" htmlFor="pharmacy-name">Customer name</label><Input id="pharmacy-name" value={name} maxLength={200} required autoFocus onChange={(e) => setName(e.target.value)} /></div>
@@ -137,7 +137,8 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
       <div className="action-row"><Button type="submit" disabled={save.isPending}>Prepare bill</Button><Button type="button" variant="secondary" onClick={() => setCreating(false)}>Cancel</Button></div>
     </form>
   </div>
-  if (selected) {
+  function selectedPanel() {
+    if (!selected) return null
     const lines = selected.bills?.bill_line_items ?? selected.pharmacy_sale_items
     const total = lines.reduce((sum, l) => sum + l.line_total_paise, 0)
     return <div className="admin-page">
@@ -152,11 +153,16 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
       {selected.bills && <><Button type="button" onClick={() => window.print()}>Print receipt</Button><div className="print-area"><PrintableReceipt clinic={clinic} customerName={selected.customer_name} billable={lines} amountPaise={selected.bills.final_amount_paise} discountPaise={total - selected.bills.final_amount_paise} bill={selected.bills} /></div></>}
     </div>
   }
-  return <div className="admin-page">
-    <div className="admin-toolbar"><h2 className="readout-heading">Pharmacy bills</h2><Button type="button" onClick={openNew}>New pharmacy bill</Button></div>
+  const listPanel = <div className="admin-page">
+    <div className="admin-toolbar"><h2 className="readout-heading">Refills</h2><Button type="button" onClick={openNew}>New pharmacy bill</Button></div>
     <div className="field"><label className="field-label" htmlFor="pharmacy-search">Find bills by customer name</label><Input id="pharmacy-search" value={search} onChange={(e) => { setSearch(e.target.value); setSelectedId(null) }} /></div>
     {salesError && <p className="form-error">Couldn't load pharmacy bills.</p>}
     <p className="field-hint">Latest 50 matching bills. These names are not linked to patient histories.</p>
     <ul className="past-visit-list">{(sales ?? []).map((s) => <li key={s.id} className="past-visit-item"><Button type="button" variant="secondary" onClick={() => { setSelectedId(s.id); confirm.reset(); discount.reset(); setFinalInput('') }}>{s.customer_name} · {formatDate(s.created_at)} · {formatPaise(s.final_amount_paise)} · {s.bill_id ? 'Paid' : 'Awaiting payment'}{s.pending ? ' · Not saved yet' : ''}</Button></li>)}</ul>
   </div>
+  return <div className="refill-workspace"><div className="refill-editor">{creating ? createPanel : selected ? selectedPanel() : listPanel}</div>
+    <aside className="refill-recent"><p className="field-hint">Recent refill bills</p>{(sales ?? []).slice(0, 10).map(s => <button key={s.id} className="record-selector" aria-pressed={selectedId === s.id} onClick={() => { setSelectedId(s.id); setCreating(false); confirm.reset(); discount.reset(); setFinalInput('') }}><strong>{s.customer_name}</strong><span>{formatPaise(s.final_amount_paise)}</span><small>{s.bill_id ? 'Paid' : 'Awaiting payment'} · {formatDate(s.created_at)}{s.pending ? ' · Not saved yet' : ''}</small></button>)}
+    <div className="refill-rules"><p className="field-hint">Refill workflow</p><p>Visually verify the prescription, enter the name and medicines supplied. No queue token or consultation fee.</p><p>Catalog prices are shared. Only the doctor can give a discount.</p></div></aside>
+  </div>
+
 }

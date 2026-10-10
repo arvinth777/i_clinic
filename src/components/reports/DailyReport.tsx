@@ -13,7 +13,7 @@ type Daily = {
 type StockWarning = { medicine_name: string; total_quantity: number; low_stock_threshold: number | null }
 
 export function DailyReport() {
-  const { data: daily } = useQuery({
+  const { data: daily, error: dailyError } = useQuery({
     queryKey: ['report-daily'],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_daily_report', {})
@@ -22,7 +22,7 @@ export function DailyReport() {
     },
   })
 
-  const { data: warnings } = useQuery({
+  const { data: warnings, error: warningsError } = useQuery({
     queryKey: ['report-stock-warnings'],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_stock_warnings_report', {})
@@ -31,6 +31,7 @@ export function DailyReport() {
     },
   })
 
+  if (dailyError) return <p className="form-error">Couldn't load the daily report.</p>
   if (!daily) return <p className="readout-empty">Loading…</p>
 
   return (
@@ -70,7 +71,7 @@ export function DailyReport() {
 
       <section className="record-section">
         <h3 className="readout-heading">Stock warnings</h3>
-        {!warnings || warnings.length === 0 ? (
+        {warningsError ? <p className="form-error">Couldn't load stock warnings.</p> : !warnings ? <p className="readout-empty">Loading stock warnings…</p> : warnings.length === 0 ? (
           <p className="readout-empty">No low or negative stock right now.</p>
         ) : (
           <ul className="past-visit-list">

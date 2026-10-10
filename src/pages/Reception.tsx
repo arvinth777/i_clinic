@@ -138,9 +138,10 @@ export function Reception({ userId }: { userId: string }) {
   if (!clinicId) return null
 
   return (
-    <div className="reception-page">
+    <div className={billingVisitId ? 'reception-page reception-billing' : 'reception-page'}>
       <div className="reception-shell">
-        <div className="reception-rail">
+        <aside className="reception-rail" aria-label="Patient check-in">
+          <div><h2 className="readout-heading">Check in</h2><p className="field-hint">Find a returning patient by name, phone or token.</p></div>
           <div className="search-field search-results-anchor">
             <svg
               className="search-field-icon"
@@ -159,13 +160,14 @@ export function Reception({ userId }: { userId: string }) {
             <input
               className="search-strip"
               type="search"
-              placeholder="Search by name or phone"
+              aria-label="Find patient"
+              placeholder="Search by name, phone or token"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && results && results.length > 0) {
                   e.preventDefault()
-                  setSelected(results[0])
+                  setSelected(results[0]); setQuery(''); setRepFormOpen(false)
                 }
               }}
             />
@@ -177,7 +179,7 @@ export function Reception({ userId }: { userId: string }) {
                       type="button"
                       className="search-result-button"
                       whileTap={tap}
-                      onClick={() => setSelected(r)}
+                      onClick={() => { setSelected(r); setQuery(''); setDebouncedQuery(''); setRepFormOpen(false) }}
                     >
                       {r.name}
                       {r.phone || r.age ? (
@@ -198,31 +200,19 @@ export function Reception({ userId }: { userId: string }) {
             )}
           </div>
           <div className="rail-actions">
-            <Button type="button" variant="secondary" onClick={() => setSelected('new')}>
+            <Button type="button" variant="secondary" onClick={() => { setSelected('new'); setRepFormOpen(false) }}>
               + New patient
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setRepFormOpen(true)}>
+            <Button type="button" variant="secondary" onClick={() => { setSelected(null); setRepFormOpen(true) }}>
               Check in pharma rep
             </Button>
           </div>
 
-          <FollowUpTodos clinicId={clinicId} />
-        </div>
-
-        <div className="reception-stage">
-          {billingVisitId ? (
-            <>
-              <button type="button" className="back-to-queue" onClick={() => setBillingVisitId(null)}>
-                ← Back to queue
-              </button>
-              <Billing key={billingVisitId} clinicId={clinicId} visitId={billingVisitId} onClose={() => setBillingVisitId(null)} />
-            </>
-          ) : selected === 'new' ? (
+          {selected === 'new' ? (
             <>
               <button type="button" className="back-to-queue" onClick={reset}>
                 ← Back to queue
               </button>
-              <h2 className="readout-heading">New patient</h2>
               <NewPatientForm clinicId={clinicId} initialName={debouncedQuery} onSubmit={(input: NewPatientInput) => checkInNew.mutate(input)} submitting={checkInNew.isPending} />
               <div className="action-row">
                 <Button type="button" variant="secondary" onClick={reset}>
@@ -293,6 +283,18 @@ export function Reception({ userId }: { userId: string }) {
                 </div>
                 {checkInRep.isError && <p className="form-error">Couldn't save — try again.</p>}
               </form>
+            </>
+          ) : null}
+          <details className="reception-followups"><summary>Follow-ups due today</summary><FollowUpTodos clinicId={clinicId} /></details>
+        </aside>
+
+        <div className="reception-stage">
+          {billingVisitId ? (
+            <>
+              <button type="button" className="back-to-queue" onClick={() => setBillingVisitId(null)}>
+                ← Back to queue
+              </button>
+              <Billing key={billingVisitId} clinicId={clinicId} visitId={billingVisitId} onClose={() => setBillingVisitId(null)} />
             </>
           ) : (
             <div className="worklist-panel">

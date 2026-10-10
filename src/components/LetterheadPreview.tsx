@@ -8,7 +8,7 @@ export function LetterheadPreview({ children }: { children: ReactNode }) {
     if (!element) return
     const measure = () => {
       const paper = element.firstElementChild as HTMLElement | null
-      if (paper) setScale(Math.min(1, element.clientWidth / paper.offsetWidth))
+      if (paper?.offsetWidth && element.clientWidth) setScale(Math.min(1, element.clientWidth / paper.offsetWidth))
     }
     const observer = new ResizeObserver(measure)
     observer.observe(element)

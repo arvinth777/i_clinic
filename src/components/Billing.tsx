@@ -4,7 +4,7 @@ import { motion } from 'motion/react'
 import QRCode from 'qrcode'
 import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
-import { PrintableSlip, type PrintVisit as Visit, type DetailRow, type Bill } from './VisitPrintout'
+import { PrintableSlip, PrintableReceipt, type PrintVisit as Visit, type DetailRow, type Bill } from './VisitPrintout'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { Button, buttonVariants } from './ui/button'
 import './Billing.css'
@@ -49,11 +49,20 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visits')
-        .select('id, token_number, stage, arrived_at, patients(name)')
+        .select('id, token_number, stage, arrived_at, complaint, follow_up_date, patients(name, age, gender)')
         .eq('id', visitId)
         .single()
       if (error) throw error
       return data as unknown as Visit
+    },
+  })
+
+  const { data: clinicalNotes } = useQuery({
+    queryKey: ['billing-clinical-notes', clinicId, visitId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('prescriptions').select('diagnosis, advice').eq('clinic_id', clinicId).eq('visit_id', visitId).order('created_at', { ascending: true })
+      if (error) throw error
+      return { diagnosis: [...new Set(data.map(p => p.diagnosis).filter(Boolean))].join('\n'), advice: [...new Set(data.map(p => p.advice).filter(Boolean))].join('\n') }
     },
   })
 
@@ -134,7 +143,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
       return data as DetailRow[]
     },
   })
-  const detailStillLoading = detail === undefined
+  const detailStillLoading = detail === undefined || clinicalNotes === undefined
 
   const { data: clinic } = useQuery({
     // Its own key, not shared with ClinicSettings.tsx's admin-form query --
@@ -260,7 +269,8 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
   const discountPaise = calculatedTotal - amountPaise
 
   return (
-    <div>
+    <div className="billing-workspace"><div className="bill-editor">
+      <p className="field-hint">{bill ? 'Saved receipt' : 'Consultation bill'} · #{visit.token_number}</p>
       <h2 className="form-heading">
         {visit.patients?.name} <span className="doctor-queue-meta">Token {visit.token_number}</span>
       </h2>
@@ -272,14 +282,9 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
         {!billable ? (
           <p className="readout-empty">Loading…</p>
         ) : (
-          <ul className="past-visit-list">
-            {billable.map((row, i) => (
-              <li key={i} className="past-visit-item bill-item-row">
-                <span>{row.description}{row.quantity != null && ` × ${row.quantity} ${row.stock_unit ?? ''}`}</span>
-                <span className="pricing-value">{formatPaise(row.line_total_paise ?? row.unit_price_paise)}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="bill-table-wrap"><table className="bill-lines"><thead><tr><th>Item</th><th>Supplied</th><th>Price</th><th>Amount</th></tr></thead><tbody>
+            {billable.map((row, i) => <tr key={i}><td><strong>{row.description}</strong><small>{row.kind === 'consultation' ? 'Consultation fee' : row.kind === 'procedure' ? 'Procedure' : row.stock_unit}</small></td><td>{row.quantity ?? 1}</td><td>{formatPaise(row.unit_price_paise)}</td><td><strong>{formatPaise(row.line_total_paise ?? row.unit_price_paise)}</strong></td></tr>)}
+          </tbody></table></div>
         )}
       </section>
 
@@ -290,7 +295,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
             <span className="pricing-value">{formatPaise(calculatedTotal)}</span>
           </div>
           <div className="pricing-row">
-            <span>Discount</span>
+            <span>Discount set by the doctor</span>
             <span className="pricing-value">{formatPaise(discountPaise)}</span>
           </div>
           <div className="pricing-row bill-final-amount">
@@ -362,11 +367,11 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
             Paid
           </div>
           <p>
-            Paid via {bill.payment_method}. Prescription and receipt sent to print.
+            Paid via {bill.payment_method}. Print the prescription and receipt below.
             {bill.pending && ' Not saved yet — waiting for a connection to actually confirm with the server.'}
           </p>
           <div className="action-row">
-            <Button type="button" variant="secondary" onClick={() => window.print()}>
+            <Button type="button" variant="secondary" disabled={detailStillLoading} onClick={() => window.print()}>
               Print again
             </Button>
             <Button type="button" onClick={onClose}>
@@ -376,9 +381,11 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
         </section>
       )}
 
+      </div>
+      <aside className="receipt-preview" aria-label="Receipt preview"><p className="field-hint">Receipt preview</p><PrintableReceipt clinic={clinic} visit={visit} billable={billable ?? []} amountPaise={amountPaise} discountPaise={discountPaise} bill={bill} /></aside>
       <PrintableSlip
         clinic={clinic}
-        visit={visit}
+        visit={{ ...visit, ...clinicalNotes }}
         detail={detail}
         amountPaise={amountPaise}
         discountPaise={discountPaise}

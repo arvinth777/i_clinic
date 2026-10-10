@@ -11,7 +11,7 @@ function formatMonth(monthStart: string): string {
 }
 
 export function MonthlyReport() {
-  const { data: months } = useQuery({
+  const { data: months, error } = useQuery({
     queryKey: ['report-monthly'],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_monthly_report', { p_months: 6 })
@@ -20,9 +20,13 @@ export function MonthlyReport() {
     },
   })
 
+  if (error) return <p className="form-error">Couldn't load the monthly report.</p>
   if (!months) return <p className="readout-empty">Loading…</p>
 
-  return (
+  const max = Math.max(1, ...months.map(m => m.collections_paise))
+  return <>
+    <h2 className="readout-heading">Collections · last six months</h2>
+    <div className="collections-chart" aria-label="Monthly collections chart">{months.map(m => <div className="collections-column" key={m.month_start}><span>{formatPaise(m.collections_paise)}</span><div className="collections-track"><div className="collections-bar" style={{ height: `${Math.max(0, m.collections_paise) / max * 100}%` }} /></div><small>{formatMonth(m.month_start)}</small></div>)}</div>
     <Table>
       <TableHeader>
         <TableRow>
@@ -43,5 +47,5 @@ export function MonthlyReport() {
         ))}
       </TableBody>
     </Table>
-  )
+  </>
 }

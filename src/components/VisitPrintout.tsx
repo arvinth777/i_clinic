@@ -1,5 +1,5 @@
 import { formatPaise } from '../lib/money'
-import { formatDate } from '../lib/date'
+import { formatDate, formatDateOnly } from '../lib/date'
 import './Billing.css'
 
 export type PrintVisit = {
@@ -59,11 +59,11 @@ export function PrintablePrescription({ clinic, visit, medicines }: { clinic: Cl
       <img className="prescription-letterhead" src="/letterhead-a4.png" alt="Salem Pain and Palliative Care Clinic letterhead" />
       <table className="prescription-paper-content">
         <thead><tr><td colSpan={2}>
-          <div className="prescription-header-space"><img src="/letterhead-a4.png" alt="" /></div>
+          <div className="prescription-header-space" />
           <div className="prescription-reference"><span>#{visit.token_number}</span><span>{formatDate(visit.arrived_at)}</span></div>
-          <div className="prescription-patient"><strong>Patient: {visit.patients?.name}</strong><span>{[visit.patients?.age != null ? `${visit.patients.age} years` : '', visit.patients?.gender].filter(Boolean).join(' · ')}</span></div>
         </td></tr></thead>
         <tbody>
+          <tr><td colSpan={2}><div className="prescription-patient"><strong>Patient: {visit.patients?.name}</strong><span>{[visit.patients?.age != null ? `${visit.patients.age} years` : '', visit.patients?.gender].filter(Boolean).join(' · ')}</span></div></td></tr>
           {visit.complaint && <tr><td colSpan={2} className="prescription-note"><strong>Complaints: </strong>{visit.complaint}</td></tr>}
           {visit.diagnosis && <tr><td colSpan={2} className="prescription-note"><strong>Diagnosis: </strong>{visit.diagnosis}</td></tr>}
           <tr><td colSpan={2} className="prescription-rx">℞</td></tr>
@@ -77,7 +77,7 @@ export function PrintablePrescription({ clinic, visit, medicines }: { clinic: Cl
           {visit.advice && <tr><td colSpan={2} className="prescription-note"><strong>Advice / investigations: </strong>{visit.advice}</td></tr>}
           <tr className="prescription-fill"><td colSpan={2} /></tr>
         </tbody>
-        <tfoot><tr><td colSpan={2}><div className="prescription-signature"><span>Review: {visit.follow_up_date ? formatDate(visit.follow_up_date) : '—'}</span><span>{clinic?.doctor_name}<br />Signature / {clinic?.doctor_registration_number || 'Registration No.'}</span></div></td></tr><tr><td colSpan={2}><div className="prescription-footer-space"><img src="/letterhead-a4.png" alt="" /></div></td></tr></tfoot>
+        <tfoot><tr><td colSpan={2}><div className="prescription-signature"><span>Review: {visit.follow_up_date ? formatDateOnly(visit.follow_up_date) : '—'}</span><span>{clinic?.doctor_name}<br />Signature / {clinic?.doctor_registration_number || 'Registration No.'}</span></div></td></tr><tr><td colSpan={2}><div className="prescription-footer-space" /></td></tr></tfoot>
       </table>
     </section>
   )
@@ -127,11 +127,12 @@ export function PrintableReceipt({
             <td>{formatPaise(discountPaise)}</td>
           </tr>
           <tr className="print-total-row">
-            <td>Amount paid</td>
+            <td>{bill ? 'Amount paid' : 'Total'}</td>
             <td>{formatPaise(amountPaise)}</td>
           </tr>
         </tbody>
       </table>
+      {!bill && <p>Not paid yet</p>}
       {bill?.pending && <p>Payment recorded on this device—not saved yet.</p>}
       {bill && (
         <p>

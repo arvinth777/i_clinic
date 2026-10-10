@@ -44,8 +44,18 @@ try {
   assert.equal(saved.advice, args.p_advice)
   assert.deepEqual(saved.prescription_items, [{ dosage_frequency: '0.5-0-0.5' }], 'retry preserves one medicine and a custom dose')
   console.log('PASS: clinical fields and custom dose saved atomically, doctor-only, retry once')
-  const definitions = value(await doctor.from('patient_field_definitions').select('key, label').eq('clinic_id', clinicId))
-  console.log('Allergy field definitions:', definitions.filter(d => /allerg/i.test(d.key + d.label)))
+  const otherDoctor = await signIn('doctor', passwords.TEST_DOCTOR_B_PASSWORD, 'b')
+  const admin = await signIn('admin.only', passwords.TEST_ADMIN_ONLY_PASSWORD)
+  const anonymous = createClient(app.VITE_SUPABASE_URL, app.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false }, realtime: { transport: ws } })
+  for (const [role, client] of [['other clinic', otherDoctor], ['admin', admin], ['anonymous', anonymous]]) {
+    assert.ok((await client.rpc('save_prescription', { ...args, p_prescription_id: crypto.randomUUID() })).error, role + ' must not issue this prescription')
+    const read = await client.from('prescriptions').select('id, diagnosis, advice').eq('id', args.p_prescription_id)
+    assert.ok(read.error || read.data.length === 0, role + ' must not read clinical notes')
+  }
+  const edit = await reception.from('prescriptions').update({ diagnosis: 'Unauthorized replacement' }).eq('id', args.p_prescription_id).select('id')
+  assert.ok(edit.error || edit.data.length === 0, 'reception cannot directly edit clinical notes')
+  assert.equal(value(await doctor.from('prescriptions').select('diagnosis').eq('id', args.p_prescription_id).single()).diagnosis, args.p_diagnosis)
+  console.log('PASS: direct reception edits blocked; clinical notes isolated from other clinics, admin and anonymous access')
 } finally {
   await Promise.all(clients.map(client => client.auth.signOut()))
 }

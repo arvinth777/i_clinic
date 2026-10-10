@@ -8,26 +8,27 @@ import { ClinicSettings } from '../components/admin/ClinicSettings'
 import './Admin.css'
 
 const TABS = [
-  { key: 'drugs', label: 'Drugs' },
+  { key: 'drugs', label: 'Medicines & prices' },
   { key: 'procedures', label: 'Procedures' },
   { key: 'templates', label: 'Templates' },
   { key: 'fields', label: 'Custom fields' },
-  { key: 'logins', label: 'Logins' },
-  { key: 'settings', label: 'Settings' },
+  { key: 'logins', label: 'Staff & access' },
+  { key: 'settings', label: 'Clinic information' },
 ] as const
 
 type TabKey = (typeof TABS)[number]['key']
 
 export function Admin({ clinicId }: { clinicId: string }) {
-  const [tab, setTab] = useState<TabKey>('drugs')
+  const [tab, setTab] = useState<TabKey>('settings')
 
   return (
-    <div className="admin-page">
-      <nav className="admin-tabs">
+    <div className="admin-page settings-page">
+      <nav className="admin-tabs" aria-label="Settings"><h2>Settings</h2>
         {TABS.map((t) => (
           <button
             key={t.key}
             type="button"
+            aria-current={t.key === tab ? 'page' : undefined}
             className={t.key === tab ? 'shell-nav-item active' : 'shell-nav-item'}
             onClick={() => setTab(t.key)}
           >

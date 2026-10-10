@@ -1,22 +1,18 @@
 import * as React from 'react'
 import { cn } from '../../lib/utils'
 
-// A real bordered/contained data table -- rounded outer edge, a tinted
-// header row, hover-highlighted body rows -- replacing the bare
-// .worklist table (a plain header rule + hairline row dividers, nothing
-// else) that the user pointed at directly and said "looks like
-// markdown."
+// Shared ruled table from the supplied clinic handoff.
 
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
-    <div className="w-full overflow-x-auto rounded-card border border-border shadow-sm">
+    <div className="w-full overflow-x-auto">
       <table data-slot="table" className={cn('w-full caption-bottom text-sm', className)} {...props} />
     </div>
   )
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
-  return <thead data-slot="table-header" className={cn('bg-surface-2', className)} {...props} />
+  return <thead data-slot="table-header" className={cn('border-b border-border-strong', className)} {...props} />
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
@@ -37,7 +33,7 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
   return (
     <th
       data-slot="table-head"
-      className={cn('h-11 px-4 text-left align-middle font-semibold text-text whitespace-nowrap', className)}
+      className={cn('h-11 px-4 text-left align-middle font-normal text-text-tertiary whitespace-nowrap', className)}
       {...props}
     />
   )

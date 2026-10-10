@@ -2,7 +2,7 @@
 .rx-editor { min-width: 0; padding: var(--page-top) var(--page-padding); }
 .rx-editor > * { max-width: var(--editor-width); margin-inline: auto; }
 .rx-patient { margin-bottom: var(--space-xl); }
-.rx-patient h2 { font-size: var(--text-xl); font-weight: 700; margin: 0 0 var(--space-2xs); }
+.rx-patient h2 { font-size: var(--text-page); line-height: var(--line-title); letter-spacing: var(--tracking-title); font-weight: 700; margin: 0 0 var(--space-2xs); }
 .rx-patient p { font-size: var(--text-sm); color: var(--text-secondary); margin: 0; }
 .rx-clinical-fields { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-bottom: var(--space-lg); }
 .rx-clinical-fields p { margin: 0; white-space: pre-wrap; }

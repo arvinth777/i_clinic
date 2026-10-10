@@ -550,3 +550,8 @@
   .consultation-stage, .consultation-rail { padding: var(--space-lg) var(--space-md); }
 }
 @media (max-width: 520px) { .doctor-context, .history-row { grid-template-columns: 1fr; gap: var(--space-sm); } }
+
+.consultation-stage .stage-head h2 { line-height: var(--line-title); letter-spacing: var(--tracking-title); }
+.doctor-overview .record-section > .readout-heading { font-size: var(--text-xs); color: var(--text-tertiary); font-weight: 400; letter-spacing: normal; }
+.doctor-overview .history-row time { font-size: var(--text-base); font-weight: 600; }
+.doctor-queue-meta { font-size: var(--text-base); }

@@ -136,7 +136,7 @@ export function AppShell({
     return () => { supabase.removeChannel(channel) }
   }, [clinicId, clinical, queryClient])
   const current = queue?.find((visit) => visit.stage === 'with_doctor')
-  const primary = sections.filter((section) => ['reception', 'consultation', 'pharmacy', 'stock', 'reports'].includes(section.key))
+  const primary = sections.filter((section) => ['reception', 'consultation', 'billing', 'pharmacy', 'patients', 'stock', 'reports'].includes(section.key))
   const more = sections.filter((section) => !primary.includes(section))
   const activeMore = more.find((section) => section.key === activeSection)
 
@@ -158,7 +158,7 @@ export function AppShell({
         <nav className="shell-nav" aria-label="Main">
           {primary.map(navItem)}
           {more.length > 0 && <details className="shell-menu">
-            <summary className="shell-nav-item" aria-current={activeMore ? 'page' : undefined}>{activeMore?.label ?? 'More'} <span aria-hidden="true">⌄</span></summary>
+            <summary className="shell-nav-item" aria-current={activeMore ? 'page' : undefined}>More <span aria-hidden="true">⌄</span></summary>
             <div className="shell-menu-items">{more.map(navItem)}</div>
           </details>}
         </nav>
@@ -188,7 +188,7 @@ export function AppShell({
       </Drawer>
       <LockScreen locked={locked} onUnlock={onUnlock} />
       <main className="shell-content">
-        {activeSection ? children : <p className="readout-empty">This account has no role assigned at this clinic. Contact your admin to get access.</p>}
+        {activeSection ? (activeMore && activeSection !== 'admin' ? <div className="support-layout"><aside className="record-sidebar"><p className="field-hint">Supporting tools</p>{more.map(navItem)}</aside><div className="support-content">{children}</div></div> : children) : <p className="readout-empty">This account has no role assigned at this clinic. Contact your admin to get access.</p>}
       </main>
     </div>
   )

@@ -38,6 +38,22 @@
   --font: 'Hanken Grotesk', system-ui, sans-serif;
   --font-display: var(--font);
   --font-mono: var(--font);
+  --text-xxs: 0.75rem;
+  --text-input: 1rem;
+  --text-subheading: 1.0625rem;
+  --text-section: 1.125rem;
+  --text-metric: 1.375rem;
+  --text-page: 1.625rem;
+  --text-record: 1.75rem;
+  --text-welcome: 2.125rem;
+  --line-body: 1.5;
+  --line-title: 1.15;
+  --tracking-title: -0.02em;
+  --print-body-size: calc(var(--paper-width) * 0.019);
+  --print-reference-size: calc(var(--paper-width) * 0.0185);
+  --print-caption-size: calc(var(--paper-width) * 0.0155);
+  --print-dose-size: calc(var(--paper-width) * 0.0165);
+  --print-rx-size: calc(var(--paper-width) * 0.04);
   --text-xs: 0.8125rem;
   --text-sm: 0.875rem;
   --text-base: 0.9375rem;
@@ -64,6 +80,11 @@
   --page-top: 2.25rem;
   --content-width: 74rem;
   --doctor-side-width: 23.75rem;
+  --patient-rail-width: 17.5rem;
+  --metric-min-width: 10rem;
+  --chart-height: 10rem;
+  --record-rail-width: 15rem;
+  --mobile-list-height: 15rem;
   --side-width: 26.25rem;
   --editor-width: 47.5rem;
   --status-dot-size: 0.4375rem;
@@ -71,6 +92,8 @@
   --paper-height: 297mm;
   --paper-header: 64mm;
   --paper-footer: 24mm;
+  --paper-reference: 10mm;
+  --paper-patient-gap: 4mm;
   --preview-width: 32.5rem;
   color-scheme: light;
 }
@@ -200,7 +223,9 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  line-height: 1.5;
+  font-size: var(--text-base);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--line-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

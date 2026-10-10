@@ -32,3 +32,21 @@
   .shell-sync { flex-basis: 100%; order: 1; }
   .shell-content { padding: var(--space-lg) var(--space-md); }
 }
+
+.shell-content:has(> .billing-desk, > .support-layout, > .settings-page, > .refill-workspace, > .patients-workspace) { padding: 0; }
+.shell-content > .billing-desk, .shell-content > .support-layout, .shell-content > .settings-page, .shell-content > .refill-workspace, .shell-content > .patients-workspace { max-width: none; }
+.billing-desk { display: grid; grid-template-columns: var(--record-rail-width) minmax(0, 1fr); min-height: 100%; }
+.record-sidebar { min-width: 0; padding: var(--page-top) var(--space-lg); background: var(--surface-2); }
+.record-sidebar > .field-hint { margin-bottom: var(--space-sm); }
+.record-selector { display: block; width: 100%; border: 0; background: transparent; color: var(--text); font: inherit; font-size: var(--text-sm); text-align: left; padding: var(--space-sm); border-radius: var(--radius-card); overflow-wrap: anywhere; cursor: pointer; }
+.record-selector small { display: block; color: var(--text-tertiary); font-size: var(--text-xs); }
+.record-selector[aria-pressed='true'], .record-selector:hover { background: var(--surface); }
+.support-layout { display: grid; grid-template-columns: var(--record-rail-width) minmax(0, 1fr); min-height: 100%; }
+.support-layout .record-sidebar { display: flex; flex-direction: column; gap: var(--space-xs); }
+.support-layout .shell-nav-item[aria-current='page'] { background: var(--surface); }
+.support-content { padding: var(--page-top) var(--page-padding); min-width: 0; }
+@media (max-width: 720px) {
+  .billing-desk, .support-layout { grid-template-columns: minmax(0, 1fr); }
+  .record-sidebar { padding: var(--space-md); max-height: var(--mobile-list-height); overflow-y: auto; }
+  .support-content { padding: var(--space-lg) var(--space-md); }
+}

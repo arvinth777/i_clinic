@@ -37,7 +37,7 @@ be the source of truth for behaviour does not supersede the user's decision.
 | Nav | `AppShell`, role-filtered sections in `App.tsx` | Replace collapsible sidebar with responsive top navigation; supporting tools under More. Keep every authorized destination accessible. Show actual queue and pending state, never a timer-driven “All saved”. |
 | Reception | `Reception`, `TokenList`, `NewPatientForm`, existing check-in/search | Queue beside a check-in panel. Implement logged reception reordering, Not here/return, explicit no-show and Sent in acknowledgement under the addendum. Preserve rep ordering behind patients. |
 | Doctor | `Consultation`, history, comments, queue and consultation clock | Current patient and useful history beside the waiting queue. Implement called/waiting-for-reception and Sent in states; preserve draft-loss protection. Finish and Call next remain separate. |
-| Prescription / Minimal | `PrescriptionForm`, `prescriptionDraft`, `prescriptionPrint`, `VisitPrintout`, `PricingPanel`, `CarePanel` | Build compact expandable rows, combined medicine/set search, keyboard use and live A4 preview. Add saved diagnosis/advice, explicit quantity confirmation and the limited allergy check under the addendum. |
+| Prescription / Minimal | `PrescriptionForm`, `prescriptionDraft`, `prescriptionPrint`, `VisitPrintout`, `PricingPanel`, `CarePanel` | Build compact expandable rows, combined medicine/set search, keyboard use and live A4 preview. Add saved diagnosis/advice and explicit quantity confirmation. Allergy warnings are excluded: the user confirmed the mockup has no real allergy source. |
 | Billing | `Billing`, `UnpaidBills`, immutable saved bill lines | Bill selection, readable line items and receipt preview. Use approval-time unit-price snapshots. Allow only reduced supply within stock, with a fixed doctor discount capped at subtotal; persist shortfalls and show them in history. |
 | Refill | `PharmacyBills` | Apply the visual treatment to the name-only pharmacy workflow. Omit the reference's patient-history, 90-day prescription and 30-day supply requirements. |
 | Patient | Existing reception search and doctor history/comments/documents | A consolidated patient-record screen needs composition of real queries and existing permissions. Reception must not gain clinical-history access merely to match a screenshot. |
@@ -81,7 +81,7 @@ warning are references, not proof that long prescriptions print correctly.
 
 Finish requires at least one medicine and valid dose/SOS and duration for each.
 Missing diagnosis/review date produce non-blocking reminders. Finish does not
-call next. Skip/drafts remain excluded. NSAID-allergy warnings require logged
+call next. Skip/drafts remain excluded. The later user clarification excludes mock allergy warnings. The original superseded requirement was logged
 Remove/Keep choices; other clinical warning classes remain deferred.
 
 ## Implementation sequence — one PR per step
@@ -99,7 +99,7 @@ evidence and unmet acceptance gates. No automatic merge or release.
    and existing authentication/lock behaviour intact. Capture 1440/390 evidence.
 3. **Prescription and approval:** compact editor, A4 preview/continuations,
    durable clinical fields/history, non-blocking reminders, bounded quantity
-   suggestions, logged NSAID decisions, and approval-time price snapshots with
+   suggestions and approval-time price snapshots with
    price-change audit. Carry migrations, offline data paths and backend tests
    in the same PR. Preserve existing money and stock checks.
 4. **Clinic screens and workflows:** reception/doctor layouts and queue state
@@ -131,7 +131,7 @@ full definition of done and physical gate are in the addendum.
 - Source inspection found configurable patient fields (`patients.custom_fields`
   and `patient_field_definitions`), but no dedicated allergy model or NSAID
   classification in source/migrations. Verify the actual existing allergy field
-  definition before connecting the warning. Do not infer “no allergies” from
+  definition before any future warning. The user has since confirmed there is no real source, so no warning is implemented. Do not infer “no allergies” from
   absent data or classify medicines using the prototype's sample list.
 - The old `packing`/`ready_at_reception` stages are used by queue queries, billing,
   metrics, reports and offline replay. Migrate active visits deliberately, retain

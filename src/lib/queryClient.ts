@@ -1,4 +1,7 @@
-import { QueryClient } from '@tanstack/react-query'
+import { onlineManager, QueryClient } from '@tanstack/react-query'
+
+// A reload during an outage must not reset the header to 'online'.
+if (typeof navigator !== 'undefined') onlineManager.setOnline(navigator.onLine)
 
 // Realtime is not the source of truth (AGENTS.md non-negotiable #6): a
 // change event invalidates a query and triggers a refetch here, it never
