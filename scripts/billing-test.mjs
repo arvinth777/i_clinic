@@ -122,7 +122,6 @@ async function prescribeToVisit(doctorA, visitId, medicineId) {
 async function main() {
   const doctorA = await signIn('doctor.a@staging.test', userEnv.TEST_DOCTOR_A_PASSWORD)
   const receptionA = await signIn('reception.a@staging.test', userEnv.TEST_RECEPTION_A_PASSWORD)
-  const { data: receptionAUser } = await receptionA.auth.getUser()
   console.log('signed in as doctor.a, reception.a\n')
 
   // ================================================================
@@ -284,20 +283,16 @@ async function main() {
     const { error } = await doctorA.from('visit_pricing').update({ final_amount_paise: 10000 }).eq('visit_id', visit3)
     if (error) throw new Error(`doctor setting final_amount on visit3 failed: ${error.message}`)
     const p = await readPricing(doctorA, visit3)
-    // p.revision_number is now 1 (bumped by the update above). Insert a
-    // bill directly (bypassing confirm_bill) claiming a stale revision of
-    // 0, simulating an offline-queued confirm that synced after the
-    // doctor's own edit -- exactly the case the trigger exists to catch.
-    const { data: bill, error: billErr } = await receptionA
-      .from('bills')
-      .insert({
-        clinic_id: CLINIC_A_ID, visit_id: visit3, final_amount_paise: 10000,
-        pricing_revision_at_confirm: 0, payment_method: 'cash', confirmed_by: receptionAUser.user.id,
-      })
-      .select('needs_reconciliation')
-      .single()
-    const ok = !billErr && p.revision_number === 1 && bill.needs_reconciliation === true
-    report('needs_reconciliation is true at insert when the snapshot revision is already behind', ok, `live revision ${p.revision_number}, ${JSON.stringify(bill)}`)
+    await doctorA.from('visits').update({ stage: 'packing' }).eq('id', visit3)
+    await receptionA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visit3)
+    await doctorA.from('visit_pricing').update({ final_amount_paise: 9000 }).eq('visit_id', visit3)
+    const { data: billId, error: billErr } = await receptionA.rpc('confirm_bill', {
+      p_visit_id: visit3, p_payment_method: 'cash',
+      p_snapshot_final_amount_paise: p.final_amount_paise,
+      p_snapshot_revision_number: p.revision_number,
+    })
+    const { data: bill } = await receptionA.from('bills').select('needs_reconciliation').eq('id', billId).single()
+    report('needs_reconciliation is true for an older approved snapshot', !billErr && bill?.needs_reconciliation === true)
   }
 
   console.log('\n== Summary ==')

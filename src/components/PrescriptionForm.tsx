@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
+import { mergePrescriptionPrint, readPrescriptionPrint, savePrescriptionPrint } from '../lib/prescriptionPrint'
+import { PrintablePrescription, type PrintVisit, type ClinicPrintInfo, type DetailRow } from './VisitPrintout'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { parseRupeesToPaise } from '../lib/money'
 import { Button, buttonVariants } from './ui/button'
@@ -27,15 +29,30 @@ type MedicineResult = { id: string; name: string }
 export function PrescriptionForm({
   clinicId,
   visitId,
+  userId,
+  visit,
   pastPrescriptions,
   onActiveChange,
 }: {
   clinicId: string
   visitId: string
+  userId: string
+  visit: PrintVisit
   pastPrescriptions: PastPrescription[] | undefined
   onActiveChange: (active: boolean) => void
 }) {
   const queryClient = useQueryClient()
+  const printKey = ['prescription-print', userId, clinicId, visitId]
+  const { data: printed } = useQuery({ queryKey: printKey, queryFn: async () => (await readPrescriptionPrint(userId, clinicId, visitId)) ?? null })
+  const { data: clinic } = useQuery({
+    queryKey: ['clinic-print-info', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clinics').select('name, upi_vpa, doctor_name, doctor_registration_number, address, phone').eq('id', clinicId).single()
+      if (error) throw error
+      return data as ClinicPrintInfo
+    },
+  })
+  const confirmationId = useRef<string | null>(null)
   const [draftItems, setDraftItems] = useState<DraftItem[]>([])
   const [reviewOpen, setReviewOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -155,42 +172,37 @@ export function PrescriptionForm({
 
   const confirm = useMutation({
     // See offlineQueue.ts -- 'online' (the default) would pause this whole
-    // mutationFn before it ever runs while offline, never reaching either
-    // insert below.
+    // mutationFn before it ever runs while offline, never reaching the queue.
     networkMode: 'always',
     mutationFn: async () => {
-      // Client-generated ids, not server-returned ones: with no network,
-      // there is no round trip to get an id back from the first insert
-      // before the second can reference it. The same id is what makes a
-      // queued insert replay-safe (upsert-on-conflict against this id),
-      // whichever path (online or queued) each of the two inserts below
-      // actually takes.
-      const prescriptionId = crypto.randomUUID()
-      const itemRows = draftItems.map((item) => ({ ...itemRow(item), id: crypto.randomUUID(), clinic_id: clinicId, prescription_id: prescriptionId }))
-
-      await attemptOrQueue({
-        attempt: () => supabase.from('prescriptions').insert({ id: prescriptionId, clinic_id: clinicId, visit_id: visitId }),
-        queueItem: () => ({
-          kind: 'insert',
-          table: 'prescriptions',
-          payload: { id: prescriptionId, clinic_id: clinicId, visit_id: visitId },
-          description: 'Write a prescription',
-        }),
+      const prescriptionId = confirmationId.current ??= crypto.randomUUID()
+      const itemRows = draftItems.map((item) => ({ ...itemRow(item), id: item.key }))
+      const previous = await readPrescriptionPrint(userId, clinicId, visitId)
+      const existing = (pastPrescriptions ?? []).filter((prescription) => prescription.visit_id === visitId)
+      const previousMedicines: DetailRow[] = previous?.medicines ?? existing.flatMap((prescription) => prescription.prescription_items.map((item) => ({
+        ...item, prescription_id: prescription.id, before_after_food: item.before_after_food ?? null,
+        kind: 'medicine', description: item.medicines?.name ?? 'Medicine', unit_price_paise: 0,
+      })))
+      const previousIds = previous?.prescriptionIds ?? existing.map((prescription) => prescription.id)
+      const medicines: DetailRow[] = draftItems.map((item) => ({
+        ...itemRow(item), prescription_id: prescriptionId, kind: 'medicine', description: item.medicineName, unit_price_paise: 0,
+      }))
+      const snapshot = mergePrescriptionPrint({ visit, medicines: previousMedicines, prescriptionIds: previousIds }, {
+        visit, clinic: clinic ?? previous?.clinic,
+        medicines, prescriptionIds: [prescriptionId],
       })
+      // Retain reviewed instructions before the network call, including a crash during save.
+      await savePrescriptionPrint(userId, clinicId, snapshot)
+      queryClient.setQueryData(printKey, snapshot)
+      const payload = { p_prescription_id: prescriptionId, p_visit_id: visitId, p_items: itemRows }
       await attemptOrQueue({
-        attempt: () => supabase.from('prescription_items').insert(itemRows),
-        queueItem: () => ({ kind: 'insert', table: 'prescription_items', payload: itemRows, description: `Write ${itemRows.length} prescription item(s)` }),
+        clinicId,
+        attempt: (accessToken) => supabase.rpc('save_prescription', payload).setHeader('Authorization', `Bearer ${accessToken}`),
+        queueItem: () => ({ kind: 'rpc', rpc: 'save_prescription', payload, description: 'Save prescription instructions' }),
       })
-      // Confirming a prescription is not finishing the consultation -- the
-      // doctor may still add procedures or set the final amount below.
-      // Only the "Consultation done" button (Consultation.tsx) moves the
-      // visit to packing; this used to also do it here, which silently
-      // ended the consultation the moment a prescription was confirmed,
-      // before the doctor ever reached pricing (found via a live flow
-      // test, not by inspection -- the visit was already in packing
-      // immediately after the confirm click, with final_amount never set).
     },
     onSuccess: () => {
+      confirmationId.current = null
       queryClient.invalidateQueries({ queryKey: ['past-prescriptions'] })
       setDraftItems([])
       setReviewOpen(false)
@@ -236,6 +248,13 @@ export function PrescriptionForm({
 
   return (
     <div>
+      {printed && (
+        <>
+          <Button type="button" variant="secondary" onClick={() => window.print()}>Print prescription</Button>
+          <div className="print-area"><PrintablePrescription clinic={printed.clinic} visit={printed.visit} medicines={printed.medicines} /></div>
+        </>
+      )}
+      {confirm.isError && <p className="form-error">Not saved yet — the local print copy is available. Review and retry the prescription.</p>}
       <div className="field">
         <label className="field-label" htmlFor="drug-search">
           Search drugs

@@ -9,6 +9,8 @@ import { supabase } from './supabase'
 const store = createStore('offline-queue-db', 'mutations')
 
 export type QueuedMutation = {
+  ownerId?: string // absent only on legacy entries; never replay those automatically
+  clinicId?: string
   id: string // client-generated uuid -- for an insert, this IS the row's own PK, which is what makes replay idempotent (upsert-on-conflict, not a separate key column)
   seq: number // monotonic within this tab's lifetime; createdAt alone can collide at ms resolution for two mutations enqueued in the same synchronous block (e.g. a prescription row then its items)
   kind: 'insert' | 'update' | 'delete' | 'rpc'
@@ -35,12 +37,19 @@ function notify() {
   for (const fn of listeners) fn()
 }
 
-export async function enqueue(mutation: Omit<QueuedMutation, 'id' | 'seq' | 'createdAt'> & { id?: string }): Promise<QueuedMutation> {
+export async function enqueue(mutation: Omit<QueuedMutation, 'id' | 'seq' | 'createdAt' | 'ownerId'> & { id?: string }, ownerId?: string): Promise<QueuedMutation> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Sign in before saving offline work')
+  if (ownerId && session.user.id !== ownerId) throw new Error('The signed-in account changed; return to the original account before saving')
+  const clinicId = mutation.clinicId ?? (mutation.payload as { clinic_id?: string } | undefined)?.clinic_id
+  if (!clinicId) throw new Error('A clinic is required for offline work')
   const full: QueuedMutation = {
+    ...mutation,
     id: mutation.id ?? crypto.randomUUID(),
     seq: nextSeq(),
     createdAt: new Date().toISOString(),
-    ...mutation,
+    ownerId: session.user.id,
+    clinicId,
   }
   await set(full.id, full, store)
   notify()
@@ -69,17 +78,17 @@ function isNetworkFailure(err: unknown): boolean {
   if (!navigator.onLine) return true
   const e = err as { code?: unknown; status?: unknown; message?: unknown } | null
   if (!e) return true
-  if (typeof e.code === 'string' || typeof e.status === 'number') return false
+  if ((typeof e.code === 'string' && e.code !== '') || (typeof e.status === 'number' && e.status >= 400)) return false
   const msg = typeof e.message === 'string' ? e.message : ''
   return /fetch|network|Failed to fetch/i.test(msg) || msg === ''
 }
 
-async function replayOne(m: QueuedMutation): Promise<void> {
+async function replayOne(m: QueuedMutation, accessToken: string): Promise<void> {
   if (m.kind === 'insert') {
     // ignoreDuplicates on the client-generated PK is what makes a replay of
     // an already-applied insert a no-op instead of a duplicate row -- the
     // id doubles as the idempotency key, no separate column needed.
-    const { error } = await supabase.from(m.table!).upsert(m.payload as object, { onConflict: 'id', ignoreDuplicates: true })
+    const { error } = await supabase.from(m.table!).upsert(m.payload as object, { onConflict: 'id', ignoreDuplicates: true }).setHeader('Authorization', `Bearer ${accessToken}`)
     if (error) throw error
   } else if (m.kind === 'update') {
     let q = supabase.from(m.table!).update(m.payload as object)
@@ -91,7 +100,7 @@ async function replayOne(m: QueuedMutation): Promise<void> {
     // have nothing left to warn about. .select() is what makes the affected
     // rows visible so a permission denial (or the row being gone) can be
     // told apart from a real success and routed to the halt path instead.
-    const { data, error } = await q.select()
+    const { data, error } = await q.select().setHeader('Authorization', `Bearer ${accessToken}`)
     if (error) throw error
     if (!data || data.length === 0) throw new Error(`${m.table}: matched no rows (permission denied, or the row no longer exists)`)
   } else if (m.kind === 'delete') {
@@ -99,10 +108,10 @@ async function replayOne(m: QueuedMutation): Promise<void> {
     // and returns no error -- naturally idempotent, no special handling.
     let q = supabase.from(m.table!).delete()
     for (const [k, v] of Object.entries(m.match ?? {})) q = q.eq(k, v)
-    const { error } = await q
+    const { error } = await q.setHeader('Authorization', `Bearer ${accessToken}`)
     if (error) throw error
   } else if (m.kind === 'rpc') {
-    const { error } = await supabase.rpc(m.rpc!, m.payload as Record<string, unknown>)
+    const { error } = await supabase.rpc(m.rpc!, m.payload as Record<string, unknown>).setHeader('Authorization', `Bearer ${accessToken}`)
     if (error) throw error
   }
 }
@@ -129,15 +138,23 @@ export async function drainQueue(): Promise<void> {
   draining = true
   try {
     while (true) {
-      const queue = await listQueue()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session || !navigator.onLine) return
+      const queue = (await listQueue()).filter((m) => !m.ownerId || m.ownerId === session.user.id)
       notify()
       if (queue.length === 0) {
         halted = null
         return
       }
       const next = queue[0]
+      if (!next.ownerId || !next.clinicId) {
+        halted = { mutation: next, error: 'Legacy queued work needs its original account verified before replay' }
+        notify()
+        return
+      }
       try {
-        await replayOne(next)
+        // Bind the request token so a concurrent login change cannot reattribute it.
+        await replayOne(next, session.access_token)
         await dequeue(next.id)
         halted = null
       } catch (err) {
@@ -175,8 +192,9 @@ export async function attemptOrQueue(args: {
   // thenable but not structurally a full Promise (no .catch/.finally) --
   // this accepts it directly so call sites don't need an extra async
   // wrapper just to satisfy the type.
-  attempt: () => PromiseLike<{ error: unknown }>
-  queueItem: () => Omit<QueuedMutation, 'id' | 'seq' | 'createdAt'> & { id?: string }
+  clinicId: string | null | undefined
+  attempt: (accessToken: string) => PromiseLike<{ error: unknown }>
+  queueItem: () => Omit<QueuedMutation, 'id' | 'seq' | 'createdAt' | 'ownerId'> & { id?: string }
   applyOptimistic?: () => void
 }): Promise<{ queued: boolean }> {
   // Being online is not enough to attempt directly -- requirement 3 is
@@ -188,12 +206,15 @@ export async function attemptOrQueue(args: {
   // exactly the out-of-order corruption a visit_pricing revision can't
   // tolerate. Checking the queue is empty first means a new write only ever
   // goes straight to the server when nothing is ahead of it.
-  if (navigator.onLine && (await listQueue()).length === 0) {
-    const { error } = await args.attempt()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session || !args.clinicId) throw new Error('Sign in to the clinic before saving')
+  const pending = (await listQueue()).filter((m) => !m.ownerId || m.ownerId === session.user.id)
+  if (navigator.onLine && pending.length === 0) {
+    const { error } = await args.attempt(session.access_token)
     if (!error) return { queued: false }
     if (!isNetworkFailure(error)) throw error
   }
-  await enqueue(args.queueItem())
+  await enqueue({ ...args.queueItem(), clinicId: args.clinicId }, session.user.id)
   args.applyOptimistic?.()
   return { queued: true }
 }

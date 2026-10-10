@@ -139,6 +139,7 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
         .eq('clinic_id', clinicId)
         .or(`arrived_at.gte.${startOfToday()},stage.neq.paid`)
         .order('arrived_at', { ascending: true })
+        .order('id', { ascending: true })
       if (error) throw error
       return data as unknown as Visit[]
     },
@@ -187,6 +188,12 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
               key={v.id}
               className={clickable ? 'worklist-row-clickable' : undefined}
               onClick={clickable ? () => onSelectVisit!(v.id) : undefined}
+              onKeyDown={clickable ? (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  onSelectVisit!(v.id)
+                }
+              } : undefined}
               role={clickable ? 'button' : undefined}
               tabIndex={clickable ? 0 : undefined}
             >

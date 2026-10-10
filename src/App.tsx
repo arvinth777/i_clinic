@@ -67,7 +67,7 @@ function App() {
   return (
     <>
       <StagingBanner />
-      <OfflineQueueBanner redact={locked} />
+      <OfflineQueueBanner userId={session.user.id} redact={locked || !roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')} />
       <AppShell
         userId={session.user.id}
         userEmail={session.user.email}

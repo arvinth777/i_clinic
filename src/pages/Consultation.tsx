@@ -57,7 +57,7 @@ type PrescriptionItem = {
   medicines: { name: string } | null
 }
 
-type Prescription = { id: string; created_at: string; prescription_items: PrescriptionItem[] }
+type Prescription = { id: string; visit_id: string; created_at: string; prescription_items: PrescriptionItem[] }
 
 type Comment = { id: string; body: string; created_at: string }
 
@@ -89,7 +89,8 @@ export function Consultation({ userId }: { userId: string }) {
         .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, patients(name, age, gender, address, phone)')
         .eq('clinic_id', clinicId)
         .in('stage', ['waiting', 'with_doctor'])
-        .order('token_number', { ascending: true })
+        .order('arrived_at', { ascending: true })
+        .order('id', { ascending: true })
       if (error) throw error
       return data as unknown as DoctorVisit[]
     },
@@ -158,7 +159,7 @@ export function Consultation({ userId }: { userId: string }) {
       const { data, error } = await supabase
         .from('prescriptions')
         .select(
-          'id, created_at, visits!inner(patient_id), prescription_items(medicine_id, drug_type, strength, before_after_food, dosage_frequency, duration_days, quantity_dispensed, notes, medicines(name))',
+          'id, visit_id, created_at, visits!inner(patient_id), prescription_items(medicine_id, drug_type, strength, before_after_food, dosage_frequency, duration_days, quantity_dispensed, notes, medicines(name))',
         )
         .eq('visits.patient_id', current!.patient_id)
         .order('created_at', { ascending: false })
@@ -195,7 +196,8 @@ export function Consultation({ userId }: { userId: string }) {
       // that's the one real moment this transition happens.
       const withDoctorAt = new Date().toISOString()
       await attemptOrQueue({
-        attempt: () => supabase.from('visits').update({ stage: 'with_doctor', with_doctor_at: withDoctorAt }).eq('id', visitId).eq('stage', 'waiting'),
+        clinicId,
+        attempt: (accessToken) => supabase.from('visits').update({ stage: 'with_doctor', with_doctor_at: withDoctorAt }).eq('id', visitId).eq('stage', 'waiting').setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({
           kind: 'update',
           table: 'visits',
@@ -218,7 +220,8 @@ export function Consultation({ userId }: { userId: string }) {
       if (!current || !clinicId) return
       const row = { id: crypto.randomUUID(), clinic_id: clinicId, patient_id: current.patient_id, author_id: userId, body: commentBody.trim() }
       await attemptOrQueue({
-        attempt: () => supabase.from('patient_comments').insert(row),
+        clinicId,
+        attempt: (accessToken) => supabase.from('patient_comments').insert(row).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'insert', table: 'patient_comments', payload: row, description: 'Add a patient comment' }),
         applyOptimistic: () =>
           queryClient.setQueryData<Comment[]>(commentsKey, (old) => [...(old ?? []), { id: row.id, body: row.body, created_at: new Date().toISOString() }]),
@@ -236,7 +239,8 @@ export function Consultation({ userId }: { userId: string }) {
       if (!current) return
       const consultationEndedAt = new Date().toISOString()
       await attemptOrQueue({
-        attempt: () => supabase.from('visits').update({ stage: 'packing', consultation_ended_at: consultationEndedAt }).eq('id', current.id),
+        clinicId,
+        attempt: (accessToken) => supabase.from('visits').update({ stage: 'packing', consultation_ended_at: consultationEndedAt }).eq('id', current.id).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({
           kind: 'update',
           table: 'visits',
@@ -411,6 +415,8 @@ export function Consultation({ userId }: { userId: string }) {
             <section className="record-section">
               <h3 className="readout-heading">Write prescription</h3>
               <PrescriptionForm
+                userId={userId}
+                visit={current}
                 key={current.id}
                 clinicId={clinicId}
                 visitId={current.id}

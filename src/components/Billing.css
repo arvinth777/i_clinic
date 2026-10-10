@@ -95,6 +95,7 @@
     visibility: visible;
   }
   .print-area {
+    display: block;
     position: absolute;
     inset: 0;
     color: #000;

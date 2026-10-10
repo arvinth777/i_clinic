@@ -4,34 +4,12 @@ import { motion } from 'motion/react'
 import QRCode from 'qrcode'
 import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
-import { formatDate } from '../lib/date'
+import { PrintableSlip, type PrintVisit as Visit, type DetailRow, type Bill } from './VisitPrintout'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { Button, buttonVariants } from './ui/button'
 import './Billing.css'
 
-type Visit = {
-  id: string
-  token_number: number
-  stage: string
-  arrived_at: string
-  patients: { name: string } | null
-}
-
 type Pricing = { calculated_total_paise: number; final_amount_paise: number; discount_paise: number; revision_number: number; final_amount_set: boolean }
-
-type DetailRow = {
-  kind: 'consultation' | 'procedure' | 'medicine'
-  description: string
-  unit_price_paise: number
-  drug_type: string | null
-  strength: string | null
-  before_after_food: string | null
-  dosage_frequency: string | null
-  duration_days: number | null
-  notes: string | null
-}
-
-type Bill = { id: string; final_amount_paise: number; payment_method: string; confirmed_at: string; pending?: boolean }
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
@@ -60,176 +38,6 @@ function UpiQr({ vpa, amountPaise, payeeName }: { vpa: string; amountPaise: numb
   }, [vpa, amountPaise, payeeName])
   if (!dataUrl) return null
   return <img className="upi-qr" src={dataUrl} width={220} height={220} alt="UPI payment QR code" />
-}
-
-type ClinicPrintInfo = {
-  name: string
-  upi_vpa: string | null
-  doctor_name: string | null
-  doctor_registration_number: string | null
-  address: string | null
-  phone: string | null
-}
-
-// Two different documents, not one -- a prescription (the doctor's
-// document: drugs and dosage, nothing about money) and a bill/receipt
-// (the receptionist's document: amounts and payment method, nothing
-// about the doctor). User: "is this a prescription or a bill? i think
-// you are confusing the both" -- they were right, the two used to be
-// stacked on one letterhead-branded page. Now they're two <section>s in
-// the same print job (one window.print() still hands over both physical
-// pages together, matching the PRD's "prints the receipt with the
-// prescription" flow) with a forced page-break between them, each styled
-// for what it actually is.
-function PrintablePrescription({ clinic, visit, medicines }: { clinic: ClinicPrintInfo | undefined; visit: Visit; medicines: DetailRow[] }) {
-  // User-supplied reference: a hospital letterhead template (colour bar
-  // top and bottom, clinic/doctor block, a repeated footer). This is the
-  // one of the two documents that's actually a doctor's letterhead
-  // document -- contrast DocumentsPanel's PrintableDocument, which
-  // deliberately omits the clinic name because IT assumes real
-  // pre-printed letterhead paper; this one renders its own.
-  return (
-    <section className="print-page print-page-letterhead">
-      <div className="print-bar" />
-      <div className="print-content">
-        <header className="print-letterhead">
-          <h1>{clinic?.name}</h1>
-          {clinic?.doctor_name && (
-            <p className="print-doctor-line">
-              {clinic.doctor_name}
-              {clinic.doctor_registration_number ? ` — Reg. No. ${clinic.doctor_registration_number}` : ''}
-            </p>
-          )}
-          {(clinic?.address || clinic?.phone) && (
-            <p className="print-contact-line">{[clinic?.address, clinic?.phone].filter(Boolean).join(' · ')}</p>
-          )}
-        </header>
-
-        <p>
-          {visit.patients?.name} — Token {visit.token_number} — {formatDate(visit.arrived_at)}
-        </p>
-
-        <h2>Prescription</h2>
-        {medicines.length === 0 ? (
-          <p>No medicines prescribed.</p>
-        ) : (
-          <table className="print-table">
-            <thead>
-              <tr>
-                <th>Medicine</th>
-                <th>Type</th>
-                <th>Strength</th>
-                <th>Frequency</th>
-                <th>Food</th>
-                <th>Duration</th>
-                <th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {medicines.map((m, i) => (
-                <tr key={i}>
-                  <td>{m.description}</td>
-                  <td>{m.drug_type}</td>
-                  <td>{m.strength}</td>
-                  <td>{m.dosage_frequency}</td>
-                  <td>{m.before_after_food}</td>
-                  <td>{m.duration_days} days</td>
-                  <td>{m.notes}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        <footer className="print-footer">
-          <p>{[clinic?.name, clinic?.address].filter(Boolean).join(' · ')}</p>
-          {clinic?.phone && <p>{clinic.phone}</p>}
-        </footer>
-      </div>
-      <div className="print-bar" />
-    </section>
-  )
-}
-
-function PrintableReceipt({
-  clinic,
-  visit,
-  billable,
-  amountPaise,
-  discountPaise,
-  bill,
-}: {
-  clinic: ClinicPrintInfo | undefined
-  visit: Visit
-  billable: DetailRow[]
-  amountPaise: number
-  discountPaise: number
-  bill: Bill | null
-}) {
-  // Plain and transactional on purpose -- a payment record, not a
-  // doctor's document. Clinic name/address/phone are legitimate on a
-  // receipt (a real business's contact details); the doctor's name and
-  // registration number are not (that's a medical credential, and has
-  // nothing to do with who took the payment).
-  return (
-    <section className="print-page print-page-plain">
-      <h1>{clinic?.name}</h1>
-      {(clinic?.address || clinic?.phone) && <p className="print-contact-line">{[clinic?.address, clinic?.phone].filter(Boolean).join(' · ')}</p>}
-      <p>
-        {visit.patients?.name} — Token {visit.token_number} — {formatDate(visit.arrived_at)}
-      </p>
-
-      <h2>Receipt</h2>
-      <table className="print-table">
-        <tbody>
-          {billable.map((r, i) => (
-            <tr key={i}>
-              <td>{r.description}</td>
-              <td>{formatPaise(r.unit_price_paise)}</td>
-            </tr>
-          ))}
-          <tr>
-            <td>Discount</td>
-            <td>{formatPaise(discountPaise)}</td>
-          </tr>
-          <tr className="print-total-row">
-            <td>Amount paid</td>
-            <td>{formatPaise(amountPaise)}</td>
-          </tr>
-        </tbody>
-      </table>
-      {bill && (
-        <p>
-          Paid via {bill.payment_method} on {formatDate(bill.confirmed_at)}
-        </p>
-      )}
-    </section>
-  )
-}
-
-function PrintableSlip({
-  clinic,
-  visit,
-  detail,
-  amountPaise,
-  discountPaise,
-  bill,
-}: {
-  clinic: ClinicPrintInfo | undefined
-  visit: Visit
-  detail: DetailRow[] | undefined
-  amountPaise: number
-  discountPaise: number
-  bill: Bill | null
-}) {
-  const medicines = (detail ?? []).filter((r) => r.kind === 'medicine')
-  const billable = detail ?? []
-  return (
-    <div className="print-area">
-      <PrintablePrescription clinic={clinic} visit={visit} medicines={medicines} />
-      <PrintableReceipt clinic={clinic} visit={visit} billable={billable} amountPaise={amountPaise} discountPaise={discountPaise} bill={bill} />
-    </div>
-  )
 }
 
 export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visitId: string; onClose: () => void }) {
@@ -261,7 +69,8 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
     networkMode: 'always',
     mutationFn: async () => {
       await attemptOrQueue({
-        attempt: () => supabase.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId).eq('stage', 'packing'),
+        clinicId,
+        attempt: (accessToken) => supabase.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId).eq('stage', 'packing').setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({
           kind: 'update',
           table: 'visits',
@@ -325,30 +134,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
       return data as DetailRow[]
     },
   })
-  // Confirm/print must never fire from data that hasn't arrived yet --
-  // PrintableSlip would otherwise render "No medicines prescribed" for a
-  // patient who does have one, simply because this query hadn't resolved
-  // before the click (docs/STATUS.md's Medium finding). An explicit timer,
-  // not React Query's own fetchStatus/retry machinery: a real network
-  // failure doesn't reliably fail fast -- a fetch against a connection
-  // that's gone dark can hang far longer than any retry backoff assumes
-  // (confirmed live against a simulated outage: several retries' worth of
-  // backoff still wasn't enough). A fixed, short grace window is a bound
-  // this project controls directly, not one that depends on how quickly
-  // the network stack happens to notice it's offline. Once the window
-  // elapses, Confirm unblocks regardless -- a visit that was offline from
-  // the start still prints with whatever's cached (possibly nothing),
-  // same as Phase F's already-documented "never fetched while online"
-  // boundary; this only closes the narrow race where the request was
-  // genuinely about to succeed.
-  const [detailGraceElapsed, setDetailGraceElapsed] = useState(false)
-  useEffect(() => {
-    if (!detailEnabled) return
-    setDetailGraceElapsed(false)
-    const timer = setTimeout(() => setDetailGraceElapsed(true), 2000)
-    return () => clearTimeout(timer)
-  }, [detailEnabled, visitId])
-  const detailStillLoading = !detail && detailEnabled && !detailGraceElapsed
+  const detailStillLoading = detail === undefined
 
   const { data: clinic } = useQuery({
     // Its own key, not shared with ClinicSettings.tsx's admin-form query --
@@ -377,6 +163,20 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
 
   const [paymentMethod, setPaymentMethod] = useState<(typeof PAYMENT_METHODS)[number]['value']>('cash')
   const [confirmedBill, setConfirmedBill] = useState<Bill | null>(null)
+  const paidBillKey = ['paid-bill', visitId]
+  const { data: savedBill } = useQuery({
+    queryKey: paidBillKey,
+    enabled: visit?.stage === 'paid',
+    queryFn: async () => {
+      const { data, error } = await supabase.from('bills')
+        .select('id, final_amount_paise, payment_method, confirmed_at, bill_line_items(kind, description, quantity, unit_price_paise, line_total_paise)')
+        .eq('clinic_id', clinicId).eq('visit_id', visitId).is('corrects_bill_id', null)
+        .order('confirmed_at', { ascending: false }).limit(1).single()
+      if (error) throw error
+      return data as Bill
+    },
+  })
+  const bill = confirmedBill?.pending ? savedBill ?? confirmedBill : confirmedBill ?? savedBill ?? null
 
   const confirmPayment = useMutation({
     networkMode: 'always',
@@ -392,13 +192,14 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
       const snapshotRevision = pricing!.revision_number
 
       const { queued } = await attemptOrQueue({
-        attempt: async () => {
+        clinicId,
+        attempt: async (accessToken) => {
           const { error } = await supabase.rpc('confirm_bill', {
             p_visit_id: visitId,
             p_payment_method: paymentMethod,
             p_snapshot_final_amount_paise: snapshotAmount,
             p_snapshot_revision_number: snapshotRevision,
-          })
+          }).setHeader('Authorization', `Bearer ${accessToken}`)
           return { error }
         },
         queueItem: () => ({
@@ -422,7 +223,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
         // surfaces { error }, not the RPC's returned id.
         const { data: bill, error: billErr } = await supabase
           .from('bills')
-          .select('id, final_amount_paise, payment_method, confirmed_at')
+          .select('id, final_amount_paise, payment_method, confirmed_at, bill_line_items(kind, description, quantity, unit_price_paise, line_total_paise)')
           .eq('visit_id', visitId)
           .is('corrects_bill_id', null)
           .order('confirmed_at', { ascending: false })
@@ -435,10 +236,11 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
       // Offline: there is no real bill row yet (confirm_bill hasn't run) --
       // the patient is standing here regardless, so print proceeds from
       // exactly what this screen already knows, with no server id to show.
-      return { id: 'pending', final_amount_paise: snapshotAmount, payment_method: paymentMethod, confirmed_at: new Date().toISOString(), pending: true }
+      return { id: 'pending', final_amount_paise: snapshotAmount, payment_method: paymentMethod, confirmed_at: new Date().toISOString(), pending: true, bill_line_items: detail!.map((row) => ({ kind: row.kind, description: row.description, quantity: row.quantity ?? 1, unit_price_paise: row.unit_price_paise, line_total_paise: row.line_total_paise ?? row.unit_price_paise })) }
     },
     onSuccess: (bill) => {
       setConfirmedBill(bill)
+      queryClient.setQueryData(paidBillKey, bill)
       queryClient.invalidateQueries({ queryKey: visitKey })
       queryClient.invalidateQueries({ queryKey: ['visits-today', clinicId] })
       // Give the DOM a tick to render the printable slip before invoking
@@ -450,8 +252,12 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
 
   if (!visit || !pricing) return <p className="readout-empty">Loading…</p>
 
+  if (visit.stage === 'paid' && !bill) return <p className="readout-empty">Loading saved receipt…</p>
   const waitingForDoctor = !pricing.final_amount_set
-  const amountPaise = confirmedBill ? confirmedBill.final_amount_paise : pricing.final_amount_paise
+  const amountPaise = bill ? bill.final_amount_paise : pricing.final_amount_paise
+  const billable = bill?.bill_line_items ?? detail
+  const calculatedTotal = bill?.bill_line_items ? bill.bill_line_items.reduce((sum, row) => sum + row.line_total_paise, 0) : pricing.calculated_total_paise
+  const discountPaise = calculatedTotal - amountPaise
 
   return (
     <div>
@@ -462,14 +268,14 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
 
       <section className="record-section">
         <h3 className="readout-heading">Itemised breakdown</h3>
-        {!detail ? (
+        {!billable ? (
           <p className="readout-empty">Loading…</p>
         ) : (
           <ul className="past-visit-list">
-            {detail.map((row, i) => (
+            {billable.map((row, i) => (
               <li key={i} className="past-visit-item bill-item-row">
                 <span>{row.description}</span>
-                <span className="pricing-value">{formatPaise(row.unit_price_paise)}</span>
+                <span className="pricing-value">{formatPaise(row.line_total_paise ?? row.unit_price_paise)}</span>
               </li>
             ))}
           </ul>
@@ -480,11 +286,11 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
         <div className="pricing-block">
           <div className="pricing-row">
             <span>Calculated total</span>
-            <span className="pricing-value">{formatPaise(pricing.calculated_total_paise)}</span>
+            <span className="pricing-value">{formatPaise(calculatedTotal)}</span>
           </div>
           <div className="pricing-row">
             <span>Discount</span>
-            <span className="pricing-value">{formatPaise(pricing.discount_paise)}</span>
+            <span className="pricing-value">{formatPaise(discountPaise)}</span>
           </div>
           <div className="pricing-row bill-final-amount">
             <span>Amount to collect</span>
@@ -507,7 +313,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
         </section>
       )}
 
-      {!confirmedBill && !waitingForDoctor && (
+      {!bill && !waitingForDoctor && (
         <section className="record-section">
           <h3 className="readout-heading">Payment method</h3>
           <div className="payment-method-row">
@@ -544,18 +350,19 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
               Back to queue
             </Button>
           </div>
+          {detailStillLoading && <p className="readout-empty">Instructions are not saved on this device yet. During an outage, print the prescription from the doctor’s screen.</p>}
           {confirmPayment.isError && <p className="form-error">Couldn't confirm — try again.</p>}
         </section>
       )}
 
-      {confirmedBill && (
+      {bill && (
         <section className="record-section">
           <div className="paid-stamp" aria-hidden="true">
             Paid
           </div>
           <p>
-            Paid via {confirmedBill.payment_method}. Prescription and receipt sent to print.
-            {confirmedBill.pending && ' Not saved yet — waiting for a connection to actually confirm with the server.'}
+            Paid via {bill.payment_method}. Prescription and receipt sent to print.
+            {bill.pending && ' Not saved yet — waiting for a connection to actually confirm with the server.'}
           </p>
           <div className="action-row">
             <Button type="button" variant="secondary" onClick={() => window.print()}>
@@ -573,8 +380,8 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
         visit={visit}
         detail={detail}
         amountPaise={amountPaise}
-        discountPaise={pricing.discount_paise}
-        bill={confirmedBill}
+        discountPaise={discountPaise}
+        bill={bill}
       />
     </div>
   )

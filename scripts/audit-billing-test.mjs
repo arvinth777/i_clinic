@@ -15,9 +15,10 @@ const passwords = env('.env.test-users.local')
 assert.equal(new URL(app.VITE_SUPABASE_URL).hostname, 'cofnrcgsolluyhghutah.supabase.co', 'tests must target staging')
 const clinicId = '23e03361-9d6c-49f5-83b7-ad57f4a0c5ce'
 const clients = []
-async function signIn(role, password) {
+async function signIn(role, password, clinic = 'a') {
   const client = createClient(app.VITE_SUPABASE_URL, app.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false }, realtime: { transport: ws } })
-  const { error } = await client.auth.signInWithPassword({ email: `${role}.a@staging.test`, password })
+  const email = role === 'admin.only' ? 'admin.only@staging.test' : `${role}.${clinic}@staging.test`
+  const { error } = await client.auth.signInWithPassword({ email, password })
   assert.ifError(error)
   clients.push(client)
   return client
@@ -27,9 +28,9 @@ function value(result) {
   return result.data
 }
 let doctor, reception
-async function visit() {
-  const patient = value(await doctor.from('patients').insert({ clinic_id: clinicId, name: `Audit synthetic ${crypto.randomUUID()}`, age: 40 }).select('id').single())
-  return value(await doctor.from('visits').insert({ clinic_id: clinicId, patient_id: patient.id, arrived_at: new Date().toISOString(), complaint: 'Synthetic audit fixture' }).select('id').single()).id
+async function visit(name = `Audit synthetic ${crypto.randomUUID()}`, arrivedAt = new Date().toISOString()) {
+  const patient = value(await doctor.from('patients').insert({ clinic_id: clinicId, name, age: 40 }).select('id').single())
+  return value(await doctor.from('visits').insert({ clinic_id: clinicId, patient_id: patient.id, arrived_at: arrivedAt, complaint: 'Synthetic audit fixture' }).select('id').single()).id
 }
 async function ready(id, amount = 22000) {
   value(await doctor.from('visit_pricing').update({ final_amount_paise: amount }).eq('visit_id', id))
@@ -58,6 +59,13 @@ try {
   const user = value(await reception.auth.getUser()).user
   const direct = await reception.from('bills').insert({ clinic_id: clinicId, visit_id: await visit(), final_amount_paise: 100, pricing_revision_at_confirm: 0, payment_method: 'cash', confirmed_by: user.id })
   assert.ok(direct.error, 'direct bill inserts must not bypass the payment transaction')
+  assert.ok((await reception.from('bill_line_items').insert({ clinic_id: clinicId, bill_id: billId, kind: 'consultation', description: 'Synthetic injected line', unit_price_paise: 100 })).error, 'paid bill lines cannot be appended directly')
+  assert.ok((await doctor.from('bills').insert({ clinic_id: clinicId, visit_id: id, final_amount_paise: 100, pricing_revision_at_confirm: 0, payment_method: 'cash', confirmed_by: value(await doctor.auth.getUser()).user.id, corrects_bill_id: billId })).error, 'doctor corrections must also use their guarded RPC')
+  assert.ok((await reception.rpc('correct_bill', { p_bill_id: billId })).error, 'reception cannot discount by correction')
+  const correction = value(await doctor.rpc('correct_bill', { p_bill_id: billId }))
+  assert.equal(value(await doctor.from('bills').select('final_amount_paise').eq('id', correction).single()).final_amount_paise, 18000)
+  assert.equal(value(await doctor.from('bills').select('final_amount_paise').eq('id', billId).single()).final_amount_paise, 22000, 'original paid bill stays immutable')
+  assert.ok((await reception.from('pricing_approvals').insert({ clinic_id: clinicId, visit_id: id, revision_number: 999, final_amount_paise: 100 })).error, 'reception cannot manufacture approval history')
   console.log('PASS: direct bill insert denied')
   const medicine = value(await doctor.from('medicines').insert({ clinic_id: clinicId, name: `Audit medicine ${crypto.randomUUID()}`, price_paise: 100 }).select('id').single())
   const rxVisit = await visit()
@@ -66,7 +74,33 @@ try {
   assert.equal(value(await doctor.rpc('save_prescription', prescriptionArgs)), prescriptionId, 'doctor saves a complete prescription atomically')
   assert.equal(value(await doctor.rpc('save_prescription', prescriptionArgs)), prescriptionId, 'replaying the same prescription does not duplicate it')
   assert.ok((await reception.rpc('save_prescription', { ...prescriptionArgs, p_prescription_id: crypto.randomUUID() })).error, 'reception cannot prescribe')
+  const invalidId = crypto.randomUUID()
+  assert.ok((await doctor.rpc('save_prescription', { ...prescriptionArgs, p_prescription_id: invalidId, p_items: [{ ...prescriptionArgs.p_items[0], id: crypto.randomUUID(), duration_days: 0 }] })).error, 'invalid instructions must fail')
+  assert.equal(value(await doctor.from('prescriptions').select('id').eq('id', invalidId)).length, 0, 'invalid instructions cannot leave an empty header')
+  const rxApproval = await ready(rxVisit)
+  const rxBill = value(await confirm(rxVisit, rxApproval))
+  assert.equal(value(await confirm(rxVisit, rxApproval)), rxBill)
+  const stock = value(await reception.from('stock_movements').select('quantity_delta').eq('reference_id', prescriptionArgs.p_items[0].id).eq('reason', 'dispensed'))
+  assert.deepEqual(stock, [{ quantity_delta: -10 }], 'payment deducts the supplied quantity exactly once')
+  const admin = await signIn('admin.only', passwords.TEST_ADMIN_ONLY_PASSWORD)
+  // This account has no clinical role even though it administers Clinic A.
+  assert.ok((await admin.rpc('save_prescription', { ...prescriptionArgs, p_prescription_id: crypto.randomUUID() })).error)
+  assert.equal(value(await admin.from('pricing_approvals').select('visit_id').eq('visit_id', rxVisit)).length, 0)
+  const otherDoctor = await signIn('doctor', passwords.TEST_DOCTOR_B_PASSWORD, 'b')
+  assert.ok((await otherDoctor.rpc('save_prescription', { ...prescriptionArgs, p_prescription_id: crypto.randomUUID() })).error, 'another clinic cannot prescribe for this visit')
+  assert.equal(value(await otherDoctor.from('pricing_approvals').select('visit_id').eq('visit_id', rxVisit)).length, 0)
+  const anon = createClient(app.VITE_SUPABASE_URL, app.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false }, realtime: { transport: ws } })
+  assert.ok((await anon.from('pricing_approvals').select('visit_id')).error, 'anonymous callers cannot read approval history')
+  assert.ok((await anon.rpc('save_prescription', prescriptionArgs)).error, 'anonymous callers cannot prescribe')
   console.log('PASS: complete prescription save is atomic, replayable, and doctor-only')
+  console.log('PASS: paid corrections, stock deduction, approval history, and clinic isolation')
+  const queueLabel = crypto.randomUUID().slice(0, 8)
+  const later = await visit(`Audit queue later ${queueLabel}`, new Date(Date.now() - 300000).toISOString())
+  const earlier = await visit(`Audit queue earlier ${queueLabel}`, new Date(Date.now() - 600000).toISOString())
+  const queue = value(await reception.from('visits').select('id, token_number').in('id', [later, earlier]).order('arrived_at').order('id'))
+  assert.equal(queue[0].id, earlier)
+  assert.ok(queue[0].token_number > queue[1].token_number, 'late-synced earlier arrivals carry later token labels')
+  console.log(`PASS: late-sync queue fixture ${queueLabel}; verify earlier precedes later on both screens`)
 } finally {
   await Promise.all(clients.map((client) => client.auth.signOut()))
 }

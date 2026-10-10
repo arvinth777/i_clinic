@@ -68,7 +68,8 @@ export function Reception({ userId }: { userId: string }) {
       if (selected === 'new' || !selected || !clinicId) return
       const row = { id: crypto.randomUUID(), clinic_id: clinicId, patient_id: selected.id, arrived_at: new Date().toISOString(), complaint }
       await attemptOrQueue({
-        attempt: () => supabase.from('visits').insert(row),
+        clinicId,
+        attempt: (accessToken) => supabase.from('visits').insert(row).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'insert', table: 'visits', payload: row, description: `Check in ${selected.name}` }),
       })
     },
@@ -96,11 +97,13 @@ export function Reception({ userId }: { userId: string }) {
       const visitRow = { id: crypto.randomUUID(), clinic_id: clinicId, patient_id: patientId, arrived_at: new Date().toISOString(), complaint: input.complaint }
 
       await attemptOrQueue({
-        attempt: () => supabase.from('patients').insert(patientRow),
+        clinicId,
+        attempt: (accessToken) => supabase.from('patients').insert(patientRow).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'insert', table: 'patients', payload: patientRow, description: `Register new patient ${input.name}` }),
       })
       await attemptOrQueue({
-        attempt: () => supabase.from('visits').insert(visitRow),
+        clinicId,
+        attempt: (accessToken) => supabase.from('visits').insert(visitRow).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'insert', table: 'visits', payload: visitRow, description: `Check in ${input.name}` }),
       })
     },

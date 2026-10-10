@@ -36,6 +36,7 @@ export type Template = {
 
 export type PastPrescription = {
   id: string
+  visit_id?: string
   created_at: string
   prescription_items: ExistingItem[]
 }

@@ -10,7 +10,7 @@ import './OfflineQueueBanner.css'
 // beforeunload is a best-effort second layer, not the primary mechanism:
 // it shows generic browser text this component can't customise, and
 // doesn't fire reliably on every close path (OS shutdown, killed process).
-export function OfflineQueueBanner({ redact }: { redact: boolean }) {
+export function OfflineQueueBanner({ redact, userId }: { redact: boolean; userId?: string }) {
   const { pending, halted } = useOfflineQueue()
 
   useEffect(() => {
@@ -38,8 +38,8 @@ export function OfflineQueueBanner({ redact }: { redact: boolean }) {
           <line x1="12" y1="9" x2="12" y2="14" strokeLinecap="round" />
           <circle cx="12" cy="17" r="0.5" fill="currentColor" />
         </svg>
-        {redact ? (
-          <>A queued save could not go through. Sign in and unlock to see details. Do not close this device.</>
+        {redact || !halted.mutation.ownerId || halted.mutation.ownerId !== userId ? (
+          <>A queued save could not go through. Its original account must review it. Do not close this device.</>
         ) : (
           <>
             A queued save could not go through ({halted.error}) — {halted.mutation.description}. It needs a person to look
@@ -58,7 +58,9 @@ export function OfflineQueueBanner({ redact }: { redact: boolean }) {
         <path d="M21 12a9 9 0 1 1-3-6.7" />
         <polyline points="21 3 21 9 15 9" />
       </svg>
-      {pending.length} not saved yet — waiting for a connection. Do not close this device until this clears.
+      {pending.length} not saved yet — {pending.some((mutation) => mutation.ownerId && mutation.ownerId !== userId)
+        ? 'pending work from another account needs that account to sign in.'
+        : 'waiting for a connection.'} Do not close this device until this clears.
     </div>
   )
 }

@@ -105,7 +105,8 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
       const id = crypto.randomUUID()
       const row = { id, clinic_id: clinicId, visit_id: visitId, procedure_id: procedure.id, price_paise: procedure.default_price_paise }
       await attemptOrQueue({
-        attempt: () => supabase.from('visit_procedures').insert(row),
+        clinicId,
+        attempt: (accessToken) => supabase.from('visit_procedures').insert(row).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'insert', table: 'visit_procedures', payload: row, description: `Add procedure "${procedure.name}"` }),
         applyOptimistic: () => {
           queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => [...(old ?? []), { id, procedure_id: procedure.id, price_paise: procedure.default_price_paise, procedures: { name: procedure.name } }])
@@ -130,7 +131,8 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
     mutationFn: async ({ id, price_paise }: { id: string; price_paise: number }) => {
       const previous = visitProcedures?.find((r) => r.id === id)?.price_paise ?? price_paise
       await attemptOrQueue({
-        attempt: () => supabase.from('visit_procedures').update({ price_paise }).eq('id', id),
+        clinicId,
+        attempt: (accessToken) => supabase.from('visit_procedures').update({ price_paise }).eq('id', id).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'update', table: 'visit_procedures', payload: { price_paise }, match: { id }, description: 'Update a procedure price' }),
         applyOptimistic: () => {
           queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => old?.map((r) => (r.id === id ? { ...r, price_paise } : r)))
@@ -146,7 +148,8 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
     mutationFn: async (id: string) => {
       const removed = visitProcedures?.find((r) => r.id === id)
       await attemptOrQueue({
-        attempt: () => supabase.from('visit_procedures').delete().eq('id', id),
+        clinicId,
+        attempt: (accessToken) => supabase.from('visit_procedures').delete().eq('id', id).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'delete', table: 'visit_procedures', match: { id }, description: `Remove procedure "${removed?.procedures?.name ?? ''}"` }),
         applyOptimistic: () => {
           queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => old?.filter((r) => r.id !== id))
@@ -172,7 +175,8 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
     networkMode: 'always',
     mutationFn: async (value: number) => {
       await attemptOrQueue({
-        attempt: () => supabase.from('visit_pricing').update({ final_amount_paise: value }).eq('visit_id', visitId),
+        clinicId,
+        attempt: (accessToken) => supabase.from('visit_pricing').update({ final_amount_paise: value }).eq('visit_id', visitId).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'update', table: 'visit_pricing', payload: { final_amount_paise: value }, match: { visit_id: visitId }, description: 'Set the final amount' }),
         applyOptimistic: () =>
           queryClient.setQueryData<Pricing>(pricingKey, (old) => (old ? { ...old, final_amount_paise: value, final_amount_set: true } : old)),
