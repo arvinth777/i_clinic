@@ -1,5 +1,38 @@
 # Status
 
+## Review fixes — 2026-10-10
+
+- Step 4 draft PR #5: both independent Standards/Spec reviewers completed a
+  source pass. Fixed their reception print-data omission, tablet account access,
+  doctor historical receipt access, expiry warning and persisted-page findings.
+  Reviewers rechecked the fixes; this is not full release acceptance.
+- Migration `20261010191500_billing_print_clinical_fields.sql` is committed and
+  applied to synthetic staging only. The existing scoped billing RPC now carries
+  diagnosis/advice after handoff, without granting reception clinical-history
+  table access. Backend tests pass for doctor save/retry, reception handoff reads,
+  blocked pre-handoff reads and other-clinic/admin/anonymous isolation.
+- Billing uses that RPC for its print snapshot. Old cached responses without the
+  new fields block prescription printing until refreshed; they cannot silently
+  print incomplete clinical notes. Paid receipt prices remain their saved values.
+- Patient/bill cache migration preserves all legacy rows, including installations
+  that already saved a truncated paged cache. Show more reveals cached rows before
+  fetching. Tests cover 75 rows, 50 initially visible, and newer duplicate values.
+- Mobile patient/bill selections open directly with a Back action, including
+  bill loading/error states. Doctor historical receipt and read-only unpaid bill
+  were exercised at 390px; no page overflow or payment controls were present.
+  Tablet account controls and the mobile menu queue remain accessible.
+- Fresh build, cache render, billing clinical print/escaping, expired-stock render
+  and print snapshot checks pass. The two new SSR scripts also run on Node 20
+  using the already installed WebSocket package. Lint: seven existing warnings,
+  no errors. Browser receipt evidence: `receipt-history-390.png`.
+- Publication: preparing this verified frontend/docs commit for the existing
+  draft branch. GitHub connectivity has recovered; remote still at `0806102` at
+  this checkpoint. Migration and follow-up docs are local commits until push.
+- Remaining: new queue workflows, price audit/approval snapshots, partial supply,
+  full state/regression coverage, fresh offline reload (permission denied),
+  unavailable security advisor, and physical printer sign-off. No release.
+  Next: publish review fixes and verify the resulting staging preview.
+
 ## Latest design-language implementation — 2026-10-10
 
 - Continuing step 4 on `codex/clinic-screens-handoff` (draft PR #5), above

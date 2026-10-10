@@ -74,3 +74,14 @@ body text was Hanken Grotesk / 15px, status was All saved, and the page had no
 horizontal overflow at the browser's normal viewport. `deployed-preview.png`
 records that rendered application. This is runtime verification of the preview,
 not a production release or a complete workflow test.
+
+Independent Standards and Spec source reviews identified reception print-data,
+tablet account access, doctor receipt access, expiry and cached-page regressions.
+The repaired paths were re-reviewed. New checks cover escaped diagnosis/advice
+from the scoped billing RPC, blocked printing from incomplete old caches,
+75-row legacy/page migration, and expired positive stock with a cancelling
+negative stock point. Staging backend role/read tests passed after the committed
+migration. `receipt-history-390.png` shows a doctor opening a saved patient receipt
+on a phone without payment actions. Patient and bill selection/back navigation
+were exercised; no horizontal page overflow at 390px. This review does not remove
+the remaining integrated, offline, advisor or physical-printer gates.

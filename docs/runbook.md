@@ -60,6 +60,12 @@ rendered application after deployment, not just Vercel's build result.
 Main/production branch reconciliation and clinical release prerequisites above
 remain unresolved.
 
+The step 4 frontend requires migration
+`20261010191500_billing_print_clinical_fields.sql` before deployment. It is applied
+to staging only. The scoped billing read now includes issued diagnosis/advice;
+old cached rows need one online refresh before prescription printing is enabled.
+Reception direct clinical-history reads remain restricted.
+
 ## Account inventory (where each thing lives)
 
 All infrastructure accounts are registered under the sole maintainer's

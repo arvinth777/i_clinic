@@ -15,6 +15,8 @@ function screen(path) {
     if (name === '@tanstack/react-query') return ReactQuery
     if (name.endsWith('/supabase')) return { supabase: {} }
     if (name.endsWith('/date')) return { startOfToday: () => '2026-10-10', formatDate: String, formatDateOnly: String }
+    if (name.endsWith('/pagedCache')) return screen('src/lib/pagedCache.ts')
+    if (name.endsWith('/QueryState')) return screen('src/components/QueryState.tsx')
     if (name.endsWith('/Billing')) return { Billing: () => null }
     if (name.endsWith('/ui/input')) return { Input: props => React.createElement('input', props) }
     if (name.endsWith('/ui/button')) return { Button: props => React.createElement('button', props) }
@@ -36,5 +38,15 @@ for (const [Component, props] of [[Patients, { isDoctor: false, canBill: true }]
   assert.doesNotMatch(html, /Synthetic patient 50/)
   assert.match(html, /Show more/)
 }
+for (const key of [['patient-directory', 'synthetic-clinic', '', 'pages-v2'], ['billing-desk', 'synthetic-clinic', 'pages-v2']]) {
+  assert.equal(client.getQueryData(key).pages.flat().length, 75, 'all previously saved rows remain in the paged offline cache')
+}
+client.removeQueries({ queryKey: ['patient-directory', 'synthetic-clinic', '', 'pages-v2'] })
+const newer = records.slice(0, 50).map((p, i) => i === 0 ? { ...p, name: 'Newer cached patient name' } : p)
+client.setQueryData(['patient-directory', 'synthetic-clinic', '', 'pages'], { pages: [newer], pageParams: [0] })
+renderToStaticMarkup(React.createElement(QueryClientProvider, { client }, React.createElement(Patients, { clinicId: 'synthetic-clinic', isDoctor: false, canBill: true })))
+const repaired = client.getQueryData(['patient-directory', 'synthetic-clinic', '', 'pages-v2'])
+assert.equal(repaired?.pages.flat().length, 75, 'repair also recovers the tail after the earlier UI persisted a truncated paged cache')
+assert.equal(repaired.pages[0][0].name, 'Newer cached patient name', 'newer paged values take precedence over the older flat cache')
 client.clear()
 console.log('PASS: patient and billing screens safely restore legacy flat caches as paged data')

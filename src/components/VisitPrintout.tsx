@@ -15,6 +15,8 @@ export type PrintVisit = {
 }
 
 export type DetailRow = {
+  diagnosis?: string | null
+  advice?: string | null
   prescription_id?: string
   kind: 'consultation' | 'procedure' | 'medicine'
   description: string

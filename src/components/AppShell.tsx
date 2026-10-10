@@ -162,6 +162,11 @@ export function AppShell({
   const navigation = [...primary, { key: 'more', label: 'More' }]
   const syncLabel = halted ? 'Save needs attention' : !online ? `Offline · ${pending.length} changes waiting` : pending.length ? `${pending.length} not saved yet` : saving ? 'Saving…' : 'All saved'
   const sync = <span className={`shell-sync ${halted || !online ? 'pending' : pending.length || saving ? 'saving' : ''}`} role="status">{syncLabel}</span>
+  const queueLink = clinical && <a href="#reception" onClick={e => { e.preventDefault(); select('reception') }} className="shell-queue" title={online && connected ? 'Live clinic queue' : 'Showing the saved queue; reconnecting'}>
+    <span className={online && connected ? 'shell-status-dot' : 'shell-status-dot offline'} aria-hidden="true" />
+    <strong>{queueError && !queue ? 'Queue unavailable' : !queue ? 'Loading queue…' : current ? `Now #${current.token_number}` : 'No active token'}</strong>
+    {queue && <span>{queue.filter((visit) => visit.stage === 'waiting').length} waiting</span>}
+  </a>
   const account = <details className="shell-menu shell-account">
     <summary className="shell-nav-item" title={userEmail}>{isDoctor ? 'Doctor' : clinical ? 'Reception' : 'Admin'} ▾</summary>
     <div className="shell-menu-items">
@@ -176,11 +181,7 @@ export function AppShell({
         <a className="shell-clinic-name" href={isDoctor ? '#consultation' : '#reception'} onClick={e => { e.preventDefault(); select(isDoctor ? 'consultation' : sections[0]?.key ?? '') }}>Salem Pain &amp; Palliative Care</a>
         <nav className="shell-nav no-scrollbar" aria-label="Main">{navigation.map(navItem)}</nav>
         <div className="shell-status">
-          {clinical && <a href="#reception" onClick={e => { e.preventDefault(); select('reception') }} className="shell-queue" title={online && connected ? 'Live clinic queue' : 'Showing the saved queue; reconnecting'}>
-            <span className={online && connected ? 'shell-status-dot' : 'shell-status-dot offline'} aria-hidden="true" />
-            <strong>{queueError && !queue ? 'Queue unavailable' : !queue ? 'Loading queue…' : current ? `Now #${current.token_number}` : 'No active token'}</strong>
-            {queue && <span>{queue.filter((visit) => visit.stage === 'waiting').length} waiting</span>}
-          </a>}
+          {queueLink}
           {sync}
           {account}
           <button type="button" className="shell-nav-item shell-lock" onClick={() => pinSet ? onLock() : setShowPinForm(true)}>Lock</button>
@@ -189,6 +190,7 @@ export function AppShell({
       </header>
       <OfflineQueueBanner userId={userId} redact={locked || !clinical} />
       <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title="Menu" placement="top">
+        {queueLink}
         {sync}
         <nav className="shell-mobile-links" aria-label="Main menu">{navigation.map(navItem)}</nav>
         {account}

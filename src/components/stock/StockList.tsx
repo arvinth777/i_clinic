@@ -68,8 +68,9 @@ export function StockList({ clinicId }: { clinicId: string }) {
   }
 
   const rows = (medicines ?? []).map(m => {
-    const total = (stockRows ?? []).filter(r => r.medicine_id === m.id).reduce((sum, r) => sum + r.quantity, 0)
-    return { ...m, total, low: m.low_stock_threshold != null && total <= m.low_stock_threshold, expiry: total > 0 ? expiryStatus(m.expiry_date) : null }
+    const stock = (stockRows ?? []).filter(r => r.medicine_id === m.id)
+    const total = stock.reduce((sum, r) => sum + r.quantity, 0)
+    return { ...m, total, low: m.low_stock_threshold != null && total <= m.low_stock_threshold, expiry: stock.some(r => r.quantity > 0) ? expiryStatus(m.expiry_date) : null }
   })
   const visible = rows.filter(m => m.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()) && (filter === 'all' || (filter === 'low' ? m.low : !!m.expiry)))
   const labelledMedicines = (medicines ?? []).map((m) => ({ ...m, name: `${m.name} (${m.stock_unit ?? 'unit not confirmed'})` }))
@@ -131,7 +132,7 @@ export function StockList({ clinicId }: { clinicId: string }) {
           <TableCell className="tabular-nums">{formatPaise(m.price_paise)}<p className="field-hint">per {m.stock_unit ?? 'unconfirmed unit'}</p></TableCell>
           {stockPoints.map(sp => <TableCell key={sp.id} className={`text-right tabular-nums ${quantityAt(m.id, sp.id) < 0 ? 'stock-qty-negative' : ''}`}>{quantityAt(m.id, sp.id)}</TableCell>)}
           <TableCell className={`text-right tabular-nums ${m.total < 0 ? 'stock-qty-negative' : m.low ? 'stock-qty-low' : ''}`}><strong>{m.total}</strong>{m.low && <p className="field-hint">Low stock</p>}</TableCell>
-          <TableCell className={m.expiry ? 'stock-qty-low' : ''}>{m.expiry_date ? formatDateOnly(m.expiry_date) : '—'}{m.expiry && <p className="field-hint">{m.expiry}</p>}</TableCell>
+          <TableCell className={m.expiry === 'Expired' ? 'stock-qty-negative' : m.expiry ? 'stock-qty-low' : ''}>{m.expiry_date ? formatDateOnly(m.expiry_date) : '—'}{m.expiry && <p className="field-hint">{m.expiry}</p>}</TableCell>
         </TableRow>)}
       </TableBody></Table>
       {visible.length > visibleCount && <Button variant="secondary" onClick={() => setVisibleCount(count => count + 50)}>Show more</Button>}

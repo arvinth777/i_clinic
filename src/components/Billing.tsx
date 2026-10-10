@@ -1,4 +1,4 @@
-import { LoadingRows } from './QueryState'
+import { LoadingRows, QueryError } from './QueryState'
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
@@ -45,7 +45,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   const queryClient = useQueryClient()
 
   const visitKey = ['billing-visit', visitId]
-  const { data: visit } = useQuery({
+  const visitQuery = useQuery({
     queryKey: visitKey,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -57,15 +57,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       return data as unknown as Visit
     },
   })
-
-  const { data: clinicalNotes } = useQuery({
-    queryKey: ['billing-clinical-notes', clinicId, visitId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('prescriptions').select('diagnosis, advice').eq('clinic_id', clinicId).eq('visit_id', visitId).order('created_at', { ascending: true })
-      if (error) throw error
-      return { diagnosis: [...new Set(data.map(p => p.diagnosis).filter(Boolean))].join('\n'), advice: [...new Set(data.map(p => p.advice).filter(Boolean))].join('\n') }
-    },
-  })
+  const { data: visit } = visitQuery
 
   // Opening the bill moves the visit to "ready at reception" automatically
   // -- no separate click. Queued offline: patched into the cache directly
@@ -102,7 +94,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   }, [visit?.stage])
 
   const pricingKey = ['billing-pricing', visitId]
-  const { data: pricing } = useQuery({
+  const pricingQuery = useQuery({
     queryKey: pricingKey,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -114,6 +106,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       return data as Pricing
     },
   })
+  const { data: pricing } = pricingQuery
 
   // The doctor can still be editing pricing on his own screen while this
   // panel is open -- Realtime is how this screen finds out (non-negotiable
@@ -135,7 +128,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
 
   const detailKey = ['billing-detail', visitId]
   const detailEnabled = (readOnly && visit?.stage === 'packing') || visit?.stage === 'ready_at_reception' || visit?.stage === 'paid'
-  const { data: detail } = useQuery({
+  const detailQuery = useQuery({
     queryKey: detailKey,
     enabled: detailEnabled,
     queryFn: async () => {
@@ -144,9 +137,11 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       return data as DetailRow[]
     },
   })
-  const detailStillLoading = detail === undefined || clinicalNotes === undefined
+  const { data: detail } = detailQuery
+  const detailStillLoading = !detail?.length || detail.some(row => !('diagnosis' in row) || !('advice' in row))
+  const clinicalNotes = detailStillLoading ? undefined : { diagnosis: [...new Set(detail.map(row => row.diagnosis).filter(Boolean))].join('\n'), advice: [...new Set(detail.map(row => row.advice).filter(Boolean))].join('\n') }
 
-  const { data: clinic } = useQuery({
+  const clinicQuery = useQuery({
     // Its own key, not shared with ClinicSettings.tsx's admin-form query --
     // that one selects the same clinic row but its own overlapping-but-
     // different field set, and two shapes racing under one React Query
@@ -170,11 +165,12 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       }
     },
   })
+  const { data: clinic } = clinicQuery
 
   const [paymentMethod, setPaymentMethod] = useState<(typeof PAYMENT_METHODS)[number]['value']>('cash')
   const [confirmedBill, setConfirmedBill] = useState<Bill | null>(null)
   const paidBillKey = ['paid-bill', visitId]
-  const { data: savedBill } = useQuery({
+  const savedBillQuery = useQuery({
     queryKey: paidBillKey,
     enabled: visit?.stage === 'paid',
     queryFn: async () => {
@@ -186,6 +182,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       return data as Bill
     },
   })
+  const { data: savedBill } = savedBillQuery
   const bill = confirmedBill?.pending ? savedBill ?? confirmedBill : confirmedBill ?? savedBill ?? null
 
   const confirmPayment = useMutation({
@@ -260,9 +257,9 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
     },
   })
 
-  if (!visit || !pricing) return <LoadingRows label="Loading…" />
-
-  if (visit.stage === 'paid' && !bill) return <LoadingRows label="Loading saved receipt…" />
+  const failedReads = [visitQuery, pricingQuery, detailQuery, clinicQuery, savedBillQuery].filter(query => query.isError)
+  const queryError = failedReads.length > 0 ? <QueryError retry={() => { failedReads.forEach(query => void query.refetch()) }} savedAt={Math.min(...failedReads.map(query => query.dataUpdatedAt)) || undefined} /> : null
+  if (!visit || !pricing || (visit.stage === 'paid' && !bill)) return <div className="bill-editor"><Button variant="ghost" onClick={onClose}>← Back</Button>{queryError ?? <LoadingRows label="Loading bill…" />}</div>
   const waitingForDoctor = !pricing.final_amount_set
   const amountPaise = bill ? bill.final_amount_paise : pricing.final_amount_paise
   const billable = bill?.bill_line_items ?? detail
@@ -271,6 +268,9 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
 
   return (
     <div className="billing-workspace"><div className="bill-editor">
+      <Button className="mobile-list-back" variant="ghost" onClick={onClose}>← Back</Button>
+      {queryError}
+      <div className={failedReads.length ? "stale-copy" : undefined}>
       <p className="field-hint">{bill ? 'Saved receipt' : 'Consultation bill'} · #{visit.token_number}</p>
       <h2 className="form-heading">
         {visit.patients?.name} <span className="doctor-queue-meta">Token {visit.token_number}</span>
@@ -382,12 +382,12 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
         </section>
       )}
 
-      </div>
+      </div></div>
       <aside className="receipt-preview" aria-label="Receipt preview"><div className="sticky-panel"><p className="field-hint">Receipt preview</p><PrintableReceipt clinic={clinic} visit={visit} billable={billable ?? []} amountPaise={amountPaise} discountPaise={discountPaise} bill={bill} /></div></aside>
       <PrintableSlip
         clinic={clinic}
         visit={{ ...visit, ...clinicalNotes }}
-        detail={detail}
+        detail={detailStillLoading ? undefined : detail}
         amountPaise={amountPaise}
         discountPaise={discountPaise}
         bill={bill}
