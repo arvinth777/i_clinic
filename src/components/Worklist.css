@@ -1,24 +1,3 @@
-/* Hallmark · genre: modern-minimal · design-system: /design.md · designed-as-app
- *
- * Every table in the app now renders on the shared Table primitive
- * (src/components/ui/table.tsx), which supplies its own border/header-tint/
- * hover styling directly. What's left here is just what that primitive
- * doesn't provide on its own: TokenList's sortable-column header buttons
- * (the only sortable table in the app), and a few typographic helper
- * classes (name/wait cell) passed as additive `className`s onto `TableCell`
- * across many screens, reused rather than redeclared per file the way
- * Reception.css's classes already are (Vite bundles every statically-
- * imported component's CSS globally; see docs/design.md).
- */
-
-/* font: inherit -- a <button> doesn't inherit type from its parent <th> by
-   default the way plain text would. This one predates the Table primitive
-   and used to hardcode its own mono/uppercase/tracked look, which fought
-   with TableHead's Inter/font-semibold the moment TokenList's table (the
-   only sortable one) moved onto the shared primitive -- caught live, the
-   user pointed at the queue table specifically and said the font wasn't
-   right. Inheriting instead means this header text always matches every
-   other TableHead in the app, with nothing to fall out of sync again. */
 .worklist-sort {
   display: inline-flex;
   align-items: center;
@@ -39,7 +18,7 @@
 
 .worklist-sort:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  outline: 2px solid var(--blue); outline-offset: 2px;
   border-radius: var(--radius-input);
 }
 
@@ -48,16 +27,13 @@
   color: var(--accent);
 }
 
-/* TableRow itself already paints a translucent hover on every row --
-   this class only adds the cursor and a focus ring for rows that are
-   actually clickable (opening a record, an edit form, and so on). */
 .worklist-row-clickable {
   cursor: pointer;
 }
 
 .worklist-row-clickable:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 2px var(--focus-ring);
+  outline: 2px solid var(--blue); outline-offset: 2px;
 }
 
 .worklist-name-cell {

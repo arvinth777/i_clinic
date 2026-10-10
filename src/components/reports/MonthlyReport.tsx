@@ -1,3 +1,4 @@
+import { LoadingRows } from '../QueryState'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaise } from '../../lib/money'
@@ -21,7 +22,7 @@ export function MonthlyReport() {
   })
 
   if (error) return <p className="form-error">Couldn't load the monthly report.</p>
-  if (!months) return <p className="readout-empty">Loading…</p>
+  if (!months) return <LoadingRows label="Loading…" />
 
   const max = Math.max(1, ...months.map(m => m.collections_paise))
   return <>

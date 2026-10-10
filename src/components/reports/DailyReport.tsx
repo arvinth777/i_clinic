@@ -1,3 +1,4 @@
+import { LoadingRows } from '../QueryState'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaise } from '../../lib/money'
@@ -32,7 +33,7 @@ export function DailyReport() {
   })
 
   if (dailyError) return <p className="form-error">Couldn't load the daily report.</p>
-  if (!daily) return <p className="readout-empty">Loading…</p>
+  if (!daily) return <LoadingRows label="Loading…" />
 
   return (
     <div>
@@ -71,7 +72,7 @@ export function DailyReport() {
 
       <section className="record-section">
         <h3 className="readout-heading">Stock warnings</h3>
-        {warningsError ? <p className="form-error">Couldn't load stock warnings.</p> : !warnings ? <p className="readout-empty">Loading stock warnings…</p> : warnings.length === 0 ? (
+        {warningsError ? <p className="form-error">Couldn't load stock warnings.</p> : !warnings ? <LoadingRows label="Loading stock warnings…" /> : warnings.length === 0 ? (
           <p className="readout-empty">No low or negative stock right now.</p>
         ) : (
           <ul className="past-visit-list">

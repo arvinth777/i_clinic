@@ -62,6 +62,7 @@ function formatDate(iso: string): string {
 export function Consultation({ userId }: { userId: string }) {
   const queryClient = useQueryClient()
   const { data: clinicId } = useClinicId(userId)
+  const [visibleQueueCount, setVisibleQueueCount] = useState(50)
   const [workspace, setWorkspace] = useState<'overview' | 'prescription'>('overview')
   const [commentBody, setCommentBody] = useState('')
   const [prescribingActive, setPrescribingActive] = useState(false)
@@ -173,6 +174,9 @@ export function Consultation({ userId }: { userId: string }) {
     },
   })
 
+  const issuedMedicines = prescriptions?.filter(p => p.visit_id === current?.id).flatMap(p => p.prescription_items) ?? []
+  const issuedComplete = issuedMedicines.length > 0 && issuedMedicines.every(item => !!item.dosage_frequency?.trim() && item.duration_days > 0)
+
   function patchVisit(visitId: string, patch: Partial<DoctorVisit>) {
     queryClient.setQueryData<DoctorVisit[]>(queueKey, (old) => old?.map((v) => (v.id === visitId ? { ...v, ...patch } : v)))
   }
@@ -257,17 +261,18 @@ export function Consultation({ userId }: { userId: string }) {
           <TodayFlow visits={todayVisits} />
           <div className="rail-head">
             <h2 className="readout-heading">Waiting · {queue.length}</h2>
-            <Button disabled={queue.length === 0 || !!current || callNext.isPending} onClick={() => callNext.mutate(queue[0].id)}>
+            <Button variant={current ? "secondary" : "primary"} disabled={queue.length === 0 || !!current || callNext.isPending} onClick={() => callNext.mutate(queue[0].id)}>
               {callNext.isPending ? 'Calling…' : 'Call next'}
             </Button>
           </div>
           {rows.length === 0 && repCount === 0 && <p className="readout-empty">Your queue is empty.</p>}
           <ul className="rail-list">
-            {rows.map(v => <li key={v.id} className={v.stage === 'with_doctor' ? 'rail-row rail-row-active' : 'rail-row'}>
+            {rows.slice(0, visibleQueueCount).map(v => <li key={v.id} className={v.stage === 'with_doctor' ? 'rail-row rail-row-active' : 'rail-row'}>
               <span className="rail-row-token">#{v.token_number}</span>
               <span className="rail-row-name">{v.patients?.name}<small>{v.stage === 'with_doctor' ? 'With doctor' : v.complaint}</small></span>
               <span className={elapsedMinutes(v.arrived_at) >= LONG_WAIT_MINUTES ? 'rail-row-wait doctor-queue-overdue' : 'rail-row-wait'}>{formatElapsed(v.arrived_at)}</span>
             </li>)}
+            {rows.length > visibleQueueCount && <li><Button variant="secondary" onClick={() => setVisibleQueueCount(count => count + 50)}>Show more</Button></li>}
             <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />
           </ul>
         </aside>
@@ -306,8 +311,9 @@ export function Consultation({ userId }: { userId: string }) {
                 <CarePanel clinicId={clinicId} key={`care-${current.id}`} visitId={current.id} patientId={current.patient_id} />
                 <details className="rx-support"><summary>Procedures &amp; bill approval</summary><PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} /></details>
                 <details className="rx-support"><summary>Documents</summary><DocumentsPanel key={`docs-${current.id}`} clinicId={clinicId} visitId={current.id} patientName={current.patients?.name ?? ''} patientAge={current.patients?.age ?? null} complaint={current.complaint} issuedBy={userId} /></details>
-                <div className="action-row rx-actions"><Button disabled={prescribingActive || consultationDone.isPending || !prescriptions?.some(p => p.visit_id === current.id && p.prescription_items.length > 0)} onClick={() => consultationDone.mutate()}>{consultationDone.isPending ? 'Saving…' : 'Finish consultation'}</Button></div>
+                <div className="action-row rx-actions"><Button variant={prescribingActive ? "secondary" : "primary"} disabled={prescribingActive || consultationDone.isPending || !issuedComplete} onClick={() => consultationDone.mutate()}>{consultationDone.isPending ? 'Saving…' : 'Finish consultation'}</Button></div>
                 {prescribingActive && <p className="field-hint">Review and confirm the prescription before finishing.</p>}
+                {!prescribingActive && !issuedComplete && <p className="field-hint">Finish requires a medicine, dose or SOS, and duration for every prescribed item.</p>}
                 {consultationDone.isError && <p className="form-error">Couldn't finish — try again.</p>}
               </PrescriptionForm>
             </div>

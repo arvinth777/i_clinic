@@ -10,6 +10,7 @@ import { Consultation } from './pages/Consultation'
 import { Admin } from './pages/Admin'
 import { PharmacyBills } from './pages/PharmacyBills'
 import { Stock } from './pages/Stock'
+import { Suppliers } from './components/stock/Suppliers'
 import { MergePatients } from './pages/MergePatients'
 import { UnpaidBills } from './pages/UnpaidBills'
 import { LongTermRegister } from './pages/LongTermRegister'
@@ -30,9 +31,9 @@ function App() {
   const [locked, setLocked] = useState(false)
 
   const sections: ShellSection[] = []
-  if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'reception', label: 'Reception' })
+  if (roles?.some((r) => r.role === 'receptionist' || r.role === 'doctor')) sections.push({ key: 'reception', label: 'Reception' })
   if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'unpaid', label: 'Unpaid bills' })
-  if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'billing', label: 'Billing' })
+  if (roles?.some((r) => r.role === 'receptionist' || r.role === 'doctor')) sections.push({ key: 'billing', label: 'Billing' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'consultation', label: 'Doctor' })
   if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'patients', label: 'Patients' })
   if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'stock', label: 'Inventory' })
@@ -46,11 +47,13 @@ function App() {
   if (roles?.some((r) => r.role === 'admin' || r.role === 'doctor')) sections.push({ key: 'reports', label: 'Reports' })
   if (roles?.some((r) => r.role === 'admin')) sections.push({ key: 'admin', label: 'Settings' })
 
+  if (roles?.some(r => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'suppliers', label: 'Suppliers' })
+
   const clinicId = roles?.[0]?.clinic_id
 
   // Default to the first section this account can see; a manual click
   // overrides that default without needing to sync it into state.
-  const activeSection = manualSection ?? sections[0]?.key ?? ''
+  const activeSection = manualSection && (manualSection === 'more' || sections.some(s => s.key === manualSection)) ? manualSection : roles?.some(r => r.role === 'doctor') ? 'consultation' : sections[0]?.key ?? ''
 
   if (loading || rolesLoading) return null
   if (!session) {
@@ -73,7 +76,6 @@ function App() {
   return (
     <>
       <StagingBanner />
-      <OfflineQueueBanner userId={session.user.id} redact={locked || !roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')} />
       <AppShell
         userId={session.user.id}
         userEmail={session.user.email}
@@ -85,12 +87,13 @@ function App() {
         activeSection={activeSection}
         onSelectSection={setManualSection}
       >
-        {activeSection === 'reception' && <Reception userId={session.user.id} />}
+        {activeSection === 'reception' && <Reception userId={session.user.id} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'patients' && clinicId && <Patients clinicId={clinicId} isDoctor={!!roles?.some(r => r.role === 'doctor')} canBill={!!roles?.some(r => r.role === 'receptionist')} />}
-        {activeSection === 'billing' && clinicId && <BillingDesk clinicId={clinicId} />}
+        {activeSection === 'billing' && clinicId && <BillingDesk clinicId={clinicId} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'unpaid' && clinicId && <UnpaidBills clinicId={clinicId} />}
         {activeSection === 'consultation' && <Consultation userId={session.user.id} />}
         {activeSection === 'pharmacy' && clinicId && <PharmacyBills clinicId={clinicId} isDoctor={roles?.some((r) => r.role === 'doctor') ?? false} />}
+        {activeSection === 'suppliers' && clinicId && <Suppliers clinicId={clinicId} />}
         {activeSection === 'stock' && clinicId && <Stock clinicId={clinicId} />}
         {activeSection === 'merge' && clinicId && <MergePatients clinicId={clinicId} />}
         {activeSection === 'register' && clinicId && <LongTermRegister clinicId={clinicId} />}

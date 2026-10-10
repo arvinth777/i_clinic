@@ -1,20 +1,11 @@
-/* genre: modern-minimal-operate · design-system: /design.md · designed-as-app
- *
- * Billing (reception's side) -- reuses .record-section/.pricing-block/
- * .pricing-row/.past-visit-list/.past-visit-item/.action-row from
- * Consultation.css and Reception.css; only the payment-method row, the
- * emphasised final-amount row, the paid stamp, and the printable slip are
- * new here.
- */
-
 .bill-item-row {
   display: flex;
   justify-content: space-between;
 }
 
 .payment-method-row {
-  display: flex;
-  gap: var(--space-lg);
+  display: flex; flex-wrap: wrap;
+  gap: 2px; margin-left: -12px;
   margin-bottom: var(--space-md);
 }
 
@@ -45,42 +36,7 @@
   border-radius: var(--radius-input);
 }
 
-/* The one rubber-stamp moment in the app -- reserved for an actually
-   confirmed payment, never used decoratively elsewhere, so it still means
-   something when it appears. */
-.paid-stamp {
-  display: inline-block;
-  margin-bottom: var(--space-sm);
-  padding: var(--space-2xs) var(--space-md);
-  border: 3px solid var(--success);
-  /* Uneven corners plus a faint offset "ghost" outline -- a real rubber
-     stamp never strikes perfectly true; cheapest honest version of that
-     imprecision, short of a rendered/distressed asset. */
-  border-radius: 5px 3px 6px 2px;
-  box-shadow: 1.5px 1px 0 0 var(--success-wash);
-  color: var(--success);
-  font-size: var(--text-lg);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  transform: rotate(-6deg);
-}
-
-/* ============================================================
- * Print: two separate documents in one print job, not one page mixing
- * both (user: "is this a prescription or a bill? i think you are
- * confusing the both" -- they were right). Page 1 is the doctor's
- * letterhead document (user-supplied reference: a hospital letterhead
- * template -- colour bar top and bottom, a clinic/doctor header block, a
- * repeated footer): drugs and dosage, nothing about money. Page 2 is a
- * plain transactional receipt: amounts and payment method, no doctor
- * credentials, no colour. Hidden on screen; shown full-page on print,
- * everything else hidden via visibility (not display) so the app's own
- * layout doesn't need to be touched. Printed output stays plain
- * black-on-white regardless of the app's light/dark theme -- a printer
- * doesn't have a theme -- except the letterhead's own bars, which are
- * the one deliberate spot of colour on an otherwise plain page.
- * ============================================================ */
+.paid-stamp { color: var(--green); font-size: var(--text-sm); font-weight: 600; }
 
 .print-area {
   display: none;
@@ -98,8 +54,8 @@
     display: block;
     position: absolute;
     inset: 0;
-    color: #000;
-    background: #fff;
+    color: var(--ink);
+    background: var(--bg);
     font-size: 12pt;
   }
   .print-page {
@@ -116,7 +72,7 @@
   .print-bar {
     flex: none;
     height: 10px;
-    background: #1d4ed8;
+    background: var(--blue);
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -127,11 +83,11 @@
   .print-letterhead {
     margin-bottom: 0.75em;
     padding-bottom: 0.5em;
-    border-bottom: 2px solid #1d4ed8;
+    border-bottom: 2px solid var(--blue);
   }
   .print-letterhead h1 {
     margin: 0;
-    color: #1d4ed8;
+    color: var(--blue);
   }
   .print-doctor-line {
     margin: 0.15em 0 0;
@@ -140,7 +96,7 @@
   .print-contact-line {
     margin: 0.15em 0 0;
     font-size: 0.85em;
-    color: #333;
+    color: var(--ink-2);
   }
   .print-page-plain h1 {
     margin: 0 0 0.1em;
@@ -152,28 +108,27 @@
   }
   .print-table th,
   .print-table td {
-    border: 1px solid #000;
+    border: 1px solid var(--ink);
     padding: 0.25em 0.5em;
     text-align: left;
   }
   .print-total-row td {
     font-weight: 700;
-    border-top: 2px solid #000;
+    border-top: 2px solid var(--ink);
   }
   .print-footer {
     margin-top: 1.5em;
     padding-top: 0.5em;
-    border-top: 1px solid #999;
+    border-top: 1px solid var(--faint);
     font-size: 0.8em;
-    color: #333;
+    color: var(--ink-2);
   }
   .print-footer p {
     margin: 0.1em 0;
   }
 }
 
-/* Physical dimensions are shared by the preview and browser print. */
-.prescription-sheet { position: relative; width: var(--paper-width); min-height: var(--paper-height); background: #fff; color: #141C2B; font-family: var(--font); font-size: var(--print-body-size); line-height: 1.4; }
+.prescription-sheet { position: relative; width: var(--paper-width); min-height: var(--paper-height); background: var(--bg); color: var(--ink); font-family: var(--font); font-size: var(--print-body-size); line-height: 1.4; }
 .prescription-letterhead { position: absolute; inset: 0; width: var(--paper-width); height: var(--paper-height); z-index: 0; }
 .prescription-paper-content { position: relative; z-index: 1; width: 90%; margin-inline: auto; border-collapse: collapse; table-layout: fixed; }
 .prescription-paper-content td { vertical-align: top; overflow-wrap: anywhere; }
@@ -182,8 +137,8 @@
 .prescription-reference { padding-inline: var(--space-xl) var(--space-sm); padding-block: var(--space-sm) var(--space-lg); }
 .prescription-patient { padding-bottom: var(--space-sm); border-bottom: 1px solid var(--border-strong); margin-bottom: var(--space-sm); }
 .prescription-note { padding-bottom: var(--space-sm); white-space: pre-wrap; }
-.prescription-rx { color: #1A4FB5; font-size: var(--print-rx-size); font-weight: 600; }
-.prescription-column-labels { color: #5B6575; font-size: var(--print-caption-size); border-bottom: 1px solid #DCE1E8; }
+.prescription-rx { color: var(--blue); font-size: var(--print-rx-size); font-weight: 600; }
+.prescription-column-labels { color: var(--muted); font-size: var(--print-caption-size); border-bottom: 1px solid var(--line-2); }
 .prescription-medicine td { padding: var(--space-sm) var(--space-sm) var(--space-sm) 0; }
 .prescription-medicine p { margin: var(--space-2xs) 0 0; white-space: pre-wrap; }
 .prescription-signature { display: flex; justify-content: space-between; gap: var(--space-md); padding-top: var(--space-xl); font-size: var(--print-caption-size); }
@@ -214,7 +169,7 @@
 .bill-lines th:first-child, .bill-lines td:first-child { text-align: left; padding-left: 0; }
 .bill-lines small { display: block; color: var(--text-tertiary); margin-top: var(--space-2xs); }
 .receipt-preview { min-width: 0; background: var(--surface-2); padding: var(--page-top) var(--page-padding); }
-.receipt-preview > .print-page-plain { background: var(--surface); margin-top: var(--space-sm); padding: var(--space-lg); box-shadow: var(--shadow-drawer); font-size: var(--text-xs); }
+.receipt-preview > .print-page-plain { background: var(--surface); margin-top: var(--space-sm); padding: var(--space-lg); box-shadow: var(--shadow-paper); font-size: var(--text-xs); }
 .receipt-preview h1 { text-align: center; color: var(--accent); font-size: var(--text-base); margin: 0 0 var(--space-xs); }
 .receipt-preview .print-contact-line { text-align: center; color: var(--text-secondary); }
 .receipt-preview h2 { font-size: var(--text-sm); border-top: 1px dashed var(--border-strong); padding-top: var(--space-md); }
@@ -225,7 +180,7 @@
 .payment-method-row { flex-wrap: wrap; gap: var(--space-xs); }
 .payment-method-option { padding: var(--space-sm); border-radius: var(--radius-input); background: var(--surface-2); cursor: pointer; font-size: var(--text-sm); }
 .payment-method-option:has(input:checked) { background: var(--accent-wash); color: var(--accent); }
-.paid-stamp { transform: none; border: 0; border-radius: var(--radius-input); background: var(--success-wash); font-size: var(--text-sm); letter-spacing: normal; text-transform: none; box-shadow: none; }
+.paid-stamp { color: var(--green); font-size: var(--text-sm); font-weight: 600; }
 @media (max-width: 1100px) { .billing-workspace { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 720px) { .bill-editor, .receipt-preview { padding: var(--space-lg) var(--space-md); } }
 @media print { .receipt-preview { display: none !important; } }
@@ -233,15 +188,39 @@
 .prescription-reference { font-size: var(--print-reference-size); }
 .prescription-medicine p { font-size: var(--print-dose-size); }
 
-/* Chromium repeats a table header only when it fits within 25% of A4. */
 @media print {
  .prescription-paper-content thead { break-inside: avoid; }
  .prescription-reference { padding-block: 0; height: var(--paper-reference); align-items: end; }
  .prescription-patient { padding-top: var(--paper-patient-gap); }
 }
 @media print {
-  /* Fixed artwork fills the final continuation page too; receipts cover it. */
   .prescription-sheet { background: none; }
   .prescription-letterhead { display: block; position: fixed; z-index: 0; }
-  .print-page-plain { position: relative; z-index: 2; min-height: var(--paper-height); box-sizing: border-box; background: #fff; }
+  .print-page-plain { position: relative; z-index: 2; min-height: var(--paper-height); box-sizing: border-box; background: var(--bg); }
 }
+
+.receipt-preview > .sticky-panel { position: sticky; top: calc(var(--header-current-height) + var(--space-lg)); }
+.receipt-preview .print-page-plain { background: var(--bg); padding: var(--space-lg); box-shadow: var(--shadow-paper); }
+
+.payment-method-option { background: transparent; position: relative; min-height: 34px; padding: 0 12px; border-radius: var(--r-sm); font-size: var(--text-sm); font-weight: 500; color: var(--muted); cursor: pointer; }
+.payment-method-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.payment-method-option:has(input:checked) { background: var(--blue-tint); color: var(--blue); }
+.payment-method-option:has(input:focus-visible) { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+@media print {
+  /* Hidden worklists must not reserve paper after switching to window scrolling. */
+  body :has(.print-area) { display: contents !important; }
+  body *:not(.print-area):not(.print-area *):not(:has(.print-area)) { display: none !important; }
+  .print-area { display: block !important; position: static; }
+  html, body { height: auto; overflow: visible; }
+}
+
+@supports (font-size: 1cqw) {
+  .prescription-sheet { container-type: inline-size; }
+  .prescription-paper-content { font-size: var(--paper-body-cqw); }
+  .prescription-reference { font-size: var(--paper-reference-cqw); }
+  .prescription-column-labels, .prescription-signature { font-size: var(--paper-caption-cqw); }
+  .prescription-medicine p { font-size: var(--paper-dose-cqw); }
+  .prescription-rx { font-size: var(--paper-rx-cqw); }
+}
+@media print { .prescription-sheet:last-child { break-after: auto; } }

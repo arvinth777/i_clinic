@@ -1,13 +1,13 @@
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { onlineManager, useIsMutating, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useClinicId } from '../lib/useClinicId'
-import { useTheme } from '../lib/useTheme'
 import { useOfflineQueue } from '../lib/useOfflineQueue'
 import { useIdleTimer } from '../lib/useIdleTimer'
 import { hasPin, setPin } from '../lib/pinLock'
 import { LockScreen } from './LockScreen'
 import { Drawer } from './Drawer'
+import { OfflineQueueBanner } from './OfflineQueueBanner'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import './AppShell.css'
@@ -107,7 +107,18 @@ export function AppShell({
 }) {
   const { data: clinicId } = useClinicId(userId)
   const { data: clinicName } = useClinicName(clinicId)
-  const { theme, toggleTheme } = useTheme()
+  const header = useRef<HTMLElement>(null)
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [activeSection])
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [connected, setConnected] = useState(false)
+  useEffect(() => {
+    if (!header.current) return
+    const observer = new ResizeObserver(([entry]) => {
+      document.documentElement.style.setProperty('--header-current-height', `${entry.target.getBoundingClientRect().height}px`)
+    })
+    observer.observe(header.current)
+    return () => observer.disconnect()
+  }, [])
 
   const [pinSet, setPinSet] = useState(hasPin())
   const [showPinForm, setShowPinForm] = useState(false)
@@ -132,63 +143,63 @@ export function AppShell({
     const channel = supabase.channel(`shell-queue-${clinicId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visits', filter: `clinic_id=eq.${clinicId}` },
         () => { queryClient.invalidateQueries({ queryKey: ['shell-queue', clinicId] }) })
-      .subscribe()
+      .subscribe((status) => setConnected(status === 'SUBSCRIBED'))
     return () => { supabase.removeChannel(channel) }
   }, [clinicId, clinical, queryClient])
   const current = queue?.find((visit) => visit.stage === 'with_doctor')
-  const primary = sections.filter((section) => ['reception', 'consultation', 'billing', 'pharmacy', 'patients', 'stock', 'reports'].includes(section.key))
+  const primary = ['reception', 'consultation', 'billing', 'pharmacy', 'patients', 'stock', 'reports'].flatMap(key => sections.filter(section => section.key === key))
   const more = sections.filter((section) => !primary.includes(section))
   const activeMore = more.find((section) => section.key === activeSection)
 
   useIdleTimer(pinSet, isDoctor ? DOCTOR_TIMEOUT_MS : OTHER_TIMEOUT_MS, onLock)
 
+  function select(key: string) { onSelectSection(key); setMenuOpen(false) }
   function navItem(section: ShellSection) {
-    return <button key={section.key} type="button" className="shell-nav-item"
-      aria-current={section.key === activeSection ? 'page' : undefined}
-      onClick={(event) => {
-        onSelectSection(section.key)
-        event.currentTarget.closest('details')?.removeAttribute('open')
-      }}>{section.label}</button>
+    return <a key={section.key} href={`#${section.key}`} className="shell-nav-item"
+      aria-current={section.key === activeSection || (section.key === 'more' && activeMore) ? 'page' : undefined}
+      onClick={(event) => { event.preventDefault(); select(section.key) }}>{section.label}</a>
   }
-
+  const navigation = [...primary, { key: 'more', label: 'More' }]
+  const syncLabel = halted ? 'Save needs attention' : !online ? `Offline · ${pending.length} changes waiting` : pending.length ? `${pending.length} not saved yet` : saving ? 'Saving…' : 'All saved'
+  const sync = <span className={`shell-sync ${halted || !online ? 'pending' : pending.length || saving ? 'saving' : ''}`} role="status">{syncLabel}</span>
+  const account = <details className="shell-menu shell-account">
+    <summary className="shell-nav-item" title={userEmail}>{isDoctor ? 'Doctor' : clinical ? 'Reception' : 'Admin'} ▾</summary>
+    <div className="shell-menu-items">
+      <span className="shell-user-email">{userEmail}</span>
+      <button className="shell-nav-item" onClick={() => { setMenuOpen(false); setShowPinForm(true) }}>{pinSet ? 'Change lock PIN' : 'Set a lock PIN'}</button>
+      <button className="shell-nav-item" onClick={() => supabase.auth.signOut()}>Sign out</button>
+    </div>
+  </details>
   return (
     <div className="shell">
-      <header className="shell-header">
-        <span className="shell-clinic-name" title={clinicName}>{clinicName ?? 'Clinic'}</span>
-        <nav className="shell-nav" aria-label="Main">
-          {primary.map(navItem)}
-          {more.length > 0 && <details className="shell-menu">
-            <summary className="shell-nav-item" aria-current={activeMore ? 'page' : undefined}>More <span aria-hidden="true">⌄</span></summary>
-            <div className="shell-menu-items">{more.map(navItem)}</div>
-          </details>}
-        </nav>
+      <header ref={header} className="shell-header">
+        <a className="shell-clinic-name" href={isDoctor ? '#consultation' : '#reception'} onClick={e => { e.preventDefault(); select(isDoctor ? 'consultation' : sections[0]?.key ?? '') }}>Salem Pain &amp; Palliative Care</a>
+        <nav className="shell-nav no-scrollbar" aria-label="Main">{navigation.map(navItem)}</nav>
         <div className="shell-status">
-          {clinical && <span className="shell-queue" title={online ? 'Shared clinic queue' : 'Last saved queue · offline'}>
-            <span className={online ? 'shell-status-dot' : 'shell-status-dot offline'} aria-hidden="true" />
-            <strong>{queueError ? 'Queue unavailable' : !queue ? 'Loading queue…' : current ? `Now #${current.token_number}` : 'No active token'}</strong>
+          {clinical && <a href="#reception" onClick={e => { e.preventDefault(); select('reception') }} className="shell-queue" title={online && connected ? 'Live clinic queue' : 'Showing the saved queue; reconnecting'}>
+            <span className={online && connected ? 'shell-status-dot' : 'shell-status-dot offline'} aria-hidden="true" />
+            <strong>{queueError && !queue ? 'Queue unavailable' : !queue ? 'Loading queue…' : current ? `Now #${current.token_number}` : 'No active token'}</strong>
             {queue && <span>{queue.filter((visit) => visit.stage === 'waiting').length} waiting</span>}
-          </span>}
-          <span className={pending.length || halted || !online ? 'shell-sync pending' : 'shell-sync'} role="status">
-            {halted ? 'Save needs attention' : !online ? `Offline · ${pending.length} pending` : pending.length ? `${pending.length} not saved yet` : saving ? 'Saving…' : 'No pending saves'}
-          </span>
-          <details className="shell-menu shell-account">
-            <summary className="shell-nav-item" title={userEmail}>{isDoctor ? 'Doctor' : clinical ? 'Reception' : 'Admin'} <span aria-hidden="true">⌄</span></summary>
-            <div className="shell-menu-items">
-              <span className="shell-user-email">{userEmail}</span>
-              <button className="shell-nav-item" onClick={toggleTheme}>{theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}</button>
-              <button className="shell-nav-item" onClick={() => setShowPinForm(true)}>{pinSet ? 'Change lock PIN' : 'Set a lock PIN'}</button>
-              <button className="shell-nav-item" onClick={() => supabase.auth.signOut()}>Sign out</button>
-            </div>
-          </details>
-          <button type="button" className="shell-nav-item" onClick={() => pinSet ? onLock() : setShowPinForm(true)}>Lock</button>
+          </a>}
+          {sync}
+          {account}
+          <button type="button" className="shell-nav-item shell-lock" onClick={() => pinSet ? onLock() : setShowPinForm(true)}>Lock</button>
         </div>
+        <button className="shell-nav-item shell-mobile-toggle" onClick={() => setMenuOpen(true)} aria-expanded={menuOpen}>Menu ▾</button>
       </header>
+      <OfflineQueueBanner userId={userId} redact={locked || !clinical} />
+      <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title="Menu" placement="top">
+        {sync}
+        <nav className="shell-mobile-links" aria-label="Main menu">{navigation.map(navItem)}</nav>
+        {account}
+        <button type="button" className="shell-nav-item" onClick={() => { setMenuOpen(false); if (pinSet) onLock(); else setShowPinForm(true) }}>Lock</button>
+      </Drawer>
       <Drawer open={showPinForm} onClose={() => setShowPinForm(false)} title={pinSet ? 'Change lock PIN' : 'Set a lock PIN'}>
         <PinForm onDone={() => { setPinSet(true); setShowPinForm(false) }} />
       </Drawer>
       <LockScreen locked={locked} onUnlock={onUnlock} />
       <main className="shell-content">
-        {activeSection ? (activeMore && activeSection !== 'admin' ? <div className="support-layout"><aside className="record-sidebar"><p className="field-hint">Supporting tools</p>{more.map(navItem)}</aside><div className="support-content">{children}</div></div> : children) : <p className="readout-empty">This account has no role assigned at this clinic. Contact your admin to get access.</p>}
+        {activeSection ? ((activeMore && !['admin', 'suppliers'].includes(activeSection)) || activeSection === 'more' ? <div className="support-layout"><aside className="record-sidebar"><h2 className="readout-heading">More</h2>{more.map(navItem)}</aside><div className="support-content">{activeSection === 'more' ? <><h1>More</h1><p className="readout-empty">Choose a tool from the list.</p><p className="field-hint">{clinicName}</p></> : children}</div></div> : children) : <p className="readout-empty">This account has no role assigned at this clinic. Contact your admin to get access.</p>}
       </main>
     </div>
   )

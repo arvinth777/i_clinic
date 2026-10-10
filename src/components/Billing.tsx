@@ -1,3 +1,4 @@
+import { LoadingRows } from './QueryState'
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
@@ -40,7 +41,7 @@ function UpiQr({ vpa, amountPaise, payeeName }: { vpa: string; amountPaise: numb
   return <img className="upi-qr" src={dataUrl} width={220} height={220} alt="UPI payment QR code" />
 }
 
-export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visitId: string; onClose: () => void }) {
+export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clinicId: string; visitId: string; onClose: () => void; readOnly?: boolean }) {
   const queryClient = useQueryClient()
 
   const visitKey = ['billing-visit', visitId]
@@ -96,7 +97,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
     },
   })
   useEffect(() => {
-    if (visit?.stage === 'packing') openBill.mutate()
+    if (!readOnly && visit?.stage === 'packing') openBill.mutate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visit?.stage])
 
@@ -133,7 +134,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
   }, [visitId])
 
   const detailKey = ['billing-detail', visitId]
-  const detailEnabled = visit?.stage === 'ready_at_reception' || visit?.stage === 'paid'
+  const detailEnabled = (readOnly && visit?.stage === 'packing') || visit?.stage === 'ready_at_reception' || visit?.stage === 'paid'
   const { data: detail } = useQuery({
     queryKey: detailKey,
     enabled: detailEnabled,
@@ -259,9 +260,9 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
     },
   })
 
-  if (!visit || !pricing) return <p className="readout-empty">Loading…</p>
+  if (!visit || !pricing) return <LoadingRows label="Loading…" />
 
-  if (visit.stage === 'paid' && !bill) return <p className="readout-empty">Loading saved receipt…</p>
+  if (visit.stage === 'paid' && !bill) return <LoadingRows label="Loading saved receipt…" />
   const waitingForDoctor = !pricing.final_amount_set
   const amountPaise = bill ? bill.final_amount_paise : pricing.final_amount_paise
   const billable = bill?.bill_line_items ?? detail
@@ -280,7 +281,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
       <section className="record-section">
         <h3 className="readout-heading">Itemised breakdown</h3>
         {!billable ? (
-          <p className="readout-empty">Loading…</p>
+          <LoadingRows label="Loading…" />
         ) : (
           <div className="bill-table-wrap"><table className="bill-lines"><thead><tr><th>Item</th><th>Supplied</th><th>Price</th><th>Amount</th></tr></thead><tbody>
             {billable.map((row, i) => <tr key={i}><td><strong>{row.description}</strong><small>{row.kind === 'consultation' ? 'Consultation fee' : row.kind === 'procedure' ? 'Procedure' : row.stock_unit}</small></td><td>{row.quantity ?? 1}</td><td>{formatPaise(row.unit_price_paise)}</td><td><strong>{formatPaise(row.line_total_paise ?? row.unit_price_paise)}</strong></td></tr>)}
@@ -319,7 +320,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
         </section>
       )}
 
-      {!bill && !waitingForDoctor && (
+      {!bill && !waitingForDoctor && !readOnly && (
         <section className="record-section">
           <h3 className="readout-heading">Payment method</h3>
           <div className="payment-method-row">
@@ -371,7 +372,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
             {bill.pending && ' Not saved yet — waiting for a connection to actually confirm with the server.'}
           </p>
           <div className="action-row">
-            <Button type="button" variant="secondary" disabled={detailStillLoading} onClick={() => window.print()}>
+            <Button type="button" variant="dark" disabled={detailStillLoading} onClick={() => window.print()}>
               Print again
             </Button>
             <Button type="button" onClick={onClose}>
@@ -382,7 +383,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
       )}
 
       </div>
-      <aside className="receipt-preview" aria-label="Receipt preview"><p className="field-hint">Receipt preview</p><PrintableReceipt clinic={clinic} visit={visit} billable={billable ?? []} amountPaise={amountPaise} discountPaise={discountPaise} bill={bill} /></aside>
+      <aside className="receipt-preview" aria-label="Receipt preview"><div className="sticky-panel"><p className="field-hint">Receipt preview</p><PrintableReceipt clinic={clinic} visit={visit} billable={billable ?? []} amountPaise={amountPaise} discountPaise={discountPaise} bill={bill} /></div></aside>
       <PrintableSlip
         clinic={clinic}
         visit={{ ...visit, ...clinicalNotes }}

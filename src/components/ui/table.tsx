@@ -6,7 +6,7 @@ import { cn } from '../../lib/utils'
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
     <div className="w-full overflow-x-auto">
-      <table data-slot="table" className={cn('w-full caption-bottom text-sm', className)} {...props} />
+      <table data-slot="table" className={cn('ui-table w-full caption-bottom text-sm', className)} {...props} />
     </div>
   )
 }
@@ -23,7 +23,7 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
   return (
     <tr
       data-slot="table-row"
-      className={cn('border-b border-border transition-colors hover:bg-surface-2/60', className)}
+      className={cn('border-b border-border transition-colors', className)}
       {...props}
     />
   )
@@ -33,7 +33,7 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
   return (
     <th
       data-slot="table-head"
-      className={cn('h-11 px-4 text-left align-middle font-normal text-text-tertiary whitespace-nowrap', className)}
+      className={cn('h-11 px-4 text-left align-middle text-xs font-normal text-text-tertiary whitespace-nowrap', className)}
       {...props}
     />
   )

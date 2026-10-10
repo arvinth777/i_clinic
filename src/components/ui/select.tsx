@@ -20,10 +20,7 @@ function SelectTrigger({ className, children, ...props }: React.ComponentProps<t
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        'flex h-10 w-full items-center justify-between gap-2 rounded-none border-0 border-b border-border-strong bg-transparent px-0 text-sm text-text outline-none transition-[color,box-shadow]',
-        'hover:border-border-strong',
-        'focus-visible:border-accent focus-visible:bg-surface focus-visible:ring-[3px] focus-visible:ring-accent/40',
-        'data-[state=open]:border-accent data-[placeholder]:text-text-tertiary',
+        'ui-input ui-select-trigger',
         className,
       )}
       {...props}
@@ -45,7 +42,7 @@ function SelectContent({ className, children, position = 'popper', ...props }: R
         data-slot="select-content"
         position={position}
         className={cn(
-          'z-50 max-h-72 min-w-[8rem] overflow-y-auto rounded-card border border-border bg-surface text-text shadow-md',
+          'ui-select-content z-50 min-w-[8rem] overflow-y-auto bg-surface text-text',
           position === 'popper' && 'w-[var(--radix-select-trigger-width)] translate-y-1',
           className,
         )}
@@ -63,7 +60,7 @@ function SelectItem({ className, children, ...props }: React.ComponentProps<type
       data-slot="select-item"
       className={cn(
         'relative flex w-full cursor-pointer select-none items-center rounded-input py-2 pl-3 pr-8 text-sm outline-none',
-        'data-[highlighted]:bg-surface-2 data-[state=checked]:font-semibold',
+        'data-[highlighted]:bg-[var(--blue-row)] data-[state=checked]:font-semibold',
         className,
       )}
       {...props}

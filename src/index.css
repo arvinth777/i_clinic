@@ -3,45 +3,36 @@
 /* Clinic handoff tokens. Source: docs/design.md and the supplied HTML. */
 
 :root {
-  --bg: #FFFFFF;
-  --surface: #FFFFFF;
-  --surface-2: #F6F7F9;
-  --border: #EEF0F3;
-  --border-strong: #DCE1E8;
-  --text: #141C2B;
-  --text-secondary: #5B6575;
-  --text-tertiary: #697586;
-  --accent: #1A4FB5;
-  --accent-hover: #16449C;
-  --accent-active: #123980;
-  --accent-ink: #FFFFFF;
-  --accent-wash: #EAF0FC;
-  --focus-ring: #1A4FB566;
-  --danger: #B42318;
-  --danger-wash: #FEF3F2;
-  --success: #1F7A4D;
-  --success-wash: #ECFDF3;
-  --warning: #93520A;
-  --warning-wash: #FDF6EC;
-  --staging-bg: #93520A;
-  --staging-ink: #FFFFFF;
-  --stage-waiting: var(--text-tertiary);
-  --stage-with-doctor: var(--accent);
-  --stage-packing: var(--warning);
-  --stage-ready: var(--accent);
-  --stage-paid: var(--success);
-  --tile-hero: var(--surface-2);
-  --tile-hero-ink: var(--text);
-  --tile-mint: var(--surface-2);
-  --tile-amber: var(--surface-2);
-  --tile-pale-ink: var(--text);
-  --font: 'Hanken Grotesk', system-ui, sans-serif;
-  --font-display: var(--font);
-  --font-mono: var(--font);
+  --ink: #141C2B; --ink-2: #364154; --muted: #5B6575; --faint: #7A8494; --placeholder: #9AA3B0;
+  --bg: #FFFFFF; --panel: #F6F7F9; --hover: #F2F4F7;
+  --line: #EEF0F3; --line-2: #E3E6EB; --line-3: #DDE1E7;
+  --blue: #1A4FB5; --blue-ink: #123E8C; --blue-tint: #EAF0FC; --blue-row: #F2F5FB;
+  --amber: #93520A; --amber-bg: #FDF6EC; --red: #B42318; --red-bg: #FDF1F0;
+  --green: #1F7A4D; --green-bg: #F2FAF5; --live: #22A55B;
+  --scroll-thumb: #D5DAE1; --scroll-hover: #B4BBC6; --toast-undo: #9DBBF5;
+  --r-sm: 8px; --r-md: 10px; --r-lg: 14px; --r-xl: 16px;
+  --shadow-pop: 0 12px 36px rgba(20,28,43,.14), 0 0 0 1px var(--line);
+  --shadow-modal: 0 24px 64px rgba(20,28,43,.20);
+  --shadow-paper: 0 1px 2px rgba(20,28,43,.06), 0 10px 30px rgba(20,28,43,.08);
+  --scrim: rgba(20,28,43,.32);
+  /* Existing components share the governing palette through these aliases. */
+  --surface: var(--bg); --surface-2: var(--panel); --border: var(--line); --border-strong: var(--line-2);
+  --text: var(--ink); --text-secondary: var(--muted); --text-tertiary: var(--faint);
+  --accent: var(--blue); --accent-hover: var(--blue-ink); --accent-active: var(--blue-ink); --accent-ink: var(--bg);
+  --accent-wash: var(--blue-tint); --focus-ring: var(--blue);
+  --danger: var(--red); --danger-wash: var(--red-bg); --success: var(--green); --success-wash: var(--green-bg);
+  --warning: var(--amber); --warning-wash: var(--amber-bg); --staging-bg: var(--amber-bg); --staging-ink: var(--amber);
+  --stage-waiting: var(--muted); --stage-with-doctor: var(--blue); --stage-packing: var(--amber); --stage-ready: var(--amber); --stage-paid: var(--green);
+  --tile-hero: var(--panel); --tile-hero-ink: var(--ink); --tile-mint: var(--panel); --tile-amber: var(--panel); --tile-pale-ink: var(--ink);
+  --font: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font); --font-mono: var(--font);
+  --space-6: 6px; --space-20: 20px; --space-28: 28px; --space-48: 48px;
+  --primary-height: 44px; --search-height: 48px; --dropdown-height: 360px; --drawer-width: 420px;
+  --table-min-width: 760px; --header-current-height: 56px;
   --text-xxs: 0.75rem;
-  --text-input: 1rem;
+  --text-input: 1.0625rem;
   --text-subheading: 1.0625rem;
-  --text-section: 1.125rem;
+  --text-section: 1.25rem;
   --text-metric: 1.375rem;
   --text-page: 1.625rem;
   --text-record: 1.75rem;
@@ -49,6 +40,11 @@
   --line-body: 1.5;
   --line-title: 1.15;
   --tracking-title: -0.02em;
+  --paper-body-cqw: 1.9cqw;
+  --paper-reference-cqw: 1.85cqw;
+  --paper-caption-cqw: 1.55cqw;
+  --paper-dose-cqw: 1.65cqw;
+  --paper-rx-cqw: 4cqw;
   --print-body-size: calc(var(--paper-width) * 0.019);
   --print-reference-size: calc(var(--paper-width) * 0.0185);
   --print-caption-size: calc(var(--paper-width) * 0.0155);
@@ -65,25 +61,25 @@
   --space-sm: 0.75rem;
   --space-md: 1rem;
   --space-lg: 1.5rem;
-  --space-xl: 2.5rem;
-  --radius-card: 12px;
-  --radius-input: 8px;
+  --space-xl: 2.25rem;
+  --radius-card: var(--r-lg);
+  --radius-input: var(--r-sm);
   --radius-pill: 999px;
   --shadow-sm: none;
   --shadow-md: none;
-  --shadow-drawer: 0 8px 32px #141C2B1A;
+  --shadow-drawer: var(--shadow-pop);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --header-height: 3.5rem;
   --nav-padding: 1.75rem;
   --control-height: 2.25rem;
   --page-padding: 2rem;
   --page-top: 2.25rem;
-  --content-width: 74rem;
+  --content-width: 73.75rem;
   --doctor-side-width: 23.75rem;
   --patient-rail-width: 17.5rem;
   --metric-min-width: 10rem;
   --chart-height: 10rem;
-  --record-rail-width: 15rem;
+  --record-rail-width: 17.5rem;
   --mobile-list-height: 15rem;
   --side-width: 26.25rem;
   --editor-width: 47.5rem;
@@ -96,49 +92,6 @@
   --paper-patient-gap: 4mm;
   --preview-width: 32.5rem;
   color-scheme: light;
-}
-
-:root[data-theme='dark'] {
-  /* Same v4.4 change as light: chroma dropped to 0 on every neutral,
-     accent moved from teal to blue. */
-  --bg: oklch(20% 0 0);
-  --surface: oklch(25% 0 0);
-  --surface-2: oklch(16% 0 0);
-  --border: oklch(34% 0 0);
-  --border-strong: oklch(45% 0 0);
-
-  --text: oklch(94% 0 0);
-  --text-secondary: oklch(74% 0 0);
-  --text-tertiary: oklch(60% 0 0);
-
-  --accent: oklch(68% 0.15 258);
-  --accent-hover: oklch(74% 0.14 258);
-  --accent-active: oklch(60% 0.16 258);
-  --accent-wash: oklch(68% 0.15 258 / 18%);
-  --focus-ring: oklch(68% 0.15 258 / 45%);
-
-  --danger: oklch(66% 0.15 22);
-  --danger-wash: oklch(66% 0.15 22 / 16%);
-  --success: oklch(62% 0.11 152);
-  --success-wash: oklch(62% 0.11 152 / 16%);
-  --warning: oklch(72% 0.12 78);
-  --warning-wash: oklch(72% 0.12 78 / 16%);
-  --stage-ready: oklch(64% 0.11 320);
-
-  --tile-hero: oklch(62% 0.21 290);
-  --tile-hero-ink: oklch(99% 0 0);
-  --tile-mint: oklch(30% 0.05 165);
-  --tile-amber: oklch(32% 0.06 75);
-  --tile-pale-ink: var(--text);
-
-  /* Shadows need more opacity on a dark ground to read at all -- same two
-     steps as light, tuned darker. */
-  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 25%);
-  --shadow-md: 0 2px 8px oklch(0% 0 0 / 35%), 0 1px 2px oklch(0% 0 0 / 25%);
-
-  --shadow-drawer: -8px 0 32px oklch(0% 0 0 / 45%);
-
-  color-scheme: dark;
 }
 
 /* Tailwind v4 theme keys, pointed at the CSS custom properties above --
@@ -213,10 +166,6 @@
   box-sizing: border-box;
 }
 
-html,
-body {
-  overflow-x: clip;
-}
 
 body {
   margin: 0;
@@ -230,18 +179,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* #root holds the staging banner (28px, only in non-production builds) and
-   .shell as flex siblings, so .shell can flex to fill exactly whatever's
-   left of the viewport instead of assuming it owns the whole 100vh itself.
-   .shell used to hard-code height: 100vh, which didn't know the banner
-   above it was already spending 28px -- the document ended up 100vh + 28px
-   tall, so both the page itself and .shell-content's own scroll region
-   scrolled, showing two scrollbars a few pixels apart. */
-#root {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+#root { min-height: 100vh; display: flex; flex-direction: column; }
 
 h1,
 h2,
@@ -252,20 +190,52 @@ h3 {
   letter-spacing: -0.01em;
 }
 
-/* Section title -- every section label in this app (Queue, Comments,
-   Demographics, Procedures, Pricing...). v4.2 tried a clip-path "tab" chip,
-   found it read as an invented AI-tell shape, and replaced it with plain
-   bold text at body size -- but that swap removed the hierarchy device
-   entirely rather than replacing it with a real one, which is why every
-   section on a page ended up reading at the same visual weight as its own
-   body text (docs/STATUS.md's Phase UI-5 finding). Fixed here with two
-   plain, load-bearing typographic moves, not an invented shape: a real
-   step up in size from body text (matches the existing Title scale, see
-   design.md), and a neutral (never accent -- accent stays rare, per
-   design.md's own rule) left rule that marks it as a structural label
-   the way a rule or a heading size does in any real document, not a
-   decorative flourish. */
-.readout-heading {
-  font-size: var(--text-lg); font-weight: 600; color: var(--text);
-  margin: 0 0 var(--space-lg); letter-spacing: -0.01em;
-}
+.readout-heading { font-size: var(--text-lg); font-weight: 700; color: var(--ink); margin: 0 0 var(--space-lg); line-height: 1.3; letter-spacing: -0.01em; }
+
+* { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: var(--radius-pill); border: 3px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--scroll-hover); background-clip: padding-box; border: 3px solid transparent; }
+*::-webkit-scrollbar-corner { background: transparent; }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+html { scroll-behavior: smooth; }
+button, input, textarea, select { font-family: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+::placeholder { color: var(--placeholder); opacity: 1; }
+textarea { field-sizing: content; resize: none; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+.ui-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-xs); flex-shrink: 0; min-height: var(--control-height); padding: 0 10px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--blue); font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.ui-button:hover { background: var(--hover); }
+.ui-button-primary { min-height: var(--primary-height); padding: 0 var(--space-lg); border-radius: var(--r-md); background: var(--blue); color: var(--bg); }
+.ui-button-primary:hover { background: var(--blue-ink); }
+.ui-button-dark { min-height: var(--primary-height); padding: 0 var(--space-20); border-radius: var(--r-md); background: var(--ink); color: var(--bg); }
+.ui-button-dark:hover { background: var(--ink-2); }
+.ui-button-neutral { color: var(--muted); }
+.ui-button-small { min-height: 32px; }
+.ui-button:disabled { color: var(--placeholder); cursor: not-allowed; }
+.ui-button-primary:disabled, .ui-button-dark:disabled { background: var(--line); }
+.ui-input { display: flex; width: 100%; min-width: 0; height: 40px; padding: 0 0 var(--space-xs); border: 0; border-bottom: 1px solid var(--line-2); border-radius: 0; background: transparent; color: var(--ink); font-size: var(--text-base); }
+.ui-input:focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 1px 0 0 var(--blue); }
+.ui-input:disabled { color: var(--placeholder); cursor: not-allowed; }
+.ui-select-trigger { align-items: center; justify-content: space-between; gap: var(--space-xs); }
+.ui-select-content { max-height: var(--dropdown-height); padding: var(--space-6); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+.ui-table { min-width: var(--table-min-width); }
+
+.main-search.ui-input, .inventory-search.ui-input { font-size: var(--text-input); height: var(--search-height); border-color: var(--blue); border-bottom-width: 1.5px; }
+.text-toggles { display: flex; flex-wrap: wrap; gap: 2px; margin-left: -12px; }
+.text-toggles button { min-height: 34px; padding: 0 12px; border: 0; border-radius: var(--r-sm); background: transparent; font: inherit; font-size: var(--text-sm); font-weight: 500; color: var(--muted); cursor: pointer; }
+.text-toggles button[aria-pressed='true'] { background: var(--blue-tint); color: var(--blue); }
+.text-toggles button:hover { background: var(--hover); }
+
+h1 { font-size: var(--text-page); line-height: 1.2; letter-spacing: var(--tracking-title); }
+.loading-row { padding: var(--space-md) 0; border-bottom: 1px solid var(--line); }
+.loading-row span { display: block; height: var(--space-sm); width: 55%; background: var(--line); border-radius: var(--space-2xs); animation: skeleton-pulse 1.5s ease-in-out infinite; }
+.loading-row span + span { width: 35%; margin-top: var(--space-xs); }
+@keyframes skeleton-pulse { 50% { opacity: .55; } }
+.query-error { display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); margin-block: var(--space-md); padding: var(--space-md); border-radius: var(--r-lg); background: var(--red-bg); color: var(--red); }
+.query-error p { color: var(--muted); font-size: var(--text-sm); margin: var(--space-2xs) 0 0; }
+.stale-copy { opacity: .55; }

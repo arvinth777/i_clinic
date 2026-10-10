@@ -1,3 +1,4 @@
+import { LoadingRows, QueryError } from '../QueryState'
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
@@ -22,11 +23,12 @@ type ActionKey = 'purchase' | 'transfer' | 'count' | 'adjust' | null
 export function StockList({ clinicId }: { clinicId: string }) {
   const queryClient = useQueryClient()
   const queryKey = stockQueryKey(clinicId)
+  const [visibleCount, setVisibleCount] = useState(50)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
   const [action, setAction] = useState<ActionKey>(null)
 
-  const { data: medicines, error: medicineError } = useQuery({
+  const { data: medicines, error: medicineError, dataUpdatedAt: savedAt } = useQuery({
     queryKey: ['medicines-for-stock', clinicId],
     queryFn: async () => {
       const { data, error } = await supabase.from('medicines').select('id, name, stock_unit, price_paise, unit_confirmed_at, low_stock_threshold, expiry_date').eq('clinic_id', clinicId).order('name')
@@ -108,7 +110,7 @@ export function StockList({ clinicId }: { clinicId: string }) {
       <div className="flow-stat"><strong className="flow-stat-value stock-qty-low">{stockRows ? rows.filter(m => m.expiry).length : '—'}</strong><span className="flow-stat-label">Expiry alerts</span></div>
     </div>
     <div className="admin-toolbar">
-      <Input aria-label="Search medicines in inventory" placeholder="Search medicines…" value={search} onChange={e => setSearch(e.target.value)} className="inventory-search" />
+      <Input aria-label="Search medicines in inventory" placeholder="Search medicines…" value={search} onChange={e => { setSearch(e.target.value); setVisibleCount(50) }} className="inventory-search" />
       <div className="action-row">
         <Button variant="secondary" onClick={() => setAction('adjust')}>Adjust</Button>
         <Button variant="secondary" onClick={() => setAction('count')}>Monthly count</Button>
@@ -116,14 +118,15 @@ export function StockList({ clinicId }: { clinicId: string }) {
         <Button onClick={() => setAction('purchase')}>+ Record purchase</Button>
       </div>
     </div>
-    <div className="inventory-filters" aria-label="Filter stock">{[['all', 'All medicines'], ['low', 'Low stock'], ['expiry', 'Expiry alerts']].map(([key, label]) => <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}</button>)}</div>
-    {(medicineError || pointError || stockError) ? <p className="form-error">Couldn't load inventory. Reconnect and try again.</p> : !medicines || !stockRows || !stockPoints ? <p className="readout-empty">Loading inventory…</p> : <>
+    <div className="inventory-filters" aria-label="Filter stock">{[['all', 'All medicines'], ['low', 'Low stock'], ['expiry', 'Expiry alerts']].map(([key, label]) => <button key={key} aria-pressed={filter === key} onClick={() => { setFilter(key); setVisibleCount(50) }}>{label}</button>)}</div>
+    {(medicineError || pointError || stockError) && <QueryError retry={() => void queryClient.invalidateQueries()} savedAt={medicines && stockRows && stockPoints ? savedAt : undefined} />}
+    {!medicines || !stockRows || !stockPoints ? !(medicineError || pointError || stockError) && <LoadingRows label="Loading inventory…" /> : <div className={medicineError || pointError || stockError ? 'stale-copy' : undefined}>
       <Table><TableHeader><TableRow>
         <TableHead>Medicine</TableHead><TableHead>Unit price</TableHead>
         {stockPoints.map(sp => <TableHead key={sp.id} className="text-right">{sp.name}</TableHead>)}
         <TableHead className="text-right">Total stock</TableHead><TableHead>Expiry</TableHead>
       </TableRow></TableHeader><TableBody>
-        {visible.map(m => <TableRow key={m.id}>
+        {visible.slice(0, visibleCount).map(m => <TableRow key={m.id}>
           <TableCell><strong>{m.name}</strong><p className="field-hint">{m.unit_confirmed_at ? m.stock_unit : 'Confirm unit and price before billing'}</p></TableCell>
           <TableCell className="tabular-nums">{formatPaise(m.price_paise)}<p className="field-hint">per {m.stock_unit ?? 'unconfirmed unit'}</p></TableCell>
           {stockPoints.map(sp => <TableCell key={sp.id} className={`text-right tabular-nums ${quantityAt(m.id, sp.id) < 0 ? 'stock-qty-negative' : ''}`}>{quantityAt(m.id, sp.id)}</TableCell>)}
@@ -131,7 +134,8 @@ export function StockList({ clinicId }: { clinicId: string }) {
           <TableCell className={m.expiry ? 'stock-qty-low' : ''}>{m.expiry_date ? formatDateOnly(m.expiry_date) : '—'}{m.expiry && <p className="field-hint">{m.expiry}</p>}</TableCell>
         </TableRow>)}
       </TableBody></Table>
+      {visible.length > visibleCount && <Button variant="secondary" onClick={() => setVisibleCount(count => count + 50)}>Show more</Button>}
       {!visible.length && <p className="readout-empty">No medicines match this search or filter.</p>}
-    </>}
+    </div>}
   </div>
 }

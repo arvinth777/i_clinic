@@ -47,6 +47,17 @@ Sources: GitHub branch/deployment/Actions APIs, authenticated Vercel metadata,
 Supabase CLI project/migration/function listings, and Supabase dashboard metadata.
 Student-offer comparison and unaccepted recommendation: `docs/hosting-options.md`.
 
+## UI review preview — 2026-10-10
+
+The branch `codex/clinic-screens-handoff` has branch-specific **Preview** variables
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, both targeting staging
+`cofnrcgsolluyhghutah`. These are the browser-safe public connection values, not a
+service-role credential. No Production-scoped variables were changed. The next
+GitHub push rebuilds that preview; an earlier READY build was blank because these
+variables were absent. Verify the rendered application after deployment, not just
+Vercel's build result. Main/production branch reconciliation and clinical release
+prerequisites above remain unresolved.
+
 ## Account inventory (where each thing lives)
 
 All infrastructure accounts are registered under the sole maintainer's

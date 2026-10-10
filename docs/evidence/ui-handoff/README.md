@@ -23,9 +23,9 @@ then receipt. Its result was inspected locally.
 
 Browser computed styles matched the source HTML: Hanken Grotesk loaded, 15px
 body, 26px Inventory/Refill/Reports and prescription heading, 30px doctor name,
-13px prescription labels, 15px medicine input and 15.0803px physical A4 body
+13px prescription labels, 17px/48px medicine search and 15.0803px physical A4 body
 text (1.9% of 210mm). The named token mapping is in `docs/design.md`.
-Doctor, patient history, inventory, refills and reports were checked at 390px
+Doctor, Reception, Billing, patient history, inventory, refills and reports were checked at 390px
 without horizontal page overflow. Billing/reception were also exercised at
 390px. Tables can scroll within their own container.
 
@@ -45,3 +45,24 @@ Still required: the unfinished addendum backend changes listed in `docs/STATUS.m
 complete integrated regressions, security advisor and independent code review,
 and short/typical/continuation prescription plus receipt on the clinic printer.
 Do not release based solely on these generated PDFs.
+
+Latest design-language revision additionally checks the mobile top sheet (see
+`menu-390.png`) and doctor layout (`doctor-390.png`), keyboard focus trapping,
+Escape/focus/scroll restoration, 1024px two-row navigation, and document-only
+scrolling. Dose and days text presets retain custom entry; SOS has no quantity
+suggestion, a half-tablet twice daily for five days suggests five, and choosing a
+valid quantity keeps the row open. Paged screens render 50 cached rows plus Show
+more after restoring old flat caches (`scripts/ui-query-cache-test.mjs`).
+
+The latest PDF generation caught two regressions: hidden worklists reserving
+extra print pages, and an unconditional page break after the last prescription.
+Both were corrected and all five PDF page counts rechecked. Print text now uses
+container-relative units with a physical fallback. The faint/placeholder colours
+from the supplied palette do not meet 4.5:1 for small text; no blanket contrast
+pass is claimed. Complete state coverage, workflow addendum, security advisor,
+independent review and real-printer evidence remain acceptance gates.
+
+The latest production-build offline reload attempt was blocked by denied browser
+permission for network emulation. No workaround was attempted. The temporary
+synthetic draft was cleared; earlier offline evidence above is not a fresh pass
+for this revision.

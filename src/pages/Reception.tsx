@@ -27,7 +27,7 @@ type SearchResult = {
   address: string | null
 }
 
-export function Reception({ userId }: { userId: string }) {
+export function Reception({ userId, readOnly = false }: { userId: string; readOnly?: boolean }) {
   const queryClient = useQueryClient()
   const { data: clinicId } = useClinicId(userId)
 
@@ -140,7 +140,7 @@ export function Reception({ userId }: { userId: string }) {
   return (
     <div className={billingVisitId ? 'reception-page reception-billing' : 'reception-page'}>
       <div className="reception-shell">
-        <aside className="reception-rail" aria-label="Patient check-in">
+        {!readOnly && <aside className="reception-rail" aria-label="Patient check-in"><div className="sticky-panel">
           <div><h2 className="readout-heading">Check in</h2><p className="field-hint">Find a returning patient by name, phone or token.</p></div>
           <div className="search-field search-results-anchor">
             <svg
@@ -200,8 +200,8 @@ export function Reception({ userId }: { userId: string }) {
             )}
           </div>
           <div className="rail-actions">
-            <Button type="button" variant="secondary" onClick={() => { setSelected('new'); setRepFormOpen(false) }}>
-              + New patient
+            <Button type="button" variant="dark" onClick={() => { setSelected('new'); setRepFormOpen(false) }}>
+              Register new patient
             </Button>
             <Button type="button" variant="secondary" onClick={() => { setSelected(null); setRepFormOpen(true) }}>
               Check in pharma rep
@@ -286,7 +286,7 @@ export function Reception({ userId }: { userId: string }) {
             </>
           ) : null}
           <details className="reception-followups"><summary>Follow-ups due today</summary><FollowUpTodos clinicId={clinicId} /></details>
-        </aside>
+        </div></aside>}
 
         <div className="reception-stage">
           {billingVisitId ? (
@@ -299,7 +299,7 @@ export function Reception({ userId }: { userId: string }) {
           ) : (
             <div className="worklist-panel">
               <h2 className="readout-heading">Today's queue</h2>
-              <TokenList clinicId={clinicId} onSelectVisit={setBillingVisitId} />
+              <TokenList clinicId={clinicId} onSelectVisit={readOnly ? undefined : setBillingVisitId} />
             </div>
           )}
         </div>

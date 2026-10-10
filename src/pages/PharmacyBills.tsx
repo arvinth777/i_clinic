@@ -15,6 +15,7 @@ type Item = { medicineId: string; quantity: string }
 
 export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoctor: boolean }) {
   const client = useQueryClient()
+  const [limit, setLimit] = useState(50)
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creating, setCreating] = useState(true)
@@ -24,6 +25,7 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
   const [verified, setVerified] = useState(false)
   const [method, setMethod] = useState('cash')
   const [finalInput, setFinalInput] = useState('')
+  useEffect(() => { void client.invalidateQueries({ queryKey: ['pharmacy-sales', clinicId] }) }, [limit, clinicId, client])
   const salesKey = ['pharmacy-sales', clinicId, search]
   const { data: medicines, error: medicineError } = useQuery({
     queryKey: ['pharmacy-medicines', clinicId],
@@ -39,7 +41,7 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
     queryFn: async () => {
       let query = supabase.from('pharmacy_sales').select('id, customer_name, created_at, final_amount_paise, bill_id, pharmacy_sale_items(medicine_id, description, quantity, stock_unit, unit_price_paise, line_total_paise), bills!pharmacy_sales_bill_id_fkey(id, final_amount_paise, payment_method, confirmed_at, bill_line_items(kind, description, quantity, stock_unit, unit_price_paise, line_total_paise))').eq('clinic_id', clinicId)
       if (search.trim()) query = query.ilike('customer_name', `%${search.trim()}%`)
-      const { data, error } = await query.order('created_at', { ascending: false }).limit(50)
+      const { data, error } = await query.order('created_at', { ascending: false }).limit(limit)
       if (error) throw error
       const rows = data as unknown as Sale[]
       const waiting = (client.getQueryData<Sale[]>(salesKey) ?? []).filter((local) => local.pending && (!rows.some((row) => row.id === local.id) || local.final_amount_paise !== rows.find((row) => row.id === local.id)?.final_amount_paise || (local.bill_id === 'pending' && !rows.find((row) => row.id === local.id)?.bill_id)))
@@ -148,17 +150,18 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
       <ul className="past-visit-list">{lines.map((line, n) => <li key={n} className="past-visit-item bill-item-row"><span>{line.description} × {line.quantity} {line.stock_unit}</span><span className="pricing-value">{formatPaise(line.line_total_paise)}</span></li>)}</ul>
       <p>Calculated total {formatPaise(total)} · Discount {formatPaise(total - selected.final_amount_paise)}</p><p className="pricing-value">Payable {formatPaise(selected.final_amount_paise)}</p>
       {isDoctor && <form onSubmit={(e) => { e.preventDefault(); discount.mutate() }}><div className="field"><label className="field-label" htmlFor="pharmacy-final">Doctor's final payable (₹)</label><Input id="pharmacy-final" inputMode="decimal" value={finalInput} required onChange={(e) => setFinalInput(e.target.value)} /></div><Button type="submit" disabled={discount.isPending}>{selected.bill_id ? 'Record correction' : 'Set payable'}</Button>{selected.bill_id && <p className="field-hint">Creates a correction bill. Handle any refund or additional collection separately.</p>}</form>}
-      {!isDoctor && !selected.bill_id && <div className="action-row"><label htmlFor="pharmacy-payment">Payment method</label><Select value={method} onValueChange={setMethod}><SelectTrigger id="pharmacy-payment"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cash">Cash</SelectItem><SelectItem value="upi">UPI</SelectItem></SelectContent></Select><Button type="button" disabled={confirm.isPending} onClick={() => confirm.mutate()}>Confirm payment</Button></div>}
+      {!isDoctor && !selected.bill_id && <div className="action-row"><label htmlFor="pharmacy-payment">Payment method</label><div className="text-toggles" id="pharmacy-payment" aria-label="Payment method">{["cash", "upi"].map(value => <button key={value} type="button" aria-pressed={method === value} onClick={() => setMethod(value)}>{value === "cash" ? "Cash" : "UPI"}</button>)}</div><Button type="button" disabled={confirm.isPending} onClick={() => confirm.mutate()}>Confirm payment</Button></div>}
       {confirm.error && <p className="form-error">{confirm.error.message}</p>}{discount.error && <p className="form-error">{discount.error.message}</p>}
-      {selected.bills && <><Button type="button" onClick={() => window.print()}>Print receipt</Button><div className="print-area"><PrintableReceipt clinic={clinic} customerName={selected.customer_name} billable={lines} amountPaise={selected.bills.final_amount_paise} discountPaise={total - selected.bills.final_amount_paise} bill={selected.bills} /></div></>}
+      {selected.bills && <><Button type="button" variant="dark" onClick={() => window.print()}>Print receipt</Button><div className="print-area"><PrintableReceipt clinic={clinic} customerName={selected.customer_name} billable={lines} amountPaise={selected.bills.final_amount_paise} discountPaise={total - selected.bills.final_amount_paise} bill={selected.bills} /></div></>}
     </div>
   }
   const listPanel = <div className="admin-page">
     <div className="admin-toolbar"><h2 className="readout-heading">Refills</h2><Button type="button" onClick={openNew}>New pharmacy bill</Button></div>
-    <div className="field"><label className="field-label" htmlFor="pharmacy-search">Find bills by customer name</label><Input id="pharmacy-search" value={search} onChange={(e) => { setSearch(e.target.value); setSelectedId(null) }} /></div>
+    <div className="field"><label className="field-label" htmlFor="pharmacy-search">Find bills by customer name</label><Input id="pharmacy-search" value={search} onChange={(e) => { setSearch(e.target.value); setLimit(50); setSelectedId(null) }} /></div>
     {salesError && <p className="form-error">Couldn't load pharmacy bills.</p>}
-    <p className="field-hint">Latest 50 matching bills. These names are not linked to patient histories.</p>
+    <p className="field-hint">These names are not linked to patient histories.</p>
     <ul className="past-visit-list">{(sales ?? []).map((s) => <li key={s.id} className="past-visit-item"><Button type="button" variant="secondary" onClick={() => { setSelectedId(s.id); confirm.reset(); discount.reset(); setFinalInput('') }}>{s.customer_name} · {formatDate(s.created_at)} · {formatPaise(s.final_amount_paise)} · {s.bill_id ? 'Paid' : 'Awaiting payment'}{s.pending ? ' · Not saved yet' : ''}</Button></li>)}</ul>
+    {(sales?.length ?? 0) >= limit && <Button variant="secondary" onClick={() => setLimit(value => value + 50)}>Show more</Button>}
   </div>
   return <div className="refill-workspace"><div className="refill-editor">{creating ? createPanel : selected ? selectedPanel() : listPanel}</div>
     <aside className="refill-recent"><p className="field-hint">Recent refill bills</p>{(sales ?? []).slice(0, 10).map(s => <button key={s.id} className="record-selector" aria-pressed={selectedId === s.id} onClick={() => { setSelectedId(s.id); setCreating(false); confirm.reset(); discount.reset(); setFinalInput('') }}><strong>{s.customer_name}</strong><span>{formatPaise(s.final_amount_paise)}</span><small>{s.bill_id ? 'Paid' : 'Awaiting payment'} · {formatDate(s.created_at)}{s.pending ? ' · Not saved yet' : ''}</small></button>)}

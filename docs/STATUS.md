@@ -1,5 +1,49 @@
 # Status
 
+## Latest design-language implementation — 2026-10-10
+
+- Continuing step 4 on `codex/clinic-screens-handoff` (draft PR #5), above
+  prescription PR #4 and foundation PR #3. This revision adopts the user's
+  governing visual language in `docs/design.md`: exact palette, local Hanken,
+  underline controls, text toggles/buttons/statuses, sticky ordered navigation,
+  dedicated More page, mobile menu sheet, window scrolling and thin scrollbars.
+- Removed the obsolete Card component and dark theme. Added sticky preview /
+  check-in contents, named container-relative paper typography, paged patient /
+  bill queries and Show more for long live lists. Legacy flat read caches seed
+  the new paged cache without crashing or dropping the first offline page.
+- Doctor can view Reception/Billing without reception mutations; patient history
+  hides and omits clinical complaints/prescriptions for reception. Backend role
+  rules remain unchanged. Existing clinical-field and clinic-isolation assertions
+  passed again; sign-out cleanup logged transient network timeouts afterward.
+- Fixed bugs found during this pass: mobile drawer animation hit-target race;
+  focus/scroll restoration; medicine rows closing when quantity became valid;
+  invalid issued dose/duration allowing Finish; hidden billing list generating
+  blank paper after switching to document scrolling; trailing empty Rx page.
+- Fresh production build and cache-migration render test passed. Lint retains
+  seven existing warnings. Draft/suggestion (13 cases) and print-render checks
+  passed. Browser checks: 1440px desktop, seven main doctor destinations at 390px
+  with no page overflow or nested main scrolling; tablet nav at 1024px; mobile
+  focus trap/Escape restoration; custom/SOS dosing and quantity suggestions.
+- Fresh short/typical Rx each 1 page, 30-medicine Rx 4 pages, receipt 1 page, combined 5;
+  all 30 medicines retained. Actual saved app bill prints 2 pages after fixing the
+  hidden-list regression. Evidence in `docs/evidence/ui-handoff/` is synthetic.
+- Vercel Preview had no Supabase environment and rendered blank. Added only the
+  public staging URL/anon key for `codex/clinic-screens-handoff`. Production scope
+  and database are unchanged. Publication/runtime preview verification follows.
+- Latest offline reload check could not run: browser permission was denied for
+  CDP/network emulation on the local production build. No alternate route was
+  attempted. Cleared the temporary synthetic draft. Earlier offline results
+  below are historical evidence, not a fresh pass for this revision.
+- Source/screenshots/PDFs are being committed and pushed to draft PR #5; final
+  deployed-preview verification follows. The Supabase advisor MCP is not
+  available in this session, so no fresh advisor pass is claimed.
+- Still NOT release-ready: queue called/sent/absence/reorder migration, price
+  audit/approval-time snapshots, partial supply/shortfalls, complete integrated
+  regression/security advisor/independent review, and physical printer sign-off.
+  Styling progress is not proof these workflows exist. Full stale-data/error
+  states and server pagination of aggregate queue/stock snapshots still need
+  completion against the detailed acceptance spec. No merge or production release.
+
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
 

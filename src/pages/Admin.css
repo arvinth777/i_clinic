@@ -1,11 +1,3 @@
-/* Hallmark · genre: modern-minimal · design-system: /design.md · designed-as-app
- *
- * Admin screen -- six plain management lists behind an in-page tab strip.
- * Reuses .worklist (Worklist.css), .field/.primary-button/.secondary-button
- * (Reception.css), and Drawer.tsx for every add/edit form -- nothing new
- * visually, this is configuration, not a fresh surface.
- */
-
 .admin-page {
   display: flex;
   flex-direction: column;
@@ -61,7 +53,7 @@
 .flow-stat { display: flex; flex-direction: column-reverse; gap: var(--space-xs); }
 .flow-stat-value { font-size: var(--text-page); font-weight: 700; }
 .flow-stat-label { font-size: var(--text-xs); color: var(--text-tertiary); }
-@media (max-width: 900px) { .refill-workspace { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1000px) { .refill-workspace { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 720px) {
  .settings-page { grid-template-columns: minmax(0, 1fr); }
  .settings-page .admin-tabs { flex-direction: row; flex-wrap: wrap; padding: var(--space-md); }
@@ -72,7 +64,7 @@
 .patients-workspace { display: grid; grid-template-columns: var(--patient-rail-width) minmax(0, 1fr); min-height: 100%; }
 .patient-record { min-width: 0; padding: var(--page-padding) var(--page-top); }
 .patient-record > * { max-width: var(--content-width); }
-.patient-record h1 { font-size: var(--text-3xl); font-weight: 700; overflow-wrap: anywhere; }
+.patient-record h1 { font-size: var(--text-page); font-weight: 700; overflow-wrap: anywhere; }
 .patient-history { padding-top: var(--space-md); }
 .patient-history h3 { font-weight: 600; }
 .patient-medicines { padding: var(--space-sm) 0; list-style: none; }

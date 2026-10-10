@@ -1,4 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
+import { onlineManager, useQueryClient } from '@tanstack/react-query'
+import { drainQueue } from '../lib/offlineQueue'
 import { useOfflineQueue } from '../lib/useOfflineQueue'
 import './OfflineQueueBanner.css'
 
@@ -12,6 +14,9 @@ import './OfflineQueueBanner.css'
 // doesn't fire reliably on every close path (OS shutdown, killed process).
 export function OfflineQueueBanner({ redact, userId }: { redact: boolean; userId?: string }) {
   const { pending, halted } = useOfflineQueue()
+  const online = useSyncExternalStore(onlineManager.subscribe, () => onlineManager.isOnline())
+  const client = useQueryClient()
+  function retry() { void drainQueue(); void client.invalidateQueries() }
 
   useEffect(() => {
     function handler(e: BeforeUnloadEvent) {
@@ -33,11 +38,6 @@ export function OfflineQueueBanner({ redact, userId }: { redact: boolean; userId
     // still be unmissable (requirement 6), just without naming anyone.
     return (
       <div className="offline-queue-banner offline-queue-banner-halted" role="alert">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-          <path d="M12 3 L22 20 L2 20 Z" strokeLinejoin="round" />
-          <line x1="12" y1="9" x2="12" y2="14" strokeLinecap="round" />
-          <circle cx="12" cy="17" r="0.5" fill="currentColor" />
-        </svg>
         {redact || !halted.mutation.ownerId || halted.mutation.ownerId !== userId ? (
           <>A queued save could not go through. Its original account must review it. Do not close this device.</>
         ) : (
@@ -50,14 +50,11 @@ export function OfflineQueueBanner({ redact, userId }: { redact: boolean; userId
     )
   }
 
+  if (!online) return <div className="offline-queue-banner offline-queue-banner-halted" role="status"><span>Offline · Saved records and printing still work. New changes stay on this device until they sync. {pending.length} changes waiting.</span><button className="ui-button ui-button-neutral" onClick={retry}>Try again</button></div>
   if (pending.length === 0) return null
 
   return (
     <div className="offline-queue-banner offline-queue-banner-pending" role="status">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M21 12a9 9 0 1 1-3-6.7" />
-        <polyline points="21 3 21 9 15 9" />
-      </svg>
       {pending.length} not saved yet — {pending.some((mutation) => mutation.ownerId && mutation.ownerId !== userId)
         ? 'pending work from another account needs that account to sign in.'
         : 'waiting for a connection.'} Do not close this device until this clears.

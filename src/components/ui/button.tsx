@@ -3,26 +3,13 @@ import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../../lib/utils'
 
-const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-input text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent/40 shrink-0',
-  {
-    variants: {
-      variant: {
-        primary: 'bg-accent text-accent-ink shadow-sm hover:bg-accent-hover active:bg-accent-active',
-        secondary: 'bg-surface-2 text-text hover:bg-border',
-        ghost: 'text-text-secondary hover:bg-surface-2 hover:text-text',
-      },
-      size: {
-        default: 'min-h-9 px-4 py-2',
-        sm: 'h-8 px-3 text-xs',
-      },
-    },
-    defaultVariants: {
-      variant: 'primary',
-      size: 'default',
-    },
+const buttonVariants = cva('ui-button', {
+  variants: {
+    variant: { primary: 'ui-button-primary', dark: 'ui-button-dark', secondary: 'ui-button-text', ghost: 'ui-button-neutral' },
+    size: { default: '', sm: 'ui-button-small' },
   },
-)
+  defaultVariants: { variant: 'primary', size: 'default' },
+})
 
 function Button({
   className,
@@ -32,7 +19,7 @@ function Button({
   ...props
 }: React.ComponentProps<'button'> & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
   const Comp = asChild ? Slot : 'button'
-  return <Comp data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props} />
+  return <Comp data-slot="button" aria-disabled={props.disabled || undefined} className={cn(buttonVariants({ variant, size, className }))} {...props} />
 }
 
 export { Button, buttonVariants }

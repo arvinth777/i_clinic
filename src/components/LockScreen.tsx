@@ -34,10 +34,6 @@ export function LockScreen({ locked, onUnlock }: { locked: boolean; onUnlock: ()
   return (
     <div className="lock-screen" role="dialog" aria-modal="true" aria-label="Screen locked">
       <form className="lock-screen-form" onSubmit={submit}>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="4" y="11" width="16" height="9" rx="2" />
-          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-        </svg>
         <p className="lock-screen-label">Locked</p>
         <input
           type="password"

@@ -1,3 +1,4 @@
+import { LoadingRows } from './QueryState'
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
@@ -318,7 +319,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
       <section className="record-section">
         <h3 className="readout-heading">Pricing</h3>
         {!pricing ? (
-          <p className="readout-empty">Loading…</p>
+          <LoadingRows label="Loading…" />
         ) : (
           <div className="pricing-block">
             <div className="pricing-row">

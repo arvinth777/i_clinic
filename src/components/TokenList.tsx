@@ -1,3 +1,4 @@
+import { LoadingRows, QueryError } from './QueryState'
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
@@ -15,10 +16,6 @@ type Visit = {
   patients: { name: string; age: number | null; gender: string | null } | null
 }
 
-// Colour alone is never the signal -- shape carries it too, so the stage
-// survives any colour-vision deficiency; the word is shown as well since
-// nothing here requires glance-only scanning. Matches the `stage` check
-// constraint in the visits table.
 const STAGES: Record<string, { label: string; color: string }> = {
   waiting: { label: 'Waiting', color: 'var(--stage-waiting)' },
   with_doctor: { label: 'With doctor', color: 'var(--stage-with-doctor)' },
@@ -30,61 +27,10 @@ const STAGES: Record<string, { label: string; color: string }> = {
 function StageGlyph({ stage }: { stage: string }) {
   const meta = STAGES[stage] ?? { label: stage, color: 'var(--text-tertiary)' }
   return (
-    <span className="stage-pill">
-      <StageShape stage={stage} color={meta.color} />
+    <span className="stage-pill" style={{ color: meta.color }}>
       {meta.label}
     </span>
   )
-}
-
-function StageShape({ stage, color }: { stage: string; color: string }) {
-  const box = { width: 20, height: 20, viewBox: '0 0 20 20', 'aria-hidden': true as const }
-  switch (stage) {
-    case 'waiting':
-      return (
-        <svg {...box}>
-          <circle cx="10" cy="10" r="7" fill="none" stroke={color} strokeWidth="2.5" />
-        </svg>
-      )
-    case 'with_doctor':
-      return (
-        <svg {...box}>
-          <circle cx="10" cy="10" r="7" fill={color} />
-        </svg>
-      )
-    case 'packing':
-      return (
-        <svg {...box}>
-          <rect x="4" y="4" width="12" height="12" fill={color} transform="rotate(45 10 10)" />
-        </svg>
-      )
-    case 'ready_at_reception':
-      return (
-        <svg {...box}>
-          <polygon points="10,3 17,16 3,16" fill={color} />
-        </svg>
-      )
-    case 'paid':
-      return (
-        <svg {...box}>
-          <circle cx="10" cy="10" r="7" fill={color} />
-          <path
-            d="M6.5 10.2l2.3 2.3 4.7-4.9"
-            fill="none"
-            stroke="var(--surface)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      )
-    default:
-      return (
-        <svg {...box}>
-          <circle cx="10" cy="10" r="7" fill="none" stroke={color} strokeWidth="2.5" strokeDasharray="3 3" />
-        </svg>
-      )
-  }
 }
 
 // Stages the receptionist can click into to open (or reopen) a bill --
@@ -109,10 +55,11 @@ function sortValue(v: Visit, key: SortKey): string | number {
 export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSelectVisit?: (visitId: string) => void }) {
   const queryClient = useQueryClient()
   const queryKey = ['visits-today', clinicId]
+  const [visibleCount, setVisibleCount] = useState(50)
   const [filter, setFilter] = useState<'active' | 'done' | 'all'>('active')
   const [sort, setSort] = useState<SortState<SortKey>>(null)
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, dataUpdatedAt, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
       // "Today" alone used to be the whole filter -- but a visit that's
@@ -155,21 +102,23 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clinicId])
 
-  if (isLoading) return <p className="readout-empty">Loading queue…</p>
-  if (isError && !data) return <p className="form-error">Couldn't load the queue. Check the connection and retry.</p>
+  if (isLoading) return <LoadingRows label="Loading queue…" />
+  if (isError && !data) return <QueryError retry={() => void refetch()} />
   const rows = sortRows((data ?? []).filter(v => filter === 'all' || (filter === 'done' ? v.stage === 'paid' : v.stage !== 'paid')), sort, sortValue)
   return <div className="queue-worklist">
+    {isError && <QueryError retry={() => void refetch()} savedAt={dataUpdatedAt} />}
     <div className="queue-tools">
-      <div className="queue-filters" aria-label="Queue filter">{(['active', 'done', 'all'] as const).map(value => <button key={value} className="shell-nav-item" aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === 'done' ? 'Done today' : value === 'active' ? 'Active' : 'All'}</button>)}</div>
+      <div className="queue-filters" aria-label="Queue filter">{(['active', 'done', 'all'] as const).map(value => <button key={value} className="shell-nav-item" aria-pressed={filter === value} onClick={() => { setFilter(value); setVisibleCount(50) }}>{value === 'done' ? 'Done today' : value === 'active' ? 'Active' : 'All'}</button>)}</div>
       <details className="queue-sort"><summary>Sort</summary>{(['token', 'name', 'stage', 'wait'] as const).map(key => <button key={key} className="shell-nav-item" onClick={() => setSort(nextSortState(sort, key))}>{key}{sort?.key === key ? sort.direction === 'asc' ? ' ↑' : ' ↓' : ''}</button>)}</details>
     </div>
     {!rows.length && <p className="readout-empty">No patients in this view.</p>}
-    <ul className="queue-patients">{rows.map(v => <li className="queue-patient" key={v.id}>
+    <ul className={isError ? "queue-patients stale-copy" : "queue-patients"}>{rows.slice(0, visibleCount).map(v => <li className="queue-patient" key={v.id}>
       <strong className="queue-token">#{v.token_number}</strong>
       <div className="queue-patient-name"><strong>{v.patients?.name}</strong> <span>{[v.patients?.age, v.patients?.gender].filter(Boolean).join(' ')}</span><p>{v.complaint}</p></div>
       <time className="queue-time" dateTime={v.arrived_at} title={new Date(v.arrived_at).toLocaleString()}>{formatElapsed(v.arrived_at)}</time>
       <StageGlyph stage={v.stage} />
       <div className="queue-action">{onSelectVisit && BILLABLE_STAGES.has(v.stage) && <Button variant="secondary" size="sm" onClick={() => onSelectVisit(v.id)}>{v.stage === 'paid' ? 'Receipt' : 'Bill'}</Button>}</div>
     </li>)}</ul>
+    {rows.length > visibleCount && <Button variant="secondary" onClick={() => setVisibleCount(count => count + 50)}>Show more</Button>}
   </div>
 }

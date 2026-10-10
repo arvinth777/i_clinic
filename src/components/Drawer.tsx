@@ -1,66 +1,51 @@
-import { useEffect } from 'react'
-import type { ReactNode } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import './Drawer.css'
 
-// The one overlay in the app -- opening a record no longer replaces a
-// permanent second column (every prior redesign pass kept that shape); it
-// slides in over the full-width worklist so the table stays put underneath.
-export function Drawer({
-  open,
-  onClose,
-  title,
-  children,
-}: {
+export function Drawer({ open, onClose, title, children, placement = 'right' }: {
   open: boolean
   onClose: () => void
   title: ReactNode
   children: ReactNode
+  placement?: 'right' | 'top'
 }) {
+  const panel = useRef<HTMLDivElement>(null)
+  const dirty = useRef(false)
+  const close = useRef(onClose)
+  useEffect(() => { close.current = onClose }, [onClose])
+  function requestClose() {
+    if (!dirty.current || window.confirm('Close this form and discard unsaved input?')) close.current()
+  }
   useEffect(() => {
     if (!open) return
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
+    dirty.current = false
+    const previousFocus = document.activeElement as HTMLElement | null
+    const previousOverflow = document.documentElement.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    const focusable = () => [...(panel.current?.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, [tabindex="0"]') ?? [])].filter(el => el.getClientRects().length > 0)
+    focusable()[0]?.focus()
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') { event.preventDefault(); requestClose() }
+      if (event.key !== 'Tab') return
+      const items = focusable()
+      const first = items[0]
+      const last = items.at(-1)
+      if (!first) { event.preventDefault(); panel.current?.focus(); return }
+      if (event.shiftKey && (document.activeElement === first || !panel.current?.contains(document.activeElement))) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && (document.activeElement === last || !panel.current?.contains(document.activeElement))) { event.preventDefault(); first.focus() }
     }
     document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open, onClose])
+    return () => {
+      document.documentElement.style.overflow = previousOverflow
+      document.removeEventListener('keydown', onKeyDown)
+      previousFocus?.focus()
+    }
+  }, [open])
 
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            className="drawer-scrim"
-            onClick={onClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-          />
-          <motion.div
-            className="drawer-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label={typeof title === 'string' ? title : undefined}
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <div className="drawer-head">
-              <div className="drawer-title">{title}</div>
-              <button type="button" className="drawer-close" onClick={onClose} aria-label="Close">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                </svg>
-              </button>
-            </div>
-            <div className="drawer-body">{children}</div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
+  return open ? <>
+    <div className="drawer-scrim" onClick={requestClose} />
+    <div ref={panel} className={`drawer-panel drawer-${placement}`} role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : undefined} tabIndex={-1} onInput={() => { dirty.current = true }}>
+      <div className="drawer-head"><h2 className="drawer-title">{title}</h2><button type="button" className="drawer-close" onClick={requestClose}>Close</button></div>
+      <div className="drawer-body">{children}</div>
+    </div>
+  </> : null
 }

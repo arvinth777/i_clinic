@@ -66,6 +66,7 @@ export function PrescriptionForm({
     if (error) throw error
     return data as { follow_up_date: string | null }
   } })
+  const [closedRows, setClosedRows] = useState<string[]>([])
   const [draftItems, setDraftItems] = useState<DraftItem[]>([])
   const [draftLoaded, setDraftLoaded] = useState(false)
   const [draftStorageError, setDraftStorageError] = useState(false)
@@ -426,7 +427,10 @@ export function PrescriptionForm({
       {draftItems.length > 0 && (
         <div className="drug-row-list">
           {draftItems.map((item) => (
-            <details key={item.key} className="drug-row" open={!itemIsValid(item)}>
+            <details key={item.key} className="drug-row" open={!closedRows.includes(item.key)} onToggle={event => {
+              const open = event.currentTarget.open
+              setClosedRows(previous => open === !previous.includes(item.key) ? previous : open ? previous.filter(key => key !== item.key) : [...previous, item.key])
+            }}>
               <summary className="drug-row-head">
                 <span className="drug-row-name">{item.medicineName} <span className="field-hint">{item.strength}</span></span>
                 <span className="drug-row-summary">{item.dosageFrequency} · {item.durationDays || '—'} days</span>
@@ -456,25 +460,16 @@ export function PrescriptionForm({
                 </div>
                 <div className="field">
                   <label className="field-label">Food</label>
-                  <Select value={item.beforeAfterFood} onValueChange={(v) => updateDraft(item.key, { beforeAfterFood: v })}>
-                    <SelectTrigger aria-label={`Food for ${item.medicineName}`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FOOD_OPTIONS.map((f) => (
-                        <SelectItem key={f} value={f}>
-                          {f}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="text-toggles" aria-label={`Food for ${item.medicineName}`}>{FOOD_OPTIONS.map(food => <button key={food} type="button" aria-pressed={item.beforeAfterFood === food} onClick={() => updateDraft(item.key, { beforeAfterFood: food })}>{food}</button>)}</div>
                 </div>
                 <div className="field">
                   <label className="field-label">Frequency</label>
+                  <div className="text-toggles" aria-label={`Dose presets for ${item.medicineName}`}>{['1-0-0', '1-0-1', '1-1-1', 'SOS'].map(dose => <button key={dose} type="button" aria-pressed={item.dosageFrequency === dose} onClick={() => updateDraft(item.key, { dosageFrequency: dose })}>{dose}</button>)}</div>
                   <Input aria-label={`Frequency for ${item.medicineName}`} list="rx-frequencies" value={item.dosageFrequency} maxLength={200} onChange={e => updateDraft(item.key, { dosageFrequency: e.target.value })} placeholder="1-0-1, SOS, or type instructions" />
                 </div>
                 <div className="field">
                   <label className="field-label">Duration (days)</label>
+                  <div className="text-toggles" aria-label={`Duration presets for ${item.medicineName}`}>{['3', '5', '7', '14', '30'].map(days => <button key={days} type="button" aria-pressed={item.durationDays === days} onClick={() => updateDraft(item.key, { durationDays: days })}>{days}</button>)}</div>
                   <Input
                     type="number"
                     min="1"

@@ -1,4 +1,3 @@
-/* Layout ported from Doctor.dc.html. */
 .consultation-page { min-height: 100%; }
 .consultation-shell { display: flex; align-items: stretch; min-height: 100%; }
 .consultation-rail { order: 2; flex: 0 0 var(--doctor-side-width); min-width: 0; background: var(--surface-2); padding: var(--page-top) var(--page-padding); }
@@ -7,7 +6,7 @@
 .consultation-prescribing .consultation-rail { display: none; }
 .consultation-prescribing .consultation-stage { padding: 0; }
 .consultation-prescribing .consultation-stage > * { max-width: none; }
-.rx-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-md); padding: var(--space-xs) var(--page-padding); border-bottom: 1px solid var(--border); font-size: var(--text-sm); }
+.rx-toolbar { position: sticky; top: var(--header-current-height); z-index: 20; background: var(--bg); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-md); padding: var(--space-xs) var(--page-padding); border-bottom: 1px solid var(--border); font-size: var(--text-sm); }
 .doctor-patient-summary { display: flex; flex-wrap: wrap; gap: var(--space-md); justify-content: space-between; align-items: center; margin-bottom: var(--space-xl); }
 .doctor-patient-summary p { margin: 0; color: var(--text-secondary); }
 .consultation-stage .stage-head { margin-bottom: var(--space-xs); flex-wrap: wrap; }
@@ -42,12 +41,6 @@
   padding: 0;
 }
 
-/* Dense, single-line rows (Linear's own issue-list density, not a
-   circular-avatar "contact card" list) -- a colour-filled circular
-   token badge next to two stacked lines of text was the exact generic
-   AI-scaffold list pattern the user called out by name. Token is a
-   plain fixed-width mono tag, not a badge; stage is conveyed by the
-   active row's own background, not repeated as text on every row. */
 .rail-row {
   display: flex;
   align-items: baseline;
@@ -119,9 +112,6 @@
   margin: 0;
 }
 
-/* Consultation-duration clock (ConsultationClock.tsx, Phase UI-4) --
-   pushed to the far end of the header, quiet mono numerals like every
-   other elapsed-time readout in the app (doctor-queue-meta, flow-stat). */
 .consultation-clock {
   margin-left: auto;
   display: flex;
@@ -133,9 +123,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Jump-nav stepper (SectionStepper.tsx) -- purely a "scroll to" index, not
-   a wizard: no step is ever gated or marked complete, so there's no
-   checkmark/disabled state to style, only active vs. not. */
 .section-stepper {
   display: flex;
   align-items: flex-start;
@@ -212,9 +199,6 @@
   }
 }
 
-/* Matches AppShell.css's own mobile collapse point (720px) -- the PRD's
-   "single-column layout" requirement for a mobile browser, not a
-   separate breakpoint invented for this one component. */
 @media (max-width: 720px) {
   .consultation-shell {
     flex-direction: column;
@@ -226,13 +210,6 @@
     max-height: none;
   }
 }
-
-/* ============================================================
- * Today's flow -- three real numbers (waiting / seen today / average
- * current wait) plus a proportional bar in the same stage colours used
- * everywhere else. Nothing here is invented: every figure is derived
- * from today's visits for this clinic at render time.
- * ============================================================ */
 
 .flow-widget { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: baseline; margin-bottom: var(--space-lg); }
 .flow-widget strong { font-size: var(--text-sm); font-weight: 600; }
@@ -254,11 +231,6 @@
   border-top: none;
 }
 
-/* Patient/complaint fields -- a label:value row each, not a tab-flag
-   heading over a lone line of prose. This is the definition-list density
-   an EHR case sheet actually uses; two of these used to be two whole
-   .record-section blocks (Demographics, Today's complaint), each paying
-   the full section-rhythm margin for one line of text. */
 .field-list {
   display: flex;
   flex-direction: column;
@@ -272,9 +244,6 @@
   margin: 0;
 }
 
-/* Plain gray label, Title Case, no uppercase tracking -- matches how real
-   competitor EMR screens (Practo Ray, studied directly) label a clinical
-   row: "Complaints", "Observations", "Diagnosis", not stylised eyebrows. */
 .field-row dt {
   flex: 0 0 7rem;
   font-size: var(--text-sm);
@@ -325,16 +294,6 @@
   color: var(--text-tertiary);
 }
 
-/* Prescription writing -- per-drug editor rows and the review list. Reuses
- * .search-results/.search-result-button (templates, drug search results)
- * and .field/.field-label (each per-drug control) from Reception.css. Each
- * drug row is a hairline-divided group, not a card -- density comes from
- * spacing, not a boxed background.
- */
-
-/* Phase UI-3: search-first entry (see PrescriptionForm.tsx) -- the "usual
-   combo" and each saved template are quiet suggestion chips underneath
-   the search box, not a row of parallel decision buttons above it. */
 .rx-quick-add {
   display: flex;
   flex-wrap: wrap;
@@ -348,16 +307,7 @@
   color: var(--text-tertiary);
 }
 
-.rx-chip {
-  font: inherit;
-  font-size: var(--text-sm);
-  padding: var(--space-2xs) var(--space-sm);
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
+.rx-chip { font: inherit; font-size: var(--text-sm); min-height: 34px; padding: 0 12px; border-radius: var(--r-sm); border: 0; background: transparent; color: var(--muted); cursor: pointer; }
 
 @media (hover: hover) {
   .rx-chip:hover {
@@ -365,8 +315,6 @@
   }
 }
 
-/* The one chip allowed to stand out -- it's the fastest path for a
-   returning patient, worth a glance ahead of the plain template chips. */
 .rx-chip-suggested {
   border-color: var(--accent);
   background: var(--accent-wash);
@@ -387,17 +335,7 @@
   gap: var(--space-sm);
 }
 
-/* v4.5: a real card (border + radius + shadow), not a hairline-divided
-   strip -- matches Linear/Stripe's own per-item grouping and was the
-   mockup's original intent, deferred at Phase UI-3 since that phase
-   was scoped to entry-flow only, not per-drug visual treatment. */
-.drug-row {
-  padding: var(--space-md);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-sm);
-}
+.drug-row { padding-block: var(--space-md); border-bottom: 1px solid var(--line); }
 
 .drug-row-head {
   display: flex;
@@ -468,12 +406,6 @@
   font-size: var(--text-sm);
 }
 
-/* Procedures + pricing -- reuses .past-visit-list/.past-visit-item (the
- * added-procedures list) and .field/.field-label (the final amount input)
- * from Reception.css. The pricing block is a hairline-divided group like
- * the drug rows above, not a filled card.
- */
-
 .procedure-item {
   display: flex;
   align-items: center;
@@ -486,44 +418,16 @@
   color: var(--text);
 }
 
-.procedure-price-input {
-  width: 8rem;
-  font-family: var(--font-mono);
-  font-size: var(--text-base);
-  height: 2.25rem;
-  padding: 0 var(--space-sm);
-  color: var(--text);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-input);
-  box-sizing: border-box;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
+.procedure-price-input { width: 8rem; height: 40px; padding: 0 0 var(--space-xs); color: var(--ink); background: transparent; border: 0; border-bottom: 1px solid var(--line-2); border-radius: 0; text-align: right; font: inherit; }
 
 .procedure-price-input:focus-visible {
   outline: none;
   background: var(--surface);
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  box-shadow: 0 1px 0 0 var(--blue);
 }
 
-/* One bordered card holding calculated total / final amount / discount --
-   `.pricing-row:nth-child(odd)` used to shade alternating children for a
-   "ruled ledger" look, but the Final Amount <Input> sitting between the
-   two rows (an even child) broke that: both rows landed on odd positions,
-   so the tint painted two disconnected grey bars around a plain-looking
-   input instead of one shaded ledger. A single card reads as one summary
-   regardless of how many rows are in it. */
-.pricing-block {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin-top: var(--space-md);
-  padding: var(--space-md);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-}
+.pricing-block { display: flex; flex-direction: column; gap: var(--space-sm); margin-top: var(--space-md); padding-block: var(--space-md); }
 
 .pricing-row {
   display: flex;
@@ -544,7 +448,7 @@
   color: var(--text);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .consultation-shell { flex-direction: column; }
   .consultation-rail { flex-basis: auto; width: 100%; order: 2; }
   .consultation-stage, .consultation-rail { padding: var(--space-lg) var(--space-md); }
