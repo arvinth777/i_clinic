@@ -98,6 +98,11 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
     },
   })
 
+  const proposalKey = ['pricing-proposal',visitId]
+  const proposalQuery = useQuery({queryKey:proposalKey,queryFn:async()=>{const {data,error}=await supabase.rpc('get_pricing_proposal',{p_visit_id:visitId});if(error)throw error;return data as {total_paise:number;revision_number:number}}})
+  const proposal = proposalQuery.data
+  const displayedTotal = proposal?.total_paise ?? pricing?.calculated_total_paise
+
   // calculated_total_paise and final_amount_paise both change server-side as
   // a side effect of triggers this component didn't itself fire (a
   // prescription confirming elsewhere on this screen, or a clamp on
@@ -202,19 +207,22 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
   const [finalAmountError, setFinalAmountError] = useState('')
   useEffect(() => {
     if (pricing) {
-      setFinalAmountDraft(formatPaiseForInput(pricing.final_amount_paise))
+      if(finalAmountDirty) return
+      setFinalAmountDraft(formatPaiseForInput(pricing.final_amount_set ? pricing.final_amount_paise : displayedTotal ?? pricing.final_amount_paise))
       setFinalAmountDirty(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pricing?.final_amount_paise])
+  }, [pricing?.final_amount_paise, displayedTotal, pricing?.final_amount_set])
 
   const updateFinalAmount = useMutation({
     networkMode: 'always',
     mutationFn: async (value: number) => {
+      if(!proposal) throw new Error('Load the current prices before approving.')
+      const args = {p_visit_id:visitId,p_final_amount_paise:value,p_expected_total_paise:proposal.total_paise,p_expected_revision_number:proposal.revision_number,p_request_id:crypto.randomUUID()}
       await attemptOrQueue({
         clinicId,
-        attempt: (accessToken) => supabase.from('visit_pricing').update({ final_amount_paise: value }).eq('visit_id', visitId).setHeader('Authorization', `Bearer ${accessToken}`),
-        queueItem: () => ({ kind: 'update', table: 'visit_pricing', payload: { final_amount_paise: value }, match: { visit_id: visitId }, description: 'Set the final amount' }),
+        attempt: (accessToken) => supabase.rpc('approve_visit_pricing', args).setHeader('Authorization', `Bearer ${accessToken}`),
+        queueItem: () => ({ kind: 'rpc', rpc: 'approve_visit_pricing', payload: args, description: 'Approve bill prices and discount' }),
         applyOptimistic: () =>
           queryClient.setQueryData<Pricing>(pricingKey, (old) => (old ? { ...old, final_amount_paise: value, final_amount_set: true } : old)),
       })
@@ -236,7 +244,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
       setFinalAmountError("Final amount can't be less than 0")
       return
     }
-    if (value > pricing.calculated_total_paise) {
+    if (value > (displayedTotal ?? pricing.calculated_total_paise)) {
       setFinalAmountError("Final amount can't be more than the calculated total")
       return
     }
@@ -323,7 +331,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
           <div className="pricing-block">
             <div className="pricing-row">
               <span>Calculated total</span>
-              <span className="pricing-value">{formatPaise(pricing.calculated_total_paise)}</span>
+              <span className="pricing-value">{formatPaise(displayedTotal ?? pricing.calculated_total_paise)}</span>
             </div>
             <div className="field">
               <label className="field-label" htmlFor="final-amount">
@@ -337,8 +345,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
                   setFinalAmountDraft(e.target.value)
                   setFinalAmountDirty(true)
                 }}
-                onBlur={commitFinalAmount}
-                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                onKeyDown={(e) => e.key === 'Enter' && commitFinalAmount()}
               />
               {finalAmountError && (
                 <span className="field-error" role="alert">
@@ -352,7 +359,10 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
             </div>
           </div>
         )}
-        {updateFinalAmount.isError && <p className="form-error">Couldn't save — try again.</p>}
+        <Button variant="dark" disabled={updateFinalAmount.isPending || !proposal || (!finalAmountDirty && pricing?.final_amount_set)} onClick={commitFinalAmount}>{pricing?.final_amount_set && !finalAmountDirty ? 'Bill approved' : 'Approve bill'}</Button>
+        <p className="field-hint">Approval freezes these unit prices and the fixed discount. Catalog changes afterwards apply to new bills.</p>
+        {proposalQuery.isError && <p className="form-error">Couldn’t load current prices. Try again when connected.</p>}
+        {updateFinalAmount.isError && <p className="form-error">{updateFinalAmount.error.message}</p>}
       </section>
     </>
   )
