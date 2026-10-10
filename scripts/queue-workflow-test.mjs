@@ -18,7 +18,7 @@ try {
  const command = {p_visit_id:visit.id,p_action:'move_up',p_request_id:crypto.randomUUID(),p_reason:'Synthetic verification'}
  data(await reception.rpc('queue_visit_action',command))
  data(await reception.rpc('queue_visit_action',command))
- assert.equal(data(await reception.from('queue_events').select('id').eq('request_id',command.p_request_id)).length,1,'retry must not log/move twice')
+ assert.equal(data(await reception.from('queue_events').select('request_id').eq('request_id',command.p_request_id)).length,1,'retry must not log/move twice')
  assert.ok((await doctor.rpc('queue_visit_action',{...command,p_request_id:crypto.randomUUID()})).error,'doctor cannot reorder')
  assert.ok((await reception.from('visits').update({stage:'with_doctor'}).eq('id',visit.id)).error,'raw stage writes cannot bypass Sent in')
  console.log('PASS: reception reorder is role-checked and idempotent; stage bypass blocked')

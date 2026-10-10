@@ -15,12 +15,12 @@ export function ConsultationClock({ startedAt }: { startedAt: string }) {
 
   const elapsedSeconds = Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000))
   const minutes = Math.floor(elapsedSeconds / 60)
-  const seconds = elapsedSeconds % 60
-  const display = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  if (minutes >= 600) return null
+  const display = `${minutes} min`
 
   return (
     <span className="consultation-clock">
-      {display} in consult
+       · {display} in consult
     </span>
   )
 }

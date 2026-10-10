@@ -7,8 +7,12 @@ import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
 import { PrintableSlip, PrintableReceipt, type PrintVisit as Visit, type DetailRow, type Bill } from './VisitPrintout'
 import { attemptOrQueue } from '../lib/offlineQueue'
+import { Input } from './ui/input'
 import { Button, buttonVariants } from './ui/button'
 import './Billing.css'
+
+type ApprovedLine = DetailRow & {prescription_item_id?:string;available_quantity:number;approved_quantity?:number;shortfall?:number}
+type Approval = {lines:ApprovedLine[];revision_number:number;final_amount_paise:number;discount_paise:number}
 
 type Pricing = { calculated_total_paise: number; final_amount_paise: number; discount_paise: number; revision_number: number; final_amount_set: boolean }
 
@@ -64,35 +68,6 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   // (not just invalidated -- there's no network to refetch from), so the
   // rest of this screen unblocks immediately instead of waiting on a stage
   // that will only actually change once the queue drains.
-  const openBill = useMutation({
-    // React Query's default networkMode ('online') pauses a mutation before
-    // ever calling mutationFn while navigator.onLine is false -- 'always'
-    // is what lets attemptOrQueue's own online/offline branch run at all.
-    networkMode: 'always',
-    mutationFn: async () => {
-      await attemptOrQueue({
-        clinicId,
-        attempt: (accessToken) => supabase.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId).eq('stage', 'packing').setHeader('Authorization', `Bearer ${accessToken}`),
-        queueItem: () => ({
-          kind: 'update',
-          table: 'visits',
-          payload: { stage: 'ready_at_reception' },
-          match: { id: visitId },
-          description: `Open bill for ${visit?.patients?.name ?? 'a visit'}`,
-        }),
-        applyOptimistic: () => queryClient.setQueryData<Visit>(visitKey, (old) => (old ? { ...old, stage: 'ready_at_reception' } : old)),
-      })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: visitKey })
-      queryClient.invalidateQueries({ queryKey: ['visits-today', clinicId] })
-    },
-  })
-  useEffect(() => {
-    if (!readOnly && visit?.stage === 'packing') openBill.mutate()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visit?.stage])
-
   const pricingKey = ['billing-pricing', visitId]
   const pricingQuery = useQuery({
     queryKey: pricingKey,
@@ -127,7 +102,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   }, [visitId])
 
   const detailKey = ['billing-detail', visitId]
-  const detailEnabled = (readOnly && visit?.stage === 'packing') || visit?.stage === 'ready_at_reception' || visit?.stage === 'paid'
+  const detailEnabled = visit?.stage === 'ready_to_bill' || visit?.stage === 'paid'
   const detailQuery = useQuery({
     queryKey: detailKey,
     enabled: detailEnabled,
@@ -137,7 +112,10 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       return data as DetailRow[]
     },
   })
-  const { data: detail } = detailQuery
+  const approvalQuery = useQuery({queryKey:['approved-bill',visitId],enabled:detailEnabled,queryFn:async()=>{const {data,error}=await supabase.rpc('get_approved_bill',{p_visit_id:visitId});if(error)throw error;return data as Approval | null}})
+  const approval = approvalQuery.data
+  const detail = approval?.lines ?? detailQuery.data
+  const [supplied, setSupplied] = useState<Record<string,string>>({})
   const detailStillLoading = !detail?.length || detail.some(row => !('diagnosis' in row) || !('advice' in row))
   const clinicalNotes = detailStillLoading ? undefined : { diagnosis: [...new Set(detail.map(row => row.diagnosis).filter(Boolean))].join('\n'), advice: [...new Set(detail.map(row => row.advice).filter(Boolean))].join('\n') }
 
@@ -175,7 +153,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
     enabled: visit?.stage === 'paid',
     queryFn: async () => {
       const { data, error } = await supabase.from('bills')
-        .select('id, final_amount_paise, payment_method, confirmed_at, bill_line_items(kind, description, quantity, unit_price_paise, line_total_paise, stock_unit)')
+        .select('id, final_amount_paise, payment_method, confirmed_at, bill_line_items(kind, description, quantity, unit_price_paise, line_total_paise, stock_unit, approved_quantity, shortfall)')
         .eq('clinic_id', clinicId).eq('visit_id', visitId).is('corrects_bill_id', null)
         .order('confirmed_at', { ascending: false }).limit(1).single()
       if (error) throw error
@@ -184,6 +162,14 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   })
   const { data: savedBill } = savedBillQuery
   const bill = confirmedBill?.pending ? savedBill ?? confirmedBill : confirmedBill ?? savedBill ?? null
+
+  const supplyLines = approval?.lines.map(row => {
+    const quantity = row.prescription_item_id && supplied[row.prescription_item_id] !== undefined ? Number(supplied[row.prescription_item_id]) : row.quantity ?? 1
+    return {...row,quantity,approved_quantity:row.kind==='medicine'?row.quantity:undefined,shortfall:row.kind==='medicine'?(row.quantity??0)-quantity:0,line_total_paise:quantity*row.unit_price_paise}
+  })
+  const subtotal = supplyLines?.reduce((sum,row)=>sum+row.line_total_paise,0) ?? pricing?.calculated_total_paise ?? 0
+  const supplyInvalid = !Number.isSafeInteger(subtotal) || supplyLines?.some(row=>!Number.isInteger(row.quantity)||row.quantity<0||(row.kind==='medicine'&&(row.quantity>(row.approved_quantity??0)||row.quantity>Math.max(0,row.available_quantity))))
+  const payable = Math.max(0,subtotal-(approval?.discount_paise??pricing?.discount_paise??0))
 
   const confirmPayment = useMutation({
     networkMode: 'always',
@@ -195,8 +181,10 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       // snapshot and the reconciliation trigger flags the mismatch, per
       // docs/architecture-spec.md's offline money-conflict design -- never
       // a silent re-read of whatever is live by then.
-      const snapshotAmount = pricing!.final_amount_paise
-      const snapshotRevision = pricing!.revision_number
+      if(!approval || !supplyLines || supplyInvalid) throw new Error('Review supplied quantities and current stock before payment.')
+      const snapshotAmount = approval.final_amount_paise
+      const snapshotRevision = approval.revision_number
+      const suppliedItems=supplyLines.filter(row=>row.kind==='medicine').map(row=>({prescription_item_id:row.prescription_item_id,quantity:row.quantity}))
 
       const { queued } = await attemptOrQueue({
         clinicId,
@@ -206,6 +194,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
             p_payment_method: paymentMethod,
             p_snapshot_final_amount_paise: snapshotAmount,
             p_snapshot_revision_number: snapshotRevision,
+            p_supplied_items: suppliedItems,
           }).setHeader('Authorization', `Bearer ${accessToken}`)
           return { error }
         },
@@ -217,6 +206,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
             p_payment_method: paymentMethod,
             p_snapshot_final_amount_paise: snapshotAmount,
             p_snapshot_revision_number: snapshotRevision,
+            p_supplied_items: suppliedItems,
           },
           description: `Confirm ${paymentMethod} payment for ${visit?.patients?.name ?? 'a visit'}`,
         }),
@@ -230,7 +220,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
         // surfaces { error }, not the RPC's returned id.
         const { data: bill, error: billErr } = await supabase
           .from('bills')
-          .select('id, final_amount_paise, payment_method, confirmed_at, bill_line_items(kind, description, quantity, unit_price_paise, line_total_paise, stock_unit)')
+          .select('id, final_amount_paise, payment_method, confirmed_at, bill_line_items(kind, description, quantity, unit_price_paise, line_total_paise, stock_unit, approved_quantity, shortfall)')
           .eq('visit_id', visitId)
           .is('corrects_bill_id', null)
           .order('confirmed_at', { ascending: false })
@@ -243,7 +233,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       // Offline: there is no real bill row yet (confirm_bill hasn't run) --
       // the patient is standing here regardless, so print proceeds from
       // exactly what this screen already knows, with no server id to show.
-      return { id: 'pending', final_amount_paise: snapshotAmount, payment_method: paymentMethod, confirmed_at: new Date().toISOString(), pending: true, bill_line_items: detail!.map((row) => ({ kind: row.kind, description: row.description, quantity: row.quantity ?? 1, stock_unit: row.stock_unit, unit_price_paise: row.unit_price_paise, line_total_paise: row.line_total_paise ?? row.unit_price_paise })) }
+      return { id: 'pending', final_amount_paise: payable, approved_discount_paise:approval.discount_paise, payment_method: paymentMethod, confirmed_at: new Date().toISOString(), pending: true, bill_line_items: supplyLines }
     },
     onSuccess: (bill) => {
       setConfirmedBill(bill)
@@ -257,13 +247,13 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
     },
   })
 
-  const failedReads = [visitQuery, pricingQuery, detailQuery, clinicQuery, savedBillQuery].filter(query => query.isError)
+  const failedReads = [visitQuery, pricingQuery, detailQuery, approvalQuery, clinicQuery, savedBillQuery].filter(query => query.isError)
   const queryError = failedReads.length > 0 ? <QueryError retry={() => { failedReads.forEach(query => void query.refetch()) }} savedAt={Math.min(...failedReads.map(query => query.dataUpdatedAt)) || undefined} /> : null
   if (!visit || !pricing || (visit.stage === 'paid' && !bill)) return <div className="bill-editor"><Button variant="ghost" onClick={onClose}>← Back</Button>{queryError ?? <LoadingRows label="Loading bill…" />}</div>
-  const waitingForDoctor = !pricing.final_amount_set
-  const amountPaise = bill ? bill.final_amount_paise : pricing.final_amount_paise
-  const billable = bill?.bill_line_items ?? detail
-  const calculatedTotal = bill?.bill_line_items ? bill.bill_line_items.reduce((sum, row) => sum + row.line_total_paise, 0) : pricing.calculated_total_paise
+  const waitingForDoctor = !bill && (!pricing.final_amount_set || !approval)
+  const amountPaise = bill ? bill.final_amount_paise : payable
+  const billable = bill?.bill_line_items ?? supplyLines ?? detail
+  const calculatedTotal = bill?.bill_line_items ? bill.bill_line_items.reduce((sum, row) => sum + row.line_total_paise, 0) : subtotal
   const discountPaise = calculatedTotal - amountPaise
 
   return (
@@ -276,7 +266,6 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
         {visit.patients?.name} <span className="doctor-queue-meta">Token {visit.token_number}</span>
       </h2>
       {detail?.some((row) => row.kind === 'medicine' && !row.stock_unit) && visit.stage !== 'paid' && <p className="form-error">Confirm medicine units under Stock and ask the doctor to review supplied quantities before payment.</p>}
-      {openBill.isError && <p className="form-error">Couldn't open the bill — try again.</p>}
 
       <section className="record-section">
         <h3 className="readout-heading">Itemised breakdown</h3>
@@ -284,11 +273,12 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
           <LoadingRows label="Loading…" />
         ) : (
           <div className="bill-table-wrap"><table className="bill-lines"><thead><tr><th>Item</th><th>Supplied</th><th>Price</th><th>Amount</th></tr></thead><tbody>
-            {billable.map((row, i) => <tr key={i}><td><strong>{row.description}</strong><small>{row.kind === 'consultation' ? 'Consultation fee' : row.kind === 'procedure' ? 'Procedure' : row.stock_unit}</small></td><td>{row.quantity ?? 1}</td><td>{formatPaise(row.unit_price_paise)}</td><td><strong>{formatPaise(row.line_total_paise ?? row.unit_price_paise)}</strong></td></tr>)}
+            {billable.map((row, i) => <tr key={i}><td><strong>{row.description}</strong><small>{row.kind === 'consultation' ? 'Consultation fee' : row.kind === 'procedure' ? 'Procedure' : row.stock_unit}</small></td><td>{!bill && !readOnly && row.kind==='medicine' && row.prescription_item_id ? <Input type="number" inputMode="numeric" min={0} max={Math.min(row.approved_quantity??0,row.available_quantity??0)} step={1} aria-label={`Supplied quantity for ${row.description}`} value={supplied[row.prescription_item_id]??String(row.quantity??0)} onChange={e=>setSupplied(old=>({...old,[row.prescription_item_id!]:e.target.value}))}/> : row.quantity ?? 1}{row.kind==='medicine' && 'approved_quantity' in row && row.approved_quantity!=null && <small>{row.approved_quantity} approved{'shortfall' in row && !!row.shortfall && ` · ${row.shortfall} not supplied`}</small>}</td><td>{formatPaise(row.unit_price_paise)}</td><td><strong>{formatPaise(row.line_total_paise ?? row.unit_price_paise)}</strong></td></tr>)}
           </tbody></table></div>
         )}
       </section>
 
+      {supplyInvalid && !bill && <p className="form-error">Use whole supplied units within the approved quantity and available Counter stock.</p>}
       <section className="record-section">
         <div className="pricing-block">
           <div className="pricing-row">
@@ -296,7 +286,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
             <span className="pricing-value">{formatPaise(calculatedTotal)}</span>
           </div>
           <div className="pricing-row">
-            <span>Discount set by the doctor</span>
+            <span>Discount set by the doctor{approval && discountPaise<approval.discount_paise ? ` (capped from ${formatPaise(approval.discount_paise)})` : ''}</span>
             <span className="pricing-value">{formatPaise(discountPaise)}</span>
           </div>
           <div className="pricing-row bill-final-amount">
@@ -339,7 +329,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
           </div>
           {paymentMethod === 'upi' &&
             (clinic?.upi_vpa ? (
-              <UpiQr vpa={clinic.upi_vpa} amountPaise={pricing.final_amount_paise} payeeName={clinic.name} />
+              <UpiQr vpa={clinic.upi_vpa} amountPaise={amountPaise} payeeName={clinic.name} />
             ) : (
               <p className="readout-empty">UPI ID not configured for this clinic yet.</p>
             ))}
@@ -348,17 +338,17 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
               type="button"
               className={buttonVariants({ variant: 'primary' })}
               whileTap={{ scale: 0.96, rotate: -1 }}
-              disabled={confirmPayment.isPending || detailStillLoading}
+              disabled={confirmPayment.isPending || detailStillLoading || supplyInvalid}
               onClick={() => confirmPayment.mutate()}
             >
-              {confirmPayment.isPending ? 'Confirming…' : detailStillLoading ? 'Loading receipt details…' : 'Confirm payment'}
+              {confirmPayment.isPending ? 'Confirming…' : detailStillLoading ? 'Loading receipt details…' : `Mark paid · ${formatPaise(amountPaise)}`}
             </motion.button>
             <Button type="button" variant="secondary" onClick={onClose}>
               Back to queue
             </Button>
           </div>
           {detailStillLoading && <p className="readout-empty">Instructions are not saved on this device yet. During an outage, print the prescription from the doctor’s screen.</p>}
-          {confirmPayment.isError && <p className="form-error">Couldn't confirm — try again.</p>}
+          {confirmPayment.isError && <p className="form-error">{confirmPayment.error.message}</p>}
         </section>
       )}
 

@@ -6,8 +6,10 @@ import { CustomFieldList } from '../components/admin/CustomFieldList'
 import { LoginsPanel } from '../components/admin/LoginsPanel'
 import { ClinicSettings } from '../components/admin/ClinicSettings'
 import './Admin.css'
+import { QueueSettings } from '../components/admin/QueueSettings'
 
 const TABS = [
+  { key: 'queue', label: 'Queue' },
   { key: 'drugs', label: 'Medicines & prices' },
   { key: 'procedures', label: 'Procedures' },
   { key: 'templates', label: 'Templates' },
@@ -18,13 +20,13 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]['key']
 
-export function Admin({ clinicId }: { clinicId: string }) {
-  const [tab, setTab] = useState<TabKey>('settings')
+export function Admin({ clinicId, isAdmin = true }: { clinicId: string; isAdmin?: boolean }) {
+  const [tab, setTab] = useState<TabKey>(isAdmin ? 'settings' : 'queue')
 
   return (
     <div className="admin-page settings-page">
       <nav className="admin-tabs" aria-label="Settings"><h2>Settings</h2>
-        {TABS.map((t) => (
+        {TABS.filter(t=>isAdmin || t.key==='queue').map((t) => (
           <button
             key={t.key}
             type="button"
@@ -37,6 +39,7 @@ export function Admin({ clinicId }: { clinicId: string }) {
         ))}
       </nav>
       <div className="admin-panel">
+        {tab === 'queue' && <QueueSettings clinicId={clinicId} />}
         {tab === 'drugs' && <DrugList clinicId={clinicId} />}
         {tab === 'procedures' && <ProcedureList clinicId={clinicId} />}
         {tab === 'templates' && <TemplateList clinicId={clinicId} />}

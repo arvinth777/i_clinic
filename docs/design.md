@@ -176,3 +176,15 @@ states and keyboard. Backend role checks, integer money, offline reload, regress
 security and code review remain required. Release additionally requires physical
 short/typical/continuation prescriptions and a receipt on the clinic printer, with
 photo/PDF evidence and user sign-off. Browser PDFs cannot satisfy that hardware gate.
+
+## Corrected doctor workspace — 2026-10-10
+
+`Doctor-corrected.html` is the later user-supplied doctor reference. Use its
+620px main flex basis, 760px content maximum, 380px queue basis / 520px maximum,
+110px history date column, 36/32/48px main padding and 30px patient name. These
+are named `--doctor-*` and `--space-32/36/40` tokens. Initially show seven waiting
+rows, then Show more in pages of 50. Today’s queue excludes older open visits;
+show their real count separately. Long waits are amber after 45 minutes.
+A consultation clock is minutes, suppressed beyond 10 hours. Arrival and sent
+status come from persisted queue actions, not the mock timer. No mock allergy
+or vital values are imported. Use the existing self-hosted Hanken font.

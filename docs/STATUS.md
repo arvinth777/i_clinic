@@ -1,5 +1,19 @@
 # Status
 
+## Queue and corrected doctor workspace — in progress
+
+- Implementing the new queue command migration and corrected doctor HTML.
+  New actions use stable request IDs and the existing IndexedDB write queue.
+  Direct older stage updates fail explicitly for review rather than bypassing
+  acknowledgement. No production change.
+- Queue test reaches the new RPC boundary and fails because the migration is
+  not yet applied. Earlier test setup issues (unavailable reception-B account
+  and ambiguous role rows) were fixed to use the established synthetic clinic A.
+- Doctor/reception/menus/billing stage callers and queue Settings are being
+  updated together. Money snapshots and partial supply are still in progress.
+- This is a migration checkpoint, not a completion claim. Review, backend
+  tests, browser/offline evidence and physical-printer sign-off remain due.
+
 ## Letterhead integration — 2026-10-10
 
 - Merged `codex/clinic-vector-letterhead` (`bde9358`) into the active

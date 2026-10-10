@@ -28,6 +28,7 @@ function App() {
   // patient's name from a halted-queue message while the screen is
   // locked (docs/STATUS.md's Medium finding) -- a shared source of
   // truth, not two components separately guessing at it.
+  const [recordPatientId, setRecordPatientId] = useState<string | null>(null)
   const [locked, setLocked] = useState(false)
 
   const sections: ShellSection[] = []
@@ -45,7 +46,7 @@ function App() {
   if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'register', label: 'Long-term care' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'reconciliation', label: 'Needs reconciliation' })
   if (roles?.some((r) => r.role === 'admin' || r.role === 'doctor')) sections.push({ key: 'reports', label: 'Reports' })
-  if (roles?.some((r) => r.role === 'admin')) sections.push({ key: 'admin', label: 'Settings' })
+  if (roles?.some((r) => r.role === 'admin' || r.role === 'doctor')) sections.push({ key: 'admin', label: 'Settings' })
 
   if (roles?.some(r => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'suppliers', label: 'Suppliers' })
 
@@ -88,10 +89,10 @@ function App() {
         onSelectSection={setManualSection}
       >
         {activeSection === 'reception' && <Reception userId={session.user.id} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
-        {activeSection === 'patients' && clinicId && <Patients clinicId={clinicId} isDoctor={!!roles?.some(r => r.role === 'doctor')} canBill={!!roles?.some(r => r.role === 'receptionist')} />}
+        {activeSection === 'patients' && clinicId && <Patients initialPatientId={recordPatientId} clinicId={clinicId} isDoctor={!!roles?.some(r => r.role === 'doctor')} canBill={!!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'billing' && clinicId && <BillingDesk clinicId={clinicId} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'unpaid' && clinicId && <UnpaidBills clinicId={clinicId} />}
-        {activeSection === 'consultation' && <Consultation userId={session.user.id} />}
+        {activeSection === 'consultation' && <Consultation userId={session.user.id} onOpenPatient={id=>{setRecordPatientId(id);setManualSection('patients')}} />}
         {activeSection === 'pharmacy' && clinicId && <PharmacyBills clinicId={clinicId} isDoctor={roles?.some((r) => r.role === 'doctor') ?? false} />}
         {activeSection === 'suppliers' && clinicId && <Suppliers clinicId={clinicId} />}
         {activeSection === 'stock' && clinicId && <Stock clinicId={clinicId} />}
@@ -99,7 +100,7 @@ function App() {
         {activeSection === 'register' && clinicId && <LongTermRegister clinicId={clinicId} />}
         {activeSection === 'reconciliation' && clinicId && <Reconciliation clinicId={clinicId} />}
         {activeSection === 'reports' && <Reports />}
-        {activeSection === 'admin' && clinicId && <Admin clinicId={clinicId} />}
+        {activeSection === 'admin' && clinicId && <Admin clinicId={clinicId} isAdmin={roles?.some(r=>r.role==='admin')} />}
       </AppShell>
     </>
   )

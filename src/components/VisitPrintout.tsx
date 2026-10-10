@@ -16,6 +16,10 @@ export type PrintVisit = {
 }
 
 export type DetailRow = {
+  prescription_item_id?: string
+  approved_quantity?: number
+  available_quantity?: number
+  shortfall?: number
   diagnosis?: string | null
   advice?: string | null
   prescription_id?: string
@@ -33,9 +37,9 @@ export type DetailRow = {
   notes: string | null
 }
 
-export type BillLine = { stock_unit?: string | null; kind: DetailRow['kind']; description: string; quantity: number; unit_price_paise: number; line_total_paise: number }
+export type BillLine = { prescription_item_id?: string; available_quantity?: number; approved_quantity?: number; shortfall?: number; stock_unit?: string | null; kind: DetailRow['kind']; description: string; quantity: number; unit_price_paise: number; line_total_paise: number }
 
-export type Bill = { bill_line_items?: BillLine[]; id: string; final_amount_paise: number; payment_method: string; confirmed_at: string; pending?: boolean }
+export type Bill = { approved_discount_paise?: number; bill_line_items?: BillLine[]; id: string; final_amount_paise: number; payment_method: string; confirmed_at: string; pending?: boolean }
 
 export type ClinicPrintInfo = {
   name: string
@@ -121,7 +125,7 @@ export function PrintableReceipt({
         <tbody>
           {billable.map((r, i) => (
             <tr key={i}>
-              <td>{r.description}{r.quantity != null && ` × ${r.quantity} ${r.stock_unit ?? ''}`}</td>
+              <td>{r.description}{r.quantity != null && ` × ${r.quantity} ${r.stock_unit ?? ''}`}{'shortfall' in r && !!r.shortfall && <small> · {r.shortfall} not supplied</small>}</td>
               <td>{formatPaise(r.line_total_paise ?? r.unit_price_paise)}</td>
             </tr>
           ))}

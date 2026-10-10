@@ -17,7 +17,7 @@ export function BillingDesk({ clinicId, readOnly = false }: { clinicId: string; 
   const [selected, setSelected] = useState<string | null>(null)
   const { data: pages, isError, dataUpdatedAt, isPending, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({ queryKey: ['billing-desk', clinicId, 'pages-v2'], initialData: () => restorePagedCache(client.getQueryData<{ pages: Visit[][] }>(['billing-desk', clinicId, 'pages']), client.getQueryData<Visit[]>(['billing-desk', clinicId])), initialPageParam: 0, getNextPageParam: (last: Visit[], pages: Visit[][]) => last.length === 50 ? pages.length * 50 : undefined, queryFn: async ({ pageParam }) => {
     const { data, error } = await supabase.from('visits').select('id, token_number, stage, patients(name)').eq('clinic_id', clinicId)
-      .in('stage', ['packing', 'ready_at_reception', 'paid']).or(`stage.neq.paid,arrived_at.gte.${startOfToday()}`).order('arrived_at', { ascending: false }).order('id').range(pageParam, pageParam + 49)
+      .in('stage', ['ready_to_bill', 'paid']).or(`stage.neq.paid,arrived_at.gte.${startOfToday()}`).order('arrived_at', { ascending: false }).order('id').range(pageParam, pageParam + 49)
     if (error) throw error
     return data as unknown as Visit[]
   } })

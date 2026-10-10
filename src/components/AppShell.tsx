@@ -11,6 +11,7 @@ import { OfflineQueueBanner } from './OfflineQueueBanner'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import './AppShell.css'
+import { startOfToday } from '../lib/date'
 
 // Per-station idle-lock timeout (docs/architecture-spec.md): the reception
 // desk is a walk-through space, unattended repeatedly through the day; the
@@ -132,8 +133,8 @@ export function AppShell({
     queryKey: queueKey,
     enabled: !!clinicId && clinical,
     queryFn: async () => {
-      const { data, error } = await supabase.from('visits').select('token_number, stage')
-        .eq('clinic_id', clinicId!).in('stage', ['waiting', 'with_doctor'])
+      const { data, error } = await supabase.from('visits').select('id, token_number, stage, arrived_at, queue_position, called_at, sent_in_at')
+        .eq('clinic_id', clinicId!).in('stage', ['waiting', 'called', 'with_doctor']).gte('arrived_at', startOfToday())
       if (error) throw error
       return data
     },
@@ -146,7 +147,7 @@ export function AppShell({
       .subscribe((status) => setConnected(status === 'SUBSCRIBED'))
     return () => { supabase.removeChannel(channel) }
   }, [clinicId, clinical, queryClient])
-  const current = queue?.find((visit) => visit.stage === 'with_doctor')
+  const current = queue?.find((visit) => ['called','with_doctor'].includes(visit.stage))
   const primary = ['reception', 'consultation', 'billing', 'pharmacy', 'patients', 'stock', 'reports'].flatMap(key => sections.filter(section => section.key === key))
   const more = sections.filter((section) => !primary.includes(section))
   const activeMore = more.find((section) => section.key === activeSection)

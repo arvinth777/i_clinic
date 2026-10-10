@@ -12,12 +12,14 @@ type Patient = { id: string; name: string; age: number | null; gender: string | 
 type Visit = { id: string; arrived_at: string; complaint: string; stage: string; token_number: number; follow_up_date: string | null }
 type Prescription = { id: string; visit_id: string; diagnosis: string | null; advice: string | null; prescription_items: { dosage_frequency: string; duration_days: number; strength: string | null; medicines: { name: string } | null }[] }
 
-export function Patients({ clinicId, isDoctor, canBill }: { clinicId: string; isDoctor: boolean; canBill: boolean }) {
+export function Patients({ clinicId, isDoctor, canBill, initialPatientId }: { clinicId: string; isDoctor: boolean; canBill: boolean; initialPatientId?: string | null }) {
   const client = useQueryClient()
   const [visibleCount, setVisibleCount] = useState(50)
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
   const [patient, setPatient] = useState<Patient | null>(null)
+  const {data: requestedPatient} = useQuery({queryKey:['patient-detail',clinicId,initialPatientId],enabled:!!initialPatientId,queryFn:async()=>{const {data,error}=await supabase.from('patients').select('id,name,age,gender,phone,address').eq('clinic_id',clinicId).eq('id',initialPatientId!).single();if(error)throw error;return data as Patient}})
+  useEffect(()=>{if(requestedPatient)setPatient(requestedPatient)},[requestedPatient])
   const [tab, setTab] = useState<'visits' | 'notes'>('visits')
   const [billId, setBillId] = useState<string | null>(null)
   useEffect(() => { const timer = setTimeout(() => setQuery(search.trim()), 250); return () => clearTimeout(timer) }, [search])

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doctor workspace · corrected</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+:root{--ink:#141C2B;--muted:#5B6575;--faint:#7A8494;--ghost:#9AA3B0;--line:#EEF0F3;--line2:#E8EBEF;--panel:#F6F7F9;--accent:#1A4FB5;--amber:#93520A;--red:#B42318;--green:#1F7A4D}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums}
+a{color:var(--accent);text-decoration:none;font-weight:600}
+button,textarea{font-family:inherit;font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.nav{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 20px;min-height:56px;padding:8px 28px;background:#fff;border-bottom:1px solid var(--line)}
+.nav .l,.nav .r{display:flex;flex-wrap:wrap;align-items:center;gap:4px 18px}
+.brand{font-weight:700;color:var(--ink)}
+.links{display:flex;flex-wrap:wrap;gap:2px}
+.links a{display:flex;align-items:center;height:36px;padding:0 10px;border-radius:8px;font-size:14px;font-weight:400;color:var(--muted)}
+.links a[aria-current=page]{color:var(--ink);font-weight:600;background:#F2F4F7}
+.pill{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;border-radius:8px;background:var(--panel);color:var(--ink);font-size:14px}
+.dot{width:7px;height:7px;border-radius:50%;background:#22A55B}
+.wrap{display:flex;flex-wrap:wrap;align-items:flex-start;min-height:calc(100vh - 56px)}
+main{flex:999 1 620px;min-width:0;padding:36px 32px 48px}
+.col{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:36px}
+.lbl{font-size:13px;color:var(--faint)}
+.primary{display:flex;align-items:center;height:48px;padding:0 22px;border-radius:10px;background:var(--accent);color:#fff;font-size:15px}
+aside{flex:1 1 380px;max-width:520px;min-width:0;align-self:stretch;padding:36px 32px;background:var(--panel)}
+.stick{position:sticky;top:80px;display:flex;flex-direction:column;gap:20px}
+.call{height:48px;border:0;border-radius:10px;background:var(--ink);color:#fff;font-weight:600;font-size:15px;cursor:pointer}
+.qrow{display:flex;align-items:baseline;gap:14px;padding:11px 8px;margin:0 -8px;border-bottom:1px solid var(--line2);border-radius:6px}
+.qrow:hover{background:var(--line)}
+.txt{height:36px;padding:0 10px;border:0;border-radius:8px;background:transparent;font-weight:600;font-size:14px;cursor:pointer;color:var(--accent)}
+.hist{display:grid;grid-template-columns:110px minmax(0,1fr);gap:4px 16px;padding:14px 0;border-top:1px solid var(--line)}
+textarea{flex:1;min-width:0;resize:none;border:0;border-bottom:1px solid #D5DAE1;padding:8px 0;font-size:15px;color:var(--ink);background:transparent;outline:none}
+textarea::placeholder{color:var(--ghost)}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#D5DAE1;border-radius:10px;border:3px solid transparent;background-clip:content-box}
+@media (max-width:640px){.nav{padding:8px 16px}main,aside{padding:24px 16px}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+
+var PEOPLE = {
+  104: { name: 'Murugan K', kind: 'Follow-up · 3rd visit', line: '58 y · M · 72 kg · BP 138/86 · Pulse 82 · RBS 162', allergy: 'Allergic to NSAIDs',
+    complaint: 'Burning and tingling in both feet, worse at night × 2 months. Low back pain × 1 week.',
+    lastDate: '12 Sep', lastRx: [{ name: 'Pregabid 75', dose: '0-0-1 · 15 days' }, { name: 'Glycomet 500', dose: '1-0-1 · 30 days' }],
+    visits: [
+      { date: '12 Sep 2026', dx: 'Diabetic peripheral neuropathy', rx: 'Pregabid 75 0-0-1 × 15 d · Glycomet 500 1-0-1 × 30 d', note: 'RBS 188. Asked to review sugars with diabetologist.' },
+      { date: '08 Aug 2026', dx: 'Peripheral neuropathy, to evaluate', rx: 'Nurokind-OD 1-0-0 × 30 d', note: 'Advised HbA1c and Vit B12.' }
+    ],
+    notes: [{ date: '12 Sep', text: 'Prefers Tamil. Son drives him — keep visits short.' }] },
+  105: { name: 'Lakshmi R', kind: 'New patient', line: '34 y · F · 58 kg · BP 118/76', allergy: '',
+    complaint: 'Neck pain radiating to right arm × 3 weeks, desk job.', lastDate: '—', lastRx: [], visits: [], notes: [] },
+  106: { name: 'Selvaraj M', kind: 'Follow-up · 2nd visit', line: '61 y · M · 80 kg · BP 142/88', allergy: '',
+    complaint: 'Refill of Pregabid, pain better.', lastDate: '10 Sep', lastRx: [{ name: 'Pregabid 75', dose: '0-0-1 · 30 days' }],
+    visits: [{ date: '10 Sep 2026', dx: 'Post-herpetic neuralgia', rx: 'Pregabid 75 0-0-1 × 30 d', note: 'Review in 1 month.' }], notes: [] }
+};
+var NAMES = ['Chitra D','Ramesh A','Priya N','Govindan T','Meena V','Arul P','Saraswathi K','Babu R','Devi M','Karthik S','Rani J','Mohan L','Anitha B','Senthil K','Vasanthi R','Prakash N','Jaya S','Kumar V','Revathi A','Elango M','Sumathi P','Raja K','Bhuvana S','Vel R','Malar T','Siva N','Usha K','Ganesh P','Latha R','Dinesh A','Pushpa M','Arjun S','Nirmala V'];
+var REASONS = ['Knee pain','Post-op pain review','Headache','Cancer pain review','Low back pain','Shoulder pain','Neuropathy review','Refill · Pregabid'];
+var WAIT = [
+  { token: 105, name: 'Lakshmi R', meta: '34 F', reason: 'Neck pain', kind: 'New', since: 72 },
+  { token: 106, name: 'Selvaraj M', meta: '61 M', reason: 'Refill · Pregabid', kind: 'Follow-up', since: 64, flag: ' · moved up by reception' },
+  { token: 107, name: 'Kavitha S', meta: '52 F', reason: 'Knee pain', kind: 'New', since: 51 }
+];
+for (var i = 0; i < 33; i++) {
+  WAIT.push({ token: 108 + i, name: NAMES[i], meta: (28 + (i * 7) % 45) + (i % 2 ? ' F' : ' M'), reason: REASONS[i % REASONS.length], kind: i % 3 ? 'Follow-up' : 'New', since: Math.max(2, 44 - i * 1.3 | 0), flag: i === 3 ? ' · Palliative' : '' });
+}
+function fmtWait(min) {
+  if (min > 1440) return 'since 3 Sep';
+  if (min >= 60) return Math.floor(min / 60) + 'h ' + (min % 60) + 'm';
+  return min + ' min';
+}
+
+var S = { cur: 104, phase: 'in', waitIdx: 0, sent: { 104: true }, guard: false, all: false, note: '', added: {}, consultMin: 12 };
+var timer;
+function esc(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function set(p){Object.assign(S,p);render();}
+function person(){
+  return PEOPLE[S.cur] || (function(){var w=WAIT.filter(function(x){return x.token===S.cur;})[0]||{};
+    return {name:w.name,kind:w.kind==='New'?'New patient':'Follow-up',line:w.meta.replace(' ',' y · '),allergy:'',complaint:w.reason,lastDate:'',lastRx:[],visits:[],notes:[]};})();
+}
+function render(){
+  var p=person(), rest=WAIT.slice(S.waitIdx), next=rest[0], shown=S.all?rest:rest.slice(0,7);
+  var notes=p.notes.concat(S.added[S.cur]||[]), sent=!!S.sent[S.cur], calling=S.phase==='calling', extra=S.waitIdx*6;
+  var LINKS=['Reception','Doctor','Billing','Refills','Patients','Inventory','Reports','More'];
+  var h='';
+  h+='<header class="nav"><div class="l"><span class="brand">Salem Pain &amp; Palliative Care</span><nav class="links" aria-label="Main">'+
+    LINKS.map(function(l){return '<a href="#"'+(l==='Doctor'?' aria-current="page"':'')+'>'+l+'</a>';}).join('')+'</nav></div>'+
+    '<div class="r"><span class="pill"><span class="dot"></span><b>Now #'+S.cur+'</b><span style="color:var(--faint)">'+rest.length+' waiting</span></span>'+
+    '<span style="font-size:14px;color:var(--faint)">All saved</span><span style="font-size:14px;color:var(--muted)">Dr. G. P. Kirupakaran</span>'+
+    '<a href="#" style="font-size:14px;font-weight:400;color:var(--muted);padding:0 8px">Lock</a></div></header>';
+  h+='<div class="wrap"><main><div class="col">';
+  var arr=calling?'Called · waiting for reception to send #'+S.cur+' in':'Reception sent #'+S.cur+' in · '+(S.waitIdx?'11:'+(10+S.waitIdx*7):'10:48');
+  var consult=calling?'':(S.consultMin>0&&S.consultMin<600?' · '+S.consultMin+' min in consult':'');
+  h+='<section style="display:flex;flex-direction:column;gap:14px"><span style="font-size:13px;font-weight:600;color:'+(calling?'var(--amber)':'var(--accent)')+'">'+arr+'</span>'+
+    '<div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 24px"><div style="display:flex;flex-direction:column;gap:4px;min-width:0">'+
+    '<span style="color:var(--faint)">#'+S.cur+' · '+esc(p.kind)+consult+'</span>'+
+    '<span style="font-weight:700;font-size:30px;letter-spacing:-0.02em;line-height:1.15">'+esc(p.name)+'</span>'+
+    '<span style="font-size:14px;color:var(--muted)">'+esc(p.line)+'</span>'+
+    (p.allergy?'<span style="font-size:14px;font-weight:600;color:var(--red)">'+esc(p.allergy)+'</span>':'')+'</div>'+
+    (sent?'<span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-weight:600;color:var(--green)">Prescription sent · ₹560 to bill</span><a href="#" style="font-size:14px">View prescription</a></span>'
+         :'<a href="#" class="primary">Start prescription →</a>')+'</div></section>';
+  h+='<section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:24px">'+
+    '<div style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Today, from reception</span><span>'+esc(p.complaint)+'</span></div>'+
+    '<div style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Last prescription'+(p.lastRx.length?' · '+p.lastDate:'')+'</span>'+
+    (p.lastRx.length?p.lastRx.map(function(m){return '<span><b style="font-weight:600">'+esc(m.name)+'</b> <span style="color:var(--muted)">'+esc(m.dose)+'</span></span>';}).join(''):'<span style="color:var(--ghost)">None — first visit</span>')+
+    '</div></section>';
+  h+='<section style="display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span class="lbl">History</span>'+
+    (p.visits.length?'<a href="#" style="font-size:14px">Full record →</a>':'')+'</div>'+
+    (p.visits.length?p.visits.map(function(v){return '<div class="hist"><span style="font-weight:600">'+v.date+'</span><span style="display:flex;flex-direction:column;gap:2px"><span>'+esc(v.dx)+'</span><span style="font-size:14px;color:var(--muted)">'+esc(v.rx)+'</span><span style="font-size:14px;color:var(--faint)">'+esc(v.note)+'</span></span></div>';}).join('')
+      :'<span style="padding:14px 0;border-top:1px solid var(--line);color:var(--ghost)">First visit — no history yet.</span>')+'</section>';
+  h+='<section style="display:flex;flex-direction:column;gap:8px"><span class="lbl">Personal notes · only you see these</span>'+
+    notes.map(function(n){return '<div style="display:grid;grid-template-columns:110px minmax(0,1fr);gap:16px;font-size:14px"><span style="color:var(--faint)">'+esc(n.date)+'</span><span>'+esc(n.text)+'</span></div>';}).join('')+
+    '<div style="display:flex;align-items:flex-end;gap:12px"><textarea id="note" aria-label="Personal note" rows="1" placeholder="Write a note about this patient">'+esc(S.note)+'</textarea>'+
+    '<button type="button" class="txt" id="add" style="color:'+(S.note.trim()?'var(--accent)':'var(--ghost)')+'">Add note</button></div></section>';
+  h+='</div></main><aside><div class="stick">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><span style="font-weight:700;font-size:20px">Waiting · '+rest.length+'</span><span class="lbl">'+(37+S.waitIdx)+' seen today</span></div>';
+  if(S.guard) h+='<div role="alertdialog" style="display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:12px;background:#fff"><span style="font-weight:600">#'+S.cur+'\'s prescription isn\'t sent yet.</span><span style="font-size:14px;color:var(--muted)">Finish it before calling the next patient, so nothing is lost.</span><span style="display:flex;gap:4px;margin-left:-10px"><button class="txt" id="markSent">Open prescription</button><button class="txt" id="notNow" style="color:var(--muted);font-weight:400">Not now</button></span></div>';
+  if(next&&!S.guard&&!calling) h+='<button type="button" class="call" id="call">Call #'+next.token+' '+esc(next.name)+'</button>';
+  h+='<div style="display:flex;flex-direction:column">'+shown.map(function(w){var m=w.since+extra;
+    return '<div class="qrow"><span style="width:40px;font-weight:700">#'+w.token+'</span><span style="flex:1;min-width:0;display:flex;flex-direction:column"><span><b style="font-weight:600">'+esc(w.name)+'</b> <span style="color:var(--faint)">'+w.meta+'</span></span><span style="font-size:13px;color:var(--faint)">'+esc(w.reason)+' · '+w.kind+'<span style="color:var(--accent)">'+(w.flag||'')+'</span></span></span>'+
+    '<span style="font-size:13px;white-space:nowrap;'+(m>=45?'color:var(--amber);font-weight:600':'color:var(--faint)')+'">'+fmtWait(m)+'</span></div>';}).join('')+
+    (rest.length>7?'<button type="button" class="txt" id="more" style="align-self:flex-start;margin:6px 0 0 -10px">'+(S.all?'Show fewer':'Show all '+rest.length)+'</button>':'')+'</div>';
+  h+='<div style="display:flex;flex-direction:column;gap:4px;padding-top:14px;border-top:1px solid var(--line2);font-size:14px"><span class="lbl">Left open from earlier days · 156</span><span style="color:var(--muted)">Not counted in today\'s queue. Reception closes them as seen or no-show.</span></div>';
+  h+='</div></aside></div>';
+  var focusNote=document.activeElement&&document.activeElement.id==='note';
+  document.getElementById('app').innerHTML=h;
+  var t=document.getElementById('note');
+  if(focusNote){t.focus();t.selectionStart=t.selectionEnd=t.value.length;}
+  t.oninput=function(e){S.note=e.target.value;document.getElementById('add').style.color=S.note.trim()?'var(--accent)':'var(--ghost)';};
+  document.getElementById('add').onclick=function(){var v=S.note.trim();if(!v)return;var a=Object.assign({},S.added);a[S.cur]=(a[S.cur]||[]).concat([{date:'Today',text:v}]);set({added:a,note:''});};
+  var c=document.getElementById('call');
+  if(c)c.onclick=function(){
+    if(!S.sent[S.cur]){set({guard:true});return;}
+    set({cur:next.token,phase:'calling',waitIdx:S.waitIdx+1,guard:false,note:'',consultMin:0});
+    clearTimeout(timer);timer=setTimeout(function(){set({phase:'in',consultMin:1});},2400);
+  };
+  var m=document.getElementById('more');if(m)m.onclick=function(){set({all:!S.all});};
+  var n=document.getElementById('notNow');if(n)n.onclick=function(){set({guard:false});};
+  var ms=document.getElementById('markSent');if(ms)ms.onclick=function(){var s=Object.assign({},S.sent);s[S.cur]=true;set({sent:s,guard:false});};
+  document.querySelectorAll('a[href="#"]').forEach(function(a){a.onclick=function(e){e.preventDefault();};});
+}
+render();
+</script>
+</body>
+</html>
