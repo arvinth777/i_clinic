@@ -27,14 +27,17 @@ These are decided. Do not relitigate them, and do not silently violate them.
 
 ## Development workflow
 
-- Ponytail is the default simplicity constraint: reuse existing patterns,
+- Apply the installed `ponytail` skill in **full** mode for every coding task
+  in this repository. Read its `SKILL.md` before implementation. Reuse existing patterns,
   prefer the smallest complete change, and avoid unrelated refactors.
   Correctness, security, accessibility, explicit requirements, and maintainability
   take precedence over fewer lines. Never store money as float, including mocks.
 - Use one primary specialist workflow for the task. Run narrowly relevant tests,
   security checks, and verification sequentially; they do not require separate
   user turns. This replaces the former one-skill-per-turn restriction.
-- Use the routing below when the task calls for it; announce the selected skill.
+- Automatically select the relevant coding, debugging, testing, security, and
+  completion skills below; activation needs no additional user confirmation.
+  Read each selected skill's `SKILL.md` and announce it before applying it.
   Do not launch competing architecture workflows. Architecture audits, broad
   redesigns, and exploratory planning skills remain explicitly invoked only.
 - Resolve material requirements before implementation. Do not add features outside

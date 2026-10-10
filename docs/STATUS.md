@@ -3,6 +3,53 @@
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
 
+## Skill activation — 2026-10-10
+
+- User authorized Ponytail and relevant development skills across this codebase.
+  Made AGENTS.md explicit: Ponytail full mode for coding; automatically select
+  debugging, TDD, security, browser checks, review, and completion verification
+  when relevant, reading their full instructions without activation questions.
+  Broad architecture/planning audits remain manual.
+- Confirmed Ponytail plugin enabled, six routine project skills installed, and
+  their invocation metadata available. GitNexus read-only MCP now responds and
+  recognizes this checkout. CLI indexing completed; MCP still reports older commit
+  metadata, so graph results were checked against current source files.
+- No application code or database changes. Guidance is included in the local
+  audit documentation commit; GitHub main push remains pending the earlier
+  clinic-hours decision.
+- Checks: skill files/metadata, local enablement, graph connection, documentation
+  scope, and diff whitespace. User then clarified that skills must be applied
+  immediately; the audit below is that application, beyond workflow setup.
+
+## Ponytail codebase audit — 2026-10-10
+
+- Applied Ponytail's whole-repository audit to the clinical flows, with GitNexus
+  caller tracing, the clinic security checklist, and completion verification.
+  Findings and the smallest proposed fixes are in `docs/codebase-audit.md`.
+- Found unverified browser-supplied payment amounts, direct bill/line insert
+  policies bypassing payment safeguards, hidden print output, quantity omitted
+  from medicine charges, live prices on paid receipt reprints, account-unbound
+  offline writes, missing durable printable prescriptions, and token-based
+  doctor ordering instead of physical arrival order. These remain unfixed.
+- Confirmed requirement gaps: refill-only billing, expiry alerts, and the new A4
+  letterhead placement. Medicine units and refill authorization remain unresolved.
+  Recommended retaining the core stack and records; no bulk feature deletion.
+- Verification: 6 prescription-draft tests passed; lint succeeded with 7 existing
+  warnings; TypeScript/Vite build passed with the existing bundle warning. Browser
+  print-media verification with the actual stylesheet and synthetic text returned
+  `display: none` and zero height. No live database mutation or patient data read.
+- GitNexus CLI refreshed successfully (1,784 nodes / 3,497 edges / 101 flows).
+  MCP caller tracing worked but its commit metadata remained stale; SQL and current
+  source inspection anchor the findings. No claim of a complete security pass.
+- Audit report and activation/status/rework guidance committed locally in this
+  pass; no application or migration edits and no uncommitted work left. Main push
+  remains pending the earlier clinic-hours decision because it triggers Vercel's
+  production build.
+- Next: implement and test the payment authorization/write-boundary fixes as a
+  separate pass, then the print/offline snapshot fixes. Run staging role tests and
+  security review before promotion; repair deployment configuration and backups
+  before clinical release. Do not change live SQL outside migration files.
+
 ## Development workflow and environment audit — 2026-10-10
 
 - User authorized the lean tools/workflow setup and GitHub updates for staging

@@ -20,6 +20,21 @@ Other local skills, secrets, generated indexes, and credentials stay ignored.
 System Design, Principal Architect, a duplicate Systematic Debugging workflow,
 and Blast Radius are deferred. An installed skill is not a required workflow.
 
+## Activation
+
+User authorized automatic selection of the relevant skills on 2026-10-10.
+Ponytail is enabled locally and governs coding in full mode. `AGENTS.md` routes
+debugging, TDD, security, browser checks, code review, and completion verification
+without asking the user to activate each one. Read the selected skill's full
+instructions before applying it. Architecture/planning audits remain manual.
+
+The six routine project skills are present and have no implicit-invocation block
+or disabled local configuration. GitNexus MCP is enabled read-only and responds
+in this session. These tools guide development; activating them does not run an
+application audit or certify clinical workflows.
+
+Discovery/invocation reference: [official skill documentation](https://learn.chatgpt.com/docs/build-skills).
+
 ## GitNexus
 
 Uses the already-installed Node 24.19.0 on this Mac. Version 1.6.12 requires
@@ -39,7 +54,7 @@ npx --yes gitnexus@1.6.12 analyze --index-only
 injection. Do not add `--skills` or auto-commit flags. The local index is ignored.
 Codex's local MCP is registered with `GITNEXUS_MCP_READ_ONLY=1` and the explicit
 Node 24 executable. No `gitnexus setup` or GitNexus plugin was installed, so no
-GitNexus hooks were added. Start a new Codex session to discover the MCP tools.
+GitNexus hooks were added. MCP discovery is now confirmed in this session.
 
 On another machine, select a supported Node runtime and register it with:
 

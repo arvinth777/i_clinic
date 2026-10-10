@@ -126,4 +126,4 @@ visit, then produce a small keep/simplify/defer plan before changing code.
 Prioritise prescription entry, the physical print output, and patient
 recall; include the confirmed quantity-billing and refill requirements.
 Preserve working backend guarantees and historical records. Invoke
-skills only as explicitly authorized under AGENTS.md.
+skills according to the current routing rules in AGENTS.md.
