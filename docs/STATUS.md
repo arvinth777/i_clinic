@@ -3,7 +3,7 @@
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
 
-## Audit fixes in progress — 2026-10-10
+## Audit fixes — 2026-10-10
 
 - User authorized fixing the eleven findings in `docs/codebase-audit.md`.
   Branch: `codex/clinic-audit-fixes`, based on audit commit `2986888`.
@@ -15,7 +15,7 @@ Update it before ending a session or when a block of work completes.
   bill/line inserts are denied; genuine older recorded approvals remain
   billable and flagged for reconciliation. Pre-upgrade older approvals
   missing from history need doctor review rather than automatic acceptance.
-- Uncommitted frontend/test changes: saved receipt lines for reprints,
+- Committed frontend/test changes (`db52a05`, `2ad6ab3`): saved receipt lines for reprints,
   print CSS visibility, account-bound IndexedDB writes and redacted warnings,
   durable doctor prescription print snapshots, arrival-based queue ordering,
   catalog expiry alerts (30 days), and unused JetBrains font removal.
@@ -45,9 +45,15 @@ Update it before ending a session or when a block of work completes.
   a refill). Text questions are pending; do not guess unit prices or permit
   unrestricted refill dispensing. Expiry uses the existing catalog date;
   PRD batch-level expiry tracking remains outside the current scope.
-- Next: finish review and documentation, commit/push the fix branch and open
-  a draft PR; no merge or production deployment. Production is still
-  unprovisioned and deployment/backups remain release blockers.
+- Pushed the verified branch; remote head matched `2ad6ab3`. Created draft PR
+  https://github.com/arvinth777/i_clinic/pull/1 and attached it to this chat.
+  GitHub reports its Vercel preview check passed; this does not verify runtime
+  configuration or constitute a production release. No merge or production
+  deployment/migration performed. Production is still unprovisioned.
+- No uncommitted application work remains. This final status update is committed
+  separately. Next: resolve the two pending workflow questions, implement/test
+  quantity billing and refills, complete the pre-merge code-review gate and
+  historical security warnings, then repair hosting/backups before release.
 
 ## Skill activation — 2026-10-10
 
