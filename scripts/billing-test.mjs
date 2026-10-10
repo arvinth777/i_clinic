@@ -102,6 +102,8 @@ async function makeMedicine(doctorA, name, price) {
     .select('id')
     .single()
   if (error) throw new Error(`fixture: creating medicine failed: ${error.message}`)
+  const setup = await doctorA.rpc('set_medicine_unit_price', { p_medicine_id: data.id, p_stock_unit: 'tablet', p_price_paise: price })
+  if (setup.error) throw setup.error
   return data.id
 }
 
@@ -114,7 +116,7 @@ async function prescribeToVisit(doctorA, visitId, medicineId) {
   const { data: rx, error: rxErr } = await doctorA.from('prescriptions').insert({ clinic_id: CLINIC_A_ID, visit_id: visitId }).select('id').single()
   if (rxErr) throw new Error(`fixture: creating prescription failed: ${rxErr.message}`)
   const { error } = await doctorA.from('prescription_items').insert({
-    clinic_id: CLINIC_A_ID, prescription_id: rx.id, medicine_id: medicineId, duration_days: 5,
+    clinic_id: CLINIC_A_ID, prescription_id: rx.id, medicine_id: medicineId, duration_days: 5, quantity_dispensed: 1,
   })
   if (error) throw new Error(`prescribing failed: ${error.message}`)
 }

@@ -16,6 +16,7 @@ export type DetailRow = {
   description: string
   unit_price_paise: number
   quantity?: number
+  stock_unit?: string | null
   line_total_paise?: number
   drug_type: string | null
   strength: string | null
@@ -25,7 +26,7 @@ export type DetailRow = {
   notes: string | null
 }
 
-export type BillLine = { kind: DetailRow['kind']; description: string; quantity: number; unit_price_paise: number; line_total_paise: number }
+export type BillLine = { stock_unit?: string | null; kind: DetailRow['kind']; description: string; quantity: number; unit_price_paise: number; line_total_paise: number }
 
 export type Bill = { bill_line_items?: BillLine[]; id: string; final_amount_paise: number; payment_method: string; confirmed_at: string; pending?: boolean }
 
@@ -151,7 +152,7 @@ function PrintableReceipt({
         <tbody>
           {billable.map((r, i) => (
             <tr key={i}>
-              <td>{r.description}{r.quantity != null && ` × ${r.quantity}`}</td>
+              <td>{r.description}{r.quantity != null && ` × ${r.quantity} ${r.stock_unit ?? ''}`}</td>
               <td>{formatPaise(r.line_total_paise ?? r.unit_price_paise)}</td>
             </tr>
           ))}

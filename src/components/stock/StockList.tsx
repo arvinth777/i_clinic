@@ -9,7 +9,7 @@ import { TransferForm } from './TransferForm'
 import { MonthlyCountForm } from './MonthlyCountForm'
 import { AdjustStockForm } from './AdjustStockForm'
 
-type Medicine = { id: string; name: string; low_stock_threshold: number | null; expiry_date: string | null }
+type Medicine = { id: string; name: string; stock_unit: string | null; low_stock_threshold: number | null; expiry_date: string | null }
 type StockPoint = { id: string; name: string }
 type StockRow = { medicine_id: string; stock_point_id: string; quantity: number }
 
@@ -25,7 +25,7 @@ export function StockList({ clinicId }: { clinicId: string }) {
   const { data: medicines } = useQuery({
     queryKey: ['medicines-for-stock', clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('medicines').select('id, name, low_stock_threshold, expiry_date').eq('clinic_id', clinicId).order('name')
+      const { data, error } = await supabase.from('medicines').select('id, name, stock_unit, low_stock_threshold, expiry_date').eq('clinic_id', clinicId).order('name')
       if (error) throw error
       return data as Medicine[]
     },
@@ -61,6 +61,8 @@ export function StockList({ clinicId }: { clinicId: string }) {
     return stockRows?.find((r) => r.medicine_id === medicineId && r.stock_point_id === stockPointId)?.quantity ?? 0
   }
 
+  const labelledMedicines = (medicines ?? []).map((m) => ({ ...m, name: `${m.name} (${m.stock_unit ?? 'unit not confirmed'})` }))
+
   if (action !== null) {
     const titles: Record<Exclude<ActionKey, null>, string> = {
       purchase: 'Record purchase',
@@ -75,16 +77,16 @@ export function StockList({ clinicId }: { clinicId: string }) {
         </button>
         <h2 className="readout-heading">{titles[action]}</h2>
         {action === 'purchase' && (
-          <RecordPurchaseForm clinicId={clinicId} medicines={medicines ?? []} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
+          <RecordPurchaseForm clinicId={clinicId} medicines={labelledMedicines} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
         )}
         {action === 'transfer' && (
-          <TransferForm clinicId={clinicId} medicines={medicines ?? []} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
+          <TransferForm clinicId={clinicId} medicines={labelledMedicines} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
         )}
         {action === 'count' && (
-          <MonthlyCountForm clinicId={clinicId} medicines={medicines ?? []} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
+          <MonthlyCountForm clinicId={clinicId} medicines={labelledMedicines} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
         )}
         {action === 'adjust' && (
-          <AdjustStockForm clinicId={clinicId} medicines={medicines ?? []} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
+          <AdjustStockForm clinicId={clinicId} medicines={labelledMedicines} stockPoints={stockPoints ?? []} onDone={onActionDone} onCancel={closeAction} />
         )}
       </div>
     )
@@ -130,7 +132,7 @@ export function StockList({ clinicId }: { clinicId: string }) {
             return (
               <TableRow key={m.id}>
                 <TableCell className="font-medium">
-                  {m.name}
+                  {m.name} ({m.stock_unit ?? 'unit not confirmed'})
                   {isLow && <span className="stock-badge">Low stock</span>}
                   {expiry && <span className="stock-badge">{expiry} · {formatDateOnly(m.expiry_date!)}</span>}
                 </TableCell>

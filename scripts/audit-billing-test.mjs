@@ -68,6 +68,7 @@ try {
   assert.ok((await reception.from('pricing_approvals').insert({ clinic_id: clinicId, visit_id: id, revision_number: 999, final_amount_paise: 100 })).error, 'reception cannot manufacture approval history')
   console.log('PASS: direct bill insert denied')
   const medicine = value(await doctor.from('medicines').insert({ clinic_id: clinicId, name: `Audit medicine ${crypto.randomUUID()}`, price_paise: 100 }).select('id').single())
+  value(await doctor.rpc('set_medicine_unit_price', { p_medicine_id: medicine.id, p_stock_unit: 'tablet', p_price_paise: 100 }))
   const rxVisit = await visit()
   const prescriptionId = crypto.randomUUID()
   const prescriptionArgs = { p_prescription_id: prescriptionId, p_visit_id: rxVisit, p_items: [{ id: crypto.randomUUID(), medicine_id: medicine.id, drug_type: 'Tablet', strength: 'Synthetic strength', dosage_frequency: '1-0-1', before_after_food: 'After food', duration_days: 5, quantity_dispensed: 10, notes: null }] }

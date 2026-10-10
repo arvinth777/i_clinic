@@ -24,7 +24,7 @@ const DRUG_TYPES = ['Tablet', 'Syrup', 'Capsule', 'Powder', 'Injection', 'Other'
 const FOOD_OPTIONS = ['Before food', 'After food', 'Either'] as const
 const FREQUENCY_OPTIONS = ['1-0-1', '1-1-1', '0-0-1', '1-0-0', 'SOS', 'Other'] as const
 
-type MedicineResult = { id: string; name: string }
+type MedicineResult = { id: string; name: string; stock_unit?: string | null; unit_confirmed_at?: string | null }
 
 export function PrescriptionForm({
   clinicId,
@@ -59,6 +59,7 @@ export function PrescriptionForm({
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
+  const [newMedicineUnit, setNewMedicineUnit] = useState('')
   const [newMedicinePrice, setNewMedicinePrice] = useState('')
 
   useEffect(() => {
@@ -92,8 +93,9 @@ export function PrescriptionForm({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('medicines')
-        .select('id, name')
+        .select('id, name, stock_unit, unit_confirmed_at')
         .eq('clinic_id', clinicId)
+        .not('unit_confirmed_at', 'is', null)
         .ilike('name', `%${debouncedSearch}%`)
         .order('name', { ascending: true })
         .limit(20)
@@ -132,11 +134,15 @@ export function PrescriptionForm({
         .select('id, name')
         .single()
       if (error) throw error
-      return data as MedicineResult
+      const { error: unitError } = await supabase.rpc('set_medicine_unit_price', { p_medicine_id: data.id, p_stock_unit: newMedicineUnit.trim(), p_price_paise: pricePaise })
+      if (unitError) throw unitError
+      return { ...data, stock_unit: newMedicineUnit.trim() } as MedicineResult
     },
     onSuccess: (medicine) => {
       addFromSearch(medicine)
       setNewMedicinePrice('')
+      setNewMedicineUnit('')
+      queryClient.invalidateQueries({ queryKey: ['medicine-search', clinicId] })
     },
   })
 
@@ -304,6 +310,11 @@ export function PrescriptionForm({
         ) : (
           <div className="no-match">
             <p>No drug named "{debouncedSearch}" in the list.</p>
+            <p className="field-hint">Existing medicines need unit confirmation under Stock before they can be supplied.</p>
+            <div className="field">
+              <label className="field-label" htmlFor="new-medicine-unit">Billing and stock unit</label>
+              <Input id="new-medicine-unit" value={newMedicineUnit} maxLength={24} onChange={(e) => setNewMedicineUnit(e.target.value)} placeholder="tablet, strip, bottle…" />
+            </div>
             <div className="field">
               <label className="field-label" htmlFor="new-medicine-price">
                 Price (₹)
@@ -319,7 +330,7 @@ export function PrescriptionForm({
             <Button
               type="button"
               variant="secondary"
-              disabled={addNewMedicine.isPending || parseRupeesToPaise(newMedicinePrice) === null}
+              disabled={addNewMedicine.isPending || !newMedicineUnit.trim() || parseRupeesToPaise(newMedicinePrice) === null}
               onClick={() => {
                 const price = parseRupeesToPaise(newMedicinePrice)
                 if (price !== null) addNewMedicine.mutate(price)
@@ -402,7 +413,7 @@ export function PrescriptionForm({
                   />
                 </div>
                 <div className="field">
-                  <label className="field-label">Quantity dispensed</label>
+                  <label className="field-label">Quantity supplied (confirmed stock unit)</label>
                   <Input
                     type="number"
                     min="1"

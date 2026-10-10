@@ -169,7 +169,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
     enabled: visit?.stage === 'paid',
     queryFn: async () => {
       const { data, error } = await supabase.from('bills')
-        .select('id, final_amount_paise, payment_method, confirmed_at, bill_line_items(kind, description, quantity, unit_price_paise, line_total_paise)')
+        .select('id, final_amount_paise, payment_method, confirmed_at, bill_line_items(kind, description, quantity, unit_price_paise, line_total_paise, stock_unit)')
         .eq('clinic_id', clinicId).eq('visit_id', visitId).is('corrects_bill_id', null)
         .order('confirmed_at', { ascending: false }).limit(1).single()
       if (error) throw error
@@ -223,7 +223,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
         // surfaces { error }, not the RPC's returned id.
         const { data: bill, error: billErr } = await supabase
           .from('bills')
-          .select('id, final_amount_paise, payment_method, confirmed_at, bill_line_items(kind, description, quantity, unit_price_paise, line_total_paise)')
+          .select('id, final_amount_paise, payment_method, confirmed_at, bill_line_items(kind, description, quantity, unit_price_paise, line_total_paise, stock_unit)')
           .eq('visit_id', visitId)
           .is('corrects_bill_id', null)
           .order('confirmed_at', { ascending: false })
@@ -236,7 +236,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
       // Offline: there is no real bill row yet (confirm_bill hasn't run) --
       // the patient is standing here regardless, so print proceeds from
       // exactly what this screen already knows, with no server id to show.
-      return { id: 'pending', final_amount_paise: snapshotAmount, payment_method: paymentMethod, confirmed_at: new Date().toISOString(), pending: true, bill_line_items: detail!.map((row) => ({ kind: row.kind, description: row.description, quantity: row.quantity ?? 1, unit_price_paise: row.unit_price_paise, line_total_paise: row.line_total_paise ?? row.unit_price_paise })) }
+      return { id: 'pending', final_amount_paise: snapshotAmount, payment_method: paymentMethod, confirmed_at: new Date().toISOString(), pending: true, bill_line_items: detail!.map((row) => ({ kind: row.kind, description: row.description, quantity: row.quantity ?? 1, stock_unit: row.stock_unit, unit_price_paise: row.unit_price_paise, line_total_paise: row.line_total_paise ?? row.unit_price_paise })) }
     },
     onSuccess: (bill) => {
       setConfirmedBill(bill)
@@ -274,7 +274,7 @@ export function Billing({ clinicId, visitId, onClose }: { clinicId: string; visi
           <ul className="past-visit-list">
             {billable.map((row, i) => (
               <li key={i} className="past-visit-item bill-item-row">
-                <span>{row.description}</span>
+                <span>{row.description}{row.quantity != null && ` × ${row.quantity} ${row.stock_unit ?? ''}`}</span>
                 <span className="pricing-value">{formatPaise(row.line_total_paise ?? row.unit_price_paise)}</span>
               </li>
             ))}
