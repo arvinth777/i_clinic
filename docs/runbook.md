@@ -5,6 +5,44 @@ Written for a stranger picking this up cold, with the maintainer unreachable
 hypothetical. Credentials are referenced by name and location only; no
 value ever belongs in this file or anywhere else in the repo.
 
+## Environment verification — 2026-10-10
+
+The sections below describe the intended operating setup. The following
+inspection found that it is not currently verified as a working deployment:
+
+| Surface | Observed state |
+|---|---|
+| GitHub | Public repo `arvinth777/i_clinic`; default `main` at `584f24b` before this workflow update |
+| Release branch | `production` at `9aca0ad` before this update, 117 commits behind `main`; contains planning documents only, no application, package.json, or migrations |
+| Historical deployment | GitHub recorded a successful Vercel **Production** deployment of `main` at `584f24b` on 2026-09-07; its URL was `https://i-clinic-3hre7hxg9-arvinth777s-projects.vercel.app` |
+| Accessible Vercel project | `i_clinic`, ID `prj_LnzNR3k0F74Gbg240PKHHJLdPHQF`; linked to this repo with **main as its production branch**, not the branch split described below |
+| Current Vercel deployment/config | No deployments or environment variables returned for `i_clinic`; the historical `i-clinic` project and deployment returned 404 through the authenticated Vercel API |
+| Staging database | Documented ref `cofnrcgsolluyhghutah`; its health hostname failed DNS resolution from this machine |
+| Production database | Documented ref `rmuhpgpvgvwchovlgxae`; its health hostname also failed DNS resolution |
+| Supabase account access | CLI project listing failed with `Invalid access token`; no authenticated schema, role, migration, or advisor verification was possible |
+| Backups | Latest three GitHub backup runs returned failure; the latest job supplied no step results, so its cause is not established |
+
+DNS failure does not establish that a database was deleted or paused. An old
+successful deployment record does not establish a currently reachable app.
+The similarly named `pain-palliative-care-clinic1` Vercel project belongs to
+`arvinth777/pain-palliative-care-clinic`, a different repository; do not relink
+this checkout to it merely because the clinic names look similar.
+
+The Vercel CLI linked this checkout to the existing `i_clinic` project during
+inspection and created ignored `.vercel` metadata. No frontend deployment,
+environment-variable write, migration, or patient-data change was performed.
+
+**Recovery next steps:** reconnect Supabase with `supabase login`, confirm both
+project refs and actual migration histories, then obtain the correct public
+frontend URL/anon key for each environment through authenticated project access.
+Before enabling deployments, explicitly reconcile Vercel's production-branch
+setting with the chosen release workflow and verify preview/production variable
+scoping. Do not push all 117 historical main commits into the release branch as
+part of a tools/doc update. Verify backups and a restore before relying on them.
+
+Sources inspected: GitHub branches/deployment status/Actions APIs and authenticated
+Vercel project/deployment/environment metadata. Database state remains unverified.
+
 ## Account inventory (where each thing lives)
 
 All infrastructure accounts are registered under the sole maintainer's
@@ -27,7 +65,7 @@ the actual handoff mechanism, not this document alone.
 | Password manager / emergency access | (the maintainer's own) | Holds every actual secret value: Supabase DB passwords, R2 API tokens, the age private key, domain registrar login. A named trusted contact gets automatic access after a waiting period if the maintainer doesn't respond -- configure this *before* it's needed, not after |
 | WhatsApp / Meta | Not built | Out of scope for this build (see docs/build-plan.md's "Deliberately excluded") -- no account exists yet |
 
-## Deploying
+## Deploying — intended workflow, not verified live
 
 - `main` -> automatic preview deploy on Vercel, pointed at the **staging** Supabase project. Never production.
 - Merging `main` -> `production` is the production deploy trigger, pointed at **clinic-prod**. Deliberate -- a push to `main` never auto-deploys to production.

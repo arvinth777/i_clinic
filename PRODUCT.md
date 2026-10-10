@@ -17,9 +17,18 @@ web
 
 ## Product Purpose
 
-Digitises a two-person pain-relief and palliative-care clinic that currently runs entirely on paper: a token queue (the one part that already works), handwritten prescriptions, and medicine dispensed with no stock tracking. Most importantly, the clinic has **no bill at all today** — the doctor decides each patient's price case-by-case and that decision currently lives only in his head. Success is the receptionist never again having to ask the doctor what to charge, and the doctor being able to see, for the first time, how much subsidised/free care he actually gives out.
+The current rework puts fast digital prescription writing and useful patient memory at the centre of this personal clinical tool. Reception captures patient details and issues tokens; the doctor sees the current patient and queue, writes and prints the prescription, and can recall prior problems and treatment. Reception records Cash/UPI payment against an itemised bill, which deducts supplied medicines from inventory and supports revenue tracking. Doctor-controlled pricing and the existing security/offline guarantees still apply. See `docs/rework-brief.md` for the current priorities and unresolved workflow decisions. WhatsApp and voice summarisation are not prerequisites for this baseline; the older capability descriptions below describe the broader design, not an agreed list of rework priorities.
 
 ## Positioning
+
+Rework decisions (2026-10-10): upload the prescription design and print the
+whole populated document on blank paper. Refill-only sales bypass the
+doctor's queue and consultation fee. Medicines charge by quantity supplied
+× unit price. These are requirements awaiting implementation, not claims
+about the current app. Reception may confirm refill totals at saved unit
+prices without doctor approval, but cannot change prices or give discounts.
+Only the doctor can discount a refill; consultation final amounts remain
+doctor-controlled.
 
 Not a generic clinic-management SaaS. Three things a neighboring product would not copy faithfully: the doctor stays sole arbiter of price and discount per patient (matching how a socially-adjusted palliative practice actually prices care, rather than fixed-price billing); it is built to keep working through India's variable connectivity — durable offline write queue, zero-connectivity browser printing, and instant doctor-to-receptionist sync are treated as core, not edge cases; and no patient ever has to use an app — token, print, and WhatsApp (PDF, never a link) are the only patient-facing channels.
 

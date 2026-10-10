@@ -3,6 +3,130 @@
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
 
+## Development workflow and environment audit — 2026-10-10
+
+- User authorized the lean tools/workflow setup and GitHub updates for staging
+  and production. Reworked root `AGENTS.md`: Ponytail as the coding constraint,
+  one primary specialist plus sequential relevant checks, explicit architecture
+  audits, and retained money/RLS/offline/patient-data rules. This supersedes
+  the former explicit-only / one-skill-per-turn routing policy.
+- Preserved the five detailed technical decisions in `docs/technical-decisions.md`;
+  WhatsApp remains deferred. Installed project Playwright, Security Best Practices,
+  and Verification Before Completion skills. Reused existing debugging, TDD,
+  review, and architecture skills; selected directories are now versioned for
+  GitHub/cloud portability. Architecture/planning metadata is manual-only.
+- GitNexus 1.6.12 indexed successfully (1,771 nodes / 3,484 edges / 101 flows),
+  using existing Node 24.19.0. Registered global Codex MCP read-only, without
+  hooks or auto-generated instructions. New Codex session required to expose
+  MCP tools; the graph warned about cross-language field resolution limitations.
+  Setup details are in `docs/development-tools.md`.
+- Environment audit: GitHub main is current, but production is 117 commits
+  behind and contains planning docs only. Accessible Vercel `i_clinic` has no
+  deployments/env vars and uses main as its production branch, contrary to
+  the old runbook. The historic September deployment/project returned 404 via
+  Vercel API. Both documented Supabase hostnames failed DNS; CLI login is
+  invalid. Latest three backup runs failed. Recorded facts and recovery steps
+  at the top of `docs/runbook.md`; no database or frontend config changes made.
+- Publishing plan: narrowly scoped docs and selected skill files to main;
+  the same guidance/planning files with a branch-specific STATUS to production.
+  No historical app-code promotion, migration, or deployment is included.
+- Verification: guidance/skill metadata checks and `git diff --check` passed;
+  `npm run build` passed with the existing large-bundle warning; `npm run lint`
+  exited successfully with seven existing warnings. No application source,
+  migration, billing, or patient-data change is included.
+- Pending: Supabase reauthentication requested; advisor/schema/live environment
+  verification remains unavailable. Prescription mockup currently shows the
+  On the page variant selected; no placement edits or production implementation
+  were submitted. Billing/stock units and refill prescription selection remain
+  unresolved before feature implementation.
+
+## Rework request — 2026-10-10
+
+- Assessed the user's proposed development-skill stack against installed
+  project skills and primary documentation. Recommendation only, not an
+  agreed workflow change: retain Ponytail, existing debugging/TDD/review
+  skills, browser verification, and the clinic security checklist; trial
+  GitNexus only if dependency navigation needs it. Defer additional
+  architecture orchestrators and Blast Radius. `codebase-design` and
+  `improve-codebase-architecture` already exist locally; the latter already
+  sets `allow_implicit_invocation: false`. Codex documents progressive
+  loading and this invocation policy. GitNexus setup writes global config
+  and hooks, while analyze can generate skills/context; its graph is no
+  substitute for database/role/offline verification. The proposed automatic
+  routing conflicts with current explicit invocation/one-skill-per-turn
+  rules. No tools installed or routing/configuration changed in this pass.
+  Sources: https://developers.openai.com/codex/skills,
+  https://github.com/abhigyanpatwari/GitNexus,
+  https://github.com/proyecto26/system-design-skills/blob/main/skills/system-design/SKILL.md,
+  https://github.com/openai/skills/blob/main/skills/.curated/playwright/SKILL.md.
+- The user clarified the clinical workflow: reception captures details
+  and queues patients; doctor sees the current token and waiting count,
+  writes a digital prescription with medicine suggestions, prints to a
+  layout based on the existing paper prescription, and retains useful
+  patient history. Reception records Cash/UPI billing, deducts stock,
+  and tracks revenue. Low-stock and nearing-expiry alerts are required.
+- Captured the scope and source-backed inventory in
+  `docs/rework-brief.md`, linked it from the PRD, and updated PRODUCT.md's
+  purpose to centre prescription writing and patient memory. WhatsApp
+  is outside the immediate baseline; voice capture/external summaries
+  remain exploratory. No feature deletions are agreed.
+- Confirmed follow-up answers: upload the prescription design and print
+  the whole populated document on blank paper; allow refill-only sales
+  without doctor queue/consultation fee; charge medicines by quantity
+  supplied × unit price. Recorded these in the brief, PRD, PRODUCT.md, and
+  AGENTS.md's money rule. These behaviours are not yet implemented.
+- Refill approval clarified: reception confirms at saved unit prices
+  without doctor approval; reception cannot edit prices or discounts,
+  and only the doctor can discount. Recorded the specific exception in
+  AGENTS.md and the product/rework documents. Consultation final pricing
+  remains doctor-controlled.
+- Prescription references received: A4 portrait; full clinic letterhead
+  and a body reference with patient details, complaints, diagnosis,
+  medicine/dosage columns, advice, review, and signature area. The user
+  wants selectors plus typing. Preserved both source PNGs unchanged in
+  `docs/references/` and wrote `docs/prescription-layout-proposal.md` with
+  proposed placement, editing/print separation, overflow, and code gaps.
+  Layout remains a proposal, not an agreed production design.
+- User explicitly authorized `visualize`. Created an interactive mockup at
+  `/Users/arvinthcinmayankirupakaran/.codex/visualizations/2026/10/10/01a12480-851d-7e23-961e-222e97f93434/a4-prescription-studio.html`.
+  Two variants: On the page, and Editor beside preview. Both use the
+  supplied letterhead, editable medicine/frequency suggestion fields,
+  custom typing, add/remove rows, and a control-free print preview.
+  Host design controls adjust body inset/top, dosage column width, row
+  spacing, and height/weight visibility. Sample data only; no clinical
+  integration, billing, stock, or production code changes.
+- Verified the mockup in local headless Chromium: actual typing updates
+  both variants, preview removes controls, add/remove updates rows,
+  multi-page content stays above the footer, narrow layouts do not
+  overflow horizontally, and appearance/design state changes work with
+  no runtime errors. Visually inspected both desktop variants and dark
+  appearance. Fixed a zero-width hidden preview and made image/content
+  stacking explicit after spotting a dark-mode rendering issue.
+  Pagination depends on preview width to keep small-screen text legible;
+  this is not final physical A4 pagination or a verified printer output.
+- Installed the requested `DietrichGebert/ponytail` marketplace and
+  `ponytail@ponytail` plugin through Codex CLI. Verified version 5.1.0
+  is installed and enabled with `codex plugin list --marketplace ponytail
+  --json`. Installation alone did not invoke a Ponytail skill.
+- Inspected queue, prescription entry, printing, billing, patient-history
+  queries, and stock source. Existing medicine pricing bills one catalog
+  price per prescription item rather than multiplying by quantity
+  dispensed; stock quantity is separate. Expiry dates exist in the catalog
+  but the inspected stock view has no expiry alerts. These observations
+  were not live-browser/database verification.
+- No application code, migrations, or database state changed; local
+  browser checks cover the visualization only, not the clinical app.
+- Uncommitted: the rework brief, prescription layout proposal/reference
+  PNGs, PRD/PRODUCT/AGENTS updates, and this status
+  entry. `AGENTS.md` already had a local deletion of its Stack section
+  when the session started; that unrelated change was preserved.
+- Existing unfixed findings remain recorded in the historical sections
+  below; this session did not independently re-audit or resolve them.
+- Next: user compares the two prescription mockups and chooses/refines
+  layout and field placement; then define medicine billing/stock units and
+  refill prescription selection before implementation. Security, paid-bill
+  immutability, and offline guarantees remain required.
+
 ## UI redesign initiative (post Phase G, not on the lettered A-G plan)
 
 The user judged the shipped v4.2 visual/IA design "bland, cheap, and badly

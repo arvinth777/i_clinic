@@ -1,5 +1,26 @@
 # Clinic Management System — v0 Plan
 
+## Current rework priorities — 2026-10-10
+
+The user clarified that fast digital prescription writing and useful
+patient history are the centre of the personal clinical app. Reception
+check-in, a shared live token queue, Cash/UPI billing, stock deduction,
+low-stock/expiry alerts, and basic revenue tracking support that flow.
+WhatsApp delivery/reminders are outside the immediate baseline; voice
+capture and externally produced summaries are an exploratory later idea.
+Confirmed: upload the prescription design and print the full populated
+document on blank paper; refill-only sales bypass the doctor's queue and
+have no consultation fee; medicine charges are quantity supplied × unit
+price. These supersede the older every-visit consultation fee and flat
+medicine pricing assumptions. They are not yet implemented. Historical
+paid bills remain immutable. Reception may confirm refill totals at saved
+unit prices without doctor approval, but only the doctor can discount;
+reception cannot edit prices. Consultation final amounts remain
+doctor-controlled. See
+[the rework brief](docs/rework-brief.md) for current source observations
+and remaining details. The broader requirements below remain reference
+material; no feature deletions or security-rule changes are agreed.
+
 ## Objective
 A web app for a two-person pain-relief and palliative-care clinic (one doctor, one receptionist, plus a pharmacist who works without a screen). It digitises the token queue, replaces handwritten prescriptions, and — for the first time — produces an actual bill, so the receptionist knows exactly what to collect after the doctor has decided what that particular patient should pay.
 
