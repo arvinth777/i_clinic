@@ -57,6 +57,9 @@ service-role credential. No Production-scoped variables were changed. Commit
 staging doctor sign-in and rendered queue/navigation were verified in Chrome.
 An earlier READY build was blank because these variables were absent. Verify the
 rendered application after deployment, not just Vercel's build result.
+Revision `31a2762` is published as
+`iclinic-qdxyrknh5-arvinth777s-projects.vercel.app` (Ready); browser staging login,
+queue rendering, Hanken / 15px text and no page overflow were verified.
 Main/production branch reconciliation and clinical release prerequisites above
 remain unresolved.
 

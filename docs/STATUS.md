@@ -25,13 +25,16 @@
   and print snapshot checks pass. The two new SSR scripts also run on Node 20
   using the already installed WebSocket package. Lint: seven existing warnings,
   no errors. Browser receipt evidence: `receipt-history-390.png`.
-- Publication: preparing this verified frontend/docs commit for the existing
-  draft branch. GitHub connectivity has recovered; remote still at `0806102` at
-  this checkpoint. Migration and follow-up docs are local commits until push.
+- Publication: `31a2762` and the migration/docs commits are pushed to draft PR
+  #5; its title and description are updated. Preview
+  `iclinic-qdxyrknh5-arvinth777s-projects.vercel.app` is Ready and browser sign-in
+  loaded the staging queue with Hanken / 15px body and no page overflow. Evidence
+  is `deployed-review-fixes.png`. Follow-up documentation/evidence is committed
+  separately; no implementation changes remain uncommitted.
 - Remaining: new queue workflows, price audit/approval snapshots, partial supply,
   full state/regression coverage, fresh offline reload (permission denied),
   unavailable security advisor, and physical printer sign-off. No release.
-  Next: publish review fixes and verify the resulting staging preview.
+  Next: continue the unfinished state coverage and addendum workflow steps.
 
 ## Latest design-language implementation — 2026-10-10
 

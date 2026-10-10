@@ -85,3 +85,8 @@ migration. `receipt-history-390.png` shows a doctor opening a saved patient rece
 on a phone without payment actions. Patient and bill selection/back navigation
 were exercised; no horizontal page overflow at 390px. This review does not remove
 the remaining integrated, offline, advisor or physical-printer gates.
+
+`deployed-review-fixes.png` records the Ready preview of `31a2762` at
+`iclinic-qdxyrknh5-arvinth777s-projects.vercel.app`, after staging doctor login.
+Hanken / 15px body and no horizontal page overflow were checked again.
+The long waits/counts are retained synthetic fixtures, not clinic operations.
