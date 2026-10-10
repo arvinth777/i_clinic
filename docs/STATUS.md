@@ -3,6 +3,27 @@
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
 
+## Handoff implementation — shared foundation, 2026-10-10
+
+- Corrected the previous handoff-only result after the user reported that the
+  running UI still did not resemble their supplied HTML/screenshots.
+- Step 2 now replaces the application sidebar with a responsive horizontal
+  header, role-allowed navigation, clinic-filtered queue readout, durable-save
+  status, account menu and existing lock controls. No authentication or billing
+  authorization changed. Realtime still invalidates/refetches query data.
+- Bundled Hanken Grotesk locally; ported the handoff palette and shared field /
+  button treatments, and the split sign-in layout. `docs/design.md` now governs
+  over the historical root design file.
+- Fresh TypeScript/Vite production build passed. Lint has seven existing
+  warnings and no errors. Browser navigation from Doctor to Inventory worked;
+  the live header used Hanken Grotesk and fit 390px without header overflow.
+  Full-page visual and clinical flow checks follow the screen implementation;
+  this checkpoint does not claim those passed. The production service worker
+  initially displayed the previous cached build and updated on reload.
+- Next: integrate the reception, doctor, prescription and remaining screen
+  layouts. Addendum backend changes, complete browser/role/offline checks,
+  code review and physical printer sign-off remain outstanding. No release.
+
 ## New UI handoff assessment — 2026-10-10
 
 ### Decision addendum received

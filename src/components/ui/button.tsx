@@ -9,11 +9,11 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary: 'bg-accent text-accent-ink shadow-sm hover:bg-accent-hover active:bg-accent-active',
-        secondary: 'bg-surface text-text border border-border-strong shadow-sm hover:bg-surface-2',
+        secondary: 'bg-surface-2 text-text hover:bg-border',
         ghost: 'text-text-secondary hover:bg-surface-2 hover:text-text',
       },
       size: {
-        default: 'h-10 px-5',
+        default: 'min-h-9 px-4 py-2',
         sm: 'h-8 px-3 text-xs',
       },
     },

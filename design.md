@@ -1,3 +1,6 @@
+> Superseded on 2026-10-10 by [the clinic handoff design system](docs/design.md).
+> The historical rationale below is retained for reference, not new UI work.
+
 ---
 name: i-clinic
 description: A professional, Linear/Stripe-adjacent operating console for a two-person clinic -- neutral black/white/grey base, one blue accent, red for danger.

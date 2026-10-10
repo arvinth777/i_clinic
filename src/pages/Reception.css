@@ -283,6 +283,7 @@
 
 .action-row {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
   margin-top: var(--space-md);
 }
@@ -313,18 +314,11 @@
   color: var(--text-secondary);
 }
 
-.field input {
-  font-family: inherit;
-  font-size: var(--text-base);
-  height: 2.5rem;
-  padding: 0 var(--space-sm);
-  color: var(--text);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-input);
-  box-sizing: border-box;
-  box-shadow: var(--shadow-sm);
-  transition: border-color 150ms var(--ease-out), background-color 150ms var(--ease-out);
+ .field input {
+  font-family: inherit; font-size: var(--text-base); height: var(--control-height);
+  padding: 0; color: var(--text); background: transparent; border: 0;
+  border-bottom: 1px solid var(--border-strong); border-radius: 0; box-sizing: border-box;
+  transition: border-color 150ms var(--ease-out);
 }
 
 .field input::placeholder {
@@ -407,36 +401,17 @@
   flex: none;
 }
 
-/* Sign-in */
-/* #root is a column flexbox (index.css) with .signin as a direct sibling
-   of the staging/offline banners, not wrapped in its own centering
-   container -- `margin: auto` on all four sides centers it in both the
-   main axis (vertical, absorbing whatever space the banners don't use)
-   and the cross axis (horizontal), which a fixed top margin never did:
-   it only ever centered horizontally, leaving the card stranded near
-   the top of an otherwise empty page.
-   `width: 100%` is load-bearing, not decorative: a flex item with auto
-   margins on its cross axis sizes to its own content instead of
-   stretching (that's what auto margins are for -- they opt out of
-   stretch) -- without it, .signin shrank to whatever its narrowest
-   child needed (measured live: 235px against a 352px max-width), a
-   visibly wrong, too-narrow-and-tall rectangle. width: 100% makes it
-   fill up to max-width like the rest of this rule already assumed. */
-.signin {
-  width: 100%;
-  max-width: 22rem;
-  margin: auto;
-  padding: var(--space-xl) var(--space-lg);
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-md);
-}
-
-.signin-heading {
-  font-size: var(--text-xl);
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  margin: 0 0 var(--space-lg);
+.signin-screen { display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: 0; }
+.signin-welcome { display: flex; flex-direction: column; justify-content: space-between; background: var(--surface-2); padding: var(--space-xl); }
+.signin-welcome h1 { font-size: var(--text-3xl); margin-block: var(--space-md); }
+.signin-welcome p { color: var(--text-secondary); }
+.signin { width: 100%; max-width: var(--side-width); margin: auto; padding: var(--page-padding); }
+.signin-heading { font-size: var(--text-xl); font-weight: 600; margin: 0 0 var(--space-xs); }
+.signin-description { color: var(--text-secondary); margin-bottom: var(--space-xl); }
+.signin button[type='submit'] { width: 100%; margin-top: var(--space-md); }
+@media (max-width: 720px) {
+  .signin-screen { grid-template-columns: 1fr; }
+  .signin-welcome { gap: var(--space-lg); padding: var(--space-lg); }
+  .signin-welcome > p { display: none; }
+  .signin { padding: var(--space-lg); }
 }

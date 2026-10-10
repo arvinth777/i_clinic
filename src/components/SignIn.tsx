@@ -20,8 +20,15 @@ export function SignIn() {
   }
 
   return (
-    <form className="signin" onSubmit={handleSubmit}>
-      <h1 className="signin-heading">Sign in</h1>
+    <div className="signin-screen">
+      <aside className="signin-welcome">
+        <strong>Clinic workspace</strong>
+        <div><p>{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p><h1>Ready for today.</h1><p>Reception, consultations and care — together.</p></div>
+        <p>Salem Pain &amp; Palliative Care</p>
+      </aside>
+      <form className="signin" onSubmit={handleSubmit}>
+      <h2 className="signin-heading">Sign in to your workspace</h2>
+      <p className="signin-description">Use your clinic account to continue.</p>
 
       <div className="field">
         <label className="field-label" htmlFor="signin-email">
@@ -60,5 +67,6 @@ export function SignIn() {
         {submitting ? 'Signing in…' : 'Sign in'}
       </Button>
     </form>
+    </div>
   )
 }

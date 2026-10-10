@@ -1,139 +1,71 @@
 @import 'tailwindcss';
 
-/* design-system: /design.md · designed-as-app
- * v4.5 -- a professional SaaS console (Linear/Stripe Dashboard referenced
- * directly), replacing every earlier pass's sage-paper "Case Sheet"
- * thesis outright: neutral black/white/grey base, one blue accent, real
- * shadow-based elevation. See /design.md for the full record of why. */
-
-/* Design tokens. Both light and dark are real, user-selectable themes
-   (see src/lib/useTheme.ts and the toggle in AppShell). The @theme block
-   below re-exposes the ones Tailwind utility classes need (bg-accent,
-   rounded-card, shadow-sm, etc.) as Tailwind theme keys pointing at these
-   same CSS custom properties, so a Tailwind utility and a plain CSS rule
-   both ultimately read one token, never two parallel colour systems. */
+/* Clinic handoff tokens. Source: docs/design.md and the supplied HTML. */
 
 :root {
-  /* v4.4: neutral black/white/gray base (zero chroma) replacing the
-     sage-paper tint, and a blue accent replacing slate-teal -- explicit
-     user request ("professional colours like black white and then
-     little blue and red"), not a re-measurement of the sage palette.
-     Danger (red) is unchanged; it already was one of the two named
-     colours asked for. See design.md for the full record. */
-  --bg: oklch(97% 0 0);
-  --surface: oklch(100% 0 0);
-  --surface-2: oklch(93% 0 0);
-  --border: oklch(87% 0 0);
-  --border-strong: oklch(72% 0 0);
-
-  --text: oklch(20% 0 0);
-  --text-secondary: oklch(42% 0 0);
-  /* Also placeholder and de-emphasised label text -- same lightness
-     values the sage palette used, just with chroma dropped to 0, so the
-     contrast ratios this file previously measured (5.91:1 vs --bg,
-     4.89:1 vs --surface-2) carry over unchanged -- OKLCH lightness is
-     what drives contrast, not chroma/hue. */
-  --text-tertiary: oklch(50% 0 0);
-
-  --accent: oklch(52% 0.18 258);
-  --accent-hover: oklch(46% 0.19 258);
-  --accent-active: oklch(40% 0.19 258);
-  --accent-ink: oklch(99% 0 0);
-  --accent-wash: oklch(52% 0.18 258 / 12%);
-  --focus-ring: oklch(52% 0.18 258 / 38%);
-
-  --danger: oklch(42% 0.15 22);
-  --danger-wash: oklch(42% 0.15 22 / 10%);
-  --success: oklch(40% 0.09 152);
-  --success-wash: oklch(40% 0.09 152 / 12%);
-  --warning: oklch(58% 0.13 78);
-  --warning-wash: oklch(58% 0.13 78 / 12%);
-
-  /* Staging strip -- a system/environment signal, not a clinical one, but
-     still meaningful (this is a real warning), not decorative -- distinct
-     from --danger so retuning one never silently moves the other. */
-  --staging-bg: oklch(36% 0.15 25);
-  --staging-ink: oklch(98% 0 0);
-
-  /* Stage semantics -- a separate categorical set from the accent.
-     Colour reinforces at a glance; the shape drawn in TokenList.tsx is the
-     real signal, so it survives any colour-vision deficiency. */
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #F6F7F9;
+  --border: #EEF0F3;
+  --border-strong: #DCE1E8;
+  --text: #141C2B;
+  --text-secondary: #5B6575;
+  --text-tertiary: #697586;
+  --accent: #1A4FB5;
+  --accent-hover: #16449C;
+  --accent-active: #123980;
+  --accent-ink: #FFFFFF;
+  --accent-wash: #EAF0FC;
+  --focus-ring: #1A4FB566;
+  --danger: #B42318;
+  --danger-wash: #FEF3F2;
+  --success: #1F7A4D;
+  --success-wash: #ECFDF3;
+  --warning: #93520A;
+  --warning-wash: #FDF6EC;
+  --staging-bg: #93520A;
+  --staging-ink: #FFFFFF;
   --stage-waiting: var(--text-tertiary);
   --stage-with-doctor: var(--accent);
   --stage-packing: var(--warning);
-  --stage-ready: oklch(46% 0.1 320);
+  --stage-ready: var(--accent);
   --stage-paid: var(--success);
-
-  /* Bento-tile palette (TodayFlow.tsx only, for now) -- standalone from
-     --accent/--success/--warning on purpose, see that file's own header
-     comment. One saturated "hero" fill (white text) plus two pale
-     supporting fills (dark text), matching the reference's own mix
-     rather than uniform pastels. */
-  --tile-hero: oklch(58% 0.2 290);
-  --tile-hero-ink: oklch(99% 0 0);
-  --tile-mint: oklch(92% 0.05 165);
-  --tile-amber: oklch(92% 0.06 80);
-  /* Neutral dark ink on both pale tiles, not hue-tinted -- measured
-     against the reference: "Completion"/"84%" and "Activity" render in
-     the same near-black as the rest of the page, not a green/amber-
-     tinted dark. Tinting the text as well as the fill read softer and
-     lower-contrast than the reference's actual look. */
+  --tile-hero: var(--surface-2);
+  --tile-hero-ink: var(--text);
+  --tile-mint: var(--surface-2);
+  --tile-amber: var(--surface-2);
   --tile-pale-ink: var(--text);
-
-  /* v4.5 font pass -- researched directly (search results in
-     docs/STATUS.md), not guessed: Geist for headings paired with Inter
-     for body is named as the current "gold standard" pairing for
-     developer-tool products, and Geist Mono (from the same foundry as
-     Geist Sans) replaces JetBrains Mono so the display/mono pair is
-     genuinely one coherent system, not a third unrelated typeface. Mono
-     is still reserved for actual numerals -- tokens, minutes, rupees --
-     never for label text (see .readout-heading below). */
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica Neue, Arial, sans-serif;
-  --font-display: 'Geist Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica Neue, Arial, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  /* Dense-operational-tool scale, not marketing-page scale -- the previous
-     values (17px base, 32px --text-xl) read as "unusually big and zoomed
-     out" once this ran on a real monitor next to real software. */
-  --text-xs: 0.75rem;
-  --text-sm: 0.8125rem;
-  --text-base: 0.875rem;
-  --text-lg: 1.125rem;
+  --font: 'Hanken Grotesk', system-ui, sans-serif;
+  --font-display: var(--font);
+  --font-mono: var(--font);
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.25rem;
   --text-xl: 1.5rem;
-  /* Hero-stat scale only (bento tile numbers) -- measured directly
-     against the reference screenshot: its tile numbers run roughly 3.5x
-     their own label size, not the ~2x --text-xl gave. */
-  --text-3xl: 2.5rem;
-
-  /* v4.5: the "dense operational tool" scale above this comment was
-     tightened once already (v4.1) and is now, on the user's own direct
-     word, reading as cramped/"zoomed in" rather than dense-and-crisp --
-     opened back up, closer to the original pre-tightening scale. */
+  --text-3xl: 1.875rem;
   --space-2xs: 0.25rem;
   --space-xs: 0.5rem;
   --space-sm: 0.75rem;
   --space-md: 1rem;
   --space-lg: 1.5rem;
   --space-xl: 2.5rem;
-
-  /* v4.5: softer, larger radii replacing the "sharp, cut-paper corners"
-     case-sheet thesis -- explicit user request, referencing Linear/Stripe
-     Dashboard, both soft-cornered. --radius-pill survives only for the
-     flow-bar's progress track, a shape that's legitimately a pill. */
-  --radius-card: 10px;
+  --radius-card: 12px;
   --radius-input: 8px;
   --radius-pill: 999px;
-
-  /* v4.5: real elevation -- "flat by default, border-only depth" was the
-     v4.1-v4.4 rule; the user explicitly asked for Linear/Stripe-style
-     depth instead. Two steps: -sm for buttons/inputs/small controls,
-     -md for panels/cards that need to read as a distinct grouped surface. */
-  --shadow-sm: 0 1px 2px oklch(20% 0 0 / 6%);
-  --shadow-md: 0 2px 8px oklch(20% 0 0 / 8%), 0 1px 2px oklch(20% 0 0 / 6%);
-
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-drawer: 0 8px 32px #141C2B1A;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-
-  --shadow-drawer: -8px 0 32px oklch(20% 0 0 / 18%);
-
+  --header-height: 3.5rem;
+  --nav-padding: 1.75rem;
+  --control-height: 2.25rem;
+  --page-padding: 2rem;
+  --page-top: 2.25rem;
+  --content-width: 74rem;
+  --side-width: 26.25rem;
+  --editor-width: 47.5rem;
+  --status-dot-size: 0.4375rem;
   color-scheme: light;
 }
 
@@ -303,11 +235,6 @@ h3 {
    the way a rule or a heading size does in any real document, not a
    decorative flourish. */
 .readout-heading {
-  margin: 0 0 var(--space-md);
-  padding-left: var(--space-sm);
-  border-left: 3px solid var(--border-strong);
-  color: var(--text);
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 700;
+  font-size: var(--text-lg); font-weight: 600; color: var(--text);
+  margin: 0 0 var(--space-lg); letter-spacing: -0.01em;
 }

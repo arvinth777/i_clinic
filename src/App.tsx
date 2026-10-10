@@ -30,9 +30,9 @@ function App() {
   const sections: ShellSection[] = []
   if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'reception', label: 'Reception' })
   if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'unpaid', label: 'Unpaid' })
-  if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'consultation', label: 'Consultation' })
-  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'stock', label: 'Stock' })
-  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'pharmacy', label: 'Pharmacy bills' })
+  if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'consultation', label: 'Doctor' })
+  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'stock', label: 'Inventory' })
+  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'pharmacy', label: 'Refills' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'merge', label: 'Merge patients' })
   // Renamed from "Long-term register" -- the user asked directly what
   // it even meant; "register" (a records-office word) was the jargon,
@@ -40,7 +40,7 @@ function App() {
   if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'register', label: 'Long-term care' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'reconciliation', label: 'Needs reconciliation' })
   if (roles?.some((r) => r.role === 'admin' || r.role === 'doctor')) sections.push({ key: 'reports', label: 'Reports' })
-  if (roles?.some((r) => r.role === 'admin')) sections.push({ key: 'admin', label: 'Admin' })
+  if (roles?.some((r) => r.role === 'admin')) sections.push({ key: 'admin', label: 'Settings' })
 
   const clinicId = roles?.[0]?.clinic_id
 
