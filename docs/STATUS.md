@@ -3,6 +3,17 @@
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
 
+## Unit and refill clarification — 2026-10-10
+
+- User confirmed both clinical roles set catalog unit prices, and each medicine
+  has a staff-confirmed billing/stock unit. Existing prices/counts must be
+  confirmed, not reinterpreted automatically.
+- Refill verification is visual. The pharmacy bill records the customer name
+  without creating a patient record, history, consultation, or queue token.
+  Doctor-only discounts remain required.
+- Implementation in progress on the existing audit-fix branch. Quantity billing
+  and standalone pharmacy sales are not yet verified. Production unchanged.
+
 ## Audit fixes — 2026-10-10
 
 - User authorized fixing the eleven findings in `docs/codebase-audit.md`.

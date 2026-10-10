@@ -15,7 +15,8 @@ price. These supersede the older every-visit consultation fee and flat
 medicine pricing assumptions. They are not yet implemented. Historical
 paid bills remain immutable. Reception may confirm refill totals at saved
 unit prices without doctor approval, but only the doctor can discount;
-reception cannot edit prices. Consultation final amounts remain
+both clinical roles set saved catalog prices, while reception cannot override
+bill prices or discounts. Consultation final amounts remain
 doctor-controlled. See
 [the rework brief](docs/rework-brief.md) for current source observations
 and remaining details. The broader requirements below remain reference
@@ -48,6 +49,15 @@ Patients never log into anything.
 9. Receptionist opens the bill — which moves the visit to **Ready at Reception** — sees exactly what to collect, takes payment (cash, UPI, or pay later), and hands over the printed prescription and receipt.
 10. Billing automatically deducts the dispensed medicines from stock.
 11. Reminders (refill, follow-up) go out afterwards on WhatsApp, without anyone doing anything.
+
+Current pricing/refill clarification (2026-10-10): both doctor and receptionist
+set saved catalog unit prices. Medicine billing is supplied quantity × unit
+price in the same confirmed stock unit. Staff confirm existing counts/prices
+before use. Reception visually verifies refill prescriptions and creates a
+name-only pharmacy bill without a patient record/history, queue token, or
+consultation fee. Only the doctor can discount; consultation final amounts
+remain doctor-owned. These decisions supersede older contradictory wording;
+implementation progress is in docs/STATUS.md.
 
 ---
 

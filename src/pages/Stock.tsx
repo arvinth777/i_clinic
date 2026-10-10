@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { DrugList } from '../components/admin/DrugList'
 import { StockList } from '../components/stock/StockList'
 import { Suppliers } from '../components/stock/Suppliers'
 import './Stock.css'
 
 const TABS = [
   { key: 'stock', label: 'Stock' },
+  { key: 'prices', label: 'Medicine units and prices' },
   { key: 'suppliers', label: 'Suppliers' },
 ] as const
 
@@ -29,6 +31,7 @@ export function Stock({ clinicId }: { clinicId: string }) {
       </nav>
       <div className="admin-panel">
         {tab === 'stock' && <StockList clinicId={clinicId} />}
+        {tab === 'prices' && <DrugList clinicId={clinicId} pricesOnly />}
         {tab === 'suppliers' && <Suppliers clinicId={clinicId} />}
       </div>
     </div>
