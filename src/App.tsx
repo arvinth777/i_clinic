@@ -6,6 +6,7 @@ import { AppShell, type ShellSection } from './components/AppShell'
 import { Reception } from './pages/Reception'
 import { Consultation } from './pages/Consultation'
 import { Admin } from './pages/Admin'
+import { PharmacyBills } from './pages/PharmacyBills'
 import { Stock } from './pages/Stock'
 import { MergePatients } from './pages/MergePatients'
 import { UnpaidBills } from './pages/UnpaidBills'
@@ -31,6 +32,7 @@ function App() {
   if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'unpaid', label: 'Unpaid' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'consultation', label: 'Consultation' })
   if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'stock', label: 'Stock' })
+  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'pharmacy', label: 'Pharmacy bills' })
   if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'merge', label: 'Merge patients' })
   // Renamed from "Long-term register" -- the user asked directly what
   // it even meant; "register" (a records-office word) was the jargon,
@@ -82,6 +84,7 @@ function App() {
         {activeSection === 'reception' && <Reception userId={session.user.id} />}
         {activeSection === 'unpaid' && clinicId && <UnpaidBills clinicId={clinicId} />}
         {activeSection === 'consultation' && <Consultation userId={session.user.id} />}
+        {activeSection === 'pharmacy' && clinicId && <PharmacyBills clinicId={clinicId} isDoctor={roles?.some((r) => r.role === 'doctor') ?? false} />}
         {activeSection === 'stock' && clinicId && <Stock clinicId={clinicId} />}
         {activeSection === 'merge' && clinicId && <MergePatients clinicId={clinicId} />}
         {activeSection === 'register' && clinicId && <LongTermRegister clinicId={clinicId} />}

@@ -65,6 +65,15 @@ try {
   assert.equal(value(await confirm(id, approved)), billId)
   assert.deepEqual(value(await reception.from('stock_movements').select('quantity_delta').eq('reference_id', itemId).eq('reason', 'dispensed')), [{ quantity_delta: -3 }])
   console.log('PASS: quantity × frozen unit price, immutable receipt, and one stock deduction')
+  const saleId = crypto.randomUUID()
+  const saleArgs = { p_sale_id: saleId, p_clinic_id: clinicId, p_customer_name: 'Synthetic pharmacy customer', p_items: [{ medicine_id: medicine.id, quantity: 3, unit_price_paise: 2000, stock_unit: 'tablet' }] }
+  value(await reception.rpc('save_pharmacy_sale', saleArgs))
+  const sale = value(await reception.from('pharmacy_sales').select('customer_name, final_amount_paise, bill_id').eq('id', saleId).single())
+  assert.equal(sale.customer_name, 'Synthetic pharmacy customer')
+  assert.equal(sale.final_amount_paise, 6000, 'three ₹20 units, no ₹250 consultation fee')
+  assert.equal(sale.bill_id, null)
+  assert.equal(value(await reception.rpc('save_pharmacy_sale', saleArgs)), saleId)
+  console.log('PASS: name-only pharmacy draft at saved prices, without consultation or token')
 } finally {
   await Promise.all(clients.map((client) => client.auth.signOut()))
 }

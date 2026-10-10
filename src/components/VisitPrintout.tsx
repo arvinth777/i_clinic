@@ -119,16 +119,18 @@ export function PrintablePrescription({ clinic, visit, medicines }: { clinic: Cl
   )
 }
 
-function PrintableReceipt({
+export function PrintableReceipt({
   clinic,
   visit,
+  customerName,
   billable,
   amountPaise,
   discountPaise,
   bill,
 }: {
   clinic: ClinicPrintInfo | undefined
-  visit: PrintVisit
+  visit?: PrintVisit
+  customerName?: string
   billable: (DetailRow | BillLine)[]
   amountPaise: number
   discountPaise: number
@@ -144,7 +146,7 @@ function PrintableReceipt({
       <h1>{clinic?.name}</h1>
       {(clinic?.address || clinic?.phone) && <p className="print-contact-line">{[clinic?.address, clinic?.phone].filter(Boolean).join(' · ')}</p>}
       <p>
-        {visit.patients?.name} — Token {visit.token_number} — {formatDate(visit.arrived_at)}
+        {visit ? `${visit.patients?.name} — Token ${visit.token_number} — ${formatDate(visit.arrived_at)}` : customerName}
       </p>
 
       <h2>Receipt</h2>
