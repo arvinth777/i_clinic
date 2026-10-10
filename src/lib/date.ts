@@ -44,3 +44,11 @@ export function localDateStr(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
 }
+
+export function expiryStatus(expiryDate: string | null, today = localDateStr(new Date())): string | null {
+  if (!expiryDate) return null
+  const days = (Date.parse(`${expiryDate}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000
+  if (days < 0) return 'Expired'
+  if (days === 0) return 'Expires today'
+  return days <= 30 ? 'Expires within 30 days' : null
+}

@@ -15,19 +15,7 @@ setupPersistedQueryClient()
 if (import.meta.env.DEV) {
   ;(window as unknown as { __debugQueue: typeof offlineQueue }).__debugQueue = offlineQueue
 }
-// Self-hosted (not a Google Fonts CDN link) so the clinic's screens keep
-// rendering with the intended faces even with zero connectivity (see
-// PRODUCT.md's offline requirement).
-//
-// v4.5 font pass: researched directly (not guessed) what "premium tech"
-// typography actually means in 2026 -- Geist (Vercel's own sans, paired
-// with Geist Mono) is the fast-rising default for developer-tool brand
-// work, and the pairing named as "the gold standard for developer
-// tools" is Geist for headings with Inter kept for body-text legibility.
-// Inter stays on body copy for exactly that reason; Geist Sans takes
-// over headings/section-labels (--font-display) and Geist Mono replaces
-// JetBrains Mono for numerals, so the two Vercel-designed faces form one
-// coherent pair rather than a third, unrelated mono typeface.
+// Self-hosted fonts remain available offline.
 import '@fontsource/inter/400.css'
 import '@fontsource/inter/500.css'
 import '@fontsource/inter/600.css'

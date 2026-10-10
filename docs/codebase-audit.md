@@ -1,3 +1,87 @@
+# Audit fix status — 2026-10-10
+
+The original audit is retained below. This section records the subsequent
+user-authorized fix pass on `codex/clinic-audit-fixes`.
+
+| Finding | Current result |
+|---|---|
+| 1 — unapproved payment snapshots | Fixed on staging: validate amount/revision against immutable server-recorded doctor approvals; genuine older approvals still flag reconciliation |
+| 2 — direct bill writes | Fixed on staging: bill and line writes go through the guarded payment/correction RPCs; raw inserts denied |
+| 3 — hidden print output | Fixed: print media explicitly displays `.print-area`; authenticated doctor and reception print DOM verified offline |
+| 4 — quantity billing | Pending unit decision: each medicine needs an agreed stock/billing unit, and existing prices cannot silently become unit prices |
+| 5 — changing prices on receipt reprint | Fixed: paid reprints and totals use saved bill lines, not current catalog prices |
+| 6 — account-unbound offline writes | Fixed: account/clinic metadata, captured request token, original-account-only replay; legacy entries preserved for review; warnings redact foreign-account details |
+| 7 — lost offline prescription instructions | Fixed: atomic/replayable prescription RPC and an account-scoped IndexedDB print snapshot; retries replace edited instructions and retain earlier medicines; unknown reception data is clearly marked |
+| 8 — wrong arrival order | Fixed: doctor and reception default to `arrived_at`, then `id`; later-token earlier-arrival case verified on both screens |
+| 9 — refill-only sale | Pending prescription-selection and unit decisions; no consultation workaround or unrestricted refill path introduced |
+| 10 — expiry alert missing | Fixed within the existing model: stocked medicines warn when expired, expiring today, or within 30 days; uses the manually maintained catalog expiry date |
+| 11 — unused font | Fixed: removed JetBrains Mono package/lock entries and corrected current design/font guidance |
+
+## Evidence from the fix pass
+
+- Three immutable migrations committed before CLI application to staging;
+  production was not migrated. `supabase db lint --linked --schema public
+  --level error --fail-on error` reported no schema errors.
+- `scripts/audit-billing-test.mjs` passed: fabricated amount rejected;
+  genuine stale approval accepted/flagged; idempotence; denied direct bill,
+  line and approval writes; doctor-only corrections preserving the original;
+  atomic prescription rollback/replay; single quantity stock deduction;
+  admin/anonymous/other-clinic role boundaries; late-sync arrival fixture.
+- Existing `scripts/billing-test.mjs`: 16/16 passed. Its old raw-insert
+  reconciliation fixture now uses a real older approval through the RPC.
+- `scripts/offline-queue-owner-test.mjs`: four checks passed, including
+  refresh/login change and switching accounts during a failed request.
+  Empty network error codes/status zero are treated as connectivity failures.
+- Prescription draft: 6/6. Expiry boundaries passed. Canonical receipt render
+  checks passed, including catalog-price drift, escaped patient text, unknown
+  clinical data, and replacing edited instructions without duplicates. The
+  receipt assertion was reproduced failing against the audit's old source.
+- Authenticated browser: offline confirmation, reload with Supabase blocked,
+  then print-media rendering at zero connectivity retained existing/new
+  instructions. Pending warning cleared after reconnect. Reception opened a
+  saved paid bill and rendered prescription plus receipt offline. Both
+  queues displayed an earlier arrival ahead of a lower-token later arrival.
+- Read-only staging metadata query: RLS enabled on every public table and
+  the new approval table; authenticated direct inserts denied on bills,
+  lines and approvals; anonymous EXECUTE denied on payment/prescription
+  RPCs; trigger EXECUTE denied to authenticated/anon; empty search paths.
+- Refreshed advisor: 0 errors, 24 warnings (was 23; the authenticated-only
+  prescription RPC adds a callable-definer warning, with tested role checks).
+  Historical warnings have not received a complete review in this pass.
+- TypeScript/Vite build passed; lint passed with seven existing warnings.
+  The existing large JavaScript bundle warning remains.
+
+## Review and remaining limits
+
+Ponytail change review traced payment, print, queue, and affected callers at
+this clinic's two-browser scale. Review caught and closed the login-during-save
+race, edited-prescription retry mismatch, and pending receipt cache preference.
+No additional must-fix finding remains within the nine completed items.
+The separate repository `code-review` gate remains required before a merge.
+
+The 30-day expiry window is a documented implementation assumption. This is
+not batch-aware expiry tracking: separate purchases can have different expiry
+dates, while the current model has one date per medicine. Batch tracking is
+explicitly outside the present PRD scope. A positive quantity at any stock
+point triggers the warning even when another point has negative stock.
+
+Pre-upgrade queued approvals without reconstructible history are held for
+doctor review; unowned legacy queued work is never assigned automatically.
+Offline prescriptions stay on the originating doctor's device; a reception
+browser cannot acquire never-synced instructions during an outage. It tells
+staff to print from the doctor's screen instead of inventing an empty Rx.
+
+Dev assets were served locally for the reload test; full offline PWA cold start,
+expired-token recovery, physical A4 calibration and backup restoration were
+not checked. The supplied letterhead placement editor remains a mockup.
+Production provisioning, frontend environment configuration and failed backups
+remain release blockers from `docs/runbook.md`. This branch is for review,
+not a clinical production release.
+
+---
+
+## Original audit — before the fixes
+
 What this repo does: This is a React clinic app with Supabase for patient records, the reception queue, consultations, prescriptions, billing, and stock. It also contains reports, documents, representative visits, and long-term care screens. This audit assumes one doctor and one receptionist working at the same time, thousands of patients, and occasional internet outages.
 
 Audited 2026-10-10 against local commit `36455a9`, plus documentation changes. Ponytail audit is the primary workflow; GitNexus helped trace shared offline-write callers, and the clinic security checklist was applied to the payment and session boundaries. Findings below describe source code, not successful attacks on a live database. No application code, database schema, or patient records were changed.

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import { expiryStatus, formatDateOnly } from '../../lib/date'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Button } from '../ui/button'
 import { RecordPurchaseForm } from './RecordPurchaseForm'
@@ -8,7 +9,7 @@ import { TransferForm } from './TransferForm'
 import { MonthlyCountForm } from './MonthlyCountForm'
 import { AdjustStockForm } from './AdjustStockForm'
 
-type Medicine = { id: string; name: string; low_stock_threshold: number | null }
+type Medicine = { id: string; name: string; low_stock_threshold: number | null; expiry_date: string | null }
 type StockPoint = { id: string; name: string }
 type StockRow = { medicine_id: string; stock_point_id: string; quantity: number }
 
@@ -24,7 +25,7 @@ export function StockList({ clinicId }: { clinicId: string }) {
   const { data: medicines } = useQuery({
     queryKey: ['medicines-for-stock', clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('medicines').select('id, name, low_stock_threshold').eq('clinic_id', clinicId).order('name')
+      const { data, error } = await supabase.from('medicines').select('id, name, low_stock_threshold, expiry_date').eq('clinic_id', clinicId).order('name')
       if (error) throw error
       return data as Medicine[]
     },
@@ -125,11 +126,13 @@ export function StockList({ clinicId }: { clinicId: string }) {
           {(medicines ?? []).map((m) => {
             const total = (stockPoints ?? []).reduce((sum, sp) => sum + quantityAt(m.id, sp.id), 0)
             const isLow = m.low_stock_threshold != null && total <= m.low_stock_threshold
+            const expiry = (stockPoints ?? []).some((sp) => quantityAt(m.id, sp.id) > 0) ? expiryStatus(m.expiry_date) : null
             return (
               <TableRow key={m.id}>
                 <TableCell className="font-medium">
                   {m.name}
                   {isLow && <span className="stock-badge">Low stock</span>}
+                  {expiry && <span className="stock-badge">{expiry} · {formatDateOnly(m.expiry_date!)}</span>}
                 </TableCell>
                 {(stockPoints ?? []).map((sp) => {
                   const qty = quantityAt(m.id, sp.id)

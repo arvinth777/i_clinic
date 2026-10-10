@@ -104,7 +104,7 @@ components:
 
 **v4.5 -- a professional SaaS console, not "The Case Sheet."** v1 through v4.4 pursued a paper/case-sheet metaphor (sage-paper ground, a slate-teal accent, hairline-only depth, sharp corners) across four palette/structure passes. After v4.4 (a straight colour-only swap to a neutral+blue palette, done in response to an explicit "I don't like the slate-teal, I need professional colours -- black, white, a little blue and red" request), the user's own verdict on the *result* was direct: "still ugly... everything -- the zoomed in, the components, the fonts and spacing and the dropdowns." That's a different, larger finding than a wrong hue: the case-sheet thesis's structural choices (flat hairline-only depth, tight dense-tool spacing, sharp small radii, unstyled native `<select>` elements) were themselves reading as cheap, independent of which colours sat on top of them. Named references for the target: **Linear and Stripe Dashboard.** v4.5 is the resulting full pivot, not a fourth palette tweak: neutral black/white/grey base, one blue accent, real elevation (soft shadows, not hairlines-only), softer/larger radii, a reopened spacing scale, and native form controls restyled to not read as bare browser defaults (a custom select chevron in particular). The case-sheet-specific devices (tab-flags, dashed ticket-stub token badges, an ink-stamp thesis) are retired with this pivot; the token queue's colour-blind-safe SVG-shape-per-stage device and the append-only audit-trail principles underneath the UI are unaffected -- this is a visual-language change, not a re-litigation of any product decision.
 
-**What's kept from every earlier pass, deliberately:** one workhorse type family (Inter) for headings/body/UI, JetBrains Mono reserved strictly for numerals, a single rationed accent colour (now blue, not teal), a single rationed confirmation colour for the paid stamp (unchanged green), and the left-rail/center-stage/jump-nav structure for Consultation and Reception that this same session built just before the colour/depth pivot (see Layout) -- that restructure is a layout decision, unaffected by this token-level pass.
+**What's kept from every earlier pass, deliberately:** one workhorse type family (Inter) for headings/body/UI, Geist Mono reserved strictly for numerals, a single rationed accent colour (now blue, not teal), a single rationed confirmation colour for the paid stamp (unchanged green), and the left-rail/center-stage/jump-nav structure for Consultation and Reception that this same session built just before the colour/depth pivot (see Layout) -- that restructure is a layout decision, unaffected by this token-level pass.
 
 This app has exactly one page family: app pages (Reception, Consultation, Billing, sign-in) for two roles who scan and act under time pressure, often with a patient in the room. No marketing surface exists anywhere in this codebase -- no hero, no testimonial, no pricing table, no footer -- and none should be introduced.
 
@@ -150,7 +150,7 @@ A neutral black/white/grey base carrying one rationed blue accent and one ration
 ## Typography
 
 **Body/UI/Display Font:** Inter (with -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif)
-**Mono Font:** JetBrains Mono (with ui-monospace, SFMono-Regular, Menlo, monospace)
+**Mono Font:** Geist Mono (with ui-monospace, SFMono-Regular, Menlo, monospace)
 
 **Character:** One workhorse family carries headings, body, and UI, across every pass so far including this one -- a second display face has never been justified for a two-role Operate tool.
 
@@ -162,7 +162,7 @@ A neutral black/white/grey base carrying one rationed blue accent and one ration
 - **Label** (600, 0.8125rem `--text-sm`, sentence case): field labels (`.field-label`), flow-stat labels. Not uppercase, not letter-spaced, not weight 700 -- an earlier type-tightening pass quietly moved this from an uppercase-eyebrow treatment and the docs were never updated to match; described here as what's actually shipped.
 
 ### Named Rules
-**The Mono-Is-For-Numerals Rule.** JetBrains Mono is reserved strictly for genuinely numeric content -- token numbers, elapsed-wait minutes, rupee amounts, flow-stat values -- never for label text, even when that text sits inside a class that is mono elsewhere. `.doctor-queue-meta` is the clearest case: its first-of-type use (age/sex, e.g. "39 · M") explicitly overrides back to the body face because it is not a numeral, while its other use (elapsed time) keeps the mono face from the base rule.
+**The Mono-Is-For-Numerals Rule.** Geist Mono is reserved strictly for genuinely numeric content -- token numbers, elapsed-wait minutes, rupee amounts, flow-stat values -- never for label text, even when that text sits inside a class that is mono elsewhere. `.doctor-queue-meta` is the clearest case: its first-of-type use (age/sex, e.g. "39 · M") explicitly overrides back to the body face because it is not a numeral, while its other use (elapsed time) keeps the mono face from the base rule.
 
 ## Layout
 
@@ -232,7 +232,7 @@ Nav lives in one horizontal header row (clinic name, nav items, theme toggle, us
 - **Do** use the neutral black/white/grey tokens (`--bg`/`--surface`/`--surface-2`) as-is; they're a direct, explicit user request replacing every earlier palette, not a re-measurement to second-guess.
 - **Do** give every card-level panel both a hairline border and a shadow (`--shadow-sm` or `--shadow-md`) -- never shadow alone, never border alone, for a static in-page container that's meant to read as a distinct surface.
 - **Do** apply `.readout-heading`'s left-rule-plus-larger-type treatment to every new section label; it is the system's real hierarchy device now, not an invented shape.
-- **Do** reserve JetBrains Mono for genuine numerals (tokens, minutes, rupees) and keep label text, including text that shares a class with numeric content, on the Inter body face.
+- **Do** reserve Geist Mono for genuine numerals (tokens, minutes, rupees) and keep label text, including text that shares a class with numeric content, on the Inter body face.
 - **Do** style every new `<select>` with the same `appearance: none` + custom-chevron treatment as `.field select` -- a native browser arrow is one of the concrete "cheap" tells this pass fixed.
 - **Do** open a record or a bill for Consultation/Reception in the rail/stage layout (see Layout); reserve the Drawer for short, single-purpose entry forms only.
 

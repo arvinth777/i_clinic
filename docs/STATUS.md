@@ -3,6 +3,52 @@
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
 
+## Audit fixes in progress — 2026-10-10
+
+- User authorized fixing the eleven findings in `docs/codebase-audit.md`.
+  Branch: `codex/clinic-audit-fixes`, based on audit commit `2986888`.
+  Ponytail full governs implementation; targeted TDD, security, browser,
+  and completion verification are applied sequentially.
+- Committed and applied three migrations to STAGING only: trusted doctor
+  approval history/payment validation (`0335dc3`), bill RPC write boundary
+  (`064a7e3`), and atomic/replayable prescription save (`a68101f`). Direct
+  bill/line inserts are denied; genuine older recorded approvals remain
+  billable and flagged for reconciliation. Pre-upgrade older approvals
+  missing from history need doctor review rather than automatic acceptance.
+- Uncommitted frontend/test changes: saved receipt lines for reprints,
+  print CSS visibility, account-bound IndexedDB writes and redacted warnings,
+  durable doctor prescription print snapshots, arrival-based queue ordering,
+  catalog expiry alerts (30 days), and unused JetBrains font removal.
+- Fresh checks: audit billing/role/stock tests passed; existing billing suite
+  16/16 passed; offline-owner tests 4 passed; prescription-draft tests 6/6;
+  expiry boundary and receipt-render tests passed. TypeScript/Vite build
+  passed; lint passed with seven existing warnings; linked staging SQL lint
+  reported no schema errors. Advisor refreshed: 0 errors, 24 warnings
+  (previously 23; authenticated prescription RPC adds a callable-definer
+  warning). This is not a complete review of all historical warnings.
+- Browser: both queues passed the later-token earlier-arrival case. Reception
+  opened a saved paid bill and rendered it offline. Confirmed a synthetic
+  prescription offline, reloaded with
+  Supabase blocked, then verified print content at zero connectivity;
+  existing and new instructions remained visible. Restored networking and
+  observed pending-save warning clear. Dev assets were served locally for
+  the reload; full PWA cold-start/expired-auth recovery and physical A4
+  calibration have not been tested in this pass.
+- Read-only staging metadata confirmed RLS on all public tables and the new
+  approval table, denied direct bill/line/approval inserts, denied anonymous
+  payment/prescription EXECUTE, locked trigger EXECUTE, and empty search paths.
+- Ponytail change review completed; account-change races, edited-prescription
+  retries, and pending receipt refresh were checked and corrected. The separate
+  code-review gate remains required before merge.
+- Still unresolved: finding 4 (medicine billing/stock unit and interpretation
+  of existing prices) and finding 9 (which previous prescription authorizes
+  a refill). Text questions are pending; do not guess unit prices or permit
+  unrestricted refill dispensing. Expiry uses the existing catalog date;
+  PRD batch-level expiry tracking remains outside the current scope.
+- Next: finish review and documentation, commit/push the fix branch and open
+  a draft PR; no merge or production deployment. Production is still
+  unprovisioned and deployment/backups remain release blockers.
+
 ## Skill activation — 2026-10-10
 
 - User authorized Ponytail and relevant development skills across this codebase.
