@@ -1,6 +1,6 @@
 // Render the canonical print DOM; current catalog prices must not rewrite a receipt.
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
@@ -11,7 +11,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 const require = createRequire(import.meta.url)
 function load(path, source = readFileSync(path, 'utf8')) {
   const exports = {}
-  const context = vm.createContext({ exports, require: (name) => name.endsWith('.css') ? {} : name.startsWith('.') ? load(resolve(dirname(path), name + '.ts')) : require(name) })
+  const context = vm.createContext({ exports, require: (name) => name.endsWith('.css') ? {} : name.startsWith('.') ? load(resolve(dirname(path), name + (existsSync(resolve(dirname(path), name + '.ts')) ? '.ts' : '.tsx'))) : require(name) })
   vm.runInContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, context)
   return exports
 }
@@ -45,3 +45,9 @@ assert.ok(pharmacy.includes('₹30.00') && pharmacy.includes('₹25.00') && phar
 assert.ok(pharmacy.includes('not saved yet') && pharmacy.includes('&lt;customer&gt;'))
 assert.ok(!pharmacy.includes('Token') && !pharmacy.includes('Consultation') && !pharmacy.includes('Prescription'))
 console.log('PASS: name-only pharmacy receipt shows quantity, unit, discount and pending state without clinical history')
+
+assert.ok(html.includes('<svg') && html.includes('SALEM PAIN &amp; PALLIATIVE CARE CLINIC'), 'clinic heading must be live SVG text')
+assert.ok(html.includes('நாள்பட்ட வலி நீக்கு சிகிச்சை நிபுணர்') && html.includes('TRIGEMINAL NEURALGIA ETC.'), 'Tamil header and footer copy must be retained')
+assert.ok(!html.includes('/letterhead-a4.png') && !html.includes('fonts.googleapis.com'), 'print must not depend on the full-page scan or remote fonts')
+assert.equal((html.match(/<image /g) ?? []).length, 2, 'only logo and watermark remain raster artwork')
+console.log('PASS: live English/Tamil letterhead, footer and two original artwork images')

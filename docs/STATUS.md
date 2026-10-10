@@ -1,5 +1,26 @@
 # Status
 
+## Rebuilt prescription letterhead — isolated side change, 2026-10-10
+
+- Branch `codex/clinic-vector-letterhead`, based on `bce48fa`, integrates the
+  user's new HTML header/footer in the shared preview/print renderer. Live SVG
+  English/Tamil text replaces the full-page scan; the original logo/watermark
+  remain images. Fonts and artwork are self-hosted and precached for offline use.
+- Preserved clinical data, A4 continuation layout and separate receipts. Matched
+  reference/date coordinates in preview and print. Kept the repeating header
+  at 64mm + 10mm and removed blend compositing after browser PDF tests caught
+  continuation overlap and disappearing artwork, respectively.
+- Fresh checks: complete production build, print render assertions, five PDF
+  fixture assertions, embedded fonts, offline print of a loaded prescription,
+  and preview widths 1440/390 without horizontal page overflow. Lint retains
+  seven existing warnings. Evidence: `docs/evidence/vector-letterhead/`.
+- This checkpoint is committed locally with its source/assets/docs/evidence;
+  temporary fixtures and servers were removed. No main-checkout files were
+  overwritten, and no migration, push, merge or deployment was performed.
+- Next: integrate/review this isolated commit with the ongoing UI work, then
+  verify the deployed prescription flow and obtain physical clinic-printer
+  sign-off. No fresh authenticated end-to-end or offline-reload pass is claimed.
+
 ## Latest design-language implementation — 2026-10-10
 
 - Continuing step 4 on `codex/clinic-screens-handoff` (draft PR #5), above

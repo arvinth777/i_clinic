@@ -1,5 +1,5 @@
 // Render the actual production components with synthetic data for browser PDF checks.
-import { readFileSync, writeFileSync, mkdirSync, cpSync, readdirSync } from 'node:fs'
+import { readFileSync, existsSync, writeFileSync, mkdirSync, cpSync, readdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import vm from 'node:vm'
@@ -9,15 +9,15 @@ import { renderToStaticMarkup } from 'react-dom/server'
 const require = createRequire(import.meta.url)
 function load(path) {
   const exports = {}
-  const context = vm.createContext({ exports, require: name => name.endsWith('.css') ? {} : name.startsWith('.') ? load(resolve(dirname(path), name + '.ts')) : require(name) })
+  const context = vm.createContext({ exports, require: name => name.endsWith('.css') ? {} : name.startsWith('.') ? load(resolve(dirname(path), name + (existsSync(resolve(dirname(path), name + '.ts')) ? '.ts' : '.tsx'))) : require(name) })
   vm.runInContext(ts.transpileModule(readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, context)
   return exports
 }
 const { PrintablePrescription, PrintableReceipt } = load(resolve('src/components/VisitPrintout.tsx'))
-const directory = '/private/tmp/clinic-print-layout'
+const directory = process.env.PRINT_FIXTURE_DIR ?? '/private/tmp/clinic-print-layout'
 mkdirSync(directory, { recursive: true })
 cpSync('dist/assets', directory + '/assets', { recursive: true })
-cpSync('public/letterhead-a4.png', directory + '/letterhead-a4.png')
+cpSync('public/letterhead', directory + '/letterhead', { recursive: true })
 const css = readdirSync('dist/assets').find(f => f.endsWith('.css'))
 const clinic = { name: 'Salem Pain & Palliative Care Clinic', doctor_name: 'Dr. G. P. Kirupakaran', doctor_registration_number: 'Synthetic print check', address: 'Synthetic layout check — not a patient document', phone: null }
 const visit = { id: 'synthetic', token_number: 12, arrived_at: '2026-10-10T10:00:00+05:30', complaint: 'Synthetic complaint for layout verification.', diagnosis: 'Synthetic diagnosis for layout verification.', advice: 'Synthetic advice: this document is for print alignment only.', follow_up_date: '2026-10-24', patients: { name: 'SYNTHETIC PRINT CHECK', age: 45, gender: 'Female' } }

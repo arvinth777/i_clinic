@@ -1,3 +1,5 @@
+@import './PrescriptionLetterhead.css';
+
 .bill-item-row {
   display: flex;
   justify-content: space-between;
@@ -134,8 +136,12 @@
 .prescription-paper-content td { vertical-align: top; overflow-wrap: anywhere; }
 .prescription-header-space { height: var(--paper-header); }
 .prescription-reference, .prescription-patient { display: flex; justify-content: space-between; gap: var(--space-md); }
-.prescription-reference { padding-inline: var(--space-xl) var(--space-sm); padding-block: var(--space-sm) var(--space-lg); }
-.prescription-patient { padding-bottom: var(--space-sm); border-bottom: 1px solid var(--border-strong); margin-bottom: var(--space-sm); }
+.prescription-reference { position: relative; height: var(--paper-reference); font-family: Arimo, var(--font); line-height: 1; }
+/* Reference/date coordinates are on the full letterhead; the table starts 5% in. */
+.prescription-reference > span { position: absolute; white-space: nowrap; }
+.prescription-reference > span:first-child { left: calc(var(--letterhead-ref-x) - var(--paper-width) * 0.05); top: calc(var(--letterhead-ref-y) - var(--paper-header)); }
+.prescription-reference > span:last-child { left: calc(var(--letterhead-date-x) - var(--paper-width) * 0.05); top: calc(var(--letterhead-date-y) - var(--paper-header)); }
+.prescription-patient { padding-top: var(--paper-patient-gap); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--border-strong); margin-bottom: var(--space-sm); }
 .prescription-note { padding-bottom: var(--space-sm); white-space: pre-wrap; }
 .prescription-rx { color: var(--blue); font-size: var(--print-rx-size); font-weight: 600; }
 .prescription-column-labels { color: var(--muted); font-size: var(--print-caption-size); border-bottom: 1px solid var(--line-2); }
@@ -190,8 +196,6 @@
 
 @media print {
  .prescription-paper-content thead { break-inside: avoid; }
- .prescription-reference { padding-block: 0; height: var(--paper-reference); align-items: end; }
- .prescription-patient { padding-top: var(--paper-patient-gap); }
 }
 @media print {
   .prescription-sheet { background: none; }

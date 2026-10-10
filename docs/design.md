@@ -153,8 +153,21 @@ One canonical component renders preview and print. A4 210×297mm, supplied artwo
 aspect 1055/1491, white with paper shadow on panel grey. Print hides chrome/panel
 background/shadows. Screen typography scales with sheet width; print body/reference/
 caption/dose/Rx sizes retain 1.9/1.85/1.55/1.65/4% of paper width. Header 64mm,
-reference 10mm, patient-gap 4mm, footer 24mm retain tested Chromium continuation layout.
+reference 10mm, patient-gap 4mm, footer 24mm reserve the letterhead's writing areas.
 Paper text uses named 1.9/1.85/1.55/1.65/4cqw tokens within the sheet container, with the physical A4 calculations as fallback. The preview scales that same document rather than independently reflowing print.
+
+The user's rebuilt HTML letterhead (2026-10-10) is preserved in
+`docs/references/clinic-letterhead/rebuilt-letterhead.html`. Its header/footer
+use live SVG text, with only the original logo and watermark as PNG artwork.
+`PrescriptionLetterhead` retains its 1055×1491 coordinates and text lengths.
+This printed artwork is an explicit exception to the app's Hanken-only rule:
+Arimo, Noto Serif and Noto Sans/Serif Tamil are self-hosted under
+`public/letterhead` with OFL licenses and cached by the service worker.
+Clinical body text stays Hanken. Print-only colour tokens `letterhead-ink`
+(#000000), `letterhead-brand` (#0050BE), and `letterhead-rule` (#0060D4)
+preserve the supplied artwork. `letterhead-unit` is paper width / 1055;
+reference x/y = 122/361 and date x/y = 858/352 in those units. Preview and
+print share these positions. These tokens do not change the app palette.
 
 Compare every reference at 1440px; at 390px no page overflow. Check font/size,
 underline fields, text choices, one primary, no cards/sidebar/status pills or
