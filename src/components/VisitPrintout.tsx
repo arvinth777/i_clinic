@@ -4,6 +4,7 @@ import './Billing.css'
 import { PrescriptionLetterhead } from './PrescriptionLetterhead'
 
 export type PrintVisit = {
+  discount_requested_at?: string | null
   id: string
   token_number: number
   stage: string

@@ -14,6 +14,7 @@ import { ConsultationClock } from '../components/ConsultationClock'
 import { Button } from '../components/ui/button'
 import { useQueueAction } from '../lib/queueActions'
 import { LoadingRows, QueryError } from '../components/QueryState'
+import { readPrescriptionPrint } from '../lib/prescriptionPrint'
 import { Billing } from '../components/Billing'
 import '../components/Worklist.css'
 import './Consultation.css'
@@ -34,6 +35,7 @@ type DoctorVisit = {
   called_at: string | null
   sent_in_at: string | null
   not_here_at: string | null
+  discount_requested_at: string | null
   patient_id: string
   with_doctor_at: string | null
   patients: { name: string; age: number | null; gender: string | null; address: string | null; phone: string | null } | null
@@ -71,7 +73,8 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
   const { data: clinicId } = useClinicId(userId)
   const [visibleQueueCount, setVisibleQueueCount] = useState(7)
   const [workspace, setWorkspace] = useState<'overview' | 'prescription'>('overview')
-  const [commentBody, setCommentBody] = useState('')
+  const [commentDrafts, setCommentDrafts] = useState<Record<string,string>>({})
+  const [reviewVisitId,setReviewVisitId]=useState<string|null>(null)
   const [prescribingActive, setPrescribingActive] = useState(false)
   const [repCount, setRepCount] = useState(0)
   const [guard, setGuard] = useState(false)
@@ -79,14 +82,14 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
 
   const queueKey = ['doctor-queue', clinicId]
   const { data: visits, isPending: queueLoading, error: queueError, refetch: reloadQueue, dataUpdatedAt: queueSavedAt } = useQuery({
-    queryKey: queueKey,
+    queryKey: queueKey, refetchInterval:3000,
     enabled: !!clinicId,
     // Inherits queryClient's 3s default (was a 30s override here) --
     // no reason for this one query to poll slower than everything else.
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visits')
-        .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, patients(name, age, gender, address, phone)')
+        .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone)')
         .eq('clinic_id', clinicId)
         .in('stage', ['waiting', 'called', 'with_doctor', 'not_here', 'ready_to_bill'])
         .order('queue_position', { ascending: true })
@@ -134,10 +137,12 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
   const todaysQueue = visits?.filter(v => v.arrived_at >= today) ?? []
   const queue = todaysQueue.filter(v => v.stage === 'waiting')
   const active = todaysQueue.find(v => ['called','with_doctor'].includes(v.stage))
-  const current = active ?? todaysQueue.filter(v => v.stage === 'ready_to_bill').sort((a,b)=>(b.sent_in_at??b.arrived_at).localeCompare(a.sent_in_at??a.arrived_at))[0]
+  const current = visits?.find(v=>v.id===reviewVisitId) ?? active ?? todaysQueue.filter(v => v.stage === 'ready_to_bill').sort((a,b)=>(b.sent_in_at??b.arrived_at).localeCompare(a.sent_in_at??a.arrived_at))[0]
   const earlierCount = visits?.filter(v => v.arrived_at < today).length ?? 0
   const rows = todaysQueue.filter(v => ['waiting','not_here'].includes(v.stage))
   const sent = current?.stage === 'ready_to_bill'
+  const commentBody=current ? commentDrafts[current.patient_id]??'' : ''
+  function setCommentBody(body:string) {if(current)setCommentDrafts(old=>({...old,[current.patient_id]:body}))}
 
   const { data: pastVisits } = useQuery({
     queryKey: ['past-visits', current?.patient_id, current?.id],
@@ -185,25 +190,27 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
     },
   })
 
+  const {data: localPrescription}=useQuery({queryKey:['prescription-print',userId,clinicId,current?.id],enabled:!!current&&!!clinicId,queryFn:async()=>await readPrescriptionPrint(userId,clinicId!,current!.id)??null})
   const issuedMedicines = prescriptions?.filter(p => p.visit_id === current?.id).flatMap(p => p.prescription_items) ?? []
-  const issuedComplete = issuedMedicines.length > 0 && issuedMedicines.every(item => !!item.dosage_frequency?.trim() && item.duration_days > 0)
+  const reviewedMedicines=localPrescription?.medicines ?? issuedMedicines
+  const issuedComplete = reviewedMedicines.length > 0 && reviewedMedicines.every(item => !!item.dosage_frequency?.trim() && (item.duration_days ?? 0) > 0)
 
   const addComment = useMutation({
     networkMode: 'always',
-    mutationFn: async () => {
-      if (!current || !clinicId) return
-      const row = { id: crypto.randomUUID(), clinic_id: clinicId, patient_id: current.patient_id, author_id: userId, body: commentBody.trim() }
+    mutationFn: async ({patientId,body}: {patientId:string;body:string}) => {
+      if (!clinicId) return
+      const row = { id: crypto.randomUUID(), clinic_id: clinicId, patient_id: patientId, author_id: userId, body }
       await attemptOrQueue({
         clinicId,
         attempt: (accessToken) => supabase.from('patient_comments').insert(row).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'insert', table: 'patient_comments', payload: row, description: 'Add a patient comment' }),
         applyOptimistic: () =>
-          queryClient.setQueryData<Comment[]>(commentsKey, (old) => [...(old ?? []), { id: row.id, body: row.body, created_at: new Date().toISOString() }]),
+          queryClient.setQueryData<Comment[]>(['patient-comments',patientId], (old) => [...(old ?? []), { id: row.id, body: row.body, created_at: new Date().toISOString() }]),
       })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: commentsKey })
-      setCommentBody('')
+    onSuccess: (_,variables) => {
+      queryClient.invalidateQueries({ queryKey: ['patient-comments',variables.patientId] })
+      setCommentDrafts(old=>({...old,[variables.patientId]:old[variables.patientId]?.trim()===variables.body?'':old[variables.patientId]}))
     },
   })
 
@@ -215,6 +222,7 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
   async function callNext() {
     if (!queue[0]) return
     if (active || prescribingActive) { setGuard(true); return }
+    setReviewVisitId(null)
     await queueAction.mutateAsync({visitId:queue[0].id,action:'call'})
     setWorkspace('overview'); setGuard(false)
   }
@@ -245,6 +253,8 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
             {rows.length > visibleQueueCount && <li><Button variant="secondary" onClick={() => setVisibleQueueCount(count => count + 50)}>Show more</Button></li>}
             <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />
           </ul>
+          {visits?.filter(v=>v.discount_requested_at && v.stage==='ready_to_bill').map(v=><div className="doctor-earlier" key={v.id}><strong className="status-amber">Discount review · #{v.token_number}</strong><p>{v.patients?.name}</p><Button variant="secondary" disabled={prescribingActive} onClick={()=>{setReviewVisitId(v.id);setWorkspace('prescription')}}>Review bill</Button></div>)}
+          {reviewVisitId && <Button variant="secondary" onClick={()=>{setReviewVisitId(null);setWorkspace('overview')}}>Return to consultation</Button>}
           {earlierCount>0 && <div className="doctor-earlier"><p className="field-hint">Left open from earlier days · {earlierCount}</p><p>Not counted in today’s queue. Reception can review them under Earlier open visits.</p></div>}
           </div>
         </aside>
@@ -264,7 +274,7 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
                 <section><h3>Today, from reception</h3><p>{current.complaint || 'No complaint recorded.'}</p></section>
                 <section><h3>Last prescription</h3><p>{prescriptions?.find(p=>p.visit_id!==current.id)?.prescription_items.map(item => [item.medicines?.name, item.dosage_frequency, `${item.duration_days} days`].filter(Boolean).join(' ')).join(' · ') || 'No prescription on record.'}</p></section>
               </div>
-              <section className="record-section"><div className="rail-head"><h3 className="readout-heading">History</h3><Button variant="secondary" onClick={()=>onOpenPatient(current.patient_id)}>Full record →</Button></div>
+              <section className="record-section"><div className="rail-head"><h3 className="readout-heading doctor-section-label">History</h3><Button variant="secondary" onClick={()=>onOpenPatient(current.patient_id)}>Full record →</Button></div>
                 {!pastVisits?.length ? <p className="readout-empty">No past visits.</p> : <ul className="past-visit-list">{pastVisits.slice(0,3).map(v => <li key={v.id} className="history-row">
                   <time>{formatDate(v.arrived_at)}</time><div><p>{v.complaint}</p>{prescriptions?.filter(p => p.visit_id === v.id).map(p => <div key={p.id}>
                     {p.diagnosis && <p>{p.diagnosis}</p>}
@@ -275,7 +285,7 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
               </section>
               <section className="record-section"><h3 className="readout-heading">Personal notes · for the doctor</h3>
                 {!!comments?.length && <ul className="comment-list">{comments.map(c => <li key={c.id} className="comment-item"><span className="comment-date">{formatDate(c.created_at)}</span><p>{c.body}</p></li>)}</ul>}
-                <form className="action-row" onSubmit={e => { e.preventDefault(); if (commentBody.trim()) addComment.mutate() }}>
+                <form className="action-row" onSubmit={e => { e.preventDefault(); if (commentBody.trim()) addComment.mutate({patientId:current.patient_id,body:commentBody.trim()}) }}>
                   <div className="field comment-field"><textarea id="comment-body" aria-label="Personal note" rows={1} placeholder="Write a note about this patient" value={commentBody} onChange={e => setCommentBody(e.target.value)} /></div>
                   <Button type="submit" variant="secondary" disabled={addComment.isPending || !commentBody.trim()}>{addComment.isPending ? 'Adding…' : 'Add note'}</Button>
                 </form>
@@ -286,7 +296,7 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
             <div id="stage-prescription" hidden={workspace !== 'prescription'}>
               {sent ? <Billing clinicId={clinicId} visitId={current.id} readOnly onClose={()=>setWorkspace('overview')} /> : <PrescriptionForm userId={userId} visit={current} key={current.id} clinicId={clinicId} visitId={current.id} pastPrescriptions={prescriptions} onActiveChange={setPrescribingActive}>
                 <CarePanel clinicId={clinicId} key={`care-${current.id}`} visitId={current.id} patientId={current.patient_id} />
-                <details className="rx-support"><summary>Procedures &amp; bill approval</summary><PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} /></details>
+                <details className="rx-support" open><summary>Procedures &amp; bill approval</summary><PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} /></details>
                 <details className="rx-support"><summary>Documents</summary><DocumentsPanel key={`docs-${current.id}`} clinicId={clinicId} visitId={current.id} patientName={current.patients?.name ?? ''} patientAge={current.patients?.age ?? null} complaint={current.complaint} issuedBy={userId} /></details>
                 <div className="action-row rx-actions"><Button variant={prescribingActive ? "secondary" : "primary"} disabled={prescribingActive || queueAction.isPending || !issuedComplete} onClick={() => void finish().catch(()=>{})}>{queueAction.isPending ? 'Saving…' : 'Finish consultation'}</Button></div>
                 {prescribingActive && <p className="field-hint">Review and confirm the prescription before finishing.</p>}

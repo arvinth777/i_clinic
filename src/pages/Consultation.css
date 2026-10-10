@@ -484,3 +484,7 @@
 .status-blue {color:var(--blue);} .status-amber {color:var(--amber);} .status-green {color:var(--green);}
 @media(max-width:1000px) { .consultation-stage,.consultation-rail {flex-basis:auto;max-width:none;width:100%;padding:var(--space-lg) var(--space-md);} }
 @media(max-width:520px) { .doctor-overview .history-row,.doctor-overview .comment-item {grid-template-columns:1fr;gap:var(--space-xs);} }
+
+.doctor-overview .doctor-section-label { font-size: var(--text-xs); font-weight: 400; color: var(--faint); }
+.doctor-overview .history-row { padding-block: var(--space-md); }
+.doctor-current > p { margin: 0; font-size: var(--text-xs); font-weight: 600; }

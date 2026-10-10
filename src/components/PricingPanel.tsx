@@ -1,9 +1,10 @@
+import { type PricingProposal, changeProposal } from '../lib/pricingProposal'
 import { LoadingRows } from './QueryState'
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../lib/money'
-import { attemptOrQueue } from '../lib/offlineQueue'
+import { attemptOrQueue, listQueue } from '../lib/offlineQueue'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 
@@ -53,7 +54,7 @@ function LegacyQuantities({ clinicId, visitId }: { clinicId: string; visitId: st
   </div>
 }
 
-export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId: string }) {
+export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { clinicId: string; visitId: string; reviewRequested?: boolean }) {
   const queryClient = useQueryClient()
   const [procedureSearch, setProcedureSearch] = useState('')
 
@@ -100,7 +101,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
   })
 
   const proposalKey = ['pricing-proposal',visitId]
-  const proposalQuery = useQuery({queryKey:proposalKey,queryFn:async()=>{const {data,error}=await supabase.rpc('get_pricing_proposal',{p_visit_id:visitId});if(error)throw error;return data as {total_paise:number;revision_number:number}}})
+  const proposalQuery = useQuery({queryKey:proposalKey,queryFn:async()=>{const pending=await listQueue();const cached=queryClient.getQueryData<PricingProposal>(proposalKey);if(cached&&pending.some(m=>m.clinicId===clinicId))return cached;const {data,error}=await supabase.rpc('get_pricing_proposal',{p_visit_id:visitId});if(error)throw error;return data as PricingProposal}})
   const proposal = proposalQuery.data
   const displayedTotal = proposal?.total_paise ?? pricing?.calculated_total_paise
 
@@ -114,7 +115,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'visit_pricing', filter: `visit_id=eq.${visitId}` },
-        () => queryClient.invalidateQueries({ queryKey: pricingKey }),
+        () => { void queryClient.invalidateQueries({queryKey:pricingKey}); void queryClient.invalidateQueries({queryKey:proposalKey}) },
       )
       .subscribe()
     return () => {
@@ -124,6 +125,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
   }, [visitId])
 
   function invalidateAll() {
+    queryClient.invalidateQueries({ queryKey: proposalKey })
     queryClient.invalidateQueries({ queryKey: visitProceduresKey })
     queryClient.invalidateQueries({ queryKey: pricingKey })
   }
@@ -134,11 +136,12 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
   // mirror its exact arithmetic locally (mirrored again in reverse for a
   // removal) so this screen -- and print, if billing follows straight from
   // here -- reflects the real total without a round trip.
-  function patchTotal(deltaPaise: number) {
+  function patchTotal(deltaPaise: number, change: (lines: PricingProposal['lines']) => PricingProposal['lines']) {
+    queryClient.setQueryData<PricingProposal|null>(proposalKey, old=>changeProposal(old,change))
     queryClient.setQueryData<Pricing>(pricingKey, (old) => {
       if (!old) return old
       const total = old.calculated_total_paise + deltaPaise
-      return { ...old, calculated_total_paise: total, final_amount_paise: old.final_amount_set ? Math.min(old.final_amount_paise, total) : total }
+      return { ...old, calculated_total_paise: total, final_amount_paise: total, final_amount_set:false }
     })
   }
 
@@ -153,7 +156,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
         queueItem: () => ({ kind: 'insert', table: 'visit_procedures', payload: row, description: `Add procedure "${procedure.name}"` }),
         applyOptimistic: () => {
           queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => [...(old ?? []), { id, procedure_id: procedure.id, price_paise: procedure.default_price_paise, procedures: { name: procedure.name } }])
-          patchTotal(procedure.default_price_paise)
+          patchTotal(procedure.default_price_paise,lines=>[...lines,{kind:'procedure',visit_procedure_id:id,procedure_id:procedure.id,quantity:1,unit_price_paise:procedure.default_price_paise,description:procedure.name,line_total_paise:procedure.default_price_paise}])
         },
       })
     },
@@ -179,7 +182,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
         queueItem: () => ({ kind: 'update', table: 'visit_procedures', payload: { price_paise }, match: { id }, description: 'Update a procedure price' }),
         applyOptimistic: () => {
           queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => old?.map((r) => (r.id === id ? { ...r, price_paise } : r)))
-          patchTotal(price_paise - previous)
+          patchTotal(price_paise - previous,lines=>lines.map(l=>l.kind==='procedure'&&l.visit_procedure_id===id?{...l,unit_price_paise:price_paise,line_total_paise:price_paise}:l))
         },
       })
     },
@@ -196,7 +199,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
         queueItem: () => ({ kind: 'delete', table: 'visit_procedures', match: { id }, description: `Remove procedure "${removed?.procedures?.name ?? ''}"` }),
         applyOptimistic: () => {
           queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => old?.filter((r) => r.id !== id))
-          if (removed) patchTotal(-removed.price_paise)
+          if (removed) patchTotal(-removed.price_paise,lines=>lines.filter(l=>l.kind!=='procedure'||l.visit_procedure_id!==removed.id))
         },
       })
     },
@@ -219,7 +222,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
     networkMode: 'always',
     mutationFn: async (value: number) => {
       if(!proposal) throw new Error('Load the current prices before approving.')
-      const args = {p_visit_id:visitId,p_final_amount_paise:value,p_expected_total_paise:proposal.total_paise,p_expected_revision_number:proposal.revision_number,p_request_id:crypto.randomUUID()}
+      const args = {p_visit_id:visitId,p_final_amount_paise:value,p_expected_total_paise:proposal.total_paise,p_expected_revision_number:proposal.revision_number,p_request_id:crypto.randomUUID(),p_expected_lines:proposal.lines}
       await attemptOrQueue({
         clinicId,
         attempt: (accessToken) => supabase.rpc('approve_visit_pricing', args).setHeader('Authorization', `Bearer ${accessToken}`),
@@ -228,7 +231,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
           queryClient.setQueryData<Pricing>(pricingKey, (old) => (old ? { ...old, final_amount_paise: value, final_amount_set: true } : old)),
       })
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: pricingKey }),
+    onSuccess: () => { for(const key of [pricingKey,['pricing-proposal',visitId],['approved-bill',visitId],['billing-pricing',visitId],['billing-visit',visitId],['doctor-queue',clinicId]]) void queryClient.invalidateQueries({queryKey:key}) },
   })
 
   // Reception's billing screen blocks payment until final_amount_set is
@@ -239,7 +242,6 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
   // all (the one case where even an unchanged value is a real confirm).
   function commitFinalAmount() {
     if (!pricing) return
-    if (!finalAmountDirty && pricing.final_amount_set) return
     const value = parseRupeesToPaise(finalAmountDraft)
     if (value === null) {
       setFinalAmountError("Final amount can't be less than 0")
@@ -360,7 +362,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
             </div>
           </div>
         )}
-        <Button variant="dark" disabled={updateFinalAmount.isPending || !proposal || (!finalAmountDirty && pricing?.final_amount_set)} onClick={commitFinalAmount}>{pricing?.final_amount_set && !finalAmountDirty ? 'Bill approved' : 'Approve bill'}</Button>
+        <Button variant="dark" disabled={updateFinalAmount.isPending || !proposal || (!reviewRequested && !finalAmountDirty && pricing?.final_amount_set)} onClick={commitFinalAmount}>{!reviewRequested && pricing?.final_amount_set && !finalAmountDirty ? 'Bill approved' : 'Approve bill'}</Button>
         <p className="field-hint">Approval freezes these unit prices and the fixed discount. Catalog changes afterwards apply to new bills.</p>
         {proposalQuery.isError && <p className="form-error">Couldn’t load current prices. Try again when connected.</p>}
         {updateFinalAmount.isError && <p className="form-error">{updateFinalAmount.error.message}</p>}

@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
 import { PrintableSlip, PrintableReceipt, type PrintVisit as Visit, type DetailRow, type Bill } from './VisitPrintout'
 import { attemptOrQueue } from '../lib/offlineQueue'
+import { PricingPanel } from './PricingPanel'
 import { Input } from './ui/input'
 import { Button, buttonVariants } from './ui/button'
 import './Billing.css'
@@ -48,13 +49,18 @@ function UpiQr({ vpa, amountPaise, payeeName }: { vpa: string; amountPaise: numb
 export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clinicId: string; visitId: string; onClose: () => void; readOnly?: boolean }) {
   const queryClient = useQueryClient()
 
+  const discountRequest = useMutation({networkMode:'always',mutationFn:async()=>{
+    const args={p_visit_id:visitId,p_request_id:crypto.randomUUID()}
+    await attemptOrQueue({clinicId,attempt:token=>supabase.rpc('request_bill_discount',args).setHeader('Authorization',`Bearer ${token}`),queueItem:()=>({kind:'rpc',rpc:'request_bill_discount',payload:args,description:'Ask doctor to review discount'}),applyOptimistic:()=>queryClient.setQueryData<Visit>(['billing-visit',visitId],old=>old?{...old,discount_requested_at:new Date().toISOString()}:old)})
+  },onSuccess:()=>{void queryClient.invalidateQueries({queryKey:['billing-visit',visitId]});void queryClient.invalidateQueries({queryKey:['doctor-queue',clinicId]})}})
+
   const visitKey = ['billing-visit', visitId]
   const visitQuery = useQuery({
     queryKey: visitKey,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visits')
-        .select('id, token_number, stage, arrived_at, complaint, follow_up_date, patients(name, age, gender)')
+        .select('id, token_number, stage, arrived_at, complaint, follow_up_date, discount_requested_at, patients(name, age, gender)')
         .eq('id', visitId)
         .single()
       if (error) throw error
@@ -63,11 +69,6 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   })
   const { data: visit } = visitQuery
 
-  // Opening the bill moves the visit to "ready at reception" automatically
-  // -- no separate click. Queued offline: patched into the cache directly
-  // (not just invalidated -- there's no network to refetch from), so the
-  // rest of this screen unblocks immediately instead of waiting on a stage
-  // that will only actually change once the queue drains.
   const pricingKey = ['billing-pricing', visitId]
   const pricingQuery = useQuery({
     queryKey: pricingKey,
@@ -92,7 +93,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'visit_pricing', filter: `visit_id=eq.${visitId}` },
-        () => queryClient.invalidateQueries({ queryKey: pricingKey }),
+        () => {void queryClient.invalidateQueries({queryKey:pricingKey});void queryClient.invalidateQueries({queryKey:['approved-bill',visitId]});void queryClient.invalidateQueries({queryKey:visitKey})},
       )
       .subscribe()
     return () => {
@@ -169,6 +170,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   })
   const subtotal = supplyLines?.reduce((sum,row)=>sum+row.line_total_paise,0) ?? pricing?.calculated_total_paise ?? 0
   const supplyInvalid = !Number.isSafeInteger(subtotal) || supplyLines?.some(row=>!Number.isInteger(row.quantity)||row.quantity<0||(row.kind==='medicine'&&(row.quantity>(row.approved_quantity??0)||row.quantity>Math.max(0,row.available_quantity))))
+  const approvalOutdated=!!approval && !!pricing && approval.revision_number!==pricing.revision_number
   const payable = Math.max(0,subtotal-(approval?.discount_paise??pricing?.discount_paise??0))
 
   const confirmPayment = useMutation({
@@ -181,7 +183,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       // snapshot and the reconciliation trigger flags the mismatch, per
       // docs/architecture-spec.md's offline money-conflict design -- never
       // a silent re-read of whatever is live by then.
-      if(!approval || !supplyLines || supplyInvalid) throw new Error('Review supplied quantities and current stock before payment.')
+      if(!approval || !supplyLines || supplyInvalid || approvalOutdated) throw new Error('Review supplied quantities and current stock before payment.')
       const snapshotAmount = approval.final_amount_paise
       const snapshotRevision = approval.revision_number
       const suppliedItems=supplyLines.filter(row=>row.kind==='medicine').map(row=>({prescription_item_id:row.prescription_item_id,quantity:row.quantity}))
@@ -278,6 +280,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
         )}
       </section>
 
+      {approvalOutdated && !bill && <p className="status-amber">The doctor updated this bill. Refreshing the approved amount…</p>}
       {supplyInvalid && !bill && <p className="form-error">Use whole supplied units within the approved quantity and available Counter stock.</p>}
       <section className="record-section">
         <div className="pricing-block">
@@ -300,6 +303,8 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
         </div>
       </section>
 
+      {!bill && !readOnly && <><Button variant="secondary" disabled={discountRequest.isPending || !!visit.discount_requested_at} onClick={()=>discountRequest.mutate()}>{visit.discount_requested_at ? 'Discount review requested' : 'Ask doctor to change discount'}</Button>{discountRequest.isError && <p className="form-error">{discountRequest.error.message}</p>}</>}
+      {!bill && readOnly && <details className="rx-support" open={!!visit.discount_requested_at}><summary>{visit.discount_requested_at ? 'Reception requests a discount review' : 'Review discount'}</summary><PricingPanel clinicId={clinicId} visitId={visitId} reviewRequested={!!visit.discount_requested_at} /></details>}
       {waitingForDoctor && (
         <section className="record-section">
           <div className="action-row">
@@ -338,7 +343,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
               type="button"
               className={buttonVariants({ variant: 'primary' })}
               whileTap={{ scale: 0.96, rotate: -1 }}
-              disabled={confirmPayment.isPending || detailStillLoading || supplyInvalid}
+              disabled={confirmPayment.isPending || detailStillLoading || supplyInvalid || approvalOutdated}
               onClick={() => confirmPayment.mutate()}
             >
               {confirmPayment.isPending ? 'Confirming…' : detailStillLoading ? 'Loading receipt details…' : `Mark paid · ${formatPaise(amountPaise)}`}

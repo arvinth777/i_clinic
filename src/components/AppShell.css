@@ -56,3 +56,6 @@
   .record-sidebar { padding: var(--space-md);  }
   .support-content { padding: var(--space-lg) var(--space-md); }
 }
+
+.shell-event { color: var(--blue); font-weight: 600; }
+@media (max-width: 1099px) { .shell-event { display: none; } }

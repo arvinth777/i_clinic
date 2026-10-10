@@ -130,7 +130,7 @@ export function AppShell({
   const clinical = sections.some((section) => section.key === 'consultation' || section.key === 'reception')
   const queueKey = ['shell-queue', clinicId]
   const { data: queue, isError: queueError } = useQuery({
-    queryKey: queueKey,
+    queryKey: queueKey, refetchInterval:3000,
     enabled: !!clinicId && clinical,
     queryFn: async () => {
       const { data, error } = await supabase.from('visits').select('id, token_number, stage, arrived_at, queue_position, called_at, sent_in_at')
@@ -143,10 +143,20 @@ export function AppShell({
     if (!clinicId || !clinical) return
     const channel = supabase.channel(`shell-queue-${clinicId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visits', filter: `clinic_id=eq.${clinicId}` },
-        () => { queryClient.invalidateQueries({ queryKey: ['shell-queue', clinicId] }) })
+        () => { queryClient.invalidateQueries({ queryKey: ['shell-queue', clinicId] }); queryClient.invalidateQueries({queryKey:['queue-events',clinicId]}) })
       .subscribe((status) => setConnected(status === 'SUBSCRIBED'))
     return () => { supabase.removeChannel(channel) }
   }, [clinicId, clinical, queryClient])
+  const {data: latestEvent}=useQuery({queryKey:['queue-events',clinicId,userId],refetchInterval:3000,enabled:!!clinicId&&clinical,queryFn:async()=>{
+    const {data,error}=await supabase.from('queue_events').select('action,created_at,visits(token_number)').eq('clinic_id',clinicId!).neq('actor_id',userId).in('action',['call','sent_in','finish','request_discount']).order('created_at',{ascending:false}).limit(1).maybeSingle()
+    if(error)throw error
+    return data as {action:string;created_at:string;visits:{token_number:number}}|null
+  }})
+  const [expiredEvent,setExpiredEvent]=useState<string|null>(null)
+  const eventTime=latestEvent?.created_at
+  const eventVisible=!!eventTime&&expiredEvent!==eventTime&&Date.now()<new Date(eventTime).getTime()+10000
+  useEffect(()=>{if(!eventTime)return;const remaining=new Date(eventTime).getTime()+10000-Date.now();if(remaining<=0)return;const timer=setTimeout(()=>setExpiredEvent(eventTime),remaining);return()=>clearTimeout(timer)},[eventTime])
+  const eventText=latestEvent && ({call:'Doctor called',sent_in:'Reception sent in',finish:'Ready to bill',request_discount:'Discount review requested'}[latestEvent.action])
   const current = queue?.find((visit) => ['called','with_doctor'].includes(visit.stage))
   const primary = ['reception', 'consultation', 'billing', 'pharmacy', 'patients', 'stock', 'reports'].flatMap(key => sections.filter(section => section.key === key))
   const more = sections.filter((section) => !primary.includes(section))
@@ -182,6 +192,7 @@ export function AppShell({
         <a className="shell-clinic-name" href={isDoctor ? '#consultation' : '#reception'} onClick={e => { e.preventDefault(); select(isDoctor ? 'consultation' : sections[0]?.key ?? '') }}>Salem Pain &amp; Palliative Care</a>
         <nav className="shell-nav no-scrollbar" aria-label="Main">{navigation.map(navItem)}</nav>
         <div className="shell-status">
+          {eventVisible && eventText && <span className="shell-event" role="status">{eventText} #{latestEvent?.visits.token_number}</span>}
           {queueLink}
           {sync}
           {account}

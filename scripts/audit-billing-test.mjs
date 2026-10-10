@@ -1,3 +1,4 @@
+import {sendToBilling} from './clinic-workflow-fixture.mjs'
 // Public payment/pricing boundaries from the audit; synthetic staging only.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -33,11 +34,19 @@ async function visit(name = `Audit synthetic ${crypto.randomUUID()}`, arrivedAt 
   return value(await doctor.from('visits').insert({ clinic_id: clinicId, patient_id: patient.id, arrived_at: arrivedAt, complaint: 'Synthetic audit fixture' }).select('id').single()).id
 }
 async function ready(id, amount = 22000) {
-  value(await doctor.from('visit_pricing').update({ final_amount_paise: amount }).eq('visit_id', id))
-  value(await doctor.from('visits').update({ stage: 'packing' }).eq('id', id))
-  value(await reception.from('visits').update({ stage: 'ready_at_reception' }).eq('id', id))
-  return value(await reception.from('visit_pricing').select('final_amount_paise, revision_number').eq('visit_id', id).single())
+  const rx=value(await doctor.from('prescriptions').select('id,prescription_items(medicine_id,quantity_dispensed)').eq('visit_id',id))
+  let items=rx.flatMap(p=>p.prescription_items)
+  if(!items.length){
+    const m=value(await doctor.from('medicines').insert({clinic_id:clinicId,name:`TEST ONLY audit fixture ${crypto.randomUUID()}`,price_paise:0}).select('id').single())
+    value(await doctor.rpc('set_medicine_unit_price',{p_medicine_id:m.id,p_stock_unit:'tablet',p_price_paise:0}))
+    items=[{medicine_id:m.id,quantity_dispensed:1}]
+    value(await doctor.rpc('save_prescription',{p_prescription_id:crypto.randomUUID(),p_visit_id:id,p_items:[{id:crypto.randomUUID(),...items[0],dosage_frequency:'SOS',duration_days:1}]}))
+  }
+  const counter=value(await reception.from('stock_points').select('id').eq('clinic_id',clinicId).eq('name','Counter').single()).id
+  for(const item of items)value(await reception.rpc('adjust_stock',{p_clinic_id:clinicId,p_medicine_id:item.medicine_id,p_stock_point_id:counter,p_quantity_delta:item.quantity_dispensed,p_reason:'Synthetic audit fixture stock'}))
+  return sendToBilling(doctor,reception,clinicId,id,amount)
 }
+
 function confirm(id, snapshot, amount = snapshot.final_amount_paise) {
   return reception.rpc('confirm_bill', { p_visit_id: id, p_payment_method: 'cash', p_snapshot_final_amount_paise: amount, p_snapshot_revision_number: snapshot.revision_number })
 }

@@ -22,7 +22,7 @@ export function useQueueAction(clinicId: string | null | undefined) {
           Object.assign(row, {stage:stages[action] ?? row.stage}, action === 'call' ? {called_at:time} : action === 'sent_in' ? {sent_in_at:time,with_doctor_at:time} : action === 'not_here' ? {not_here_at:time} : {})
           if (action==='return_end') row.queue_position=Math.max(0,...rows.map(v=>v.queue_position??0))+1024
           if (action==='move_up'||action==='move_down') {
-            const waiting=rows.filter(v=>v.stage==='waiting' && v.arrived_at?.slice(0,10)===row.arrived_at?.slice(0,10)).sort((a,b)=>(a.queue_position??0)-(b.queue_position??0))
+            const waiting=rows.filter(v=>v.stage==='waiting' && v.arrived_at && row.arrived_at && new Date(v.arrived_at).toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'})===new Date(row.arrived_at).toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'})).sort((a,b)=>(a.queue_position??0)-(b.queue_position??0))
             const index=waiting.findIndex(v=>v.id===visitId), other=waiting[index+(action==='move_up'?-1:1)]
             if(other) [row.queue_position,other.queue_position]=[other.queue_position,row.queue_position]
           }

@@ -1,3 +1,4 @@
+import {sendToBilling} from './clinic-workflow-fixture.mjs'
 // Prescription save/read boundaries; synthetic staging only.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -57,8 +58,7 @@ try {
   assert.equal(value(await doctor.from('prescriptions').select('diagnosis').eq('id', args.p_prescription_id).single()).diagnosis, args.p_diagnosis)
   console.log('PASS: direct reception edits blocked; clinical notes isolated from other clinics, admin and anonymous access')
   assert.deepEqual(value(await reception.rpc('get_visit_billing_detail', { p_visit_id: visit.id })), [], 'reception must not read clinical instructions before handoff')
-  value(await doctor.from('visits').update({ stage: 'packing' }).eq('id', visit.id))
-  value(await reception.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visit.id))
+  await sendToBilling(doctor,reception,clinicId,visit.id)
   const printable = value(await reception.rpc('get_visit_billing_detail', { p_visit_id: visit.id }))
   const printedMedicine = printable.find(row => row.kind === 'medicine')
   assert.equal(printedMedicine.diagnosis, args.p_diagnosis, 'reception print data must include saved diagnosis')

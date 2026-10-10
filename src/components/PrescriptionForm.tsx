@@ -7,6 +7,7 @@ import { PrintablePrescription, type PrintVisit, type ClinicPrintInfo, type Deta
 import { LetterheadPreview } from './LetterheadPreview'
 import './PrescriptionForm.css'
 import { attemptOrQueue } from '../lib/offlineQueue'
+import { changeProposal, type PricingProposal } from '../lib/pricingProposal'
 import { parseRupeesToPaise } from '../lib/money'
 import { Button, buttonVariants } from './ui/button'
 import { Input } from './ui/input'
@@ -150,9 +151,9 @@ export function PrescriptionForm({
   const { data: medicineUnits } = useQuery({
     queryKey: ['prescription-medicine-units', clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('medicines').select('id, stock_unit').eq('clinic_id', clinicId)
+      const { data, error } = await supabase.from('medicines').select('id, stock_unit, price_paise').eq('clinic_id', clinicId)
       if (error) throw error
-      return data as { id: string; stock_unit: string | null }[]
+      return data as { id: string; stock_unit: string | null; price_paise:number }[]
     },
   })
 
@@ -264,11 +265,20 @@ export function PrescriptionForm({
         clinicId,
         attempt: (accessToken) => supabase.rpc('save_prescription', payload).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'rpc', rpc: 'save_prescription', payload, description: 'Save prescription instructions' }),
+        applyOptimistic:()=>{
+          queryClient.setQueryData<PricingProposal|null>(['pricing-proposal',visitId],old=>changeProposal(old,lines=>[...lines,...itemRows.map(item=>{
+            const medicine=medicineUnits?.find(m=>m.id===item.medicine_id)
+            return {...item,kind:'medicine',prescription_item_id:item.id,quantity:item.quantity_dispensed,stock_unit:medicine?.stock_unit,unit_price_paise:medicine?.price_paise??NaN}
+          })]))
+          queryClient.setQueryData(['visit-pricing',visitId],(old:Record<string,unknown>|undefined)=>old?{...old,final_amount_set:false}:old)
+        },
       })
     },
     onSuccess: () => {
       confirmationId.current = null
       queryClient.invalidateQueries({ queryKey: ['past-prescriptions'] })
+      queryClient.invalidateQueries({queryKey:['pricing-proposal',visitId]})
+      queryClient.invalidateQueries({queryKey:['visit-pricing',visitId]})
       setDraftItems([])
       setDiagnosis('')
       setAdvice('')

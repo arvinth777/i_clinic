@@ -1,3 +1,4 @@
+import {sendToBilling} from './clinic-workflow-fixture.mjs'
 // Public payment/pricing boundaries from the audit; synthetic staging only.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -33,11 +34,9 @@ async function visit(name = `Audit synthetic ${crypto.randomUUID()}`, arrivedAt 
   return value(await doctor.from('visits').insert({ clinic_id: clinicId, patient_id: patient.id, arrived_at: arrivedAt, complaint: 'Synthetic audit fixture' }).select('id').single()).id
 }
 async function ready(id, amount = 22000) {
-  value(await doctor.from('visit_pricing').update({ final_amount_paise: amount }).eq('visit_id', id))
-  value(await doctor.from('visits').update({ stage: 'packing' }).eq('id', id))
-  value(await reception.from('visits').update({ stage: 'ready_at_reception' }).eq('id', id))
-  return value(await reception.from('visit_pricing').select('final_amount_paise, revision_number').eq('visit_id', id).single())
+  return sendToBilling(doctor,reception,clinicId,id,amount)
 }
+
 function confirm(id, snapshot, amount = snapshot.final_amount_paise) {
   return reception.rpc('confirm_bill', { p_visit_id: id, p_payment_method: 'cash', p_snapshot_final_amount_paise: amount, p_snapshot_revision_number: snapshot.revision_number })
 }
@@ -46,6 +45,8 @@ try {
   reception = await signIn('reception', passwords.TEST_RECEPTION_A_PASSWORD)
   const medicine = value(await doctor.from('medicines').insert({ clinic_id: clinicId, name: `Unit synthetic ${crypto.randomUUID()}`, price_paise: 1000 }).select('id').single())
   value(await reception.rpc('set_medicine_unit_price', { p_medicine_id: medicine.id, p_stock_unit: 'tablet', p_price_paise: 1000 }))
+  const counter=value(await reception.from('stock_points').select('id').eq('clinic_id',clinicId).eq('name','Counter').single()).id
+  value(await reception.rpc('adjust_stock',{p_clinic_id:clinicId,p_medicine_id:medicine.id,p_stock_point_id:counter,p_quantity_delta:20,p_reason:'Synthetic quantity test stock'}))
   const catalog = value(await reception.from('medicines').select('stock_unit, price_paise, unit_confirmed_at').eq('id', medicine.id).single())
   assert.equal(catalog.stock_unit, 'tablet')
   assert.equal(catalog.price_paise, 1000)
@@ -60,11 +61,11 @@ try {
   value(await doctor.rpc('save_prescription', { p_prescription_id: rxId, p_visit_id: id, p_items: [{ id: itemId, medicine_id: medicine.id, drug_type: 'Tablet', dosage_frequency: '1-0-0', before_after_food: 'After food', duration_days: 3, quantity_dispensed: 3 }] }))
   const pricing = value(await doctor.from('visit_pricing').select('calculated_total_paise').eq('visit_id', id).single())
   assert.equal(pricing.calculated_total_paise, 28000, '₹250 consultation + three ₹10 tablets = ₹280')
-  value(await reception.rpc('set_medicine_unit_price', { p_medicine_id: medicine.id, p_stock_unit: 'tablet', p_price_paise: 2000 }))
   const approved = await ready(id, 28000)
+  value(await reception.rpc('set_medicine_unit_price', { p_medicine_id: medicine.id, p_stock_unit: 'tablet', p_price_paise: 2000 }))
   const billId = value(await confirm(id, approved))
   const lines = value(await reception.from('bill_line_items').select('quantity, unit_price_paise, line_total_paise, stock_unit').eq('bill_id', billId).eq('kind', 'medicine'))
-  assert.deepEqual(lines, [{ quantity: 3, unit_price_paise: 1000, line_total_paise: 3000, stock_unit: 'tablet' }], 'bill keeps the prescribed unit price even after catalog edits')
+  assert.deepEqual(lines, [{ quantity: 3, unit_price_paise: 1000, line_total_paise: 3000, stock_unit: 'tablet' }], 'bill keeps the approved unit price even after catalog edits')
   assert.equal(value(await confirm(id, approved)), billId)
   assert.deepEqual(value(await reception.from('stock_movements').select('quantity_delta').eq('reference_id', itemId).eq('reason', 'dispensed')), [{ quantity_delta: -3 }])
   console.log('PASS: quantity × frozen unit price, immutable receipt, and one stock deduction')
