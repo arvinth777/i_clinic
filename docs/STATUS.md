@@ -61,7 +61,12 @@ Update it before ending a session or when a block of work completes.
   start/expired-auth, quick medicine creation while offline, physical A4
   calibration and backup restore were not checked in this pass. Historical visit
   correction discount reporting remains outside this pharmacy-specific report fix.
-- Final UI/test/doc edits await the final commit/push at the time of this entry.
+- Implementation, tests and documentation committed and pushed through
+  `a903410` to `codex/clinic-audit-fixes`; this status checkpoint follows on
+  the same branch. Draft PR #1 includes billing and pharmacy sales.
+  No implementation edits remain uncommitted after this checkpoint.
+  AGENTS.md routing remains unchanged: automatic approval review rejected a
+  proposed rollback to one-skill-per-turn as conflicting with active workflow rules.
   Next: review the draft PR; staff confirm real catalog units/counts; complete
   historical security review and production hosting/backup prerequisites before
   a clinical release. The scanned A4 layout remains a separate mockup task.
