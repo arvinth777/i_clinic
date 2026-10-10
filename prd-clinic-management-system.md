@@ -12,7 +12,8 @@ Confirmed: upload the prescription design and print the full populated
 document on blank paper; refill-only sales bypass the doctor's queue and
 have no consultation fee; medicine charges are quantity supplied × unit
 price. These supersede the older every-visit consultation fee and flat
-medicine pricing assumptions. They are not yet implemented. Historical
+medicine pricing assumptions. Quantity billing and name-only pharmacy sales
+are implemented and verified on staging (see docs/STATUS.md). Historical
 paid bills remain immutable. Reception may confirm refill totals at saved
 unit prices without doctor approval, but only the doctor can discount;
 both clinical roles set saved catalog prices, while reception cannot override

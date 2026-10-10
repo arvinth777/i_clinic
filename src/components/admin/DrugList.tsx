@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { attemptOrQueue } from '../../lib/offlineQueue'
 import { supabase } from '../../lib/supabase'
 import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../../lib/money'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
@@ -96,14 +97,18 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
   }
 
   const save = useMutation({
+    networkMode: 'always',
     mutationFn: async () => {
       const price = parseRupeesToPaise(draft.price)
       if (price === null) throw new Error("Enter a valid price")
       if (pricesOnly) {
         if (editing === null || editing === 'new') throw new Error('Choose a medicine')
         if (!editing.unit_confirmed_at && (!counts || !countsConfirmed)) throw new Error('Confirm the existing stock counts and unit price first')
-        const { error } = await supabase.rpc('set_medicine_unit_price', { p_medicine_id: editing.id, p_stock_unit: draft.stock_unit.trim(), p_price_paise: price })
-        if (error) throw error
+        const payload = { p_medicine_id: editing.id, p_stock_unit: draft.stock_unit.trim(), p_price_paise: price }
+        await attemptOrQueue({ clinicId,
+          attempt: (token) => supabase.rpc('set_medicine_unit_price', payload).setHeader('Authorization', `Bearer ${token}`),
+          queueItem: () => ({ kind: 'rpc', rpc: 'set_medicine_unit_price', payload, description: 'Set medicine unit and price' }),
+        })
         return
       }
       const row = {

@@ -3,16 +3,68 @@
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
 
-## Unit and refill clarification — 2026-10-10
+## Quantity billing and pharmacy sales — 2026-10-10
 
-- User confirmed both clinical roles set catalog unit prices, and each medicine
-  has a staff-confirmed billing/stock unit. Existing prices/counts must be
-  confirmed, not reinterpreted automatically.
-- Refill verification is visual. The pharmacy bill records the customer name
-  without creating a patient record, history, consultation, or queue token.
-  Doctor-only discounts remain required.
-- Implementation in progress on the existing audit-fix branch. Quantity billing
-  and standalone pharmacy sales are not yet verified. Production unchanged.
+- Implemented the two remaining audit items after the user confirmed the unit
+  and refill rules. Both clinical roles set saved unit prices under Stock →
+  Medicine units and prices. Existing prices/counts require explicit staff
+  confirmation. Confirmation changes no stock counts. A confirmed unit cannot
+  be changed; use a separate catalog medicine for different packaging.
+- Medicine charges now use quantity supplied × a prescription-time unit-price
+  snapshot. Receipts freeze quantity, price and unit. Catalog price changes
+  apply to future entries, not already prepared prescriptions/pharmacy bills.
+  Legacy unpaid prescriptions require unit/quantity confirmation and doctor
+  approval of the corrected total; old flat-price approvals were invalidated.
+  Approval is blocked while any unit/quantity is missing. First unit confirmation
+  invalidates earlier approvals, and the doctor can review missing quantities
+  in the existing pricing screen. Historical paid-bill review remains available.
+  Historical paid bills and stock movements were preserved.
+- Added Pharmacy bills for doctor and reception: visual prescription check,
+  customer name only, supplied quantities, Cash/UPI payment, and receipt reprints.
+  No patient record, history, new prescription, visit, token or consultation fee.
+  Reception prepares/collects at saved prices. Only the doctor can discount or
+  record a correction; corrections append bills/lines without another dispense.
+- Draft preparation, payment, doctor adjustments, unit/price setup and quick
+  medicine creation use the existing account-bound IndexedDB mutation queue.
+  Pharmacy receipts display pending status and remain cached through a reload.
+  Realtime invalidates/refetches clinic-filtered pharmacy sales; 15s polling is
+  the fallback. Catalog/doctor-amount mismatches on replay hold the work for
+  review instead of silently repricing money already collected.
+- Six additional immutable migrations committed before CLI application to
+  STAGING only: 20261010100000 through 20261010105000. Production unchanged.
+- Verification: quantity/pharmacy staging suite passed five groups (unit setup,
+  ₹250 + 3 × ₹10 = ₹280, catalog drift, one stock deduction, name-only sales,
+  concurrent confirmations, doctor-only discounts, atomic rejection, immutable
+  correction/retry, revenue/discount totals, clinic/admin/anonymous boundaries).
+  Original billing suite 16/16, audit payment/prescription suite and the
+  pre-upgrade unit-review/historical paid-bill regression passed.
+  Print render, offline ownership, expiry and prescription draft checks passed.
+  Build passed; lint has the same seven warnings. Staging SQL lint: no errors.
+- Browser: reception prepared a ₹30 pharmacy bill; doctor set ₹25 and reception
+  received the change without a discount control. Offline UPI confirmation
+  rendered a quantity/unit receipt at zero connectivity. Pending payment and
+  receipt survived reload with Supabase blocked, then synced. Reception confirmed
+  a synthetic legacy unit, saw it lock, and queued an offline price edit; the
+  saved price appeared after reconnect. Doctor confirmed a legacy tablet unit
+  and supplied quantity in the browser; the total recalculated. Quick medicine
+  creation displayed the confirmed tablet unit. A queued doctor correction stayed
+  visible through server refetches, then synced after reconnect. No browser
+  console errors observed.
+- Read-only staging metadata: all public tables have RLS; direct pharmacy
+  sale/line writes and medicine unit updates denied; all six new functions have
+  empty search paths and deny anonymous EXECUTE; trigger EXECUTE denied to
+  authenticated users; pharmacy sales are in the Realtime publication.
+  Refreshed security advisor: 0 errors, 28 warnings (four new authenticated-only,
+  role-checked APIs). Historical warnings are still not a complete security pass.
+- All eleven audit findings now have implemented fixes on the draft PR branch.
+  Separate code-review gate remains required before merge. Full offline PWA cold
+  start/expired-auth, quick medicine creation while offline, physical A4
+  calibration and backup restore were not checked in this pass. Historical visit
+  correction discount reporting remains outside this pharmacy-specific report fix.
+- Final UI/test/doc edits await the final commit/push at the time of this entry.
+  Next: review the draft PR; staff confirm real catalog units/counts; complete
+  historical security review and production hosting/backup prerequisites before
+  a clinical release. The scanned A4 layout remains a separate mockup task.
 
 ## Audit fixes — 2026-10-10
 

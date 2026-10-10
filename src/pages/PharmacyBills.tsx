@@ -42,7 +42,7 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
       const { data, error } = await query.order('created_at', { ascending: false }).limit(50)
       if (error) throw error
       const rows = data as unknown as Sale[]
-      const waiting = (client.getQueryData<Sale[]>(salesKey) ?? []).filter((local) => local.pending && (!rows.some((row) => row.id === local.id) || (local.bill_id === 'pending' && !rows.find((row) => row.id === local.id)?.bill_id)))
+      const waiting = (client.getQueryData<Sale[]>(salesKey) ?? []).filter((local) => local.pending && (!rows.some((row) => row.id === local.id) || local.final_amount_paise !== rows.find((row) => row.id === local.id)?.final_amount_paise || (local.bill_id === 'pending' && !rows.find((row) => row.id === local.id)?.bill_id)))
       return [...waiting, ...rows.filter((row) => !waiting.some((local) => local.id === row.id))]
     },
   })

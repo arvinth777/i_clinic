@@ -8,16 +8,37 @@ user-authorized fix pass on `codex/clinic-audit-fixes`.
 | 1 — unapproved payment snapshots | Fixed on staging: validate amount/revision against immutable server-recorded doctor approvals; genuine older approvals still flag reconciliation |
 | 2 — direct bill writes | Fixed on staging: bill and line writes go through the guarded payment/correction RPCs; raw inserts denied |
 | 3 — hidden print output | Fixed: print media explicitly displays `.print-area`; authenticated doctor and reception print DOM verified offline |
-| 4 — quantity billing | Pending unit decision: each medicine needs an agreed stock/billing unit, and existing prices cannot silently become unit prices |
+| 4 — quantity billing | Fixed: staff-confirmed stock units; quantity × frozen unit price in pricing, receipts and stock; old unpaid approvals require doctor review |
 | 5 — changing prices on receipt reprint | Fixed: paid reprints and totals use saved bill lines, not current catalog prices |
 | 6 — account-unbound offline writes | Fixed: account/clinic metadata, captured request token, original-account-only replay; legacy entries preserved for review; warnings redact foreign-account details |
 | 7 — lost offline prescription instructions | Fixed: atomic/replayable prescription RPC and an account-scoped IndexedDB print snapshot; retries replace edited instructions and retain earlier medicines; unknown reception data is clearly marked |
 | 8 — wrong arrival order | Fixed: doctor and reception default to `arrived_at`, then `id`; later-token earlier-arrival case verified on both screens |
-| 9 — refill-only sale | Pending prescription-selection and unit decisions; no consultation workaround or unrestricted refill path introduced |
+| 9 — refill-only sale | Fixed: visually verified name-only pharmacy sale, no patient history/token/consultation fee; saved-price billing, doctor-only discounts, atomic/idempotent payment and stock |
 | 10 — expiry alert missing | Fixed within the existing model: stocked medicines warn when expired, expiring today, or within 30 days; uses the manually maintained catalog expiry date |
 | 11 — unused font | Fixed: removed JetBrains Mono package/lock entries and corrected current design/font guidance |
 
-## Evidence from the fix pass
+## Quantity and refill follow-up
+
+The user confirmed both clinical roles set catalog unit prices, staff confirm
+existing counts/prices against each medicine's unit, and refills use visual
+verification with a customer name only. Four more committed migrations were
+applied to staging. Quantity/price snapshot tests reproduce ₹260 before the
+fix and verify ₹280 after it for a ₹250 consultation plus three ₹10 tablets.
+Pharmacy tests cover saved-price drafts, concurrent payment retries, exactly
+one stock deduction, doctor-only discounts, immutable corrections, report
+collections/discounts, and clinic/admin/anonymous boundaries. A correction
+report test reproduced ₹35 instead of ₹20 of discount before the pharmacy
+aggregation fix. All now pass. Historical paid bills were preserved.
+
+Browser checks verified doctor-to-reception discount updates, an offline UPI
+receipt without a token or clinical history, persistence through reload with
+Supabase blocked, subsequent sync, explicit unit confirmation, locked units,
+and offline price edits. Read-only metadata verified the new grants/RLS and
+Realtime publication. The refreshed advisor reports 0 errors and 28 warnings;
+the four added warnings are authenticated-only definer APIs with tested role
+checks. Historical warnings still need separate review before release.
+
+## Evidence from the earlier fix pass
 
 - Three immutable migrations committed before CLI application to staging;
   production was not migrated. `supabase db lint --linked --schema public
@@ -56,7 +77,7 @@ user-authorized fix pass on `codex/clinic-audit-fixes`.
 Ponytail change review traced payment, print, queue, and affected callers at
 this clinic's two-browser scale. Review caught and closed the login-during-save
 race, edited-prescription retry mismatch, and pending receipt cache preference.
-No additional must-fix finding remains within the nine completed items.
+No additional must-fix finding remains within the eleven implemented audit fixes.
 The separate repository `code-review` gate remains required before a merge.
 
 The 30-day expiry window is a documented implementation assumption. This is

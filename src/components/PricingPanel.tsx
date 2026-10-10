@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../lib/money'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { Input } from './ui/input'
+import { Button } from './ui/button'
 
 type Procedure = { id: string; name: string; default_price_paise: number }
 type VisitProcedure = { id: string; procedure_id: string; price_paise: number; procedures: { name: string } | null }
@@ -13,6 +14,42 @@ type Pricing = {
   discount_paise: number
   revision_number: number
   final_amount_set: boolean
+}
+
+function LegacyQuantities({ clinicId, visitId }: { clinicId: string; visitId: string }) {
+  const queryClient = useQueryClient()
+  const key = ['legacy-prescription-quantities', visitId]
+  const { data: items } = useQuery({ queryKey: key, queryFn: async () => {
+    const { data, error } = await supabase.from('prescription_items')
+      .select('id, quantity_dispensed, prescriptions!inner(visit_id), medicines(name, stock_unit, unit_confirmed_at)')
+      .eq('prescriptions.visit_id', visitId).is('unit_price_paise', null)
+    if (error) throw error
+    return data as unknown as { id: string; quantity_dispensed: number | null; medicines: { name: string; stock_unit: string | null; unit_confirmed_at: string | null } }[]
+  } })
+  const review = useMutation({ networkMode: 'always', mutationFn: async ({ id, quantity }: { id: string; quantity: number }) => {
+    await attemptOrQueue({ clinicId,
+      attempt: token => supabase.from('prescription_items').update({ quantity_dispensed: quantity }).eq('id', id).setHeader('Authorization', `Bearer ${token}`),
+      queueItem: () => ({ kind: 'update', table: 'prescription_items', payload: { quantity_dispensed: quantity }, match: { id }, description: 'Review legacy supplied quantity' }),
+    })
+  }, onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: key })
+    queryClient.invalidateQueries({ queryKey: ['visit-pricing', visitId] })
+    queryClient.invalidateQueries({ queryKey: ['past-prescriptions'] })
+  } })
+  if (!items?.length) return null
+  return <div className="record-section">
+    <p className="field-hint">Review older prescription quantities before approving this bill. Confirm medicine units under Stock first.</p>
+    {items.map(item => <form className="action-row" key={item.id} onSubmit={event => {
+      event.preventDefault()
+      const quantity = Number(new FormData(event.currentTarget).get('quantity'))
+      if (Number.isInteger(quantity) && quantity > 0) review.mutate({ id: item.id, quantity })
+    }}>
+      <label htmlFor={`legacy-${item.id}`}>{item.medicines.name} · {item.medicines.stock_unit ?? 'unit unconfirmed'}</label>
+      <Input id={`legacy-${item.id}`} name="quantity" type="number" min="1" step="1" required defaultValue={item.quantity_dispensed ?? ''} />
+      <Button type="submit" variant="secondary" disabled={review.isPending || !item.medicines.unit_confirmed_at}>Confirm supplied quantity</Button>
+    </form>)}
+    {review.isError && <p className="form-error">Couldn't confirm quantity — check the unit setup and retry.</p>}
+  </div>
 }
 
 export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId: string }) {
@@ -220,6 +257,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
 
   return (
     <>
+      <LegacyQuantities clinicId={clinicId} visitId={visitId} />
       <section className="record-section">
         <h3 className="readout-heading">Procedures</h3>
         <div className="field search-results-anchor">

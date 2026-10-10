@@ -51,6 +51,9 @@ try {
   assert.equal(catalog.price_paise, 1000)
   assert.ok(catalog.unit_confirmed_at)
   console.log('PASS: reception confirms catalog unit and price')
+  const unconfirmed = value(await doctor.from('medicines').insert({ clinic_id: clinicId, name: `Unconfirmed synthetic ${crypto.randomUUID()}`, price_paise: 1000 }).select('id').single())
+  const blockedVisit = await visit()
+  assert.ok((await doctor.rpc('save_prescription', { p_prescription_id: crypto.randomUUID(), p_visit_id: blockedVisit, p_items: [{ id: crypto.randomUUID(), medicine_id: unconfirmed.id, duration_days: 3, quantity_dispensed: 3 }] })).error, 'unconfirmed units cannot enter a new prescription')
   const id = await visit()
   const rxId = crypto.randomUUID()
   const itemId = crypto.randomUUID()
@@ -72,6 +75,7 @@ try {
   assert.equal(sale.customer_name, 'Synthetic pharmacy customer')
   assert.equal(sale.final_amount_paise, 6000, 'three ₹20 units, no ₹250 consultation fee')
   assert.equal(sale.bill_id, null)
+  value(await reception.rpc('set_medicine_unit_price', { p_medicine_id: medicine.id, p_stock_unit: 'tablet', p_price_paise: 2500 }))
   assert.equal(value(await reception.rpc('save_pharmacy_sale', saleArgs)), saleId)
   console.log('PASS: name-only pharmacy draft at saved prices, without consultation or token')
   assert.ok((await reception.rpc('set_pharmacy_sale_amount', { p_sale_id: saleId, p_final_amount_paise: 100 })).error, 'reception cannot discount')
@@ -82,6 +86,7 @@ try {
   value(await doctor.rpc('set_pharmacy_sale_amount', { p_sale_id: saleId, p_final_amount_paise: 4500 }))
   const payArgs = { p_sale_id: saleId, p_payment_method: 'cash', p_expected_amount_paise: 4500 }
   assert.ok((await reception.rpc('confirm_pharmacy_sale', { ...payArgs, p_expected_amount_paise: 100 })).error)
+  assert.ok((await reception.rpc('confirm_pharmacy_sale', { ...payArgs, p_expected_amount_paise: 6000 })).error, 'genuine older unpaid pharmacy amounts are held for review, never silently repriced')
   assert.ok((await doctor.rpc('confirm_pharmacy_sale', payArgs)).error, 'doctor does not collect at reception')
   const before = value(await doctor.rpc('get_daily_report'))[0]
   const paid = await Promise.all([reception.rpc('confirm_pharmacy_sale', payArgs), reception.rpc('confirm_pharmacy_sale', payArgs)])

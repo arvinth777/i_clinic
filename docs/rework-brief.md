@@ -77,10 +77,11 @@ station.
   reporting. These need a keep/simplify/defer decision; their existence
   does not make them automatic priorities for the rework.
 
-## What source inspection establishes
+## Source inspection before the fix pass
 
-These are code-level observations, not a new live-browser or database
-audit. Existing historical test results do not verify the reworked flow.
+This table records the original source inspection. Subsequent implemented
+fixes and staging/browser evidence are recorded in docs/STATUS.md and
+docs/codebase-audit.md; the scanned A4 layout remains unimplemented.
 
 | Area | Current source | Difference to resolve |
 | --- | --- | --- |
@@ -113,8 +114,10 @@ audit. Existing historical test results do not verify the reworked flow.
 Both staff roles set catalog unit prices. Existing counts and prices must be
 confirmed against the selected unit before billing. Refills are visually
 verified at reception and billed by name alone, without patient history.
-Discounts remain doctor-only. A unit change after confirmation must not
-reinterpret historical stock or paid bills.
+Discounts remain doctor-only. Confirmed units stay fixed; use a separate catalog medicine for different
+packaging. No automatic stock conversion or historical paid-bill rewriting.
+Catalog price edits apply to new prescriptions/sales; prepared entries retain
+their saved price. Staging implementation and evidence are in docs/STATUS.md.
 
 ## Details needed before implementation
 

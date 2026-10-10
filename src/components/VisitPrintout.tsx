@@ -168,6 +168,7 @@ export function PrintableReceipt({
           </tr>
         </tbody>
       </table>
+      {bill?.pending && <p>Payment recorded on this device—not saved yet.</p>}
       {bill && (
         <p>
           Paid via {bill.payment_method} on {formatDate(bill.confirmed_at)}

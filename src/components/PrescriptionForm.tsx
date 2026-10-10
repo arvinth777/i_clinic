@@ -53,6 +53,7 @@ export function PrescriptionForm({
     },
   })
   const confirmationId = useRef<string | null>(null)
+  const newMedicineIdentity = useRef<{ id: string; name: string } | null>(null)
   const [draftItems, setDraftItems] = useState<DraftItem[]>([])
   const [reviewOpen, setReviewOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -135,19 +136,25 @@ export function PrescriptionForm({
   }
 
   const addNewMedicine = useMutation({
+    networkMode: 'always',
     mutationFn: async (pricePaise: number) => {
-      const { data, error } = await supabase
-        .from('medicines')
-        .insert({ clinic_id: clinicId, name: debouncedSearch, price_paise: pricePaise })
-        .select('id, name')
-        .single()
-      if (error) throw error
-      const { error: unitError } = await supabase.rpc('set_medicine_unit_price', { p_medicine_id: data.id, p_stock_unit: newMedicineUnit.trim(), p_price_paise: pricePaise })
-      if (unitError) throw unitError
-      return { ...data, stock_unit: newMedicineUnit.trim() } as MedicineResult
+      if (!newMedicineUnit.trim()) throw new Error('Enter the billing and stock unit')
+      if (newMedicineIdentity.current?.name !== debouncedSearch) newMedicineIdentity.current = { id: crypto.randomUUID(), name: debouncedSearch }
+      const row = { ...newMedicineIdentity.current!, clinic_id: clinicId, price_paise: pricePaise }
+      await attemptOrQueue({ clinicId,
+        attempt: (token) => supabase.from('medicines').upsert(row, { onConflict: 'id', ignoreDuplicates: true }).setHeader('Authorization', `Bearer ${token}`),
+        queueItem: () => ({ kind: 'insert', table: 'medicines', payload: row, description: 'Add medicine' }),
+      })
+      const payload = { p_medicine_id: row.id, p_stock_unit: newMedicineUnit.trim(), p_price_paise: pricePaise }
+      await attemptOrQueue({ clinicId,
+        attempt: (token) => supabase.rpc('set_medicine_unit_price', payload).setHeader('Authorization', `Bearer ${token}`),
+        queueItem: () => ({ kind: 'rpc', rpc: 'set_medicine_unit_price', payload, description: 'Confirm new medicine unit and price' }),
+      })
+      return { id: row.id, name: row.name, stock_unit: payload.p_stock_unit } as MedicineResult
     },
     onSuccess: (medicine) => {
       addFromSearch(medicine)
+      newMedicineIdentity.current = null
       setNewMedicinePrice('')
       setNewMedicineUnit('')
       queryClient.invalidateQueries({ queryKey: ['medicine-search', clinicId] })
@@ -310,7 +317,7 @@ export function PrescriptionForm({
               {searchResults.map((m) => (
                 <li key={m.id}>
                   <button type="button" className="search-result-button" disabled={!m.unit_confirmed_at} onClick={() => addFromSearch(m)}>
-                    <span>{m.name}</span>
+                    <span>{m.name} · {m.stock_unit ?? 'confirm unit under Stock'}</span>
                   </button>
                 </li>
               ))}
