@@ -56,6 +56,19 @@ try {
   assert.ok(edit.error || edit.data.length === 0, 'reception cannot directly edit clinical notes')
   assert.equal(value(await doctor.from('prescriptions').select('diagnosis').eq('id', args.p_prescription_id).single()).diagnosis, args.p_diagnosis)
   console.log('PASS: direct reception edits blocked; clinical notes isolated from other clinics, admin and anonymous access')
+  assert.deepEqual(value(await reception.rpc('get_visit_billing_detail', { p_visit_id: visit.id })), [], 'reception must not read clinical instructions before handoff')
+  value(await doctor.from('visits').update({ stage: 'packing' }).eq('id', visit.id))
+  value(await reception.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visit.id))
+  const printable = value(await reception.rpc('get_visit_billing_detail', { p_visit_id: visit.id }))
+  const printedMedicine = printable.find(row => row.kind === 'medicine')
+  assert.equal(printedMedicine.diagnosis, args.p_diagnosis, 'reception print data must include saved diagnosis')
+  assert.equal(printedMedicine.advice, args.p_advice, 'reception print data must include saved advice')
+  assert.deepEqual(value(await reception.from('prescriptions').select('id').eq('id', args.p_prescription_id)), [], 'printing must not grant reception unrestricted clinical history')
+  for (const [role, client] of [['other clinic', otherDoctor], ['admin', admin], ['anonymous', anonymous]]) {
+    const result = await client.rpc('get_visit_billing_detail', { p_visit_id: visit.id })
+    assert.ok(result.error || result.data.length === 0, role + ' must not read the printable clinical fields')
+  }
+  console.log('PASS: reception print fields survive handoff through the authorized billing read, with role/clinic isolation')
 } finally {
   await Promise.all(clients.map(client => client.auth.signOut()))
 }
