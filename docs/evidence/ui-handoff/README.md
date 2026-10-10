@@ -66,3 +66,11 @@ The latest production-build offline reload attempt was blocked by denied browser
 permission for network emulation. No workaround was attempted. The temporary
 synthetic draft was cleared; earlier offline evidence above is not a fresh pass
 for this revision.
+
+Deployment `iclinic-7da96cjt7-arvinth777s-projects.vercel.app` (commit `0806102`)
+was checked in Chrome after adding branch-specific public staging variables.
+Staging doctor sign-in loaded the synthetic queue and shared navigation. Computed
+body text was Hanken Grotesk / 15px, status was All saved, and the page had no
+horizontal overflow at the browser's normal viewport. `deployed-preview.png`
+records that rendered application. This is runtime verification of the preview,
+not a production release or a complete workflow test.

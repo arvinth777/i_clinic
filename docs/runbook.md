@@ -52,11 +52,13 @@ Student-offer comparison and unaccepted recommendation: `docs/hosting-options.md
 The branch `codex/clinic-screens-handoff` has branch-specific **Preview** variables
 `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, both targeting staging
 `cofnrcgsolluyhghutah`. These are the browser-safe public connection values, not a
-service-role credential. No Production-scoped variables were changed. The next
-GitHub push rebuilds that preview; an earlier READY build was blank because these
-variables were absent. Verify the rendered application after deployment, not just
-Vercel's build result. Main/production branch reconciliation and clinical release
-prerequisites above remain unresolved.
+service-role credential. No Production-scoped variables were changed. Commit
+`0806102` produced preview `iclinic-7da96cjt7-arvinth777s-projects.vercel.app`;
+staging doctor sign-in and rendered queue/navigation were verified in Chrome.
+An earlier READY build was blank because these variables were absent. Verify the
+rendered application after deployment, not just Vercel's build result.
+Main/production branch reconciliation and clinical release prerequisites above
+remain unresolved.
 
 ## Account inventory (where each thing lives)
 

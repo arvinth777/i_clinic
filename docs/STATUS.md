@@ -29,14 +29,19 @@
   hidden-list regression. Evidence in `docs/evidence/ui-handoff/` is synthetic.
 - Vercel Preview had no Supabase environment and rendered blank. Added only the
   public staging URL/anon key for `codex/clinic-screens-handoff`. Production scope
-  and database are unchanged. Publication/runtime preview verification follows.
+  and database are unchanged. Commit `0806102` is pushed; Vercel deployment
+  `iclinic-7da96cjt7-arvinth777s-projects.vercel.app` is Ready. Browser sign-in with
+  the staging doctor succeeded, loaded the real synthetic queue, and confirmed
+  Hanken/15px body, ordered navigation, All saved and no horizontal overflow.
 - Latest offline reload check could not run: browser permission was denied for
   CDP/network emulation on the local production build. No alternate route was
   attempted. Cleared the temporary synthetic draft. Earlier offline results
   below are historical evidence, not a fresh pass for this revision.
-- Source/screenshots/PDFs are being committed and pushed to draft PR #5; final
-  deployed-preview verification follows. The Supabase advisor MCP is not
-  available in this session, so no fresh advisor pass is claimed.
+- Source/screenshots/PDFs are committed and pushed to draft PR #5. Updating its
+  title/description could not be verified: GitHub API and website requests timed
+  out after the successful code push. This publication evidence is recorded in a
+  follow-up documentation commit. The Supabase advisor MCP is not available in
+  this session, so no fresh advisor pass is claimed.
 - Still NOT release-ready: queue called/sent/absence/reorder migration, price
   audit/approval-time snapshots, partial supply/shortfalls, complete integrated
   regression/security advisor/independent review, and physical printer sign-off.
