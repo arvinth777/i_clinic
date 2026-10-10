@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
 import { formatDate } from '../lib/date'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
+import { attemptOrQueue } from '../lib/offlineQueue'
+import { LoadingRows, QueryError } from '../components/QueryState'
 import { Button } from '../components/ui/button'
 
 // The resolution half of docs/architecture-spec.md's offline money-
@@ -19,14 +21,14 @@ type Flagged = {
   token_number: number
   arrived_at: string
   final_amount_paise: number
-  live_final_amount_paise: number
+  live_final_amount_paise: number | null
   confirmed_at: string
 }
 
 export function Reconciliation({ clinicId }: { clinicId: string }) {
   const queryClient = useQueryClient()
   const queryKey = ['bills-needing-reconciliation', clinicId]
-  const { data: flagged } = useQuery({
+  const { data: flagged,isPending,error,refetch } = useQuery({
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -40,9 +42,11 @@ export function Reconciliation({ clinicId }: { clinicId: string }) {
   })
 
   const correct = useMutation({
-    mutationFn: async (billId: string) => {
-      const { error } = await supabase.rpc('correct_bill', { p_bill_id: billId })
-      if (error) throw error
+    networkMode:'always',
+    mutationFn: async (bill:Flagged) => {
+      if(bill.live_final_amount_paise===null)throw new Error('Review this legacy bill before correcting it.')
+      const args={p_bill_id:bill.id,p_expected_amount_paise:bill.live_final_amount_paise}
+      await attemptOrQueue({clinicId,attempt:token=>supabase.rpc('correct_bill',args).setHeader('Authorization',`Bearer ${token}`),queueItem:()=>({kind:'rpc',rpc:'correct_bill',payload:args,description:'Record reviewed bill correction'}),applyOptimistic:()=>queryClient.setQueryData<Flagged[]>(queryKey,old=>old?.filter(b=>b.id!==bill.id))})
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   })
@@ -54,9 +58,10 @@ export function Reconciliation({ clinicId }: { clinicId: string }) {
       </div>
       <p className="readout-empty">
         A bill confirmed while offline, against a price that changed before it synced. Correcting writes a new bill
-        referencing the original at today's actual price — the original is never edited (non-negotiable #3).
+        using the supplied quantities and the doctor’s current discount. The original receipt stays unchanged.
       </p>
-      {(flagged ?? []).length === 0 ? (
+      {error && <QueryError retry={()=>void refetch()} />}
+      {isPending ? <LoadingRows label="Loading corrections…" /> : (flagged ?? []).length === 0 ? (
         <p className="readout-empty">Nothing flagged right now.</p>
       ) : (
         <Table>
@@ -77,15 +82,15 @@ export function Reconciliation({ clinicId }: { clinicId: string }) {
                 <TableCell className="worklist-wait-cell">{b.token_number}</TableCell>
                 <TableCell className="worklist-wait-cell">{formatDate(b.confirmed_at)}</TableCell>
                 <TableCell className="worklist-wait-cell">{formatPaise(b.final_amount_paise)}</TableCell>
-                <TableCell className="worklist-wait-cell">{formatPaise(b.live_final_amount_paise)}</TableCell>
+                <TableCell className="worklist-wait-cell">{b.live_final_amount_paise===null?'Review required':formatPaise(b.live_final_amount_paise)}</TableCell>
                 <TableCell>
                   <Button
                     type="button"
                     variant="secondary"
-                    disabled={correct.isPending}
+                    disabled={correct.isPending || b.live_final_amount_paise===null}
                     onClick={() => {
-                      if (confirm(`Write a correction for ${b.patient_name}, billing ${formatPaise(b.live_final_amount_paise)} instead of ${formatPaise(b.final_amount_paise)}?`)) {
-                        correct.mutate(b.id)
+                      if (confirm(`Write a correction for ${b.patient_name}, billing ${b.live_final_amount_paise===null?'Review required':formatPaise(b.live_final_amount_paise)} instead of ${formatPaise(b.final_amount_paise)}?`)) {
+                        correct.mutate(b)
                       }
                     }}
                   >

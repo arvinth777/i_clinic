@@ -465,7 +465,7 @@
 .consultation-stage { flex: 999 1 var(--doctor-main-basis); padding: var(--space-36) var(--space-32) var(--space-48); }
 .consultation-stage > .doctor-overview { max-width: var(--doctor-content-width); }
 .consultation-rail { flex: 1 1 var(--doctor-rail-basis); max-width: var(--doctor-rail-max); align-self: stretch; padding: var(--space-36) var(--space-32); }
-.doctor-waiting { display: flex; flex-direction: column; gap: var(--space-20); top: calc(var(--header-current-height) + var(--space-lg)); }
+.doctor-waiting { position: sticky; display: flex; flex-direction: column; gap: var(--space-20); top: calc(var(--header-current-height) + var(--space-lg)); }
 .doctor-overview { display: flex; flex-direction: column; gap: var(--space-36); }
 .doctor-overview[hidden] { display: none; }
 .doctor-overview .record-section, .doctor-context, .doctor-patient-summary { margin: 0; padding: 0; border: 0; }

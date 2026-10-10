@@ -193,3 +193,6 @@
 .reception-search-head + .field-hint { font-size: var(--text-sm); }
 
 .reception-rail > .sticky-panel { position: sticky; top: calc(var(--header-current-height) + var(--space-lg)); display: flex; flex-direction: column; gap: var(--space-lg); }
+
+/* An expanded check-in form must scroll with the page when taller than the viewport. */
+.reception-rail:has(form) > .sticky-panel { position: static; }

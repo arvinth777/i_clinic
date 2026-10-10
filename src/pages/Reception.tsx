@@ -214,6 +214,7 @@ export function Reception({ userId, readOnly = false }: { userId: string; readOn
                 ← Back to queue
               </button>
               <NewPatientForm clinicId={clinicId} initialName={debouncedQuery} onSubmit={(input: NewPatientInput) => checkInNew.mutate(input)} submitting={checkInNew.isPending} />
+              {checkInNew.isError && <p className="form-error" role="alert">{checkInNew.error.message}</p>}
               <div className="action-row">
                 <Button type="button" variant="secondary" onClick={reset}>
                   Cancel
