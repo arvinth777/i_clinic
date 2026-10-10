@@ -1,5 +1,42 @@
 # Status
 
+## Letterhead integration — 2026-10-10
+
+- Merged `codex/clinic-vector-letterhead` (`bde9358`) into the active
+  `codex/clinic-screens-handoff` branch at the user's request. Preserved the newer
+  billing diagnosis/advice types and both branches' status records; the only
+  conflict was this document. No application code required conflict edits.
+- Local standards/spec review found no merge blocker. Fresh combined production
+  build, print render tests, reception clinical-print/escaping/cache-guard tests,
+  and assertions against the saved PDF samples pass. Lint has no errors and the
+  same seven existing warnings; the existing bundle-size warning remains.
+- The merge is committed locally with no remaining uncommitted work. No push,
+  deployment or database change was performed. Browser/offline evidence remains
+  the prior letterhead verification, not a new post-merge browser run.
+- Next: publish the updated UI branch when requested; physical clinic-printer
+  sign-off is still required before release.
+
+## Rebuilt prescription letterhead — isolated side change, 2026-10-10
+
+- Branch `codex/clinic-vector-letterhead`, based on `bce48fa`, integrates the
+  user's new HTML header/footer in the shared preview/print renderer. Live SVG
+  English/Tamil text replaces the full-page scan; the original logo/watermark
+  remain images. Fonts and artwork are self-hosted and precached for offline use.
+- Preserved clinical data, A4 continuation layout and separate receipts. Matched
+  reference/date coordinates in preview and print. Kept the repeating header
+  at 64mm + 10mm and removed blend compositing after browser PDF tests caught
+  continuation overlap and disappearing artwork, respectively.
+- Fresh checks: complete production build, print render assertions, five PDF
+  fixture assertions, embedded fonts, offline print of a loaded prescription,
+  and preview widths 1440/390 without horizontal page overflow. Lint retains
+  seven existing warnings. Evidence: `docs/evidence/vector-letterhead/`.
+- This checkpoint is committed locally with its source/assets/docs/evidence;
+  temporary fixtures and servers were removed. No main-checkout files were
+  overwritten, and no migration, push, merge or deployment was performed.
+- Next: integrate/review this isolated commit with the ongoing UI work, then
+  verify the deployed prescription flow and obtain physical clinic-printer
+  sign-off. No fresh authenticated end-to-end or offline-reload pass is claimed.
+
 ## Review fixes — 2026-10-10
 
 - Step 4 draft PR #5: both independent Standards/Spec reviewers completed a

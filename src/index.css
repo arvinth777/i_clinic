@@ -84,8 +84,16 @@
   --side-width: 26.25rem;
   --editor-width: 47.5rem;
   --status-dot-size: 0.4375rem;
+  --letterhead-ink: #000000;
+  --letterhead-brand: #0050BE;
+  --letterhead-rule: #0060D4;
   --paper-width: 210mm;
   --paper-height: 297mm;
+  --letterhead-unit: calc(var(--paper-width) / 1055);
+  --letterhead-ref-x: calc(122 * var(--letterhead-unit));
+  --letterhead-ref-y: calc(361 * var(--letterhead-unit));
+  --letterhead-date-x: calc(858 * var(--letterhead-unit));
+  --letterhead-date-y: calc(352 * var(--letterhead-unit));
   --paper-header: 64mm;
   --paper-footer: 24mm;
   --paper-reference: 10mm;

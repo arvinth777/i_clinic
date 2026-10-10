@@ -1,6 +1,7 @@
 import { formatPaise } from '../lib/money'
 import { formatDate, formatDateOnly } from '../lib/date'
 import './Billing.css'
+import { PrescriptionLetterhead } from './PrescriptionLetterhead'
 
 export type PrintVisit = {
   id: string
@@ -58,7 +59,7 @@ export type ClinicPrintInfo = {
 export function PrintablePrescription({ clinic, visit, medicines }: { clinic: ClinicPrintInfo | undefined; visit: PrintVisit; medicines: DetailRow[] }) {
   return (
     <section className="print-page prescription-sheet">
-      <img className="prescription-letterhead" src="/letterhead-a4.png" alt="Salem Pain and Palliative Care Clinic letterhead" />
+      <PrescriptionLetterhead />
       <table className="prescription-paper-content">
         <thead><tr><td colSpan={2}>
           <div className="prescription-header-space" />
