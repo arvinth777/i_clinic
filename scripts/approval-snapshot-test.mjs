@@ -34,5 +34,14 @@ try{
  const audit=value(await reception.from('medicine_price_changes').select('old_price_paise,new_price_paise,changed_by,changed_at').eq('medicine_id',medicine.id).order('changed_at'))
  assert.ok(audit.some(a=>a.old_price_paise===1000&&a.new_price_paise===1250&&a.changed_by&&a.changed_at))
  assert.ok((await reception.from('medicine_price_changes').update({new_price_paise:1}).eq('medicine_id',medicine.id)).error)
+ const proc=value(await doctor.from('procedures').insert({clinic_id:clinicId,name:`Offline approval procedure ${crypto.randomUUID()}`,default_price_paise:500}).select('id').single())
+ const before=value(await doctor.rpc('get_pricing_proposal',{p_visit_id:visit.id}))
+ value(await doctor.from('visit_procedures').insert({clinic_id:clinicId,visit_id:visit.id,procedure_id:proc.id,price_paise:500}))
+ const after=value(await doctor.rpc('get_pricing_proposal',{p_visit_id:visit.id}))
+ const replay={p_visit_id:visit.id,p_final_amount_paise:after.total_paise,p_expected_total_paise:after.total_paise,p_expected_revision_number:before.revision_number,p_expected_lines:after.lines,p_request_id:crypto.randomUUID()}
+ const replayRevision=value(await doctor.rpc('approve_visit_pricing',replay))
+ assert.equal(value(await doctor.rpc('approve_visit_pricing',replay)),replayRevision,'snapshot replay is idempotent after source writes change revision')
+ assert.ok((await doctor.rpc('approve_visit_pricing',{...replay,p_request_id:crypto.randomUUID(),p_expected_lines:before.lines})).error,'different lines cannot pass by reusing a total')
+ console.log('PASS: dependent source writes replay against the exact reviewed bill lines')
  console.log('PASS: approval-time unit prices, fixed discount, doctor-only approval, idempotent retries and immutable catalog audit')
 }finally{await Promise.all(clients.map(c=>c.auth.signOut()))}
