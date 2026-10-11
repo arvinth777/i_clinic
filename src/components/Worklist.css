@@ -1,0 +1,76 @@
+.worklist-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font: inherit;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  padding: var(--space-2xs) 0;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .worklist-sort:hover {
+    color: var(--text);
+  }
+}
+
+.worklist-sort:focus-visible {
+  outline: none;
+  outline: 2px solid var(--blue); outline-offset: 2px;
+  border-radius: var(--radius-input);
+}
+
+.worklist-sort-arrow {
+  font-size: 0.65em;
+  color: var(--accent);
+}
+
+.worklist-row-clickable {
+  cursor: pointer;
+}
+
+.worklist-row-clickable:focus-visible {
+  outline: none;
+  outline: 2px solid var(--blue); outline-offset: 2px;
+}
+
+.worklist-name-cell {
+  font-weight: 500;
+  color: var(--text);
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worklist-wait-cell {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.queue-tools, .queue-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); }
+.queue-tools { justify-content: space-between; margin-bottom: var(--space-lg); }
+.queue-filters [aria-pressed='true'] { background: var(--accent-wash); color: var(--accent); }
+.queue-sort { position: relative; font-size: var(--text-xs); color: var(--text-secondary); }
+.queue-sort summary { cursor: pointer; }
+.queue-sort[open] { padding: var(--space-xs); background: var(--surface-2); }
+.queue-patients { list-style: none; margin: 0; padding: 0; }
+.queue-patient { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; align-items: center; gap: var(--space-lg); border-bottom: 1px solid var(--border); padding: var(--space-lg) 0; }
+.queue-token { min-width: var(--space-xl); }
+.queue-patient-name { overflow-wrap: anywhere; }
+.queue-patient-name > span, .queue-patient-name p, .queue-time { font-size: var(--text-xs); color: var(--text-tertiary); }
+.queue-patient-name p { margin: var(--space-2xs) 0 0; }
+.queue-time { white-space: nowrap; }
+.queue-patient .stage-pill { border: 0; background: none; padding: 0; font-size: var(--text-xs); font-weight: 500; }
+.queue-patient .stage-pill svg { width: var(--space-sm); height: var(--space-sm); }
+@media (max-width: 1000px) {
+  .queue-patient { grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-sm); }
+  .queue-patient .stage-pill { grid-column: 2; }
+  .queue-action { grid-column: 3; }
+}
+.queue-token { font-size: var(--text-subheading); font-weight: 700; }
+.queue-patient .stage-pill { font-size: var(--text-sm); font-weight: 600; }

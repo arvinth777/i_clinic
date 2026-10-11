@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Doctor workspace</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A4FB5}
+button{font-family:inherit;font-variant-numeric:tabular-nums}
+button:focus-visible,a:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px;border-radius:6px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B; font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums">
+<dc-import name="Nav" active="doctor" user="Dr. G. P. Kirupakaran" token="{{token}}" waiting="{{waiting}}" event="{{navEvent}}" hint-size="100%,56px"></dc-import>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; min-height: calc(100vh - 56px)">
+<main style="flex: 999 1 620px; min-width: 0; box-sizing: border-box; padding: 36px 32px 48px">
+<div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px">
+
+<sc-if value="{{hasCurrent}}" hint-placeholder-val="{{ true }}">
+<section style="display: flex; flex-direction: column; gap: 14px">
+<span style="font-size: 13px; font-weight: 600; {{arrSt}}">{{arrival}}</span>
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 15px; color: #7A8494">#{{cur.token}} · {{cur.kind}}</span>
+<span style="font-weight: 700; font-size: 30px; letter-spacing: -0.02em; line-height: 1.15">{{cur.name}}</span>
+<span style="font-size: 14px; color: #5B6575">{{cur.line}}</span>
+<sc-if value="{{cur.hasAllergy}}" hint-placeholder-val="{{ true }}"><span style="font-size: 14px; font-weight: 600; color: #B42318">{{cur.allergy}}</span></sc-if>
+</div>
+<a href="Minimal.dc.html" style="display: flex; align-items: center; height: 48px; padding: 0 22px; border-radius: 10px; background: #1A4FB5; color: #FFFFFF; font-weight: 600; font-size: 15px; text-decoration: none">Start prescription →</a>
+</div>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #7A8494">Today, from reception</span>
+<span>{{cur.complaint}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #7A8494">On medicines</span>
+<span>{{cur.onMeds}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #7A8494">Last bill</span>
+<span>{{cur.lastBill}}</span>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px">
+<span style="font-size: 13px; color: #7A8494">History</span>
+<a href="Patient.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none">Full record →</a>
+</div>
+<sc-for list="{{cur.visits}}" as="v" hint-placeholder-count="2">
+<div style="display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 4px 16px; padding: 14px 0; border-top: 1px solid #EEF0F3">
+<span style="font-weight: 600">{{v.date}}</span>
+<span style="display: flex; flex-direction: column; gap: 2px">
+<span>{{v.dx}}</span>
+<span style="font-size: 14px; color: #5B6575">{{v.rx}}</span>
+<span style="font-size: 14px; color: #7A8494">{{v.note}}</span>
+</span>
+</div>
+</sc-for>
+<sc-if value="{{cur.noVisits}}" hint-placeholder-val="{{ false }}">
+<span style="padding: 14px 0; border-top: 1px solid #EEF0F3; color: #9AA3B0">First visit — no history yet.</span>
+</sc-if>
+</section>
+</sc-if>
+
+<sc-if value="{{noCurrent}}" hint-placeholder-val="{{ false }}">
+<section style="display: flex; flex-direction: column; gap: 6px; padding: 80px 0">
+<span style="font-weight: 700; font-size: 24px">{{idleTitle}}</span>
+<span style="color: #5B6575">{{idleText}}</span>
+</section>
+</sc-if>
+</div>
+</main>
+
+<aside style="flex: 1 1 380px; max-width: 520px; min-width: 0; align-self: stretch; box-sizing: border-box; padding: 36px 32px; background: #F6F7F9">
+<div style="position: sticky; top: 24px; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<span style="font-weight: 700; font-size: 20px">Waiting · {{waiting}}</span>
+<span style="font-size: 13px; color: #7A8494">{{stats}}</span>
+</div>
+
+<sc-if value="{{confirmOn}}" hint-placeholder-val="{{ false }}">
+<div role="alertdialog" aria-labelledby="cn-title" style="display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; border-radius: 12px; background: #FFFFFF">
+<span id="cn-title" style="font-weight: 600">#{{cur.token}}'s prescription isn't sent yet.</span>
+<span style="font-size: 14px; color: #5B6575">Hold it as a draft and call #{{nextUp.token}}? You can reopen it from Drafts.</span>
+<span style="display: flex; gap: 4px; margin-left: -10px">
+<button type="button" onClick="{{holdAndCall}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-weight: 600; font-size: 14px; cursor: pointer">Hold &amp; call #{{nextUp.token}}</button>
+<button type="button" onClick="{{cancelCall}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-size: 14px; cursor: pointer">Keep consulting</button>
+</span>
+</div>
+</sc-if>
+
+<sc-if value="{{canCall}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{callNext}}" style="height: 46px; border: 0; border-radius: 10px; background: #141C2B; color: #FFFFFF; font-weight: 600; font-size: 15px; cursor: pointer">Call #{{nextUp.token}} {{nextUp.name}}</button>
+</sc-if>
+
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{queue}}" as="q" hint-placeholder-count="5">
+<div style="display: flex; align-items: baseline; gap: 14px; padding: 12px 0; border-bottom: 1px solid #E8EBEF">
+<span style="width: 36px; font-weight: 700">#{{q.token}}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<span><span style="font-weight: 600">{{q.name}}</span> <span style="color: #7A8494">{{q.meta}}</span></span>
+<span style="font-size: 13px; color: #7A8494">{{q.reason}} · {{q.kind}}{{q.flag}}</span>
+</span>
+<span style="font-size: 13px; color: #7A8494">{{q.wait}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 4px; font-size: 14px">
+<span style="font-size: 13px; color: #7A8494">Drafts on hold</span>
+<span style="color: #9AA3B0">{{drafts}}</span>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+var PEOPLE = {
+  14: { name: 'Murugan K', kind: 'Follow-up · 3rd visit', line: '58 M · 72 kg · 168 cm · BP 138/86 · Pulse 82 · RBS 162', allergy: 'Allergic to NSAIDs',
+    complaint: 'Burning and tingling in both feet, worse at night × 2 months. Low back pain × 1 week.',
+    onMeds: 'Pregabid 75 · Glycomet 500', lastBill: '12 Sep · ₹740 · paid UPI',
+    visits: [
+      { date: '12 Sep 2026', dx: 'Diabetic peripheral neuropathy', rx: 'Pregabid 75 0-0-1 × 15 d · Glycomet 500 1-0-1 × 30 d', note: 'RBS 188. Asked to review sugars with diabetologist.' },
+      { date: '08 Aug 2026', dx: 'Peripheral neuropathy, to evaluate', rx: 'Nurokind-OD 1-0-0 × 30 d', note: 'Advised HbA1c and Vit B12.' }
+    ] },
+  15: { name: 'Lakshmi R', kind: 'New patient', line: '34 F · 58 kg · 160 cm · BP 118/76', allergy: '', complaint: 'Neck pain radiating to right arm × 3 weeks, desk job.', onMeds: 'None reported', lastBill: '—', visits: [] },
+  16: { name: 'Selvaraj M', kind: 'Follow-up', line: '61 M · 80 kg · 172 cm · BP 142/88', allergy: '', complaint: 'Refill of Pregabid, pain better.', onMeds: 'Pregabid 75', lastBill: '10 Sep · ₹520 · paid cash',
+    visits: [{ date: '10 Sep 2026', dx: 'Post-herpetic neuralgia', rx: 'Pregabid 75 0-0-1 × 30 d', note: 'Review in 1 month.' }] }
+};
+var WAIT = [
+  { token: 15, name: 'Lakshmi R', meta: '34 F', reason: 'Neck pain', kind: 'New', since: 31 },
+  { token: 16, name: 'Selvaraj M', meta: '61 M', reason: 'Refill · Pregabid', kind: 'Follow-up', since: 28 },
+  { token: 17, name: 'Kavitha S', meta: '52 F', reason: 'Knee pain', kind: 'New', since: 22 },
+  { token: 18, name: 'Ramesh A', meta: '45 M', reason: 'Post-op pain review', kind: 'Follow-up', since: 18 },
+  { token: 19, name: 'Priya N', meta: '29 F', reason: 'Headache', kind: 'New', since: 13 },
+  { token: 20, name: 'Govindan T', meta: '67 M', reason: 'Cancer pain review', kind: 'Follow-up', since: 10, flag: ' · Palliative' }
+];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { cur: 14, phase: 'in', waitIdx: 0, confirm: false, drafts: [] }; }
+  call(hold) {
+    var self = this, s = this.state, next = WAIT[s.waitIdx];
+    if (!next) return;
+    this.setState({ cur: next.token, phase: 'calling', waitIdx: s.waitIdx + 1, confirm: false, drafts: hold ? s.drafts.concat(['#' + s.cur]) : s.drafts });
+    clearTimeout(this._t);
+    this._t = setTimeout(function () { self.setState({ phase: 'in' }); }, 2200);
+  }
+  renderVals() {
+    var self = this, s = this.state;
+    var p = PEOPLE[s.cur] || { name: (WAIT.filter(function (w) { return w.token === s.cur; })[0] || {}).name || '', kind: '', line: 'Details from reception', allergy: '', complaint: '—', onMeds: '—', lastBill: '—', visits: [] };
+    var rest = WAIT.slice(s.waitIdx);
+    var nextUp = rest[0];
+    return {
+      token: s.cur, waiting: rest.length,
+      navEvent: s.phase === 'calling' ? 'Calling #' + s.cur + '…' : 'Reception sent in #' + s.cur,
+      hasCurrent: true, noCurrent: false, idleTitle: '', idleText: '',
+      arrival: s.phase === 'calling' ? 'Called · waiting for reception to send #' + s.cur + ' in…' : 'Reception sent #' + s.cur + ' in · 11:02',
+      arrSt: s.phase === 'calling' ? 'color: #93520A' : 'color: #1A4FB5',
+      cur: { token: s.cur, name: p.name, kind: p.kind, line: p.line, allergy: p.allergy, hasAllergy: !!p.allergy, complaint: p.complaint, onMeds: p.onMeds, lastBill: p.lastBill, visits: p.visits, noVisits: !p.visits.length },
+      queue: rest.map(function (w, k) { return { token: w.token, name: w.name, meta: w.meta, reason: w.reason, kind: w.kind, flag: w.flag || '', wait: (w.since + s.waitIdx * 9) + ' min' }; }),
+      nextUp: nextUp || { token: '', name: '' }, canCall: !!nextUp && !s.confirm,
+      stats: 'Seen ' + (3 + s.waitIdx) + ' today',
+      confirmOn: s.confirm,
+      callNext: function () { if (s.cur === 14 && s.waitIdx === 0) self.setState({ confirm: true }); else self.call(false); },
+      holdAndCall: function () { self.call(true); }, cancelCall: function () { self.setState({ confirm: false }); },
+      drafts: s.drafts.length ? s.drafts.join(', ') + ' — reopen from the queue' : 'None'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+@import 'tailwindcss';
+
+/* Clinic handoff tokens. Source: docs/design.md and the supplied HTML. */
+
+:root {
+  --doctor-main-basis: 620px; --doctor-content-width: 760px; --doctor-rail-basis: 380px; --doctor-rail-max: 520px; --doctor-history-date: 110px;
+  --space-32: 32px; --space-36: 36px; --space-40: 40px;
+  --ink: #141C2B; --ink-2: #364154; --muted: #5B6575; --faint: #7A8494; --placeholder: #9AA3B0;
+  --bg: #FFFFFF; --panel: #F6F7F9; --hover: #F2F4F7;
+  --line: #EEF0F3; --line-2: #E3E6EB; --line-3: #DDE1E7;
+  --blue: #1A4FB5; --blue-ink: #123E8C; --blue-tint: #EAF0FC; --blue-row: #F2F5FB;
+  --amber: #93520A; --amber-bg: #FDF6EC; --red: #B42318; --red-bg: #FDF1F0;
+  --green: #1F7A4D; --green-bg: #F2FAF5; --live: #22A55B;
+  --scroll-thumb: #D5DAE1; --scroll-hover: #B4BBC6; --toast-undo: #9DBBF5;
+  --r-sm: 8px; --r-md: 10px; --r-lg: 14px; --r-xl: 16px;
+  --shadow-pop: 0 12px 36px rgba(20,28,43,.14), 0 0 0 1px var(--line);
+  --shadow-modal: 0 24px 64px rgba(20,28,43,.20);
+  --shadow-paper: 0 1px 2px rgba(20,28,43,.06), 0 10px 30px rgba(20,28,43,.08);
+  --scrim: rgba(20,28,43,.32);
+  /* Existing components share the governing palette through these aliases. */
+  --surface: var(--bg); --surface-2: var(--panel); --border: var(--line); --border-strong: var(--line-2);
+  --text: var(--ink); --text-secondary: var(--muted); --text-tertiary: var(--faint);
+  --accent: var(--blue); --accent-hover: var(--blue-ink); --accent-active: var(--blue-ink); --accent-ink: var(--bg);
+  --accent-wash: var(--blue-tint); --focus-ring: var(--blue);
+  --danger: var(--red); --danger-wash: var(--red-bg); --success: var(--green); --success-wash: var(--green-bg);
+  --warning: var(--amber); --warning-wash: var(--amber-bg); --staging-bg: var(--amber-bg); --staging-ink: var(--amber);
+  --stage-waiting: var(--muted); --stage-with-doctor: var(--blue); --stage-packing: var(--amber); --stage-ready: var(--amber); --stage-paid: var(--green);
+  --tile-hero: var(--panel); --tile-hero-ink: var(--ink); --tile-mint: var(--panel); --tile-amber: var(--panel); --tile-pale-ink: var(--ink);
+  --font: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font); --font-mono: var(--font);
+  --space-6: 6px; --space-20: 20px; --space-28: 28px; --space-48: 48px;
+  --primary-height: 44px; --search-height: 48px; --dropdown-height: 360px; --drawer-width: 420px;
+  --table-min-width: 760px; --header-current-height: 56px;
+  --text-xxs: 0.75rem;
+  --text-input: 1.0625rem;
+  --text-subheading: 1.0625rem;
+  --text-section: 1.25rem;
+  --text-metric: 1.375rem;
+  --text-page: 1.625rem;
+  --text-record: 1.75rem;
+  --text-welcome: 2.125rem;
+  --line-body: 1.5;
+  --line-title: 1.15;
+  --tracking-title: -0.02em;
+  --paper-body-cqw: 1.9cqw;
+  --paper-reference-cqw: 1.85cqw;
+  --paper-caption-cqw: 1.55cqw;
+  --paper-dose-cqw: 1.65cqw;
+  --paper-rx-cqw: 4cqw;
+  --print-body-size: calc(var(--paper-width) * 0.019);
+  --print-reference-size: calc(var(--paper-width) * 0.0185);
+  --print-caption-size: calc(var(--paper-width) * 0.0155);
+  --print-dose-size: calc(var(--paper-width) * 0.0165);
+  --print-rx-size: calc(var(--paper-width) * 0.04);
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.25rem;
+  --radius-card: var(--r-lg);
+  --radius-input: var(--r-sm);
+  --radius-pill: 999px;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-drawer: var(--shadow-pop);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --header-height: 3.5rem;
+  --nav-padding: 1.75rem;
+  --control-height: 2.25rem;
+  --page-padding: 2rem;
+  --page-top: 2.25rem;
+  --content-width: 73.75rem;
+  --doctor-side-width: 23.75rem;
+  --patient-rail-width: 17.5rem;
+  --metric-min-width: 10rem;
+  --chart-height: 10rem;
+  --record-rail-width: 17.5rem;
+  --mobile-list-height: 15rem;
+  --side-width: 26.25rem;
+  --editor-width: 47.5rem;
+  --status-dot-size: 0.4375rem;
+  --letterhead-ink: #000000;
+  --letterhead-brand: #0050BE;
+  --letterhead-rule: #0060D4;
+  --paper-width: 210mm;
+  --paper-height: 297mm;
+  --letterhead-unit: calc(var(--paper-width) / 1055);
+  --letterhead-ref-x: calc(122 * var(--letterhead-unit));
+  --letterhead-ref-y: calc(361 * var(--letterhead-unit));
+  --letterhead-date-x: calc(858 * var(--letterhead-unit));
+  --letterhead-date-y: calc(352 * var(--letterhead-unit));
+  --paper-header: 64mm;
+  --paper-footer: 24mm;
+  --paper-reference: 10mm;
+  --paper-patient-gap: 4mm;
+  --preview-width: 32.5rem;
+  color-scheme: light;
+}
+
+/* Tailwind v4 theme keys, pointed at the CSS custom properties above --
+   new work (src/components/ui/*) uses Tailwind utilities; existing plain
+   CSS files keep using var(--...) directly. Both read the same values,
+   light or dark, since these are just references, not a second palette. */
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --radius-card: var(--radius-card);
+  --radius-input: var(--radius-input);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+
+  --font-sans: var(--font);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+}
+
+/* Radix Select's popover (src/components/ui/select.tsx) has no built-in
+   motion -- snapping open/closed instantly is one of the concrete things
+   that read as un-crafted (the user's own word) even after the popover
+   itself was correct. Plain CSS keyframes on Radix's own data-state
+   attribute, not a Tailwind animation plugin -- one component, doesn't
+   justify a new dependency. */
+@keyframes select-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes select-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+[data-slot='select-content'][data-state='open'] {
+  animation: select-in 120ms var(--ease-out);
+}
+
+[data-slot='select-content'][data-state='closed'] {
+  animation: select-out 100ms var(--ease-out);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--text-base);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--line-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root { min-height: 100vh; display: flex; flex-direction: column; }
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.readout-heading { font-size: var(--text-lg); font-weight: 700; color: var(--ink); margin: 0 0 var(--space-lg); line-height: 1.3; letter-spacing: -0.01em; }
+
+* { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: var(--radius-pill); border: 3px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--scroll-hover); background-clip: padding-box; border: 3px solid transparent; }
+*::-webkit-scrollbar-corner { background: transparent; }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+html { scroll-behavior: smooth; }
+button, input, textarea, select { font-family: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+::placeholder { color: var(--placeholder); opacity: 1; }
+textarea { field-sizing: content; resize: none; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+.ui-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-xs); flex-shrink: 0; min-height: var(--control-height); padding: 0 10px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--blue); font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.ui-button:hover { background: var(--hover); }
+.ui-button-primary { min-height: var(--primary-height); padding: 0 var(--space-lg); border-radius: var(--r-md); background: var(--blue); color: var(--bg); }
+.ui-button-primary:hover { background: var(--blue-ink); }
+.ui-button-dark { min-height: var(--primary-height); padding: 0 var(--space-20); border-radius: var(--r-md); background: var(--ink); color: var(--bg); }
+.ui-button-dark:hover { background: var(--ink-2); }
+.ui-button-neutral { color: var(--muted); }
+.ui-button-small { min-height: 32px; }
+.ui-button:disabled { color: var(--placeholder); cursor: not-allowed; }
+.ui-button-primary:disabled, .ui-button-dark:disabled { background: var(--line); }
+.ui-input { display: flex; width: 100%; min-width: 0; height: 40px; padding: 0 0 var(--space-xs); border: 0; border-bottom: 1px solid var(--line-2); border-radius: 0; background: transparent; color: var(--ink); font-size: var(--text-base); }
+.ui-input:focus-visible { outline: none; border-color: var(--blue); box-shadow: 0 1px 0 0 var(--blue); }
+.ui-input:disabled { color: var(--placeholder); cursor: not-allowed; }
+.ui-select-trigger { align-items: center; justify-content: space-between; gap: var(--space-xs); }
+.ui-select-content { max-height: var(--dropdown-height); padding: var(--space-6); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+.ui-table { min-width: var(--table-min-width); }
+
+.main-search.ui-input, .inventory-search.ui-input { font-size: var(--text-input); height: var(--search-height); border-color: var(--blue); border-bottom-width: 1.5px; }
+.text-toggles { display: flex; flex-wrap: wrap; gap: 2px; margin-left: -12px; }
+.text-toggles button { min-height: 34px; padding: 0 12px; border: 0; border-radius: var(--r-sm); background: transparent; font: inherit; font-size: var(--text-sm); font-weight: 500; color: var(--muted); cursor: pointer; }
+.text-toggles button[aria-pressed='true'] { background: var(--blue-tint); color: var(--blue); }
+.text-toggles button:hover { background: var(--hover); }
+
+h1 { font-size: var(--text-page); line-height: 1.2; letter-spacing: var(--tracking-title); }
+.loading-row { padding: var(--space-md) 0; border-bottom: 1px solid var(--line); }
+.loading-row span { display: block; height: var(--space-sm); width: 55%; background: var(--line); border-radius: var(--space-2xs); animation: skeleton-pulse 1.5s ease-in-out infinite; }
+.loading-row span + span { width: 35%; margin-top: var(--space-xs); }
+@keyframes skeleton-pulse { 50% { opacity: .55; } }
+.query-error { display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); margin-block: var(--space-md); padding: var(--space-md); border-radius: var(--r-lg); background: var(--red-bg); color: var(--red); }
+.query-error p { color: var(--muted); font-size: var(--text-sm); margin: var(--space-2xs) 0 0; }
+.stale-copy { opacity: .55; }

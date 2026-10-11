@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>System states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A4FB5}
+button{font-family:inherit;font-variant-numeric:tabular-nums}
+button:focus-visible,a:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px;border-radius:6px}
+@keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B; font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums">
+<dc-import name="Nav" active="reception" user="Reception · Selvi" token="15" waiting="{{navWaiting}}" sync="{{sync}}" hint-size="100%,56px"></dc-import>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 12px 32px; background: #F6F7F9; border-bottom: 1px solid #EEF0F3">
+<span style="font-size: 13px; color: #7A8494">Preview state</span>
+<div style="display: flex; flex-wrap: wrap; gap: 2px">
+<sc-for list="{{states}}" as="st" hint-placeholder-count="7">
+<button type="button" onClick="{{st.pick}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; {{st.st}}">{{st.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{isOffline}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 14px 32px; background: #FDF1F0">
+<span style="display: flex; flex-direction: column">
+<span style="font-weight: 700; color: #B42318">Offline since 11:08 — working from this computer</span>
+<span style="font-size: 14px; color: #5B6575">Check-in, prescriptions, billing and printing keep working. 2 changes will sync when the internet is back. UPI can't be confirmed — take cash or note the UPI ref.</span>
+</span>
+<button type="button" onClick="{{goOnline}}" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: #FFFFFF; color: #141C2B; font-weight: 600; font-size: 14px; cursor: pointer">Try again</button>
+</div>
+</sc-if>
+<sc-if value="{{isBack}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 14px 32px; background: #F2FAF5; font-weight: 600; color: #1F7A4D">Back online · 2 changes synced · doctor's screen is up to date</div>
+</sc-if>
+
+<main style="box-sizing: border-box; padding: 32px 32px 56px">
+<div style="max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<span style="font-weight: 700; font-size: 22px">Today's queue</span>
+<span style="font-size: 14px; color: #7A8494">{{subline}}</span>
+</div>
+
+<!-- loading -->
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{ false }}">
+<div aria-busy="true" aria-label="Loading queue" style="display: flex; flex-direction: column">
+<sc-for list="{{skeleton}}" as="sk" hint-placeholder-count="5">
+<div style="display: flex; align-items: center; gap: 16px; padding: 18px 0; border-bottom: 1px solid #EEF0F3">
+<span style="width: 34px; height: 14px; border-radius: 4px; background: #EEF0F3; animation: pulse 1.4s ease-in-out infinite"></span>
+<span style="width: {{sk.w}}px; height: 14px; border-radius: 4px; background: #EEF0F3; animation: pulse 1.4s ease-in-out infinite"></span>
+<span style="margin-left: auto; width: 90px; height: 14px; border-radius: 4px; background: #EEF0F3; animation: pulse 1.4s ease-in-out infinite"></span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<!-- empty -->
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 56px 0">
+<span style="font-weight: 700; font-size: 20px">No one checked in yet today</span>
+<span style="color: #5B6575">Find a returning patient or register a new one to issue token #1.</span>
+<a href="Reception.dc.html" style="margin-top: 8px; display: flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 10px; background: #1A4FB5; color: #FFFFFF; font-weight: 600; text-decoration: none">Check in a patient</a>
+</div>
+</sc-if>
+
+<!-- error -->
+<sc-if value="{{isError}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 16px 18px; border-radius: 12px; background: #FDF1F0">
+<span style="display: flex; flex-direction: column"><span style="font-weight: 600; color: #B42318">Couldn't refresh the queue</span><span style="font-size: 14px; color: #5B6575">Showing the copy saved at 11:06. Nothing is lost.</span></span>
+<button type="button" onClick="{{retry}}" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #141C2B; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer">{{retryLabel}}</button>
+</div>
+</sc-if>
+
+<!-- queue rows (normal, error-stale, offline, pending) -->
+<sc-if value="{{showRows}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; {{rowsDim}}">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 14px 0; border-bottom: 1px solid #EEF0F3">
+<span style="width: 44px; font-weight: 700">#{{r.token}}</span>
+<span style="flex: 1 1 220px; display: flex; flex-direction: column"><span style="font-weight: 600">{{r.name}}</span><span style="font-size: 13px; color: #7A8494">{{r.reason}}</span></span>
+<span style="min-width: 120px; font-size: 14px; font-weight: 600; {{r.statusSt}}">{{r.status}}</span>
+<span style="min-width: 170px; text-align: right; font-size: 13px; font-weight: 600; {{r.syncSt}}">{{r.sync}}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{showPrintable}}" hint-placeholder-val="{{ false }}">
+<section style="display: flex; flex-direction: column; gap: 8px; padding: 20px; border-radius: 14px; background: #F6F7F9">
+<span style="font-weight: 600">Prescriptions available to print offline</span>
+<span style="font-size: 14px; color: #5B6575">Today's prescriptions are kept on this computer and print on the letterhead without internet.</span>
+<sc-for list="{{printable}}" as="pp" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid #E8EBEF">
+<span>{{pp.label}}</span>
+<button type="button" onClick="{{pp.print}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: #FFFFFF; color: #1A4FB5; font-weight: 600; font-size: 13px; cursor: pointer">{{pp.btn}}</button>
+</div>
+</sc-for>
+</section>
+<section style="display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: #5B6575">
+<span style="font-weight: 600; color: #141C2B">Between doctor and reception while offline</span>
+<span>Both computers keep working on the clinic Wi-Fi. If the doctor's PC is also cut off, the doctor's "Call next" shows "Not delivered — call the patient by voice", and the call is recorded when it reconnects.</span>
+</section>
+</sc-if>
+
+<sc-if value="{{isSaveFail}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 16px 18px; border-radius: 12px; background: #FDF6EC">
+<span style="display: flex; flex-direction: column"><span style="font-weight: 600; color: #93520A">Bill 1016 didn't reach the cloud</span><span style="font-size: 14px; color: #5B6575">It's saved on this computer and the receipt printed. We'll keep trying every minute.</span></span>
+<button type="button" onClick="{{retry}}" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #141C2B; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer">{{retryLabel}}</button>
+</div>
+</sc-if>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+var ROWS = [
+  { token: 14, name: 'Murugan K', reason: 'Burning feet · Follow-up', status: 'Paid · Cash ₹800', st: 'color: #1F7A4D' },
+  { token: 15, name: 'Lakshmi R', reason: 'Neck pain · New', status: 'With doctor', st: 'color: #1A4FB5' },
+  { token: 16, name: 'Selvaraj M', reason: 'Refill · Pregabid', status: 'Waiting', st: 'color: #5B6575' },
+  { token: 17, name: 'Kavitha S', reason: 'Knee pain · New', status: 'Waiting', st: 'color: #5B6575' },
+  { token: 21, name: 'Mohan V', reason: 'Back pain · New', status: 'Waiting', st: 'color: #5B6575' }
+];
+var STATES = [['normal', 'Normal'], ['loading', 'Loading'], ['empty', 'Empty'], ['error', 'Error'], ['offline', 'Offline'], ['pending', 'Saving'], ['savefail', 'Save failed'], ['back', 'Back online']];
+var ON = 'background: #FFFFFF; color: #141C2B; box-shadow: 0 1px 2px rgba(20,28,43,0.1)';
+var OFF = 'background: transparent; color: #5B6575';
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { st: 'offline', retrying: false, printed: {} }; }
+  renderVals() {
+    var self = this, s = this.state, st = s.st;
+    var rows = ROWS.map(function (r, i) {
+      var sync = '', syncSt = 'color: #9AA3B0';
+      if (st === 'offline' && (i === 0 || i === 4)) { sync = i === 0 ? 'Payment saved here · will sync' : 'Checked in here · will sync'; syncSt = 'color: #B42318'; }
+      if (st === 'pending' && i === 0) { sync = 'Saving…'; syncSt = 'color: #93520A'; }
+      if (st === 'pending' && i === 4) { sync = 'Saved'; syncSt = 'color: #1F7A4D'; }
+      if (st === 'back' && (i === 0 || i === 4)) { sync = 'Synced just now'; syncSt = 'color: #1F7A4D'; }
+      if (st === 'savefail' && i === 0) { sync = 'Not in cloud yet · retrying'; syncSt = 'color: #93520A'; }
+      return { token: r.token, name: r.name, reason: r.reason, status: r.status, statusSt: r.st, sync: sync, syncSt: syncSt };
+    });
+    var retry = function () { self.setState({ retrying: true }); setTimeout(function () { self.setState({ retrying: false, st: st === 'savefail' ? 'back' : 'normal' }); }, 900); };
+    return {
+      states: STATES.map(function (x) { return { label: x[1], st: st === x[0] ? ON : OFF, pick: function () { self.setState({ st: x[0], retrying: false }); } }; }),
+      sync: st === 'offline' ? 'offline' : (st === 'pending' || st === 'savefail') ? 'saving' : 'saved',
+      navWaiting: st === 'empty' ? 0 : 3,
+      isOffline: st === 'offline', isBack: st === 'back', isLoading: st === 'loading', isEmpty: st === 'empty', isError: st === 'error', isSaveFail: st === 'savefail',
+      showRows: st !== 'loading' && st !== 'empty', rowsDim: st === 'error' ? 'opacity: 0.55' : '',
+      showPrintable: st === 'offline',
+      subline: st === 'loading' ? 'Loading…' : st === 'empty' ? '0 waiting' : st === 'error' ? 'Last updated 11:06' : '3 waiting · 1 with doctor',
+      skeleton: [180, 240, 150, 210, 170].map(function (w) { return { w: w }; }),
+      rows: rows, retry: retry, retryLabel: s.retrying ? 'Trying…' : 'Try again',
+      goOnline: function () { self.setState({ st: 'back' }); },
+      printable: [['#14 Murugan K · Rx SPC-000014', 'a'], ['#13 Mani R · Rx SPC-000013', 'b'], ['#12 Saroja V · Rx SPC-000012', 'c']].map(function (x) {
+        return { label: x[0], btn: s.printed[x[1]] ? 'Sent to printer' : 'Print', print: function () { var np = Object.assign({}, s.printed); np[x[1]] = true; self.setState({ printed: np }); } }; })
+    };
+  }
+}
+</script>
+</body>
+</html>

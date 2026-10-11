@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Refill-only sale</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A4FB5}
+button,input{font-family:inherit;font-variant-numeric:tabular-nums}
+input::placeholder{color:#9AA3B0}
+input:focus{outline:none;border-bottom-color:#1A4FB5 !important}
+button:focus-visible,a:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px;border-radius:6px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B; font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums">
+<dc-import name="Nav" active="refill" user="Reception · Selvi" token="15" waiting="6" hint-size="100%,56px"></dc-import>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; min-height: calc(100vh - 56px)">
+<main style="flex: 999 1 620px; min-width: 0; box-sizing: border-box; padding: 36px 32px 48px">
+<div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px">
+
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 700; font-size: 26px; letter-spacing: -0.02em">Refill-only sale</span>
+<span style="font-size: 14px; color: #5B6575">No token, no consultation fee. Only medicines on a current prescription can be refilled.</span>
+</div>
+
+<label style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #7A8494">Patient</span>
+<input type="text" aria-label="Find patient" autocomplete="off" value="{{q}}" onChange="{{onQ}}" placeholder="Name, phone or patient ID" style="height: 48px; padding: 0; border: 0; border-bottom: 1.5px solid #1A4FB5; background: transparent; font-size: 17px; color: #141C2B">
+</label>
+
+<sc-if value="{{choosing}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; margin-top: -16px">
+<sc-for list="{{matches}}" as="m" hint-placeholder-count="4">
+<button type="button" onClick="{{m.pick}}" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border: 0; border-bottom: 1px solid #EEF0F3; background: transparent; text-align: left; cursor: pointer; color: #141C2B">
+<span style="display: flex; flex-direction: column"><span style="font-weight: 600">{{m.name}} <span style="font-weight: 400; color: #7A8494">{{m.meta}}</span></span><span style="font-size: 13px; color: #7A8494">{{m.id}} · {{m.rxLine}}</span></span>
+<span style="font-size: 13px; {{m.tagSt}}">{{m.tag}}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{picked}}" hint-placeholder-val="{{ false }}">
+<section style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+<span style="font-weight: 700; font-size: 20px">{{p.name}} <span style="font-weight: 400; color: #7A8494; font-size: 15px">{{p.meta}} · {{p.id}}</span></span>
+<button type="button" onClick="{{clear}}" style="height: 32px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-size: 14px; cursor: pointer">Change</button>
+</div>
+<span style="font-size: 14px; color: #5B6575">{{p.rxInfo}}</span>
+</section>
+
+<sc-if value="{{blocked}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border-radius: 12px; background: #FDF6EC">
+<span style="font-weight: 600; color: #93520A">{{p.blockReason}}</span>
+<span style="font-size: 14px; color: #5B6575">Check them in so the doctor can review and renew it.</span>
+<a href="Reception.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none">Check in for the doctor →</a>
+</div>
+</sc-if>
+
+<sc-if value="{{canRefill}}" hint-placeholder-val="{{ true }}">
+<section style="display: flex; flex-direction: column">
+<div style="display: grid; grid-template-columns: 28px minmax(0, 1fr) 150px 80px 90px; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #E3E6EB; font-size: 13px; color: #7A8494">
+<span></span><span>From the prescription</span><span>Quantity</span><span style="text-align: right">Price</span><span style="text-align: right">Amount</span>
+</div>
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="2">
+<div style="display: grid; grid-template-columns: 28px minmax(0, 1fr) 150px 80px 90px; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #EEF0F3; {{l.rowSt}}">
+<input type="checkbox" checked="{{l.on}}" onChange="{{l.toggle}}" aria-label="Include {{l.name}}" style="width: 18px; height: 18px; accent-color: #1A4FB5">
+<span style="display: flex; flex-direction: column; min-width: 0"><span style="font-weight: 600">{{l.name}}</span><span style="font-size: 13px; {{l.noteSt}}">{{l.note}}</span></span>
+<span style="display: flex; align-items: center; gap: 4px">
+<button type="button" onClick="{{l.minus}}" aria-label="Less" style="width: 32px; height: 32px; border: 0; border-radius: 8px; background: #F2F4F7; color: #141C2B; font-size: 16px; cursor: pointer">−</button>
+<span style="min-width: 34px; text-align: center; font-weight: 600">{{l.qty}}</span>
+<button type="button" onClick="{{l.plus}}" aria-label="More" style="width: 32px; height: 32px; border: 0; border-radius: 8px; background: #F2F4F7; color: #141C2B; font-size: 16px; cursor: pointer">+</button>
+</span>
+<span style="text-align: right; color: #5B6575">{{l.price}}</span>
+<span style="text-align: right; font-weight: 600">{{l.amount}}</span>
+</div>
+</sc-for>
+<div style="display: flex; justify-content: space-between; align-items: baseline; padding-top: 16px">
+<span style="font-size: 13px; color: #7A8494">Saved unit prices · no consultation fee</span>
+<span style="font-size: 22px; font-weight: 700">{{total}}</span>
+</div>
+</section>
+
+<sc-if value="{{open}}" hint-placeholder-val="{{ true }}">
+<section style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+<div style="display: flex; gap: 2px; margin-left: -12px">
+<sc-for list="{{methods}}" as="me" hint-placeholder-count="2">
+<button type="button" onClick="{{me.pick}}" style="height: 40px; padding: 0 18px; border: 0; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; {{me.st}}">{{me.label}}</button>
+</sc-for>
+</div>
+<button type="button" onClick="{{pay}}" aria-disabled="{{cantPay}}" style="height: 48px; padding: 0 24px; border: 0; border-radius: 10px; font-weight: 600; font-size: 15px; {{payBtnSt}}">Collect {{total}} · {{methodLabel}}</button>
+</section>
+</sc-if>
+<sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+<section role="status" style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 14px; background: #F2FAF5">
+<span style="font-weight: 700; font-size: 20px; color: #1F7A4D">Refill paid · {{total}} · {{methodLabel}}</span>
+<span style="font-size: 14px; color: #5B6575">Saved to {{p.name}}'s record as a refill · stock updated · next refill reminder {{p.nextDue}}</span>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" style="height: 42px; padding: 0 16px; border: 0; border-radius: 10px; background: #141C2B; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer">Print receipt</button>
+<button type="button" onClick="{{clear}}" style="height: 42px; padding: 0 16px; border: 0; border-radius: 10px; background: #FFFFFF; color: #141C2B; font-weight: 600; font-size: 14px; cursor: pointer">New refill</button>
+</div>
+</section>
+</sc-if>
+</sc-if>
+</sc-if>
+</div>
+</main>
+
+<aside style="flex: 1 1 340px; max-width: 460px; min-width: 0; align-self: stretch; box-sizing: border-box; padding: 36px 32px; background: #F6F7F9; display: flex; flex-direction: column; gap: 14px">
+<span style="font-size: 13px; color: #7A8494">Refills today</span>
+<sc-for list="{{today}}" as="t" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #E8EBEF">
+<span style="display: flex; flex-direction: column"><span style="font-weight: 600">{{t.name}}</span><span style="font-size: 13px; color: #7A8494">{{t.items}}</span></span>
+<span style="text-align: right; display: flex; flex-direction: column"><span style="font-weight: 600">{{t.amount}}</span><span style="font-size: 13px; color: #7A8494">{{t.how}}</span></span>
+</div>
+</sc-for>
+<span style="font-size: 13px; color: #7A8494; margin-top: 10px">Rules</span>
+<span style="font-size: 14px; color: #5B6575">Prescription must be under 90 days old. Up to 30 days' supply per refill. Prices come from the medicine list; the doctor sets any discount.</span>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+var PTS = [
+  { id: 'P-0091', name: 'Selvaraj M', meta: '61 M', rxDate: '10 Sep 2026', age: 30, nextDue: '9 Nov',
+    items: [{ name: 'Pregabid 75 mg', unit: 'cap', perDay: 1, price: 14.5, stock: 120 }] },
+  { id: 'P-0057', name: 'Govindan T', meta: '67 M', rxDate: '3 Oct 2026', age: 7, nextDue: '2 Nov',
+    items: [{ name: 'Duzela 20 mg', unit: 'cap', perDay: 1, price: 13.2, stock: 90 }, { name: 'Pan 40 mg', unit: 'tab', perDay: 1, price: 7.2, stock: 120 }, { name: 'Lactulose syrup 200 ml', unit: 'bottle', fixed: 1, price: 186, stock: 3 }] },
+  { id: 'P-0142', name: 'Murugan K', meta: '58 M', rxDate: '12 Sep 2026', age: 28, nextDue: '11 Oct',
+    items: [{ name: 'Glycomet 500 mg', unit: 'tab', perDay: 2, price: 2.1, stock: 240 }] },
+  { id: 'P-0310', name: 'Saroja V', meta: '70 F', rxDate: '2 Jun 2026', age: 130, nextDue: '',
+    items: [{ name: 'Etoshine 60 mg', unit: 'tab', perDay: 1, price: 9.9, stock: 60 }] }
+];
+function rupee(n) { return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+var ON = 'background: #EAF0FC; color: #1A4FB5';
+var OFF = 'background: transparent; color: #5B6575';
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { q: '', sel: null, lines: [], method: 'upi', done: false, saving: false, today: [
+    { name: 'Mani R', items: 'Pregabid 75 × 30', amount: rupee(435), how: 'UPI · 9:48' },
+    { name: 'Bhavani K', items: 'Nurokind-OD × 30 · Pan × 15', amount: rupee(402), how: 'Cash · 10:15' }
+  ] }; }
+  pick(p) {
+    this.setState({ sel: p.id, q: p.name, done: false,
+      lines: p.items.map(function (it) { var q = it.fixed || it.perDay * 30; return { on: true, qty: Math.min(q, it.stock), max: Math.min(q, it.stock) }; }) });
+  }
+  renderVals() {
+    var self = this, s = this.state;
+    var p = PTS.filter(function (x) { return x.id === s.sel; })[0];
+    var term = s.q.trim().toLowerCase().replace(/\s/g, '');
+    var matches = (term ? PTS.filter(function (x) { return (x.name + x.id).toLowerCase().replace(/\s/g, '').indexOf(term) !== -1; }) : PTS).map(function (x) {
+      var exp = x.age > 90;
+      return { name: x.name, meta: x.meta, id: x.id, rxLine: 'Rx ' + x.rxDate + ' · ' + x.items.map(function (i) { return i.name; }).join(', '),
+        tag: exp ? 'Prescription expired' : 'Refill allowed', tagSt: exp ? 'color: #93520A; font-weight: 600' : 'color: #1F7A4D; font-weight: 600',
+        pick: function () { self.pick(x); } };
+    });
+    var total = 0, lines = [];
+    if (p) {
+      lines = p.items.map(function (it, i) {
+        var L = s.lines[i]; var amt = L.on ? L.qty * it.price : 0; total += amt;
+        var set = function (patch) { return function () { if (s.done) return; var nl = s.lines.slice(); nl[i] = Object.assign({}, L, patch(L)); self.setState({ lines: nl }); }; };
+        var low = it.stock < (it.fixed || it.perDay * 30);
+        return { name: it.name, on: L.on, qty: L.qty, price: rupee(it.price), amount: L.on ? rupee(amt) : '—',
+          note: low ? 'Only ' + it.stock + ' in stock' : (it.fixed ? '1 ' + it.unit : it.perDay + ' ' + it.unit + '/day · 30 days = ' + it.perDay * 30),
+          noteSt: low ? 'color: #93520A' : 'color: #7A8494', rowSt: L.on ? '' : 'opacity: 0.5',
+          toggle: set(function (l) { return { on: !l.on }; }),
+          minus: set(function (l) { return { qty: Math.max(1, l.qty - 1) }; }),
+          plus: set(function (l) { return { qty: Math.min(l.max, l.qty + 1) }; }) };
+      });
+    }
+    total = Math.round(total * 100) / 100;
+    var blocked = !!p && p.age > 90;
+    var ok = !!p && !blocked && total > 0;
+    return {
+      q: s.q, onQ: function (e) { self.setState({ q: e.target.value, sel: null, done: false }); },
+      choosing: !p, picked: !!p, matches: matches,
+      p: p ? { name: p.name, meta: p.meta, id: p.id, nextDue: p.nextDue, rxInfo: 'Active prescription from ' + p.rxDate + ' (' + p.age + ' days old) · by Dr. Kirupakaran',
+        blockReason: 'Last prescription is ' + p.age + ' days old. A refill needs a prescription under 90 days.' } : { name: '', meta: '', id: '', nextDue: '', rxInfo: '', blockReason: '' },
+      clear: function () { self.setState({ sel: null, q: '', done: false }); },
+      blocked: blocked, canRefill: !!p && !blocked, lines: lines, total: rupee(total),
+      open: !s.done, done: s.done,
+      methods: [['upi', 'UPI'], ['cash', 'Cash']].map(function (m) { return { label: m[1], st: s.method === m[0] ? ON : OFF, pick: function () { self.setState({ method: m[0] }); } }; }),
+      methodLabel: s.method === 'upi' ? 'UPI' : 'Cash',
+      cantPay: !ok, payBtnSt: ok ? 'background: #1A4FB5; color: #FFFFFF; cursor: pointer' : 'background: #EEF0F3; color: #9AA3B0; cursor: not-allowed',
+      pay: function () { if (!ok) return; self.setState({ done: true, today: [{ name: p.name, items: p.items.filter(function (_, i) { return s.lines[i].on; }).map(function (it, i) { return it.name.split(' ')[0] + ' × ' + s.lines[p.items.indexOf(it)].qty; }).join(' · '), amount: rupee(total), how: (s.method === 'upi' ? 'UPI' : 'Cash') + ' · now' }].concat(s.today) }); },
+      today: s.today
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Patients</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A4FB5}
+button,input,textarea{font-family:inherit;font-variant-numeric:tabular-nums}
+input::placeholder,textarea::placeholder{color:#9AA3B0}
+input:focus,textarea:focus{outline:none;border-bottom-color:#1A4FB5 !important}
+button:focus-visible,a:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px;border-radius:6px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B; font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums">
+<dc-import name="Nav" active="patients" user="Reception · Selvi" token="15" waiting="6" hint-size="100%,56px"></dc-import>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; min-height: calc(100vh - 56px)">
+<nav aria-label="Patients" style="flex: 1 1 280px; max-width: 340px; min-width: 0; align-self: stretch; box-sizing: border-box; padding: 28px 24px; background: #F6F7F9; display: flex; flex-direction: column; gap: 10px">
+<input type="text" aria-label="Search patients" value="{{q}}" onChange="{{onQ}}" placeholder="Search name, phone or ID" style="height: 44px; padding: 0; border: 0; border-bottom: 1.5px solid #1A4FB5; background: transparent; font-size: 16px; color: #141C2B">
+<span style="font-size: 13px; color: #7A8494">{{countLine}}</span>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{list}}" as="p" hint-placeholder-count="8">
+<button type="button" onClick="{{p.pick}}" style="display: flex; flex-direction: column; align-items: flex-start; padding: 10px 12px; margin: 0 -12px; border: 0; border-radius: 10px; text-align: left; cursor: pointer; {{p.st}}">
+<span style="font-weight: 600; color: #141C2B">{{p.name}} <span style="font-weight: 400; color: #7A8494">{{p.meta}}</span></span>
+<span style="font-size: 13px; color: #7A8494">{{p.id}} · {{p.last}}</span>
+</button>
+</sc-for>
+</div>
+</nav>
+
+<main style="flex: 999 1 640px; min-width: 0; box-sizing: border-box; padding: 32px 36px 48px">
+<div style="max-width: 860px; display: flex; flex-direction: column; gap: 26px">
+<section style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #7A8494">{{cur.id}} · patient since {{cur.since}}</span>
+<span style="font-weight: 700; font-size: 30px; letter-spacing: -0.02em; line-height: 1.15">{{cur.name}}</span>
+<span style="font-size: 14px; color: #5B6575">{{cur.line}}</span>
+<span style="display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px">
+<sc-for list="{{cur.flags}}" as="fl" hint-placeholder-count="2">
+<span style="font-weight: 600; {{fl.st}}">{{fl.text}}</span>
+</sc-for>
+</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 4px">
+<a href="Reception.dc.html" style="display: flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 10px; background: #1A4FB5; color: #FFFFFF; font-weight: 600; font-size: 14px; text-decoration: none">Check in</a>
+<a href="Refill.dc.html" style="display: flex; align-items: center; height: 40px; padding: 0 12px; border-radius: 10px; color: #1A4FB5; font-weight: 600; font-size: 14px; text-decoration: none">Refill</a>
+<button type="button" onClick="{{toggleEdit}}" style="height: 40px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: #1A4FB5; font-weight: 600; font-size: 14px; cursor: pointer">Edit details</button>
+</div>
+</section>
+
+<sc-if value="{{editing}}" hint-placeholder-val="{{ false }}">
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 16px 24px; padding: 18px 20px; border-radius: 14px; background: #F6F7F9">
+<label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">Phone</span><input type="tel" value="{{cur.phone}}" style="height: 36px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B"></label>
+<label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">Address</span><input type="text" value="{{cur.address}}" style="height: 36px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B"></label>
+<label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">Allergies</span><input type="text" value="{{cur.allergyRaw}}" style="height: 36px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B"></label>
+<div style="display: flex; align-items: flex-end; gap: 6px">
+<button type="button" onClick="{{saveEdit}}" style="height: 38px; padding: 0 16px; border: 0; border-radius: 10px; background: #141C2B; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer">Save</button>
+<button type="button" onClick="{{toggleEdit}}" style="height: 38px; padding: 0 10px; border: 0; border-radius: 10px; background: transparent; color: #5B6575; font-size: 14px; cursor: pointer">Cancel</button>
+</div>
+</section>
+</sc-if>
+
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: 20px">
+<sc-for list="{{cur.stats}}" as="st" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column"><span style="font-size: 13px; color: #7A8494">{{st.label}}</span><span style="font-size: 20px; font-weight: 700; {{st.vst}}">{{st.value}}</span></div>
+</sc-for>
+</section>
+
+<div role="tablist" style="display: flex; flex-wrap: wrap; gap: 2px; margin-left: -10px; border-bottom: 1px solid #EEF0F3; padding-bottom: 8px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+<button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{t.st}}">{{t.label}}</button>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="4">
+<div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 4px 18px; padding: 14px 0; border-bottom: 1px solid #EEF0F3">
+<span style="display: flex; flex-direction: column"><span style="font-weight: 600">{{it.date}}</span><span style="font-size: 13px; color: #7A8494">{{it.kind}}</span></span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span>{{it.title}}</span>
+<span style="font-size: 14px; color: #5B6575">{{it.detail}}</span>
+</span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+<span style="font-size: 14px; font-weight: 600; {{it.rightSt}}">{{it.right}}</span>
+<sc-if value="{{it.hasAction}}" hint-placeholder-val="{{ false }}">
+<button type="button" style="height: 30px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-size: 13px; font-weight: 600; cursor: pointer">{{it.action}}</button>
+</sc-if>
+</span>
+</div>
+</sc-for>
+<sc-if value="{{noItems}}" hint-placeholder-val="{{ false }}">
+<span style="padding: 24px 0; color: #9AA3B0">{{emptyText}}</span>
+</sc-if>
+</div>
+
+<sc-if value="{{isNotes}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<textarea rows="2" aria-label="New note" value="{{draft}}" onChange="{{onDraft}}" placeholder="Add a note — visible to doctor and reception" style="resize: none; padding: 0 0 8px; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B"></textarea>
+<button type="button" onClick="{{addNote}}" style="align-self: flex-start; height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #F2F4F7; color: #141C2B; font-weight: 600; font-size: 14px; cursor: pointer">Add note</button>
+</div>
+</sc-if>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+var LIST = [
+  { id: 'P-0142', name: 'Murugan K', meta: '58 M', last: 'today' },
+  { id: 'P-0057', name: 'Govindan T', meta: '67 M', last: 'in queue · #20' },
+  { id: 'P-0388', name: 'Lakshmi R', meta: '34 F', last: 'new · today' },
+  { id: 'P-0091', name: 'Selvaraj M', meta: '61 M', last: 'in queue · #16' },
+  { id: 'P-0211', name: 'Arul P', meta: '39 M', last: 'today' },
+  { id: 'P-0310', name: 'Saroja V', meta: '70 F', last: 'today' },
+  { id: 'P-0266', name: 'Mani R', meta: '55 M', last: 'today' },
+  { id: 'P-0155', name: 'Murugan S', meta: '64 M', last: '2 Aug' },
+  { id: 'P-0203', name: 'Ramesh A', meta: '45 M', last: 'in queue · #18' }
+];
+var RED = 'color: #B42318', AMB = 'color: #93520A', BLU = 'color: #1A4FB5', GRN = 'color: #1F7A4D';
+var PROFILES = {
+  'P-0142': { since: 'Aug 2026', line: '58 M · 98430 12345 · Hasthampatti, Salem · diabetic, on Glycomet', phone: '98430 12345', address: 'Hasthampatti, Salem', allergyRaw: 'NSAIDs (gastritis)',
+    flags: [{ text: 'Allergic to NSAIDs', st: RED }, { text: 'Prefers instructions in Tamil', st: 'color: #5B6575' }],
+    stats: [{ label: 'Visits', value: '3' }, { label: 'Last visit', value: 'Today' }, { label: 'Paid to date', value: '₹2,265' }, { label: 'Balance', value: '₹0', vst: GRN }],
+    timeline: [
+      { date: '10 Oct', kind: 'Visit', title: 'Diabetic peripheral neuropathy · low back pain', detail: 'Pregabid 75 0-0-1 × 15 d · Nurokind-OD 1-0-0 × 30 d · Ultracet SOS × 5 d · review 24 Oct', right: '₹800 · Cash', rightSt: GRN, action: 'Reprint Rx' },
+      { date: '25 Sep', kind: 'Refill', title: 'Glycomet 500 × 60', detail: 'Refill at reception, no consultation', right: '₹126 · UPI', rightSt: GRN, action: 'Receipt' },
+      { date: '12 Sep', kind: 'Visit', title: 'Diabetic peripheral neuropathy', detail: 'Pregabid 75 0-0-1 × 15 d · Glycomet 500 1-0-1 × 30 d · RBS 188, sugar review advised', right: '₹740 · UPI', rightSt: GRN, action: 'Reprint Rx' },
+      { date: '08 Aug', kind: 'First visit', title: 'Peripheral neuropathy, to evaluate', detail: 'Nurokind-OD 1-0-0 × 30 d · HbA1c and Vit B12 advised', right: '₹599 · Cash', rightSt: GRN, action: 'Reprint Rx' }
+    ],
+    notes: [
+      { date: '12 Sep', kind: 'Doctor', title: 'Son brings him; works at a textile mill, standing all day.', detail: 'Dr. Kirupakaran' },
+      { date: '08 Aug', kind: 'Reception', title: 'Prefers Tamil on printed instructions.', detail: 'Selvi' }
+    ],
+    docs: [{ date: '08 Aug', kind: 'Lab report', title: 'HbA1c 8.1% · Vit B12 182 pg/mL', detail: 'Scanned PDF · 2 pages', right: '', action: 'Open' }] },
+  'P-0057': { since: 'Mar 2025', line: '67 M · 94860 21745 · Fairlands, Salem · Ca prostate with bone metastases', phone: '94860 21745', address: 'Fairlands, Salem', allergyRaw: 'None known',
+    flags: [{ text: 'Palliative care · long-term follow-up', st: BLU }, { text: 'Wheelchair · seat near door', st: 'color: #5B6575' }],
+    stats: [{ label: 'Visits', value: '19' }, { label: 'Last visit', value: '3 Oct' }, { label: 'Paid to date', value: '₹31,480' }, { label: 'Balance', value: '₹350', vst: AMB }],
+    timeline: [
+      { date: '10 Oct', kind: 'Checked in', title: 'Cancer pain review · token #20', detail: 'Waiting', right: '', action: '' },
+      { date: '3 Oct', kind: 'Visit', title: 'Bone pain, constipation', detail: 'Duzela 20 0-0-1 × 30 d · Pan 40 × 30 d · Lactulose syrup', right: '₹350 due', rightSt: AMB, action: 'Collect' },
+      { date: '19 Sep', kind: 'Home-call note', title: 'Phone check by doctor', detail: 'Pain controlled, sleeping better', right: '', action: '' }
+    ],
+    notes: [{ date: '3 Oct', kind: 'Doctor', title: 'Family asked about hospice options — discuss at next visit.', detail: 'Dr. Kirupakaran' }],
+    docs: [{ date: '14 Sep', kind: 'Discharge summary', title: 'Govt. Mohan Kumaramangalam Hospital', detail: 'PDF · 4 pages', right: '', action: 'Open' }] }
+};
+function basic(p) {
+  return { since: 'Oct 2026', line: p.meta + ' · details from reception', phone: '', address: '', allergyRaw: '', flags: [],
+    stats: [{ label: 'Visits', value: '1' }, { label: 'Last visit', value: p.last }, { label: 'Paid to date', value: '—' }, { label: 'Balance', value: '₹0', vst: GRN }],
+    timeline: [{ date: '10 Oct', kind: 'Today', title: p.last, detail: 'Consultation in progress or waiting', right: '', action: '' }], notes: [], docs: [] };
+}
+var ON = 'background: #EAF0FC; color: #1A4FB5';
+var OFF = 'background: transparent; color: #5B6575';
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { sel: 'P-0142', tab: 'timeline', q: '', editing: false, draft: '', extra: {} }; }
+  renderVals() {
+    var self = this, s = this.state;
+    var base = LIST.filter(function (x) { return x.id === s.sel; })[0];
+    var pr = PROFILES[s.sel] || basic(base);
+    var term = s.q.trim().toLowerCase();
+    var list = LIST.filter(function (x) { return !term || (x.name + x.id).toLowerCase().indexOf(term) !== -1; });
+    var notes = (s.extra[s.sel] || []).concat(pr.notes);
+    var src = s.tab === 'timeline' ? pr.timeline
+      : s.tab === 'rx' ? pr.timeline.filter(function (t) { return t.kind === 'Visit' || t.kind === 'First visit'; }).map(function (t) { return Object.assign({}, t, { right: '', action: 'Reprint Rx' }); })
+      : s.tab === 'bills' ? pr.timeline.filter(function (t) { return t.right; }).map(function (t) { return Object.assign({}, t, { title: (t.kind === 'Refill' ? 'Refill · ' : 'Consultation + medicines · ') + t.title.split(' · ')[0], action: t.action === 'Collect' ? 'Collect' : 'Receipt' }); })
+      : s.tab === 'notes' ? notes : pr.docs;
+    var tabs = [['timeline', 'Timeline'], ['rx', 'Prescriptions'], ['bills', 'Bills & payments'], ['notes', 'Notes'], ['docs', 'Documents']];
+    return {
+      q: s.q, onQ: function (e) { self.setState({ q: e.target.value }); },
+      countLine: list.length + ' of 1,284 patients',
+      list: list.map(function (x) { return { name: x.name, meta: x.meta, id: x.id, last: x.last, st: x.id === s.sel ? 'background: #FFFFFF' : 'background: transparent',
+        pick: function () { self.setState({ sel: x.id, tab: 'timeline', editing: false }); } }; }),
+      cur: { id: base.id, name: base.name, since: pr.since, line: pr.line, flags: pr.flags, stats: pr.stats.map(function (st) { return { label: st.label, value: st.value, vst: st.vst || '' }; }), phone: pr.phone, address: pr.address, allergyRaw: pr.allergyRaw },
+      tabs: tabs.map(function (t) { return { label: t[1], on: s.tab === t[0], st: s.tab === t[0] ? ON : OFF, pick: function () { self.setState({ tab: t[0] }); } }; }),
+      items: src.map(function (it) { return { date: it.date, kind: it.kind, title: it.title, detail: it.detail, right: it.right || '', rightSt: it.rightSt || 'color: #5B6575', action: it.action || '', hasAction: !!it.action }; }),
+      noItems: src.length === 0,
+      emptyText: s.tab === 'docs' ? 'No documents yet. Scan or upload from Supporting tools → Documents.' : s.tab === 'notes' ? 'No notes yet.' : 'Nothing here yet.',
+      isNotes: s.tab === 'notes',
+      draft: s.draft, onDraft: function (e) { self.setState({ draft: e.target.value }); },
+      addNote: function () { if (!s.draft.trim()) return; var ex = Object.assign({}, s.extra); ex[s.sel] = [{ date: '10 Oct', kind: 'Reception', title: s.draft.trim(), detail: 'Selvi · just now' }].concat(ex[s.sel] || []); self.setState({ extra: ex, draft: '' }); },
+      editing: s.editing, toggleEdit: function () { self.setState({ editing: !s.editing }); }, saveEdit: function () { self.setState({ editing: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

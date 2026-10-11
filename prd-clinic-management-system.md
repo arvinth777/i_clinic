@@ -2,6 +2,14 @@
 
 ## Current rework priorities — 2026-10-10
 
+The user-approved [UI handoff addendum](docs/ui-handoff-decisions.md) governs
+queue reorder/absence/no-show/Sent in, saved prescription fields and warnings,
+approval-time price snapshots, price audits, partial dispensing and completion
+gates. It supersedes conflicting older requirements below. Where it is silent,
+the rework brief applies. [The implementation plan](docs/ui-handoff-plan.md)
+assigns one pull request per step. Physical clinic-printer sign-off is required
+before release; requirements here are not evidence that these features exist.
+
 The user clarified that fast digital prescription writing and useful
 patient history are the centre of the personal clinical app. Reception
 check-in, a shared live token queue, Cash/UPI billing, stock deduction,
@@ -12,10 +20,12 @@ Confirmed: upload the prescription design and print the full populated
 document on blank paper; refill-only sales bypass the doctor's queue and
 have no consultation fee; medicine charges are quantity supplied × unit
 price. These supersede the older every-visit consultation fee and flat
-medicine pricing assumptions. They are not yet implemented. Historical
+medicine pricing assumptions. Quantity billing and name-only pharmacy sales
+are implemented and verified on staging (see docs/STATUS.md). Historical
 paid bills remain immutable. Reception may confirm refill totals at saved
 unit prices without doctor approval, but only the doctor can discount;
-reception cannot edit prices. Consultation final amounts remain
+both clinical roles set saved catalog prices, while reception cannot override
+bill prices or discounts. Consultation final amounts remain
 doctor-controlled. See
 [the rework brief](docs/rework-brief.md) for current source observations
 and remaining details. The broader requirements below remain reference
@@ -49,17 +59,26 @@ Patients never log into anything.
 10. Billing automatically deducts the dispensed medicines from stock.
 11. Reminders (refill, follow-up) go out afterwards on WhatsApp, without anyone doing anything.
 
+Current pricing/refill clarification (2026-10-10): both doctor and receptionist
+set saved catalog unit prices. Medicine billing is supplied quantity × unit
+price in the same confirmed stock unit. Staff confirm existing counts/prices
+before use. Reception visually verifies refill prescriptions and creates a
+name-only pharmacy bill without a patient record/history, queue token, or
+consultation fee. Only the doctor can discount; consultation final amounts
+remain doctor-owned. These decisions supersede older contradictory wording;
+implementation progress is in docs/STATUS.md.
+
 ---
 
 ## Features
 
 ### Token Queue
-Digitises the existing first-come-first-serve token system rather than replacing it.
-
-- Receptionist issues the next token number at check-in. Numbers climb continuously and never reset.
-- Calling ahead doesn't earn a better position — arrival order is the only ordering rule, matching how it already works.
-- The queue is visible on both the receptionist's and the doctor's screens, in token order.
-- The pharmacist needs no screen: they call numbers in sequence.
+Reception issues the next token at check-in. Tokens identify visits; queue order
+is separate and reception may move waiting patients up/down with an optional
+reason and a logged, doctor-visible move. Calling ahead gives no automatic priority.
+The shared queue supports Called/Sent in, Not here/return and explicit timed
+No-show under the addendum. No visit is deleted or removed automatically.
+The pharmacist still needs no screen.
 
 ### Patient Check-In
 - Receptionist searches by phone number or name before creating anything new.
