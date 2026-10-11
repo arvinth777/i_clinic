@@ -77,15 +77,20 @@ export function usualCombo(pastPrescriptions: PastPrescription[]): ComboItem[] {
     .map(([medicineId, v]) => ({ medicineId, medicineName: v.medicineName, item: v.item }))
 }
 
-export function newDraftItem(medicineId: string, medicineName: string): DraftItem {
+// Drug type follows the confirmed stock unit; anything else is chosen by the
+// doctor. The dose is never prefilled: a default like 1-0-1 gets signed off
+// unread.
+const TYPE_BY_UNIT: Record<string, string> = { tablet: 'Tablet', capsule: 'Capsule', syrup: 'Syrup', powder: 'Powder', injection: 'Injection' }
+
+export function newDraftItem(medicineId: string, medicineName: string, stockUnit?: string | null): DraftItem {
   return {
     key: crypto.randomUUID(),
     medicineId,
     medicineName,
-    drugType: 'Tablet',
+    drugType: TYPE_BY_UNIT[(stockUnit ?? '').trim().toLowerCase().replace(/s$/, '')] ?? 'Tablet',
     strength: '',
     beforeAfterFood: 'After food',
-    dosageFrequency: '1-0-1',
+    dosageFrequency: '',
     durationDays: '',
     quantityDispensed: '',
     notes: '',
@@ -101,7 +106,7 @@ export function draftFromExisting(item: ExistingItem): DraftItem | null {
     drugType: item.drug_type ?? 'Tablet',
     strength: item.strength ?? '',
     beforeAfterFood: item.before_after_food ?? 'After food',
-    dosageFrequency: item.dosage_frequency ?? '1-0-1',
+    dosageFrequency: item.dosage_frequency ?? '',
     durationDays: String(item.duration_days ?? ''),
     quantityDispensed: item.quantity_dispensed != null ? String(item.quantity_dispensed) : '',
     notes: item.notes ?? '',
@@ -128,6 +133,7 @@ export function itemIsValid(item: DraftItem): boolean {
     !!item.drugType &&
     !!item.beforeAfterFood &&
     !!item.dosageFrequency &&
+    (!/^(Tablet|Capsule)$/.test(item.drugType) || item.strength.trim() !== '') &&
     item.durationDays.trim() !== '' &&
     Number.isInteger(days) &&
     days > 0 &&

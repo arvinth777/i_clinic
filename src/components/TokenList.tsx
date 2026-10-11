@@ -69,6 +69,7 @@ export function TokenList({ clinicId, onSelectVisit, highlightVisitId }: { clini
   const [visibleCount, setVisibleCount] = useState(50)
   const [filter, setFilter] = useState<'active' | 'done' | 'all' | 'earlier'>('active')
   const [reason, setReason] = useState('')
+  const [confirmNoShow, setConfirmNoShow] = useState<string | null>(null)
   const action = useQueueAction(clinicId)
   const { data: settings } = useQuery({ queryKey: ['queue-settings',clinicId], queryFn: async () => { const {data,error}=await supabase.from('clinics').select('no_show_minutes').eq('id',clinicId).single(); if(error) throw error; return data } })
   const [sort, setSort] = useState<SortState<SortKey>>(null)
@@ -122,7 +123,8 @@ export function TokenList({ clinicId, onSelectVisit, highlightVisitId }: { clini
   if (viewError && !viewData) return <QueryError retry={() => void reload()} />
   const viewWithFocus = focused.data && !(viewData ?? []).some(v=>v.id===focused.data!.id) ? [focused.data,...(viewData ?? [])] : viewData ?? []
   const rows = sortRows(viewWithFocus.filter(v => showingEarlier ? v.arrived_at < today && !['paid','no_show'].includes(v.stage) : v.arrived_at >= today && (filter === 'all' || (filter === 'done' ? ['paid','no_show'].includes(v.stage) : !['paid','no_show'].includes(v.stage)))), sort, sortValue)
-  const act = (v: Visit, value: QueueAction) => action.mutate({ visitId:v.id, action:value, reason })
+  // The typed reason belongs to this one action; leaving it in the box tagged the next, unrelated move with it.
+  const act = (v: Visit, value: QueueAction) => { action.mutate({ visitId:v.id, action:value, reason }); setReason(''); setConfirmNoShow(null) }
   return <div className="queue-worklist">
     {viewError && <QueryError retry={() => void reload()} savedAt={savedAt} />}
     <div className="queue-tools">
@@ -142,7 +144,7 @@ export function TokenList({ clinicId, onSelectVisit, highlightVisitId }: { clini
         {v.stage==='called' && <Button variant="dark" disabled={action.isPending} onClick={()=>act(v,'sent_in')}>Sent in</Button>}
         {['waiting','called'].includes(v.stage) && <Button variant="ghost" disabled={action.isPending} onClick={()=>act(v,'not_here')}>Not here</Button>}
         {v.stage==='not_here' && v.arrived_at>=today && <><Button variant="ghost" disabled={action.isPending} onClick={()=>act(v,'return_original')}>Return to position</Button><Button variant="ghost" disabled={action.isPending} onClick={()=>act(v,'return_end')}>Return at end</Button></>}
-        {(v.stage==='not_here' && v.not_here_at && elapsedMinutes(v.not_here_at)>=(settings?.no_show_minutes??30) || v.arrived_at<today && ['waiting','called','with_doctor'].includes(v.stage)) && <><span className="status-amber">Please review: has this patient returned?</span><Button variant="ghost" disabled={action.isPending} onClick={()=>act(v,'no_show')}>Mark no-show</Button></>}
+        {(v.stage==='not_here' && v.not_here_at && elapsedMinutes(v.not_here_at)>=(settings?.no_show_minutes??30) || v.arrived_at<today && ['waiting','called','with_doctor'].includes(v.stage)) && <><span className="status-amber">Please review: has this patient returned?</span>{confirmNoShow === v.id ? <><span className="status-amber">Close this visit? It cannot be reopened; the patient would need a new token.</span><Button variant="dark" disabled={action.isPending} onClick={()=>act(v,'no_show')}>Confirm no-show</Button><Button variant="ghost" onClick={()=>setConfirmNoShow(null)}>Cancel</Button></> : <Button variant="ghost" disabled={action.isPending} onClick={()=>setConfirmNoShow(v.id)}>Mark no-show</Button>}</>}
       </>}{onSelectVisit && BILLABLE_STAGES.has(v.stage) && <Button variant="secondary" size="sm" onClick={() => onSelectVisit(v.id)}>{v.stage === 'paid' ? 'Receipt' : 'Bill'}</Button>}</div>
     </li>)}</ul>
     {(rows.length > visibleCount || showingEarlier && earlier.hasNextPage) && <Button variant="secondary" disabled={earlier.isFetchingNextPage} onClick={() => { if (showingEarlier && rows.length <= visibleCount && earlier.hasNextPage) void earlier.fetchNextPage(); setVisibleCount(count => count + 50) }}>{earlier.isFetchingNextPage ? 'Loading…' : 'Show more'}</Button>}

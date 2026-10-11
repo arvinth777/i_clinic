@@ -19,6 +19,7 @@ const LongTermRegister = lazy(() => import('./pages/LongTermRegister').then(modu
 const Reconciliation = lazy(() => import('./pages/Reconciliation').then(module => ({ default: module.Reconciliation })))
 const Reports = lazy(() => import('./pages/Reports').then(module => ({ default: module.Reports })))
 import { useSession } from './lib/useSession'
+import { isScreenLocked, setScreenLocked } from './lib/pinLock'
 import type { AlertTarget } from './lib/clinicAlerts'
 import { useUserRoles } from './lib/useUserRoles'
 
@@ -42,7 +43,7 @@ function App() {
   const [alertNavigation, setAlertNavigation] = useState(0)
   const [alertTarget, setAlertTarget] = useState<AlertTarget | null>(null)
   const [recordPatientId, setRecordPatientId] = useState<string | null>(null)
-  const [locked, setLocked] = useState(false)
+  const [locked, setLocked] = useState(isScreenLocked)
 
   const sections: ShellSection[] = []
   if (roles?.some((r) => r.role === 'receptionist' || r.role === 'doctor')) sections.push({ key: 'reception', label: 'Reception' })
@@ -95,7 +96,7 @@ function App() {
         userEmail={session.user.email}
         isDoctor={!!roles?.some((r) => r.role === 'doctor')}
         locked={locked}
-        onLock={() => setLocked(true)}
+        onLock={() => { setScreenLocked(true); setLocked(true) }}
         onUnlock={() => setLocked(false)}
         sections={sections}
         activeSection={activeSection}

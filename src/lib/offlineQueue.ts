@@ -37,10 +37,29 @@ function notify() {
   for (const fn of listeners) fn()
 }
 
+// getSession() tries to refresh an expired access token, which fails offline
+// and returns no session -- that used to refuse offline saves once the 1h
+// token lapsed. Queuing only needs to know WHO the user is, and the stored
+// session still says; replay refreshes the token when the connection is back.
+async function queueingUser(): Promise<{ id: string } | undefined> {
+  // Offline, getSession() just spends ~20s retrying a refresh that cannot succeed; go straight to storage.
+  if (navigator.onLine) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) return session.user
+  }
+  try {
+    const key = Object.keys(localStorage).find((k) => /^sb-.*-auth-token$/.test(k))
+    const user = key && JSON.parse(localStorage.getItem(key) ?? 'null')?.user
+    return user?.id ? user : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export async function enqueue(mutation: Omit<QueuedMutation, 'id' | 'seq' | 'createdAt' | 'ownerId'> & { id?: string }, ownerId?: string): Promise<QueuedMutation> {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) throw new Error('Sign in before saving offline work')
-  if (ownerId && session.user.id !== ownerId) throw new Error('The signed-in account changed; return to the original account before saving')
+  const user = await queueingUser()
+  if (!user) throw new Error('Sign in before saving offline work')
+  if (ownerId && user.id !== ownerId) throw new Error('The signed-in account changed; return to the original account before saving')
   const clinicId = mutation.clinicId ?? (mutation.payload as { clinic_id?: string } | undefined)?.clinic_id
   if (!clinicId) throw new Error('A clinic is required for offline work')
   const full: QueuedMutation = {
@@ -48,7 +67,7 @@ export async function enqueue(mutation: Omit<QueuedMutation, 'id' | 'seq' | 'cre
     id: mutation.id ?? crypto.randomUUID(),
     seq: nextSeq(),
     createdAt: new Date().toISOString(),
-    ownerId: session.user.id,
+    ownerId: user.id,
     clinicId,
   }
   await set(full.id, full, store)
@@ -176,6 +195,8 @@ export async function drainQueue(): Promise<void> {
 
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => void drainQueue())
+  // A reload while online fires no 'online' event; without this the first drain waited for the 15s poll below.
+  if (navigator.onLine) void drainQueue()
   // Backstop for the case the 'online' event doesn't fire reliably (some
   // browsers/OSes), same philosophy as the app's existing Realtime backstop
   // poll -- cheap at this scale, not the primary mechanism.
@@ -207,15 +228,16 @@ export async function attemptOrQueue(args: {
   // exactly the out-of-order corruption a visit_pricing revision can't
   // tolerate. Checking the queue is empty first means a new write only ever
   // goes straight to the server when nothing is ahead of it.
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session || !args.clinicId) throw new Error('Sign in to the clinic before saving')
-  const pending = (await listQueue()).filter((m) => !m.ownerId || m.ownerId === session.user.id)
-  if (navigator.onLine && pending.length === 0) {
+  const session = navigator.onLine ? (await supabase.auth.getSession()).data.session : null
+  const user = session?.user ?? (await queueingUser())
+  if (!user || !args.clinicId) throw new Error('Sign in to the clinic before saving')
+  const pending = (await listQueue()).filter((m) => !m.ownerId || m.ownerId === user.id)
+  if (session && navigator.onLine && pending.length === 0) {
     const { error } = await args.attempt(session.access_token)
     if (!error) return { queued: false }
     if (!isNetworkFailure(error)) throw error
   }
-  await enqueue({ ...args.queueItem(), clinicId: args.clinicId }, session.user.id)
+  await enqueue({ ...args.queueItem(), clinicId: args.clinicId }, user.id)
   args.applyOptimistic?.()
   return { queued: true }
 }
@@ -223,3 +245,10 @@ export async function attemptOrQueue(args: {
 export async function getQueueSnapshot(): Promise<QueuedMutation[]> {
   return listQueue()
 }
+
+// Confirms (or sets) a medicine's billing unit and price; shared by Stock, prescription search and the new-drug form.
+export const setMedicineUnitPrice = (clinicId: string | null | undefined, payload: { p_medicine_id: string; p_stock_unit: string; p_price_paise: number | null }, description: string) =>
+  attemptOrQueue({ clinicId,
+    attempt: (token) => supabase.rpc('set_medicine_unit_price', payload).setHeader('Authorization', `Bearer ${token}`),
+    queueItem: () => ({ kind: 'rpc', rpc: 'set_medicine_unit_price', payload, description }),
+  })

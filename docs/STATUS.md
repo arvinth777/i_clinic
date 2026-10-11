@@ -668,6 +668,74 @@ Update it before ending a session or when a block of work completes.
   quantity billing and refills, complete the pre-merge code-review gate and
   historical security warnings, then repair hosting/backups before release.
 
+## Flow-test fixes — 2026-10-12
+
+Branch `fix/audit-flow-findings` (from `origin/production` 87a6351), **uncommitted**. A browser/backend
+test of the reception and doctor flows against staging found the issues below; these are fixed.
+
+- **PIN lock** (`src/lib/pinLock.ts`, `LockScreen.tsx`, `App.tsx`): the lock now survives reload/new tab,
+  the PIN is a salted PBKDF2 hash (old unsalted hashes still unlock once and upgrade), wrong tries are
+  throttled (5 free, then 30s doubling, 10 signs out), and a lock with no PIN offers "Sign in again".
+  Still a screen lock, not authentication: clearing localStorage removes it (documented in the file).
+- **Queue integrity** (migration `20261012010000`): future `arrived_at` is clamped to the server clock on
+  insert; `token_number`, `arrived_at`, `clinic_id` are immutable on update for signed-in users; review
+  dates must be today..5 years ahead (IST); `patients.age` 0-120 (NOT VALID: existing rows untouched).
+- **Search** (`20261012010000`, `20261012020000`): name substring + word-level typo match, digits anywhere in
+  the phone (incl. +91/0 prefix), today's token number, `%`/`_` are literals. UI no longer shows
+  "No matching patient" while a search is still running.
+- **Reports**: Daily/GST/Monthly use Asia/Kolkata day boundaries (were database-timezone, UTC).
+- **Offline queue** (`src/lib/offlineQueue.ts`): saving offline no longer needs a live token (the stored
+  session identifies the user; replay refreshes it), and the queue drains at page load instead of waiting
+  for the 15s poll.
+- **Reception**: move-reason cleared after each action; Mark no-show asks to confirm; a second token for a
+  patient already in today's queue shows a warning; phone `+91 / spaces / dashes` normalised; age 0-120;
+  stale "Required" errors clear as the field is edited.
+- **Doctor**: templates/"Usual combo" skip drugs already on the prescription and drugs with an unconfirmed
+  unit (with a note); Confirm shows the real server error; review-date input limited to the valid window;
+  duplicate "Couldn't finish" line removed; the billing stock error now names the drug and the available
+  quantity (and is hidden on the doctor's read-only bill).
+- Tests added: `scripts/pin-lock-test.mjs` (pure), `scripts/queue-integrity-test.mjs` (staging, 29 checks).
+  `scripts/phase-d-test.mjs` updated: its "today" is the IST date, and it no longer inserts a visit dated
+  tomorrow (that fixture is what jammed the staging queue).
+
+**Checks run:** `npx tsc -b`, `npm run build`, `oxlint` (7 pre-existing warnings); queue-integrity 29/29,
+pin-lock, pricing-proposal, prescription-draft, queue-workflow, audit-billing, settle-bill, partial-dispensing,
+quantity-pharmacy, prescription-handoff, approval-snapshot, offline-queue-owner, phase-d (38/38), phase-e.
+Browser (staging): PIN persistence/throttle/unlock/recovery, search, duplicate warning, move-reason,
+expired-login offline queue + replay (exactly one patient/visit), billing stock message, alert -> bill.
+Not run in a browser: the no-show confirm button (needs a 30-minute-old Not here), the template
+duplicate-skip with a *confirmed* drug.
+
+**Staging:** migrations `20261012010000` and `20261012020000` were applied with `supabase db push`
+(project cofnrcgsolluyhghutah). **Not applied to production**; the production symlinks in
+`deploy/production/supabase/migrations/` are not added yet (runbook: only after staging is signed off).
+
+**Decision items, then fixed (same branch, uncommitted):**
+- Idle lock always arms; with no PIN on the device the lock screen offers "Sign in again" (`AppShell`, `useIdleTimer`).
+- Prescription: dose never prefilled, drug type follows the stock unit, strength required for Tablet/Capsule
+  (`lib/prescriptionDraft.ts`; `scripts/prescription-draft-test.mjs` extended, no DB needed).
+- Unconfirmed-unit medicines get an inline "Confirm unit" (unit + price) in prescription search
+  (`components/ConfirmUnitRow.tsx`, same `set_medicine_unit_price` RPC, offline-queued).
+- Finish accepts a visit with a procedure and no medicine; any medicine present still needs dose and duration
+  (migration `20261012030000`, applied to staging; `Consultation.tsx` gate and hint).
+- No-op moves (already first/last) no longer write a note or queue event (same migration).
+- Header shows the clinic name from settings instead of a hard-coded string.
+- Review cuts: shared `lib/useVisitProcedures.ts` (Consultation + PricingPanel), shared `setMedicineUnitPrice` in
+  `offlineQueue.ts` (Stock, new-drug form, inline confirm), `useIdleTimer` lost its `enabled` argument.
+- Test: `scripts/queue-finish-test.mjs` (no-op move, refused empty finish, procedure-only finish). Re-run green on
+  staging: queue-integrity, queue-workflow, prescription-handoff, approval-snapshot, partial-dispensing, phase-d (38/38);
+  tsc and build clean.
+
+**Left on purpose / needs the clinic:** height and weight are Admin → Custom fields data (add `height_cm`, `weight_kg`,
+number) on each environment, not code; the letterhead artwork still carries a fixed doctor name/artwork (replace the
+artwork when the clinic supplies it); Paracetamol's unit is unconfirmed until someone confirms it (now possible from
+the prescription screen); "Pay later" on refills unchanged (not in the rework brief); stale staging fixtures (old
+open visits, ~219 alerts) untouched; legacy suites (billing/pricing/packing/stock/phase-f/phase-g/isolation) still fail
+as before. Not browser-tested: no-show confirm button, inline Confirm unit, no-PIN idle lock, Pricing panel and Finish button after the hook refactor.
+
+**Next:** committed on `fix/audit-flow-findings` (not pushed); run the browser regression scripts against it, then promote the three
+migrations (`20261012010000`, `…020000`, `…030000`) to production in a quiet window.
+
 ## Skill activation — 2026-10-10
 
 - User authorized Ponytail and relevant development skills across this codebase.

@@ -20,6 +20,7 @@ import '../components/Worklist.css'
 import './Consultation.css'
 import { useQueuePollInterval } from '../lib/realtimeStatus'
 import { restorePagedCache } from '../lib/pagedCache'
+import { useVisitProcedures } from '../lib/useVisitProcedures'
 
 // A wait past this is flagged in the overdue colour (danger), not just
 // shown as a plain elapsed time -- reserving colour for something that
@@ -208,7 +209,9 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
   const {data: localPrescription}=useQuery({queryKey:['prescription-print',userId,clinicId,current?.id],enabled:!!current&&!!clinicId,queryFn:async()=>await readPrescriptionPrint(userId,clinicId!,current!.id)??null})
   const issuedMedicines = prescriptions?.filter(p => p.visit_id === current?.id).flatMap(p => p.prescription_items) ?? []
   const reviewedMedicines=localPrescription?.medicines ?? issuedMedicines
-  const issuedComplete = reviewedMedicines.length > 0 && reviewedMedicines.every(item => !!item.dosage_frequency?.trim() && (item.duration_days ?? 0) > 0)
+  const {data: visitProcedures}=useVisitProcedures(current?.id)
+  const hasProcedure=(visitProcedures?.length??0)>0
+  const issuedComplete = (reviewedMedicines.length > 0 || hasProcedure) && reviewedMedicines.every(item => !!item.dosage_frequency?.trim() && (item.duration_days ?? 0) > 0)
 
   const addComment = useMutation({
     networkMode: 'always',
@@ -317,8 +320,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
                 <details className="rx-support"><summary>Documents</summary><DocumentsPanel key={`docs-${current.id}`} clinicId={clinicId} visitId={current.id} patientName={current.patients?.name ?? ''} patientAge={current.patients?.age ?? null} complaint={current.complaint} issuedBy={userId} /></details>
                 {!prescribingActive && <div className="action-row rx-actions"><Button variant="primary" disabled={prescribingActive || queueAction.isPending || !issuedComplete} onClick={() => void finish().catch(()=>{})}>{queueAction.isPending ? 'Saving…' : 'Finish consultation'}</Button></div>}
                 {prescribingActive && <p className="field-hint">Review and confirm the prescription before finishing.</p>}
-                {!prescribingActive && !issuedComplete && <p className="field-hint">Finish requires a medicine, dose or SOS, and duration for every prescribed item.</p>}
-                {queueAction.isError && <p className="form-error">Couldn't finish — try again.</p>}
+                {!prescribingActive && !issuedComplete && <p className="field-hint">Finish requires a medicine or a procedure; every prescribed medicine needs a dose or SOS and a duration.</p>}
               </PrescriptionForm>}
             </div>
           </>}

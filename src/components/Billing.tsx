@@ -171,6 +171,14 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   })
   const subtotal = supplyLines?.reduce((sum,row)=>sum+row.line_total_paise,0) ?? pricing?.calculated_total_paise ?? 0
   const supplyInvalid = !Number.isSafeInteger(subtotal) || supplyLines?.some(row=>!Number.isInteger(row.quantity)||row.quantity<0||(row.kind==='medicine'&&(row.quantity>(row.approved_quantity??0)||row.quantity>Math.max(0,row.available_quantity))))
+  // Say WHICH line and WHICH rule failed -- the old single sentence hid that the drug simply had no stock.
+  const supplyProblem = supplyLines?.map(row => {
+    if (row.kind !== 'medicine') return null
+    if (!Number.isInteger(row.quantity) || row.quantity < 0) return `${row.description}: enter a whole number of units.`
+    if (row.quantity > (row.approved_quantity ?? 0)) return `${row.description}: more than the ${row.approved_quantity ?? 0} the doctor approved.`
+    if (row.quantity > Math.max(0, row.available_quantity)) return `${row.description}: only ${Math.max(0, row.available_quantity)} in Counter stock. Reduce the supplied units (0 if none can be supplied) or receive stock under Inventory.`
+    return null
+  }).find(Boolean)
   const approvalOutdated=!!approval && !!pricing && approval.revision_number!==pricing.revision_number
   const payable = Math.max(0,subtotal-(approval?.discount_paise??pricing?.discount_paise??0))
 
@@ -282,7 +290,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       </section>
 
       {approvalOutdated && !bill && <p className="status-amber">The doctor updated this bill. Refreshing the approved amount…</p>}
-      {supplyInvalid && !bill && <p className="form-error">Use whole supplied units within the approved quantity and available Counter stock.</p>}
+      {supplyInvalid && !bill && !readOnly && <p className="form-error" role="alert">{supplyProblem ?? 'Use whole supplied units within the approved quantity and available Counter stock.'}</p>}
       <section className="record-section">
         <div className="pricing-block">
           <div className="pricing-row">

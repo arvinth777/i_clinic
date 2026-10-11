@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { verifyPin } from '../lib/pinLock'
+import { MAX_ATTEMPTS, hasPin, setScreenLocked, verifyPin } from '../lib/pinLock'
+import { supabase } from '../lib/supabase'
 import { Button } from './ui/button'
 import './LockScreen.css'
 
@@ -17,17 +18,28 @@ export function LockScreen({ locked, onUnlock }: { locked: boolean; onUnlock: ()
 
   if (!locked) return null
 
+  // Signing out is the recovery path: no PIN on this device (cleared storage)
+  // or too many wrong tries. The real password is then required.
+  async function signOut() {
+    setScreenLocked(false)
+    await supabase.auth.signOut()
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setChecking(true)
-    const ok = await verifyPin(pin)
+    const result = await verifyPin(pin)
     setChecking(false)
-    if (ok) {
+    if (result.ok) {
       setPin('')
       setError('')
+      setScreenLocked(false)
       onUnlock()
+    } else if (result.attempts >= MAX_ATTEMPTS) {
+      await signOut()
     } else {
-      setError('Wrong PIN.')
+      setPin('')
+      setError(result.waitMs ? `Too many tries. Wait ${Math.ceil(result.waitMs / 1000)}s.` : 'Wrong PIN.')
     }
   }
 
@@ -35,23 +47,31 @@ export function LockScreen({ locked, onUnlock }: { locked: boolean; onUnlock: ()
     <div className="lock-screen" role="dialog" aria-modal="true" aria-label="Screen locked">
       <form className="lock-screen-form" onSubmit={submit}>
         <p className="lock-screen-label">Locked</p>
-        <input
-          type="password"
-          inputMode="numeric"
-          autoFocus
-          value={pin}
-          onChange={(e) => setPin(e.target.value)}
-          placeholder="PIN"
-          className="lock-screen-input"
-        />
-        {error && (
-          <p className="form-error" role="alert">
-            {error}
-          </p>
+        {hasPin() ? (
+          <>
+            <input
+              type="password"
+              inputMode="numeric"
+              autoFocus
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              placeholder="PIN"
+              className="lock-screen-input"
+            />
+            {error && (
+              <p className="form-error" role="alert">
+                {error}
+              </p>
+            )}
+            <Button type="submit" disabled={checking || !pin}>
+              {checking ? 'Checking…' : 'Unlock'}
+            </Button>
+          </>
+        ) : (
+          <Button type="button" onClick={() => void signOut()}>
+            Sign in again
+          </Button>
         )}
-        <Button type="submit" disabled={checking || !pin}>
-          {checking ? 'Checking…' : 'Unlock'}
-        </Button>
       </form>
     </div>
   )

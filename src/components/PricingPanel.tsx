@@ -5,11 +5,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../lib/money'
 import { attemptOrQueue, listQueue } from '../lib/offlineQueue'
+import { useVisitProcedures, visitProceduresKey, type VisitProcedure } from '../lib/useVisitProcedures'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 
 type Procedure = { id: string; name: string; default_price_paise: number }
-type VisitProcedure = { id: string; procedure_id: string; price_paise: number; procedures: { name: string } | null }
 type Pricing = {
   calculated_total_paise: number
   final_amount_paise: number
@@ -72,19 +72,7 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
     },
   })
 
-  const visitProceduresKey = ['visit-procedures', visitId]
-  const { data: visitProcedures } = useQuery({
-    queryKey: visitProceduresKey,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('visit_procedures')
-        .select('id, procedure_id, price_paise, procedures(name)')
-        .eq('visit_id', visitId)
-        .order('created_at', { ascending: true })
-      if (error) throw error
-      return data as unknown as VisitProcedure[]
-    },
-  })
+  const { data: visitProcedures } = useVisitProcedures(visitId)
 
   const pricingKey = ['visit-pricing', visitId]
   const { data: pricing } = useQuery({
@@ -130,7 +118,7 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
 
   function invalidateAll() {
     queryClient.invalidateQueries({ queryKey: proposalKey })
-    queryClient.invalidateQueries({ queryKey: visitProceduresKey })
+    queryClient.invalidateQueries({ queryKey: visitProceduresKey(visitId) })
     queryClient.invalidateQueries({ queryKey: pricingKey })
   }
 
@@ -159,7 +147,7 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
         attempt: (accessToken) => supabase.from('visit_procedures').insert(row).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'insert', table: 'visit_procedures', payload: row, description: `Add procedure "${procedure.name}"` }),
         applyOptimistic: () => {
-          queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => [...(old ?? []), { id, procedure_id: procedure.id, price_paise: procedure.default_price_paise, procedures: { name: procedure.name } }])
+          queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey(visitId), (old) => [...(old ?? []), { id, procedure_id: procedure.id, price_paise: procedure.default_price_paise, procedures: { name: procedure.name } }])
           patchTotal(procedure.default_price_paise,lines=>[...lines,{kind:'procedure',visit_procedure_id:id,procedure_id:procedure.id,quantity:1,unit_price_paise:procedure.default_price_paise,description:procedure.name,line_total_paise:procedure.default_price_paise}])
         },
       })
@@ -185,7 +173,7 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
         attempt: (accessToken) => supabase.from('visit_procedures').update({ price_paise }).eq('id', id).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'update', table: 'visit_procedures', payload: { price_paise }, match: { id }, description: 'Update a procedure price' }),
         applyOptimistic: () => {
-          queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => old?.map((r) => (r.id === id ? { ...r, price_paise } : r)))
+          queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey(visitId), (old) => old?.map((r) => (r.id === id ? { ...r, price_paise } : r)))
           patchTotal(price_paise - previous,lines=>lines.map(l=>l.kind==='procedure'&&l.visit_procedure_id===id?{...l,unit_price_paise:price_paise,line_total_paise:price_paise}:l))
         },
       })
@@ -202,7 +190,7 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
         attempt: (accessToken) => supabase.from('visit_procedures').delete().eq('id', id).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'delete', table: 'visit_procedures', match: { id }, payload:{visit_id:visitId}, description: `Remove procedure "${removed?.procedures?.name ?? ''}"` }),
         applyOptimistic: () => {
-          queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey, (old) => old?.filter((r) => r.id !== id))
+          queryClient.setQueryData<VisitProcedure[]>(visitProceduresKey(visitId), (old) => old?.filter((r) => r.id !== id))
           if (removed) patchTotal(-removed.price_paise,lines=>lines.filter(l=>l.kind!=='procedure'||l.visit_procedure_id!==removed.id))
         },
       })
