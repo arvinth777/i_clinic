@@ -12,8 +12,20 @@
 - Local build, Drive handler checks and initial-route/style/state regression
   checks pass. Browser synthetic views at 1440/390 have no page overflow;
   screenshots under docs/evidence/drive-ui. No credentials or patient data used.
-- Pending: independent review, production deployment and fresh live-page check.
-  No database, consent scope, print renderer or upload behaviour changes.
+- Standards and Spec review: no blocker. PR #11 merged and Vercel deployed
+  production SHA `87a635191fe2b3142397c1ffd03d474b5bad4cc1` successfully.
+  Fresh authenticated production Patients: grid, 280px list, 32px/36px content
+  padding at 1440px; 390px has no horizontal overflow. The direct declined-
+  consent callback loads its styles at desktop and mobile widths. Keyboard
+  Return works. Success-state screenshots use the real component with synthetic
+  state; no new Google grant was made. Live screenshots contain no patient data.
+- Initial existing tab retained the old service-worker page through reloads;
+  a fresh entry loaded the deployed assets. Reopen the site if old layout remains.
+  Build/handler/UI/precache checks pass; lint zero errors/nine existing warnings.
+- Uncommitted work: none after the release-evidence commit. This is a focused
+  repair, not a fresh full-app visual audit. No database, consent scope, print
+  renderer or upload behaviour changes. Next: approved patient-file upload check
+  and the separate finalised-PDF archival backlog.
 
 
 ## Drive and actionable alerts — production released 2026-10-11
