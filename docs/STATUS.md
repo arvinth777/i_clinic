@@ -18,7 +18,8 @@
 - User chose to skip R2 activation after checkout required a payment method.
   No R2 subscription/bucket/tokens were created. Backup storage credentials,
   actual upload and restore drill remain open. Daily schedule changes are
-  prepared for review; do not merge the workflow into default `main` until
+  committed/pushed in draft PR #7 against production; no implementation work
+  remains uncommitted. Do not merge the workflow into default `main` until
   storage/secrets exist, to avoid daily failures. No operational-backup claim.
 
 ## Initial production release — 2026-10-11
