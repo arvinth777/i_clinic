@@ -80,7 +80,11 @@ production branch is now `production`; production public frontend variables
 target clinic-prod and default Preview variables target staging. Production
 starts with one empty clinic and two placeholder staff accounts; randomly
 generated access details are in the maintainer's private local file outside Git.
-No real mailbox is required for these login IDs.
+No real mailbox is required for these login IDs. The merged release is `f01a36b`
+(PR #6), Ready at `https://iclinic-theta.vercel.app`. Both authenticated staff
+workspaces, role permissions and realtime connections were verified. Production
+has all three Edge Functions; backup-freshness remains unconfigured until the
+R2/monitoring setup is completed. See STATUS for acceptance limits.
 
 Production history intentionally starts at the bootstrap; never use `--include-all`
 or repair-mark historical staging fixtures as applied there. Root remains linked

@@ -20,8 +20,22 @@
   the release branch; Production variables target clinic-prod and default Preview
   variables target staging. Two placeholder staff accounts were provisioned with
   random passwords in a private local access file outside Git/chat.
-- Frontend build passes. Backend function deployment and rendered-app verification
-  remain in progress at this checkpoint.
+- Release PR #6 merged into `production` at `f01a36b`. Vercel deployment
+  `iclinic-dawvsje62-arvinth777s-projects.vercel.app` is Ready and the main address
+  `https://iclinic-theta.vercel.app` now renders the new app. Production migration
+  history matches its dedicated chain. Health, admin-create-login and
+  backup-freshness Edge Functions are Active; production schema lint has zero
+  errors. Backup freshness requires the still-missing R2/monitoring setup.
+- Fresh production smoke checks pass: both placeholder logins, expected role
+  assignments, doctor report access/reception report denial, zero visits, both
+  realtime subscriptions and public health. Authenticated browser doctor and
+  reception workspaces render with live queue state; Hanken / 15px and no page
+  overflow verified. Screenshots are in `docs/evidence/production-release/`.
+  The first alias tab loaded the old cached build; navigation after update
+  loaded the current one. No production patient or billing operation was tested.
+- No uncommitted implementation work remains after the evidence checkpoint.
+  Next: configure backup/restore/monitoring and verify browser offline reload
+  before relying on the app for real clinical records.
   Browser offline reload and backup/restore setup remain unverified; printer
   approval is recorded above.
 
