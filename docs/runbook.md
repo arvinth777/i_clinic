@@ -267,8 +267,8 @@ and `clinic-drive-production.env`, mode 600; never commit or print their values.
 Do not rotate these encryption keys without re-encrypting the connected token.
 
 Production callback is https://iclinic-theta.vercel.app/?drive_callback=1.
-Google account selection/consent remains a user action; verify connected status
-after returning. Staging tokens never transfer to production. Google console
+Production Google consent was completed by the user on 2026-10-11; the callback
+and authenticated status report connected, with a successful saved grant refresh. Staging tokens never transfer to production. Google console
 OAuth test-mode refresh-token lifetime may require recurrent reconnection;
 verify publishing/testing configuration before relying on unattended access.
 Reference: [Google refresh-token expiration](https://developers.google.com/identity/protocols/oauth2#expiration).

@@ -13,9 +13,10 @@
 - Read-only production checks: doctor sees configured=true/connected=false;
   reception receives 403. Production has no synthetic patient fixtures.
   Doctor reconnect alert opens global Documents without needing a patient.
-  Google accepts the production redirect and shows the account chooser;
-  the user must complete its own production consent. No production upload
-  or successful callback is claimed before that consent.
+  Production consent completed by the user on 2026-10-11. The browser
+  shows Google Drive connected; an authenticated production status check
+  confirms configured=true, connected=true and a successful saved Google
+  grant refresh. No real patient file was uploaded for verification.
 - Staging: real synthetic PNG/PDF upload, duplicate retry, checksum-matched
   authenticated content and browser image/PDF preview passed. Hosted doctor,
   reception, admin-only, other-clinic and anonymous boundaries passed.
@@ -43,13 +44,13 @@
   produce RLS/no-policy informational notices; existing function-execution and
   leaked-password advisories remain. See security-review.md; no clean advisor
   pass is claimed.
-- Remaining: production Google consent/callback verification; browser offline
+- Remaining: production patient-file upload verification; browser offline
   reload remains unverified after an earlier automatic approval rejection.
   Loudspeaker audibility is not measured. Automatic prescription/receipt PDF
   archival is separate approved backlog; manual document uploads do not satisfy it.
   Google reconnect user consent itself is not automated. No print renderer change.
-- Next: complete production consent, verify configured/connected status and
-  then plan the separate durable finalised-PDF archive implementation.
+- Next: verify the first authorised production patient-file upload, then
+  plan the separate durable finalised-PDF archive implementation.
 
 ## Google Drive integration — 2026-10-11
 
