@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Weekly backup job (docs/build-plan.md item 8, docs/architecture-spec.md's
+# Daily backup job (docs/build-plan.md item 8, docs/architecture-spec.md's
 # "Backup and recovery"). Run from GitHub Actions (.github/workflows/backup.yml),
 # never from Vercel cron -- Vercel Hobby cron is once-daily and this needs a
 # real pg_dump, which Vercel's serverless functions can't shell out to.
@@ -22,7 +22,7 @@
 # -- per this project's own security-review.md, nothing that grants access
 # belongs in a committed file, but a public key grants nothing (only
 # encryption, never decryption) so it's safe there. The PRIVATE key is a
-# human-only artifact that must exist before the first backup ever runs
+# private local artifact outside Git that must exist before the first backup runs
 # (see docs/runbook.md) -- it is never an input to this script at all.
 
 set -euo pipefail

@@ -220,7 +220,7 @@ Everything before production.
    and commit `ebfeb8f`.
 8. **Weekly backup job** — `pg_dump`, encrypted with `age`, uploaded to
    R2 via a dedicated read-only database role. Plus a freshness-check
-   endpoint returning 500 if the newest object is over 8 days old.
+   endpoint returning 500 if the newest object is over 2 days old.
 
 Report findings ranked by severity. Do not fix in the same pass.
 

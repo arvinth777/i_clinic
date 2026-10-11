@@ -1,14 +1,14 @@
-name: Weekly database backup
+name: Daily database backup
 
 # GitHub Actions, not Vercel cron (docs/build-plan.md item 8) -- Vercel
 # Hobby cron is once-daily and can't shell out to pg_dump/age/aws anyway.
-# Runs Sunday 20:00 UTC (01:30 IST Monday) -- outside the clinic's 10am-3pm
+# Runs daily at 20:00 UTC (01:30 IST the following day) -- outside the clinic's 10am-3pm
 # hours and outside the 10am-before/3pm-after deploy window
 # (docs/architecture-spec.md), so a slow or failing run never competes
 # with a live clinic day.
 on:
   schedule:
-    - cron: '0 20 * * 0'
+    - cron: '0 20 * * *'
   workflow_dispatch: {} # manual trigger, for the restore-drill / a re-run after a fix
 
 jobs:

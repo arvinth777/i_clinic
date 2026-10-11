@@ -22,7 +22,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { S3Client, ListObjectsV2Command } from 'npm:@aws-sdk/client-s3@3'
 
-const MAX_AGE_DAYS = 8
+const MAX_AGE_DAYS = 2
 
 Deno.serve(async () => {
   try {

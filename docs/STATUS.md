@@ -1,5 +1,26 @@
 # Status
 
+## Daily backups and local recovery key — 2026-10-11
+
+- User requested daily backups and owner-only local credentials/key storage,
+  and confirmed there are no old backups to preserve. Generated a new age key;
+  the public recipient is tracked, private material stays outside Git in
+  `~/.codex/private/clinic-access-and-recovery.json` and `clinic-backup.agekey`.
+  Both files are mode 0600; encryption/decryption round trip passed.
+- Changed the workflow to daily 20:00 UTC (01:30 IST next day) and the freshness
+  threshold to two days. Workflow actionlint and shell syntax checks pass. Freshness handler checks
+  pass 5/5 (fresh, two-day boundary, stale, empty and storage failure).
+- Cloudflare official setup installed 17 global skills and registered its MCP
+  server; OAuth login succeeded. New tools require an agent reload.
+- Google Drive uploads exist only in the isolated local branch
+  `codex/clinic-drive-documents` (ef7a7f4). They are not integrated/deployed or
+  connected to Google; staging verification and independent review remain.
+- User chose to skip R2 activation after checkout required a payment method.
+  No R2 subscription/bucket/tokens were created. Backup storage credentials,
+  actual upload and restore drill remain open. Daily schedule changes are
+  prepared for review; do not merge the workflow into default `main` until
+  storage/secrets exist, to avoid daily failures. No operational-backup claim.
+
 ## Initial production release — 2026-10-11
 
 - User explicitly requested production updating now, overriding this release's

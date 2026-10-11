@@ -153,9 +153,9 @@ the actual handoff mechanism, not this document alone.
 | Source code | GitHub, `arvinth777/i_clinic` | `main` branch is default; `production` branch is the deploy trigger (see Deploying) |
 | Frontend hosting | Vercel, Hobby tier | Static SPA build (`vite build`) -- the tier is a deliberate, temporary accommodation; upgrade trigger below |
 | Database + Auth + Realtime + Edge Functions | Supabase, two projects, Free tier | `clinic-staging` (ref `cofnrcgsolluyhghutah`) and `clinic-prod` (ref `rmuhpgpvgvwchovlgxae`) -- Free's 2-project ceiling is fully spent, no third slot exists |
-| Backup storage | Cloudflare R2 | Bucket holds weekly encrypted `pg_dump` snapshots (see Backups) |
-| Backup encryption | `age` keypair | Public key committed at `backup/age-public-key.txt`; private key lives **only** in the password manager (see Backups -- this is the single most important line in this document) |
-| CI/CD | GitHub Actions | Runs the weekly backup job (`.github/workflows/backup.yml`); Vercel handles frontend preview/production deploys itself, not Actions |
+| Backup storage | Cloudflare R2 | Bucket holds daily encrypted `pg_dump` snapshots (see Backups) |
+| Backup encryption | `age` keypair | Public key committed at `backup/age-public-key.txt`; private key may live in an owner-only local file outside Git (user decision, 2026-10-11); a separate recovery copy is recommended |
+| CI/CD | GitHub Actions | Runs the daily backup job (`.github/workflows/backup.yml`); Vercel handles frontend preview/production deploys itself, not Actions |
 | Uptime/freshness monitoring | UptimeRobot (or equivalent) | **Not yet wired up** -- see "Monitoring: what's live vs. what's pending" below. Until it is, a failing health check or a stale backup is invisible to everyone |
 | Domain registrar | (see password manager) | Set to auto-renew, 5+ year prepaid window, per architecture-spec.md -- expiry is a monitoring-surface item, not something to trust arriving by email |
 | Password manager / emergency access | (the maintainer's own) | Holds every actual secret value: Supabase DB passwords, R2 API tokens, the age private key, domain registrar login. A named trusted contact gets automatic access after a waiting period if the maintainer doesn't respond -- configure this *before* it's needed, not after |
@@ -182,9 +182,9 @@ Migrations are **immutable once applied** -- never edit a migration file that ha
 
 ## Backups
 
-The weekly `pg_dump` **is** the primary backup, not a supplement to Supabase's own tier -- Free's retention is short and not something this project controls or can reliably restore from at will (docs/architecture-spec.md). Treat a failed or silently-stopped backup job as a real incident.
+The daily `pg_dump` **is** the primary backup, not a supplement to Supabase's own tier -- Free's retention is short and not something this project controls or can reliably restore from at will (docs/architecture-spec.md). Treat a failed or silently-stopped backup job as a real incident.
 
-**How it runs**: `.github/workflows/backup.yml`, GitHub Actions, weekly (Sunday 20:00 UTC), never Vercel cron (Hobby cron is once-daily and can't shell out to `pg_dump`/`age`/`aws` anyway). The job (`scripts/backup.sh`) connects as `backup_reader` -- a dedicated, read-only Postgres role (migration `20260907020000_backup_reader_role.sql`), never `service_role`, never the `postgres` superuser -- dumps the `public` schema only (not `auth.users`; see below), gzips, encrypts with `age` using the **public** key committed at `backup/age-public-key.txt`, and uploads to the R2 bucket via its S3-compatible API.
+**How it runs**: `.github/workflows/backup.yml`, GitHub Actions, daily (20:00 UTC / 01:30 IST the following day), never Vercel cron (Hobby cron is once-daily and can't shell out to `pg_dump`/`age`/`aws` anyway). The job (`scripts/backup.sh`) connects as `backup_reader` -- a dedicated, read-only Postgres role (migration `20260907020000_backup_reader_role.sql`), never `service_role`, never the `postgres` superuser -- dumps the `public` schema only (not `auth.users`; see below), gzips, encrypts with `age` using the **public** key committed at `backup/age-public-key.txt`, and uploads to the R2 bucket via its S3-compatible API.
 
 **Why `auth.users` is out of scope**: a full disaster-recovery restore does not attempt to replay Supabase's own auth tables bit-for-bit. Logins are recreated via the existing `admin-create-login` Edge Function (the normal way any login is created in this app) after a restore, not by restoring `auth.*` directly. This is a real, accepted limitation -- a restore gets every patient, visit, bill, and stock record back, but every staff login must be re-created by an admin afterward.
 
@@ -204,7 +204,7 @@ The weekly `pg_dump` **is** the primary backup, not a supplement to Supabase's o
 
 Two public, credential-free endpoints exist and answer correctly today, verified live against staging:
 - **Keep-alive** -- `https://<project ref>.supabase.co/functions/v1/health` -- performs a real database read (via `public.health_ping()`, a narrow function granted to `anon` alone -- see its own migration/function comments for why it isn't a direct table read) and returns exactly `{"ok":true}` (200) or `{"ok":false}` (500), nothing else. Exists so a week of the clinic being closed doesn't let Supabase Free auto-pause the project.
-- **Backup freshness** -- `https://<project ref>.supabase.co/functions/v1/backup-freshness` -- lists the R2 bucket and returns `{"ok":true}` (200) if the newest object is under 8 days old, `{"ok":false}` (500) otherwise (including "can't reach R2 at all" -- fails closed). **Currently always returns 500**, because the R2 secrets it needs (`R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`/`R2_BUCKET` as Supabase Edge Function secrets) aren't set yet -- see "Pending setup" below.
+- **Backup freshness** -- `https://<project ref>.supabase.co/functions/v1/backup-freshness` -- lists the R2 bucket and returns `{"ok":true}` (200) if the newest object is at most 2 days old, `{"ok":false}` (500) otherwise (including "can't reach R2 at all" -- fails closed). **Currently always returns 500**, because the R2 secrets it needs (`R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`/`R2_BUCKET` as Supabase Edge Function secrets) aren't set yet -- see "Pending setup" below.
 
 **Both endpoints existing and returning green is not the same as being monitored.** Neither is wired to an actual external uptime monitor yet. Until that's done:
 - A dormant/paused Supabase project would go unnoticed until someone happens to open the app.
@@ -212,11 +212,11 @@ Two public, credential-free endpoints exist and answer correctly today, verified
 
 This is a real, currently-open gap, not a hypothetical -- treat it as the top of the pending-setup list below, not an afterthought.
 
-## Pending setup (human-only steps -- nothing here can be done by an agent)
+## Pending backup setup
 
 These block the backup job and monitoring from being real, not just built:
 
-1. **Generate the `age` keypair's home in a password manager.** A keypair was generated during this build; the public half is committed (`backup/age-public-key.txt`). The private half was handed off out-of-band (not pasted into any chat log or file this repo tracks) -- move it into the password manager immediately if that hasn't happened yet, and confirm no local copy remains anywhere. Without this, a restore is impossible regardless of how well the backup job runs.
+1. **Keep the encryption private key recoverable.** The user permits an owner-only local file outside Git, alongside the staff login credentials. The user confirmed there are no old backups to preserve. A new key was generated on 2026-10-11; `~/.codex/private/clinic-access-and-recovery.json` contains staff logins and the backup private key, and `~/.codex/private/clinic-backup.agekey` is directly usable with `age -d -i`. Both files have mode 0600; neither is tracked by Git. Keep a separate recovery copy: losing the Mac and the only private key would make encrypted backups unusable.
 2. **Set `backup_reader`'s password.** The role exists (migration `20260907020000`) but has no password -- a migration file is permanent, world-readable git history, so the password was deliberately never written into one. Set it via the Supabase Dashboard (Database -> Roles -> `backup_reader`) or the SQL editor (`alter role backup_reader with password '...'`), on **both** staging and production (production needs the same migration applied first -- see "Applying a migration"). Assemble the resulting connection string and store it as the GitHub Actions secret `BACKUP_DB_URL`. If the direct connection (port 5432) isn't reachable from GitHub's runners, use the Session-mode pooler connection string instead (same role/password) -- Supabase's own docs cover this; transaction-mode pooling does not support `pg_dump` reliably.
 3. **Create the Cloudflare R2 bucket and its API tokens.** Two separate, least-privilege tokens are recommended, not one: a write-only token for the backup job (GitHub secrets `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`/`R2_BUCKET`) and a read-only token for the freshness check (Supabase Edge Function secrets of the same names, `supabase secrets set --project-ref <ref> R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... R2_BUCKET=...`).
 4. **Wire both public endpoints to an external uptime monitor** (UptimeRobot or equivalent) -- ping both `.../functions/v1/health` and `.../functions/v1/backup-freshness` on the monitor's own schedule, alerting on non-200. This must be an *external* monitor, not a GitHub Actions cron -- a dormant repository must never be able to silence its own monitoring.
@@ -258,3 +258,20 @@ Distilled from docs/STATUS.md's full build history -- read that file for the com
 3. Test convention: plain Node scripts in `scripts/` (and `isolation-test.mjs` at the repo root) run against live staging, not a mocked test framework -- read a couple of them (`scripts/phase-f-test.mjs` is a good recent example) before writing a new one, and follow the existing `loadEnv()`/sign-in pattern. Browser-level flows use a throwaway Playwright script, deleted after use, driving the **production build** (`npm run build && npx vite preview`) whenever the service worker/offline behavior matters -- `npm run dev` disables it.
 4. This project follows the skills named in `AGENTS.md`'s "Skill orchestration" section -- `tdd` before touching pricing/stock/discount logic, `docs/security-review.md` plus the Supabase security advisor before anything touching money/auth/RLS/patient data, `code-review` before merging anything non-trivial, `ponytail` as the standing discipline on file size and scope.
 5. Never disable RLS "temporarily" to debug, never store money as anything but bigint paise (including in a test fixture), never touch pricing/discount/stock logic without a test, never invent a feature not in the PRD (`prd-clinic-management-system.md`) without proposing it first.
+
+
+### Backup setup checkpoint — 2026-10-11
+
+Cloudflare global skills and MCP registration/OAuth are installed; reload the
+agent to expose its new tools. R2 activation requires billing setup, which the
+user chose to defer. No bucket or R2 credentials exist from this setup. The
+daily schedule and two-day freshness threshold are prepared, not deployed.
+GitHub schedules use the default `main` branch: merge the workflow there only
+after storage/secrets and a manual backup/restore check are ready. Production
+Edge Function freshness changes require their own CLI deployment.
+
+Patient scan uploads are a separate, undeployed feature on local branch
+`codex/clinic-drive-documents` (ef7a7f4). It stores private PDF/JPG/PNG bytes in
+Google Drive and metadata in Supabase; it does not back up the database, and
+database dumps do not include Drive file bytes. Google OAuth setup, integration
+with current UI, staging verification and review remain before release.
