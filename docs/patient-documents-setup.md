@@ -156,6 +156,7 @@ no remaining blocker after account-switch and lock privacy fixes.
 
 **Before release:** test the actual Google
 consent/upload/download/reconnect flow and file-size limit, run the available
-Supabase security advisor and verify the final configured deployment. None of those
+final configured deployment. The fresh staging security advisor is recorded
+in `docs/security-review.md` (zero errors, existing warnings remain). None of those
 external checks is replaced by the local test doubles. The native PDF check is
 Chrome desktop; mobile Safari and actual phone file selection need checking.

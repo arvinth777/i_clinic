@@ -17,10 +17,20 @@
   `docs/evidence/patient-documents-integration/`.
 - Independent code reviews found two privacy bugs; both are fixed and rechecked:
   account switching during file validation and native preview above screen lock.
+- No uncommitted implementation remains at this checkpoint.
 - Google account and OAuth client are not created yet. Staging reports setup
   pending honestly. No real Google consent/upload/download/reconnect or phone
   file-selection check has run. Browser offline reload remains unverified after
   automatic approval review rejected network emulation; no workaround was tried.
+- Draft PR #8: https://github.com/arvinth777/i_clinic/pull/8. Reviewed code
+  pushed; preview is Ready at
+  https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app. Doctor login and
+  Documents setup-pending state verified there; staging `CLINIC_APP_URL` targets
+  this exact preview and hosted endpoint checks pass with its origin.
+- Fresh staging security advisor: zero errors, 34 existing warnings and two
+  intentional no-policy informational notices on server-only credential/state
+  tables. These notices do not mean client access is allowed; denial is tested.
+  See `docs/security-review.md`; no warning-free claim is made.
 - Production is unchanged. Cloudflare R2/backups remain deferred as requested.
   Next: create the clinic Google account, configure a separate synthetic staging
   OAuth connection, verify live Drive flows, then review production promotion.
