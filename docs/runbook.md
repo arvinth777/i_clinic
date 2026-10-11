@@ -271,6 +271,7 @@ Google account selection/consent remains a user action; verify connected status
 after returning. Staging tokens never transfer to production. Google console
 OAuth test-mode refresh-token lifetime may require recurrent reconnection;
 verify publishing/testing configuration before relying on unattended access.
+Reference: [Google refresh-token expiration](https://developers.google.com/identity/protocols/oauth2#expiration).
 
 Older installed browser tabs can need a reload after service-worker activation.
 Confirmed live doctor alert navigation opens connection setup without creating
