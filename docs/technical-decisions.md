@@ -95,3 +95,8 @@ call events newer than enablement and less than 10 seconds old qualify; an
 atomic IndexedDB event ledger prevents refetch/reload/cross-tab duplicates.
 Sound is supplemental: browser audio restrictions and client clock skew may
 suppress it, and the real queue remains authoritative.
+
+Drive status verifies the saved Google refresh grant server-side. Alert checks
+run only for doctors while Alerts is open, every five minutes; revoked grants
+produce a reconnect alert, transient outages produce a retry notice. A global
+Documents connection view avoids needing a patient record just to connect.

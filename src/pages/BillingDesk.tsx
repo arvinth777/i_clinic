@@ -15,7 +15,6 @@ export function BillingDesk({ clinicId, readOnly = false, initialVisitId }: { cl
     return () => { supabase.removeChannel(channel) }
   }, [clinicId, client])
   const [selected, setSelected] = useState<string | null>(initialVisitId ?? null)
-  useEffect(() => { if (initialVisitId) setSelected(initialVisitId) }, [initialVisitId])
   const { data: pages, isError, dataUpdatedAt, isPending, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({ queryKey: ['billing-desk', clinicId, 'pages-v2'], initialData: () => restorePagedCache(client.getQueryData<{ pages: Visit[][] }>(['billing-desk', clinicId, 'pages']), client.getQueryData<Visit[]>(['billing-desk', clinicId])), initialPageParam: 0, getNextPageParam: (last: Visit[], pages: Visit[][]) => last.length === 50 ? pages.length * 50 : undefined, queryFn: async ({ pageParam }) => {
     const { data, error } = await supabase.from('visits').select('id, token_number, stage, patients(name)').eq('clinic_id', clinicId)
       .in('stage', ['ready_to_bill', 'paid']).or(`stage.neq.paid,arrived_at.gte.${startOfToday()}`).order('arrived_at', { ascending: false }).order('id').range(pageParam, pageParam + 49)

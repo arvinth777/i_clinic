@@ -9,7 +9,8 @@ import { useOfflineQueue } from '../lib/useOfflineQueue'
 import { drainQueue } from '../lib/offlineQueue'
 import { drainUploads, listUploads, subscribeUploads, type DocumentUpload } from '../lib/documentUploads'
 import { Drawer } from './Drawer'
-import { LoadingRows } from './QueryState'
+import { documentRequest, type DriveStatus } from '../lib/patientDocuments'
+import { LoadingRows, QueryError } from './QueryState'
 
 export function ClinicAlerts({ open, onClose, onOpen, clinicId, userId, isDoctor, online, connected, locked, soundControl }: { open: boolean; onClose: () => void; onOpen: (target: AlertTarget) => void; clinicId: string; userId: string; isDoctor: boolean; online: boolean; connected: boolean; locked: boolean; soundControl?: React.ReactNode }) {
   const client = useQueryClient()
@@ -36,6 +37,7 @@ export function ClinicAlerts({ open, onClose, onOpen, clinicId, userId, isDoctor
     const timer = setInterval(() => setNow(Date.now()), 30_000)
     return () => clearInterval(timer)
   }, [open])
+  const drive = useQuery({ queryKey: ['drive-status', clinicId], enabled: open && !locked && isDoctor, queryFn: () => documentRequest<DriveStatus>('status', { clinic_id: clinicId }), retry: false, refetchInterval: 300_000 })
   const source = useQuery({ queryKey: ['clinic-alerts', clinicId, userId, today, isDoctor], enabled: open && !locked, refetchInterval: interval, queryFn: async () => {
     async function pages(factory: () => { range: (from: number, to: number) => PromiseLike<{ data: unknown[] | null; error: unknown }> }) {
       const rows: unknown[] = []
@@ -62,12 +64,13 @@ export function ClinicAlerts({ open, onClose, onOpen, clinicId, userId, isDoctor
   } })
   const local = useMemo(() => {
   const owned = pending.filter(item => item.ownerId === userId && item.clinicId === clinicId)
-  const alerts: ClinicAlert[] = owned.map(item => ({ id: `pending:${item.id}`, title: 'Change not saved yet', detail: item.description === 'Upload patient document' ? 'A document upload is waiting on this device.' : 'A clinical or billing change is waiting on this device.', severity: 'amber', section: 'reception' }))
+  const alerts: ClinicAlert[] = owned.map(item => ({ id: `pending:${item.id}`, title: 'Change not saved yet', detail: `${item.description} · Waiting on this device; review the pending-save banner.`, severity: 'amber', section: 'reception' }))
   if (halted?.mutation.ownerId === userId && halted.mutation.clinicId === clinicId) alerts.push({ id: `halted:${halted.mutation.id}`, title: 'Save needs attention', detail: 'Review the pending-save banner before retrying.', severity: 'red', section: 'reception' })
+  if (isDoctor && (drive.isError || drive.data && !drive.data.connected)) alerts.push({ id: 'drive-connection', title: 'Document storage needs attention', detail: drive.isError ? 'Could not verify Google Drive. Open Documents to retry or reconnect.' : drive.data?.configured ? 'Reconnect the clinic Google Drive account. Pending files stay on this device.' : 'Google Drive setup is pending. Files stay on this device.', severity: 'amber', section: 'patients', patientTab: 'documents' })
   if (isDoctor) for (const upload of uploads.filter(item => item.error)) alerts.push({ id: `upload:${upload.id}`, title: 'Document upload needs attention', detail: upload.error!, severity: 'red', section: 'patients', patientId: upload.metadata.patient_id, patientTab: 'documents' })
   if (!online || !connected) alerts.push({ id: 'connection', title: !online ? 'Offline' : 'Live connection interrupted', detail: !online ? 'Changes wait on this device; other screens cannot receive them yet.' : 'Queue recovery polling is active. Reconnecting…', severity: 'red', section: 'reception' })
   return alerts
-  }, [pending, halted, clinicId, userId, isDoctor, uploads, online, connected])
+  }, [pending, halted, clinicId, userId, isDoctor, uploads, online, connected, drive.isError, drive.data])
   const active = useMemo(() => [...(source.data ? buildClinicAlerts(source.data, isDoctor, now, today) : []), ...local], [source.data, isDoctor, now, today, local])
   useEffect(() => {
     if (!open || !ready) return
@@ -75,7 +78,7 @@ export function ClinicAlerts({ open, onClose, onOpen, clinicId, userId, isDoctor
     void update<RecentAlert[]>(key, old => {
       const previous = Array.isArray(old) ? old : []
       const confirmed = online && !source.isFetching && !source.isError && !!source.data
-      const current = confirmed ? active : [...active, ...previous.filter(item => !item.resolvedAt && !active.some(alert => alert.id === item.id) && !/^(pending:|halted:|upload:|connection$)/.test(item.id))]
+      const current = confirmed ? active : [...active, ...previous.filter(item => !item.resolvedAt && !active.some(alert => alert.id === item.id) && !/^(pending:|halted:|upload:|connection$|drive-connection$)/.test(item.id))]
       return reconcileAlerts(previous, current, new Date().toISOString())
     }).then(async () => { const value = await get<RecentAlert[]>(key); if (alive) setRecent(value ?? []) }).catch(() => { if (alive) setError('Recent alerts could not be saved on this device.') })
     return () => { alive = false }
@@ -111,10 +114,11 @@ export function ClinicAlerts({ open, onClose, onOpen, clinicId, userId, isDoctor
     <p className="field-hint">Remind after 5 minutes · Closing review at 4:00 PM IST</p>
     <p className="field-hint">Recent/read/dismiss state is saved for this account on this device.</p>
     <div className="queue-filters"><button className="shell-nav-item" aria-pressed={tab === 'active'} onClick={() => { setTab('active'); setLimit(50) }}>Active · {visibleActive.length}</button><button className="shell-nav-item" aria-pressed={tab === 'recent'} onClick={() => { setTab('recent'); setLimit(50) }}>Recent · {recent.filter(item => !item.read).length} unread</button></div>
-    {(error || source.isError) && <p role="alert" className="form-error">{error || 'Could not refresh alerts. Showing the last saved copy; issues have not been marked resolved.'}</p>}
-    <button className="shell-nav-item" onClick={() => { void drainQueue(); void drainUploads(true); void client.invalidateQueries({ queryKey: ['clinic-alerts', clinicId] }); setError('') }}>Retry saves and refresh</button>
+    {error && <p role="alert" className="form-error">{error}</p>}
+    {source.isError && <QueryError retry={() => void source.refetch()} savedAt={source.data ? source.dataUpdatedAt : undefined} />}
+    <button className="shell-nav-item" onClick={() => { void drainQueue(); void drainUploads(true); void client.invalidateQueries({ queryKey: ['clinic-alerts', clinicId] }); if(isDoctor) void drive.refetch(); setError('') }}>Retry saves and refresh</button>
     {source.isPending && <LoadingRows label="Checking clinic alerts…" />}
-    {visible.slice(0, limit).map(alert => <article className="clinic-alert-row" key={alert.id}>
+    {visible.slice(0, limit).map(alert => <article className={`clinic-alert-row${source.isError && !/^(pending:|halted:|upload:|connection$|drive-connection$)/.test(alert.id) ? ' stale-copy' : ''}`} key={alert.id}>
       <strong className={`status-${alert.severity}`}>{alert.title}</strong><p>{alert.detail}</p>
       {'resolvedAt' in alert && typeof alert.resolvedAt === 'string' && alert.resolvedAt && <p className="field-hint">Resolved · {new Date(alert.resolvedAt).toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})}</p>}
       <button className="shell-nav-item" onClick={() => void navigate(alert)}>Open</button>

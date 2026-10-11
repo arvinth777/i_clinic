@@ -100,3 +100,10 @@ permissions; read/dismiss never changes a visit or bill. Credentials and Google
 refresh tokens remain server-side; private recovery env files stay outside Git.
 Production Drive uses a separate encryption key and requires its own Google
 consent; staging connection success does not prove production configuration.
+
+Drive status refreshes the existing Google grant after doctor/clinic checks.
+Revocation returns disconnected without erasing the saved account/folder;
+Google transient outages remain retryable errors. Tests cover both paths.
+Production migration dry-run identified only the missing patient-file migration
+(before already-applied realtime migration); `--include-all` applied that file
+only. Production role endpoint checks are read-only and do not create patients.

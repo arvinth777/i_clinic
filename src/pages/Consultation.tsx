@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
@@ -70,7 +70,7 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export function Consultation({ userId, onOpenPatient, requestedVisitId }: { userId: string; onOpenPatient: (id: string) => void; requestedVisitId?: string }) {
+export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNavigation = 0 }: { userId: string; onOpenPatient: (id: string) => void; requestedVisitId?: string; alertNavigation?: number }) {
   const queryClient = useQueryClient()
   const { data: clinicId } = useClinicId(userId)
   const [visibleQueueCount, setVisibleQueueCount] = useState(7)
@@ -80,8 +80,14 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId }: { user
   const [prescribingActive, setPrescribingActive] = useState(false)
   const [repCount, setRepCount] = useState(0)
   const [guard, setGuard] = useState(false)
-  useEffect(() => { if (requestedVisitId) { if (prescribingActive && requestedVisitId !== reviewVisitId) setGuard(true); else if (!prescribingActive) setReviewVisitId(requestedVisitId) } }, [requestedVisitId, prescribingActive, reviewVisitId])
-  const requested = useQuery({ queryKey: ['doctor-alert-visit', clinicId, requestedVisitId], enabled: !!clinicId && !!requestedVisitId, queryFn: async () => { const {data,error}=await supabase.from('visits').select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone)').eq('clinic_id',clinicId!).eq('id',requestedVisitId!).maybeSingle(); if(error) throw error; return data as unknown as DoctorVisit | null } })
+  const handledAlert = useRef(-1)
+  useEffect(() => {
+    if (!requestedVisitId || handledAlert.current === alertNavigation) return
+    handledAlert.current = alertNavigation
+    if (prescribingActive && requestedVisitId !== reviewVisitId) setGuard(true)
+    else if (!prescribingActive) setReviewVisitId(requestedVisitId)
+  }, [alertNavigation, requestedVisitId, prescribingActive, reviewVisitId])
+  const requested = useQuery({ queryKey: ['doctor-alert-visit', clinicId, requestedVisitId], refetchInterval: useQueuePollInterval(), enabled: !!clinicId && !!requestedVisitId, queryFn: async () => { const {data,error}=await supabase.from('visits').select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone)').eq('clinic_id',clinicId!).eq('id',requestedVisitId!).maybeSingle(); if(error) throw error; return data as unknown as DoctorVisit | null } })
   const queueAction = useQueueAction(clinicId)
 
   const interval = useQueuePollInterval()

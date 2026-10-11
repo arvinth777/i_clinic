@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
+import { connectDrive, documentRequest, type DriveStatus } from '../lib/patientDocuments'
 import { supabase } from '../lib/supabase'
 import { formatDate, formatDateOnly } from '../lib/date'
 import { Input } from '../components/ui/input'
@@ -21,8 +22,9 @@ export function Patients({ clinicId, isDoctor, canBill, initialPatientId, locked
   const [selectedPatient, setPatient] = useState<Patient | null | undefined>(undefined)
   const {data: requestedPatient} = useQuery({queryKey:['patient-detail',clinicId,initialPatientId],enabled:!!initialPatientId,queryFn:async()=>{const {data,error}=await supabase.from('patients').select('id,name,age,gender,phone,address').eq('clinic_id',clinicId).eq('id',initialPatientId!).single();if(error)throw error;return data as Patient}})
   const patient=selectedPatient===undefined ? requestedPatient??null : selectedPatient
-  const [tab, setTab] = useState<'visits' | 'notes' | 'documents'>('visits')
-  useEffect(() => { if (initialPatientId) { setPatient(undefined); setTab(isDoctor && initialTab === 'documents' ? 'documents' : 'visits') } }, [initialPatientId, initialTab, isDoctor])
+  const [tab, setTab] = useState<'visits' | 'notes' | 'documents'>(isDoctor && initialTab === 'documents' ? 'documents' : 'visits')
+  const [connectionError, setConnectionError] = useState('')
+  const drive = useQuery({queryKey:['drive-status',clinicId],enabled:isDoctor && initialTab==='documents' && !patient && !locked,queryFn:()=>documentRequest<DriveStatus>('status',{clinic_id:clinicId}),retry:false,refetchInterval:300_000})
   const [billId, setBillId] = useState<string | null>(null)
   useEffect(() => { const timer = setTimeout(() => setQuery(search.trim()), 250); return () => clearTimeout(timer) }, [search])
   const { data: patientPages, error: searchError, dataUpdatedAt, isPending, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
@@ -79,7 +81,7 @@ export function Patients({ clinicId, isDoctor, canBill, initialPatientId, locked
     {patients?.length === 0 && <p className="readout-empty">No matching patients.</p>}
   </aside><div className="patient-record">
     {patient && <Button className="mobile-list-back" variant="ghost" onClick={() => { setPatient(null); setBillId(null) }}>← Patients</Button>}
-    {!patient ? <><h1>Patients</h1><p className="readout-empty">Choose a patient to see their details and visit history.</p></> : billId ? <Billing readOnly={!canBill} key={billId} clinicId={clinicId} visitId={billId} onClose={() => setBillId(null)} /> : <>
+    {!patient ? <><h1>Patients</h1><p className="readout-empty">Choose a patient to see their details and visit history.</p>{isDoctor && initialTab==='documents' && <section><h2>Documents · Google Drive</h2><p className="field-hint">{drive.data?.connected ? 'Clinic Drive is connected. Choose a patient to upload or view files.' : 'Connect the clinic account to sync files. Pending uploads stay on this device.'}</p>{drive.isError && <QueryError retry={()=>void drive.refetch()} />}{connectionError && <p className="form-error" role="alert">{connectionError}</p>}<Button disabled={!drive.data?.configured} onClick={()=>void connectDrive(clinicId).catch(()=>setConnectionError('Could not start Google connection. Try again.'))}>{drive.data?.connected ? 'Reconnect Drive' : 'Connect Google Drive'}</Button></section>}</> : billId ? <Billing readOnly={!canBill} key={billId} clinicId={clinicId} visitId={billId} onClose={() => setBillId(null)} /> : <>
       <header className="patient-record-heading"><p className="field-hint">Patient record</p><h1>{patient.name}</h1><p>{[patient.age != null ? `${patient.age} years` : '', patient.gender, patient.phone].filter(Boolean).join(' · ')}</p>{patient.address && <p className="field-hint">{patient.address}</p>}</header>
       <div className="flow-stats"><div className="flow-stat"><strong className="flow-stat-value">{visits?.length ?? '—'}</strong><span className="flow-stat-label">Visits</span></div><div className="flow-stat"><strong className="flow-stat-value">{visits?.[0] ? formatDate(visits[0].arrived_at) : '—'}</strong><span className="flow-stat-label">Last visit</span></div><div className="flow-stat"><strong className="flow-stat-value">{visits?.[0]?.follow_up_date ? formatDateOnly(visits[0].follow_up_date) : '—'}</strong><span className="flow-stat-label">Review date</span></div></div>
       <nav className="admin-tabs" aria-label="Patient record"><button className="shell-nav-item" aria-current={tab === 'visits' ? 'page' : undefined} onClick={() => setTab('visits')}>Visits{isDoctor ? ' & prescriptions' : ''}</button>{isDoctor && <button className="shell-nav-item" aria-current={tab === 'notes' ? 'page' : undefined} onClick={() => setTab('notes')}>Personal notes</button>}{isDoctor && <button className="shell-nav-item" aria-current={tab === 'documents' ? 'page' : undefined} onClick={() => setTab('documents')}>Documents</button>}</nav>

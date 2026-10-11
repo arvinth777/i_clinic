@@ -38,6 +38,7 @@ function App() {
   // patient's name from a halted-queue message while the screen is
   // locked (docs/STATUS.md's Medium finding) -- a shared source of
   // truth, not two components separately guessing at it.
+  const [alertNavigation, setAlertNavigation] = useState(0)
   const [alertTarget, setAlertTarget] = useState<AlertTarget | null>(null)
   const [recordPatientId, setRecordPatientId] = useState<string | null>(null)
   const [locked, setLocked] = useState(false)
@@ -98,17 +99,17 @@ function App() {
         sections={sections}
         activeSection={activeSection}
         onSelectSection={setManualSection}
-        onOpenAlert={target => { setAlertTarget(target); if (target.patientId) setRecordPatientId(target.patientId); setManualSection(target.section) }}
+        onOpenAlert={target => { setAlertNavigation(value => value + 1); setAlertTarget(target); if (target.section === 'patients') setRecordPatientId(target.patientId ?? null); setManualSection(target.section) }}
       >
         <PageLoadBoundary key={activeSection}><Suspense fallback={<LoadingRows label="Opening screen…" />}>
         {activeSection === 'reception' && <Reception highlightVisitId={alertTarget?.section === 'reception' ? alertTarget.visitId : undefined} userId={session.user.id} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
-        {activeSection === 'patients' && clinicId && <Patients initialTab={alertTarget?.patientTab} highlightVisitId={alertTarget?.section === 'patients' ? alertTarget.visitId : undefined} locked={locked} initialPatientId={recordPatientId} clinicId={clinicId} isDoctor={!!roles?.some(r => r.role === 'doctor')} canBill={!!roles?.some(r => r.role === 'receptionist')} />}
-        {activeSection === 'billing' && clinicId && <BillingDesk initialVisitId={alertTarget?.section === 'billing' ? alertTarget.visitId : undefined} clinicId={clinicId} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
+        {activeSection === 'patients' && clinicId && <Patients key={`${recordPatientId}:${alertNavigation}`} initialTab={alertTarget?.patientTab} highlightVisitId={alertTarget?.section === 'patients' ? alertTarget.visitId : undefined} locked={locked} initialPatientId={recordPatientId} clinicId={clinicId} isDoctor={!!roles?.some(r => r.role === 'doctor')} canBill={!!roles?.some(r => r.role === 'receptionist')} />}
+        {activeSection === 'billing' && clinicId && <BillingDesk key={alertNavigation} initialVisitId={alertTarget?.section === 'billing' ? alertTarget.visitId : undefined} clinicId={clinicId} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'unpaid' && clinicId && <UnpaidBills clinicId={clinicId} />}
-        {activeSection === 'consultation' && <Consultation requestedVisitId={alertTarget?.section === 'consultation' ? alertTarget.visitId : undefined} userId={session.user.id} onOpenPatient={id=>{setRecordPatientId(id);setManualSection('patients')}} />}
+        {activeSection === 'consultation' && <Consultation alertNavigation={alertNavigation} requestedVisitId={alertTarget?.section === 'consultation' ? alertTarget.visitId : undefined} userId={session.user.id} onOpenPatient={id=>{setRecordPatientId(id);setManualSection('patients')}} />}
         {activeSection === 'pharmacy' && clinicId && <PharmacyBills clinicId={clinicId} isDoctor={roles?.some((r) => r.role === 'doctor') ?? false} />}
         {activeSection === 'suppliers' && clinicId && <Suppliers clinicId={clinicId} />}
-        {activeSection === 'stock' && clinicId && <Stock highlightMedicineId={alertTarget?.section === 'stock' ? alertTarget.medicineId : undefined} clinicId={clinicId} />}
+        {activeSection === 'stock' && clinicId && <Stock key={alertNavigation} highlightMedicineId={alertTarget?.section === 'stock' ? alertTarget.medicineId : undefined} clinicId={clinicId} />}
         {activeSection === 'merge' && clinicId && <MergePatients clinicId={clinicId} />}
         {activeSection === 'register' && clinicId && <LongTermRegister clinicId={clinicId} />}
         {activeSection === 'reconciliation' && clinicId && <Reconciliation clinicId={clinicId} />}

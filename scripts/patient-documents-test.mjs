@@ -9,6 +9,7 @@ const key = Buffer.alloc(32, 7).toString('base64')
 const config = { supabaseUrl: 'https://synthetic.supabase.test', anonKey: 'test-anon', serviceKey: 'test-service', appUrl: 'https://clinic.test', clientId: 'test-client', clientSecret: 'test-secret', encryptionKey: key }
 const file = new File(['%PDF-1.4\nsynthetic fixture only'], 'scan.pdf', { type: 'application/pdf' })
 const metadata = { id, clinic_id: clinic, patient_id: patient, title: 'Synthetic report', category: 'MRI', examination_date: '2026-10-10', note: 'Not real patient data <script>' }
+let tokenStatus = 200
 let connection, record, oauthState, uploaded = false, creations = 0, uploadRequests = 0, failReady = false, foreignAccount = false, deniedRole = false, downloads = 0
 const requests = []
 const result = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...headers } })
@@ -41,6 +42,7 @@ async function fakeFetch(address, init = {}) {
     }
     throw new Error(`Unexpected table ${table}`)
   }
+  if (url.origin === 'https://oauth2.googleapis.com' && tokenStatus !== 200) return result({error:'invalid_grant'},tokenStatus)
   if (url.origin === 'https://oauth2.googleapis.com') return result({ access_token: 'test-google-token', refresh_token: 'test-refresh', scope: 'https://www.googleapis.com/auth/drive.file' })
   assert.equal(init.headers.Authorization, 'Bearer test-google-token')
   if (url.pathname === '/drive/v3/about') return result({ user: { permissionId: foreignAccount ? 'other-account' : 'clinic-account', emailAddress: 'clinic@example.test' } })
@@ -81,6 +83,9 @@ assert.equal((await request('complete', { clinic_id: clinic, code: 'code', state
 assert.equal((await request('complete', { clinic_id: clinic, code: 'code', state: start.state })).status, 409)
 assert.ok(!connection.refresh_token_ciphertext.includes('test-refresh'))
 const status = await (await request('status')).json(); assert.equal(status.connected, true); assert.ok(!JSON.stringify(status).includes('ciphertext'))
+tokenStatus=400; assert.equal((await (await request('status')).json()).connected,false,'Revoked Google grant requires reconnection without deleting saved connection')
+tokenStatus=503; assert.equal((await request('status')).status,503,'Google outage is not a revoked connection')
+tokenStatus=200
 start = await (await request('connect')).json(); foreignAccount = true
 assert.equal((await request('complete', { clinic_id: clinic, code: 'code', state: start.state })).status, 409); foreignAccount = false
 start = await (await request('connect')).json(); oauthState.expires_at = '2020-01-01'

@@ -149,7 +149,7 @@ export function AppShell({
   useEffect(() => {
     if (!clinicId || !clinical) return
     function refreshQueue() {
-      for (const key of ['shell-queue', 'queue-events', 'doctor-queue', 'visits-today', 'visits-earlier', 'doctor-discount-requests', 'doctor-earlier-count', 'doctor-today-metrics', 'clinic-alerts']) {
+      for (const key of ['shell-queue', 'queue-events', 'doctor-queue', 'doctor-alert-visit', 'visits-today', 'visits-earlier', 'doctor-discount-requests', 'doctor-earlier-count', 'doctor-today-metrics', 'clinic-alerts']) {
         void queryClient.invalidateQueries({ queryKey: [key, clinicId] })
       }
     }
