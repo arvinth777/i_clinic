@@ -1,5 +1,40 @@
 # Status
 
+## Google Drive integration — 2026-10-11
+
+- Integrated the isolated patient-document feature into the released app on
+  `codex/clinic-drive-integration`, retaining current UI, history and deep links.
+  PDF/JPG/PNG uploads and previews are doctor-only; Drive holds private bytes,
+  Supabase holds patient links, and IndexedDB retains pending uploads.
+- Staging-only migration `20261011120000_patient_drive_files.sql` and
+  `patient-documents` endpoint deployed. Database lint: zero errors. Hosted
+  role checks pass for doctor, reception, admin-only, other clinic and anonymous
+  clients; direct metadata writes and credential/state reads are denied.
+- Fresh handler, upload-queue and isolated PostgreSQL/RLS suites pass. Build and
+  strict endpoint TypeScript pass; lint has zero errors and seven existing warnings.
+  Chrome checks at 1440/390px pass for layout, PDF/image preview, keyboard focus,
+  draft preservation and locking during open/delayed previews. Evidence:
+  `docs/evidence/patient-documents-integration/`.
+- Independent code reviews found two privacy bugs; both are fixed and rechecked:
+  account switching during file validation and native preview above screen lock.
+- No uncommitted implementation remains at this checkpoint.
+- Google account and OAuth client are not created yet. Staging reports setup
+  pending honestly. No real Google consent/upload/download/reconnect or phone
+  file-selection check has run. Browser offline reload remains unverified after
+  automatic approval review rejected network emulation; no workaround was tried.
+- Draft PR #8: https://github.com/arvinth777/i_clinic/pull/8. Reviewed code
+  pushed; preview is Ready at
+  https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app. Doctor login and
+  Documents setup-pending state verified there; staging `CLINIC_APP_URL` targets
+  this exact preview and hosted endpoint checks pass with its origin.
+- Fresh staging security advisor: zero errors, 34 existing warnings and two
+  intentional no-policy informational notices on server-only credential/state
+  tables. These notices do not mean client access is allowed; denial is tested.
+  See `docs/security-review.md`; no warning-free claim is made.
+- Production is unchanged. Cloudflare R2/backups remain deferred as requested.
+  Next: create the clinic Google account, configure a separate synthetic staging
+  OAuth connection, verify live Drive flows, then review production promotion.
+
 ## Performance production promotion — 2026-10-11
 
 - User explicitly requested production promotion of reviewed PR #9 after the offline reload limitation was disclosed. Physical-printer sign-off remains recorded; this change preserves print rendering. Release executed after 15:00 IST.
@@ -259,6 +294,45 @@
 
 Read this at the start of every session, alongside AGENTS.md and docs/.
 Update it before ending a session or when a block of work completes.
+
+## Patient Drive documents — isolated side-conversation implementation, 2026-10-10
+
+- Branch `codex/clinic-drive-documents`, based on committed `bd44f7c`; developed
+  in an isolated checkout, without changing the main thread's working files.
+  This checkpoint adds patient PDF/JPG/PNG files with title/category/date/note,
+  private previews/downloads/Drive links and a connect/reconnect/disconnect flow.
+- New doctor-only RLS metadata migration, server-only encrypted OAuth credentials,
+  user/clinic-bound one-use consent state, per-request backend role checks,
+  reserved Drive IDs for idempotent retry, and patient-merge preservation.
+- Separate account-bound IndexedDB upload queue stores file bytes, survives
+  reload, and contributes to the existing pending-save indicator. Failed
+  document uploads do not stop the clinical/billing queue.
+- Fresh local tests: four handler groups, two document queue groups, four actual
+  PostgreSQL migration/RLS groups, four existing queue ownership checks, and
+  prescription draft/quantity checks pass. Edge handler strict TypeScript check
+  and production build pass. Lint has seven pre-existing warnings; the build
+  retains its existing large-bundle warning. Oversized HTTP rejection is tested
+  with materialized multipart wire bytes because Node 24's in-process FormData
+  producer crashes on stream cancellation; the app's size check remains intact.
+- Browser: a synthetic file added offline survived a full production-build
+  reload and retained its pending header/row. 390px had no horizontal overflow.
+  Production Documents component fixtures verified PDF/image viewing, dialog
+  scroll lock, Escape dismissal and focus return. Fixed the initially blocked
+  Chrome PDF iframe and the focus loss found by these checks. Evidence lives
+  under `docs/evidence/patient-documents/`.
+- Sequential self-review covered secrets, OAuth state, role/clinic isolation,
+  untrusted metadata, MIME/size/hash validation, retry and merge paths. It is
+  not an independent code review. Supabase security advisor was unavailable.
+- Not deployed, pushed, merged, or connected to Google. The migration has run
+  only in a disposable local PostgreSQL fixture, not staging or production.
+  Google account/OAuth configuration, real Google end-to-end testing, staging
+  migration verification and independent review remain release gates. Native
+  phone/Safari tests are also pending. No physical-printer sign-off claim.
+- Setup and operational limits: `docs/patient-documents-setup.md`. Next: review
+  and integrate this isolated change with the main thread's newer UI; when the
+  clinic account exists, configure the Google client and Edge secrets, verify
+  staging, then connect it from the doctor's Documents tab. This checkpoint
+  contains the feature and its docs/tests; no unrelated parent changes included.
 
 ## Frontend screen port and typography verification — 2026-10-10
 

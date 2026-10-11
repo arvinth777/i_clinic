@@ -53,6 +53,29 @@ interrupted, so not every warning is claimed individually cleared. Database
 lint has no errors and one `confirm_bill` text-to-jsonb initialization warning.
 Evidence records are synthetic.
 
+## Google Drive changed paths — 2026-10-11
+
+Hosted staging checks deny reception/admin-only/other-clinic/anonymous reads,
+all direct metadata writes, and credential/OAuth-state reads. Handler checks
+cover doctor ownership, exact origins, one-use OAuth state, encrypted refresh
+credentials, private content, safe links, file signatures and idempotent retries.
+Account-switch validation and screen-lock preview races were fixed and
+independently re-reviewed; fresh browser privacy checks pass.
+
+The staging MCP project was verified as `clinic-staging` before read-only
+security-advisor use. The current advisor reports zero errors, 34 warnings
+(2 anonymous and 31 authenticated SECURITY DEFINER callable functions, plus
+leaked-password protection disabled), and 2 informational no-policy notices.
+The latter are the intentionally server-only Drive connection/state tables:
+RLS is on, client grants are revoked, and no client policies are required.
+Patient metadata has a scoped doctor SELECT policy.
+
+Existing callable-function warnings were not individually cleared in this
+Drive change. Guidance: [SECURITY DEFINER grants](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable),
+[password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection),
+[no-policy notices](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
+Actual Google consent and file transfer remain blocked by absent account/OAuth
+setup, so no live end-to-end Drive security claim is made.
 ## Performance data-path review — 2026-10-11
 
 No new role grants, policies, exposed API or raw patient markup. The migration

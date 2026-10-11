@@ -3,6 +3,8 @@
 /* Clinic handoff tokens. Source: docs/design.md and the supplied HTML. */
 
 :root {
+  --document-preview-height: 65dvh;
+  --control-toggle-height: 34px;
   --press-tap-scale: .97;
   --press-stamp-scale: .96;
   --press-stamp-rotation: -1deg;

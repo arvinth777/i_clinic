@@ -189,6 +189,14 @@ A consultation clock is minutes, suppressed beyond 10 hours. Arrival and sent
 status come from persisted queue actions, not the mock timer. No mock allergy
 or vital values are imported. Use the existing self-hosted Hanken font.
 
+## Patient documents
+
+Patient profile attachments use the shared Hanken Grotesk, underline fields,
+text category choices and ruled rows. The preview is a native modal dialog
+with a browser PDF viewer or image, and text download/Drive links. New tokens:
+`scrim` = rgba(20,28,43,.32), `control-toggle-height` = 34px, and
+`document-preview-height` = 65dvh. Backend/connection setup is documented in
+`patient-documents-setup.md`.
 ## Lightweight press feedback
 
 Button press feedback uses CSS, not an animation runtime: `--press-tap-scale`

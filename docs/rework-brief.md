@@ -145,3 +145,13 @@ Prioritise prescription entry, the physical print output, and patient
 recall; include the confirmed quantity-billing and refill requirements.
 Preserve working backend guarantees and historical records. Invoke
 skills according to the current routing rules in AGENTS.md.
+
+## Patient document attachments — 2026-10-10 side-conversation decision
+
+The user requested ordinary scans, photos and documents in patient profiles,
+stored in a clinic Google Drive account they will create later. Implement
+PDF/JPG/PNG uploads with category, date and note; retain Supabase for patient
+metadata and authorization. Preserve doctor-only clinical access. No DICOM
+viewer, public sharing, reception access or Drive migration was requested.
+Google Cloud OAuth setup is required in addition to creating the account.
+See `patient-documents-setup.md` for implementation, setup and release gates.
