@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { documentRequest } from '../lib/patientDocuments'
 import { drainUploads } from '../lib/documentUploads'
 import { Button } from './ui/button'
+import './DriveCallback.css'
 // Remove the authorization code before rendering the rest of the app.
 const params = new URLSearchParams(window.location.search)
 let completion: Promise<unknown> | undefined
@@ -14,14 +15,26 @@ async function finish() {
   await documentRequest('complete', { clinic_id: saved.clinicId, state: saved.state, code: params.get('code') })
   void drainUploads(true)
 }
+export function DriveConnectionResult({ status, done, failed = false }: { status: string; done: boolean; failed?: boolean }) {
+  return <main className="drive-callback">
+    <header className="drive-callback-clinic">Salem Pain &amp; Palliative Care</header>
+    <section className="drive-callback-result">
+      <p className="field-hint">Patient documents · Google Drive</p>
+      <h1>{!done ? 'Connecting Google Drive…' : failed ? 'Connection not completed' : 'Google Drive connected'}</h1>
+      <p className={failed ? 'form-error' : done ? 'status-green' : 'field-hint'} role={failed ? 'alert' : 'status'}>{status}</p>
+      {done && <Button onClick={() => window.location.assign(window.location.pathname)}>Return to clinic</Button>}
+    </section>
+  </main>
+}
 export function DriveCallback() {
   const [status, setStatus] = useState('Connecting Google Drive…')
   const [done, setDone] = useState(false)
+  const [failed, setFailed] = useState(false)
   useEffect(() => {
     let mounted = true
     completion ??= finish()
-    completion.then(() => { if (mounted) { setStatus('Google Drive connected. You can now upload patient documents.'); setDone(true) } }, error => { if (mounted) { setStatus(error instanceof Error ? error.message : 'Could not connect Google Drive.'); setDone(true) } })
+    completion.then(() => { if (mounted) { setStatus('You can now upload scans and reports to patient records.'); setDone(true) } }, error => { if (mounted) { setStatus(error instanceof Error ? error.message : 'Could not connect Google Drive.'); setFailed(true); setDone(true) } })
     return () => { mounted = false }
   }, [])
-  return <main className="drive-callback"><h1>Patient documents</h1><p role="status">{status}</p>{done && <Button onClick={() => window.location.assign(window.location.pathname)}>Return to clinic</Button>}</main>
+  return <DriveConnectionResult status={status} done={done} failed={failed} />
 }

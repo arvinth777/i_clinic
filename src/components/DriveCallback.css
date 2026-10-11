@@ -1,0 +1,9 @@
+.drive-callback { min-height: 100dvh; background: var(--bg); }
+.drive-callback-clinic { padding: var(--space-md) var(--page-padding); border-bottom: 1px solid var(--line); font-weight: 700; }
+.drive-callback-result { max-width: var(--editor-width); margin-inline: auto; padding: var(--space-48) var(--page-padding); overflow-wrap: anywhere; }
+.drive-callback-result h1 { margin-block: var(--space-xs) var(--space-lg); font-weight: 700; }
+.drive-callback-result .ui-button { margin-top: var(--space-lg); }
+@media (max-width: 720px) {
+  .drive-callback-clinic { padding-inline: var(--space-md); }
+  .drive-callback-result { padding: var(--space-xl) var(--space-md); }
+}
