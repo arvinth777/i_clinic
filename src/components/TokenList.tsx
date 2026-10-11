@@ -1,5 +1,5 @@
 import { LoadingRows, QueryError } from './QueryState'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { startOfToday, elapsedMinutes, formatElapsed } from '../lib/date'
@@ -94,7 +94,9 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
     enabled: filter === 'earlier', refetchInterval: interval,
     initialData: () => {
       const legacy = queryClient.getQueryData<Visit[]>(queryKey)
-      return restorePagedCache<Visit>(undefined, legacy?.filter(v => v.arrived_at < today && !['paid', 'no_show'].includes(v.stage)))
+      const saved = queryClient.getQueryCache().findAll({ queryKey: ['visits-earlier', clinicId] })
+        .sort((a, b) => b.state.dataUpdatedAt - a.state.dataUpdatedAt).find(query => query.state.data)
+      return restorePagedCache<Visit>(saved?.state.data as { pages: Visit[][] } | undefined, legacy?.filter(v => v.arrived_at < today && !['paid', 'no_show'].includes(v.stage)))
     },
     initialPageParam: 0,
     getNextPageParam: (last: Visit[], pages: Visit[][]) => last.length === 50 ? pages.length * 50 : undefined,
@@ -108,26 +110,6 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
       return data as unknown as Visit[]
     },
   })
-
-  // An event invalidates the query and triggers a refetch -- it never
-  // patches state from the payload (AGENTS.md non-negotiable #6 / Technical
-  // Decision #3). Sockets drop on sleep/wifi flap; refetchInterval on the
-  // query client is what self-heals a missed event.
-  useEffect(() => {
-    const channel = supabase
-      .channel(`visits-today-${clinicId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'visits', filter: `clinic_id=eq.${clinicId}` },
-        () => { void queryClient.invalidateQueries({ queryKey }); void queryClient.invalidateQueries({ queryKey: ['visits-earlier', clinicId] }) },
-      )
-      .subscribe(status => { if (status === 'SUBSCRIBED') { void queryClient.invalidateQueries({ queryKey }); void queryClient.invalidateQueries({ queryKey: ['visits-earlier', clinicId] }) } })
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clinicId])
 
   const showingEarlier = filter === 'earlier'
   const viewData = showingEarlier ? earlier.data?.pages.flat() : data

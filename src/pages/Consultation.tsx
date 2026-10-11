@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
@@ -140,27 +140,6 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
       return data as TodayVisit[]
     },
   })
-
-  useEffect(() => {
-    if (!clinicId) return
-    const channel = supabase
-      .channel(`doctor-queue-${clinicId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'visits', filter: `clinic_id=eq.${clinicId}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: queueKey })
-          queryClient.invalidateQueries({ queryKey: metricsKey })
-          queryClient.invalidateQueries({ queryKey: ['doctor-discount-requests', clinicId] })
-          queryClient.invalidateQueries({ queryKey: ['doctor-earlier-count', clinicId] })
-        },
-      )
-      .subscribe(status => { if (status === 'SUBSCRIBED') for (const key of [queueKey, metricsKey, ['doctor-discount-requests', clinicId], ['doctor-earlier-count', clinicId]]) void queryClient.invalidateQueries({ queryKey: key }) })
-    return () => {
-      supabase.removeChannel(channel)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clinicId])
 
   const todaysQueue = visits?.filter(v => v.arrived_at >= today) ?? []
   const queue = todaysQueue.filter(v => v.stage === 'waiting')

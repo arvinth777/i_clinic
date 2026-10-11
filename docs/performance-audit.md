@@ -6,7 +6,7 @@ updates. This audit assumes the current one-doctor/one-reception workflow on two
 computers; the second-doctor feature remains deferred.
 
 Audited source: `daf1bfa`, plus the existing uncommitted future-doctor documentation.
-No application code, dependency, migration or production deployment was changed.
+At audit time no application code, dependency, migration or production deployment had been changed. The implementation checkpoint below is separate from that audit.
 
 ## Fresh evidence
 
@@ -134,3 +134,42 @@ Not checked: real clinic-network latency, cold mobile performance, complete
 click-to-render doctor/reception timing, disconnect/sleep recovery, fresh browser
 offline reload, every CSS selector/export or SQL function, and a full security/
 money/stock audit. No source-mapped build was deployed; experiments stay in /tmp.
+
+## Implementation and verification — production baseline f01a36b
+
+The performance branch excludes pending Google Drive changes. Deleted only the
+unused public full-sheet image, old stepper, three font packages and Motion.
+Secondary routes use lazy loading; every JS/CSS/font/print asset remains precached.
+Named CSS press tokens retain disabled and reduced-motion behaviour.
+
+Same-base builds: eager JavaScript 259.25→205.15 kB gzip (index plus shared utils,
+about 21% lower); PWA precache 2584.98→1337.34 KiB (about 48% lower). Browser
+measurements are not a cold-load benchmark or a clinic-network latency guarantee.
+
+One shell subscription now invalidates both queues and event messages, groups
+bursts within 100 ms, and refetches on reconnect. Polling is 30s when subscribed
+and 3s when disconnected. The immutable staging migration adds rep arrivals and
+queue events to publication; both retain existing RLS and role/clinic policies.
+Today's queries exclude older rows. Earlier open visits and discount requests
+page at 50; saved earlier pages and yesterday's queue survive an offline date
+rollover. Pending writes keep the existing IndexedDB/replay boundary.
+
+Fresh checks: build/lint (seven existing warnings), cache rollover/burst/fallback,
+legacy patient/billing cache, draft, offline replay ownership, print readiness
+and billing print snapshot tests pass. Staging partial-dispensing tests pass.
+The staging scaling test paged all 1,005 synthetic older visits and kept today's
+patient accessible; all its fixtures were removed. Doctor-channel delivery was
+842 ms for the patient/rep and 1,498 ms for the queue event, measured from the
+start of the check-in request (sequential operations, one sample).
+
+Browser: independent doctor/reception sessions on the production build against
+staging showed a reception check-in in both queues; earlier pages grew 50→100.
+Inventory and Patients opened lazily; the chunk-error recovery message and Reload
+worked when a local rebuild removed old chunks. Both staff layouts have no
+horizontal page overflow at 390px; Hanken Grotesk and 15px body remain.
+
+Actual browser offline reload remains unverified: earlier network emulation was
+rejected by automatic approval review; no alternate mechanism was attempted.
+The staging security advisor reports zero errors/34 existing warnings (plus two
+Drive-related information notices). Four existing dependency advisories remain;
+this performance change does not clear the full security backlog.

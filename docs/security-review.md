@@ -52,3 +52,15 @@ trigger helper. The full warning export was unavailable after browser control
 interrupted, so not every warning is claimed individually cleared. Database
 lint has no errors and one `confirm_bill` text-to-jsonb initialization warning.
 Evidence records are synthetic.
+
+## Performance data-path review — 2026-10-11
+
+No new role grants, policies, exposed API or raw patient markup. The migration
+adds `queue_events` and `pharma_rep_checkins` to realtime publication; staging
+metadata verifies RLS remains enabled. Existing doctor/reception clinic-scoped
+SELECT policies still apply. Events only invalidate/refetch; payloads never
+replace UI state. A different clinic cannot read the synthetic rep fixture.
+Staging partial-dispensing role/discount/stock tests pass. Hosted advisor has zero
+errors/34 existing warnings, plus two intentional Drive private-table information
+notices. Four existing dependency advisories remain; no full-backlog clearance
+is claimed. No production security configuration changed.
