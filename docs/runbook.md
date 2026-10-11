@@ -60,6 +60,11 @@ rendered application after deployment, not just Vercel's build result.
 Revision `31a2762` is published as
 `iclinic-qdxyrknh5-arvinth777s-projects.vercel.app` (Ready); browser staging login,
 queue rendering, Hanken / 15px text and no page overflow were verified.
+Revision `dee802c` is published at
+`iclinic-35ot07bdj-arvinth777s-projects.vercel.app`; authenticated staging doctor
+sign-in and the corrected workspace/queue/Hanken typography were verified.
+The UI now requires all committed migrations through `20261010224000` (queue,
+approval, partial supply and corrections), applied to staging only.
 Main/production branch reconciliation and clinical release prerequisites above
 remain unresolved.
 

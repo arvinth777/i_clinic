@@ -39,13 +39,16 @@
 - Independent Standards and Spec reviews rechecked the fixes and found no remaining
   blocker in the changed scope. Security tests caught and closed reception access
   to clinical approval snapshots. A fresh hosted security-advisor run is unavailable.
-- Publication is pending the final feature-branch push/preview verification. No
-  implementation is claimed released. Remaining acceptance: fresh browser offline
+- PR #4 (`56ae668`) and PR #5 (`dee802c`) are pushed as drafts. Vercel
+  built the screen preview at `iclinic-35ot07bdj-arvinth777s-projects.vercel.app`.
+  Authenticated browser sign-in loaded the corrected doctor layout and real queue
+  with Hanken / 15px body and no page overflow. No implementation is claimed released. Remaining acceptance: fresh browser offline
   reload (network emulation was denied), exhaustive regression/state coverage,
   security advisor and physical clinic-printer sign-off for short/typical/long Rx
   plus receipt. Existing backup and production configuration gaps remain.
-- Next: publish PR #4/#5 updates and verify the new staging preview, then collect
-  the missing release evidence. Never promote until physical print sign-off.
+- Next: collect the missing release evidence. Never promote until physical print
+  sign-off. This checkpoint commits the publication evidence and stops the
+  consultation clock display once the visit is sent to billing.
 
 ## Letterhead integration — 2026-10-10
 
