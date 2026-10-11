@@ -22,3 +22,6 @@ supabase/.temp/
 .vercel
 
 .gitnexus/
+
+# Production CLI link metadata contains connection state.
+deploy/production/supabase/.temp/

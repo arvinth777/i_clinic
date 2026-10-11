@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Screen locked</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A4FB5}
+button{font-family:inherit;font-variant-numeric:tabular-nums}
+button:focus-visible,a:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; padding: 48px 24px; background: #F6F7F9; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 36px">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center">
+<span style="font-size: 13px; color: #7A8494">Locked · 10:58</span>
+<span style="font-weight: 700; font-size: 28px; letter-spacing: -0.02em">Selvi</span>
+<span style="font-size: 15px; color: #5B6575">The queue keeps running while the screen is locked.</span>
+</div>
+
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 12px; background: #FFFFFF; font-size: 15px">
+<span style="width: 7px; height: 7px; border-radius: 50%; background: #22A55B"></span>
+<b>Now #14</b><span style="color: #7A8494">· 6 waiting ·</span><span style="color: #1A4FB5; font-weight: 600">Doctor called #15</span>
+</div>
+
+<sc-if value="{{locked}}" hint-placeholder-val="{{ true }}">
+<div style="width: 100%; max-width: 300px; display: flex; flex-direction: column; align-items: center; gap: 22px">
+<span style="font-size: 15px; {{msgSt}}">{{msg}}</span>
+<div aria-label="PIN entered" style="display: flex; gap: 14px">
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="4">
+<span style="width: 14px; height: 14px; border-radius: 50%; {{d.st}}"></span>
+</sc-for>
+</div>
+<div style="width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{keys}}" as="k" hint-placeholder-count="12">
+<button type="button" onClick="{{k.press}}" aria-label="{{k.aria}}" style="height: 54px; border: 0; border-radius: 12px; font-size: 20px; font-weight: 600; cursor: pointer; {{k.st}}">{{k.label}}</button>
+</sc-for>
+</div>
+<span style="font-size: 13px; color: #9AA3B0">Sample PIN: 1234</span>
+<a href="SignIn.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none">Switch user</a>
+</div>
+</sc-if>
+
+<sc-if value="{{unlocked}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 14px">
+<span style="font-size: 15px; color: #1F7A4D; font-weight: 600">Unlocked · you're back where you left off</span>
+<a href="Reception.dc.html" style="display: flex; align-items: center; height: 46px; padding: 0 22px; border-radius: 10px; background: #1A4FB5; color: #FFFFFF; font-weight: 600; font-size: 15px; text-decoration: none">Back to reception desk</a>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { pin: '', status: 'idle' }; }
+  renderVals() {
+    var self = this, s = this.state;
+    var press = function (d) {
+      return function () {
+        if (s.status === 'checking') return;
+        if (d === 'del') { self.setState({ pin: s.pin.slice(0, -1), status: 'idle' }); return; }
+        var pin = (s.status === 'wrong' ? '' : s.pin) + d;
+        if (pin.length < 4) { self.setState({ pin: pin, status: 'idle' }); return; }
+        self.setState({ pin: pin, status: 'checking' });
+        setTimeout(function () { self.setState(pin === '1234' ? { status: 'ok' } : { status: 'wrong', pin: '' }); }, 500);
+      };
+    };
+    return {
+      locked: s.status !== 'ok', unlocked: s.status === 'ok',
+      msg: s.status === 'wrong' ? 'Wrong PIN. Try again.' : s.status === 'checking' ? 'Checking…' : 'Enter PIN to unlock',
+      msgSt: s.status === 'wrong' ? 'color: #B42318; font-weight: 600' : 'color: #5B6575',
+      dots: [0,1,2,3].map(function (i) { return { st: i < s.pin.length ? 'background: #141C2B' : 'background: #DDE1E7' }; }),
+      keys: ['1','2','3','4','5','6','7','8','9','','0','del'].map(function (k) {
+        return { label: k === 'del' ? '⌫' : k, aria: k === 'del' ? 'Delete' : (k || 'blank'), press: k ? press(k) : function () {},
+          st: k ? 'background: #FFFFFF; color: #141C2B' : 'background: transparent; cursor: default' };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

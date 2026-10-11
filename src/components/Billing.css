@@ -1,0 +1,230 @@
+@import './PrescriptionLetterhead.css';
+
+.bill-item-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.payment-method-row {
+  display: flex; flex-wrap: wrap;
+  gap: 2px; margin-left: -12px;
+  margin-bottom: var(--space-md);
+}
+
+.payment-method-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-base);
+  color: var(--text);
+}
+
+.bill-final-amount {
+  margin-top: var(--space-xs);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+
+.bill-final-amount-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--text-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.upi-qr {
+  display: block;
+  margin: var(--space-md) 0;
+  border-radius: var(--radius-input);
+}
+
+.paid-stamp { color: var(--green); font-size: var(--text-sm); font-weight: 600; }
+
+.print-area {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    display: block;
+    position: absolute;
+    inset: 0;
+    color: var(--ink);
+    background: var(--bg);
+    font-size: 12pt;
+  }
+  .print-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+  .print-page-letterhead {
+    page-break-after: always;
+  }
+  .print-page-plain {
+    padding: 1cm;
+  }
+  .print-bar {
+    flex: none;
+    height: 10px;
+    background: var(--blue);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-content {
+    flex: 1;
+    padding: 1cm;
+  }
+  .print-letterhead {
+    margin-bottom: 0.75em;
+    padding-bottom: 0.5em;
+    border-bottom: 2px solid var(--blue);
+  }
+  .print-letterhead h1 {
+    margin: 0;
+    color: var(--blue);
+  }
+  .print-doctor-line {
+    margin: 0.15em 0 0;
+    font-weight: 700;
+  }
+  .print-contact-line {
+    margin: 0.15em 0 0;
+    font-size: 0.85em;
+    color: var(--ink-2);
+  }
+  .print-page-plain h1 {
+    margin: 0 0 0.1em;
+  }
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1em;
+  }
+  .print-table th,
+  .print-table td {
+    border: 1px solid var(--ink);
+    padding: 0.25em 0.5em;
+    text-align: left;
+  }
+  .print-total-row td {
+    font-weight: 700;
+    border-top: 2px solid var(--ink);
+  }
+  .print-footer {
+    margin-top: 1.5em;
+    padding-top: 0.5em;
+    border-top: 1px solid var(--faint);
+    font-size: 0.8em;
+    color: var(--ink-2);
+  }
+  .print-footer p {
+    margin: 0.1em 0;
+  }
+}
+
+.prescription-sheet { position: relative; width: var(--paper-width); min-height: var(--paper-height); background: var(--bg); color: var(--ink); font-family: var(--font); font-size: var(--print-body-size); line-height: 1.4; }
+.prescription-letterhead { position: absolute; inset: 0; width: var(--paper-width); height: var(--paper-height); z-index: 0; }
+.prescription-paper-content { position: relative; z-index: 1; width: 90%; margin-inline: auto; border-collapse: collapse; table-layout: fixed; }
+.prescription-paper-content td { vertical-align: top; overflow-wrap: anywhere; }
+.prescription-header-space { height: var(--paper-header); }
+.prescription-reference, .prescription-patient { display: flex; justify-content: space-between; gap: var(--space-md); }
+.prescription-reference { position: relative; height: var(--paper-reference); font-family: Arimo, var(--font); line-height: 1; }
+/* Reference/date coordinates are on the full letterhead; the table starts 5% in. */
+.prescription-reference > span { position: absolute; white-space: nowrap; }
+.prescription-reference > span:first-child { left: calc(var(--letterhead-ref-x) - var(--paper-width) * 0.05); top: calc(var(--letterhead-ref-y) - var(--paper-header)); }
+.prescription-reference > span:last-child { left: calc(var(--letterhead-date-x) - var(--paper-width) * 0.05); top: calc(var(--letterhead-date-y) - var(--paper-header)); }
+.prescription-patient { padding-top: var(--paper-patient-gap); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--border-strong); margin-bottom: var(--space-sm); }
+.prescription-note { padding-bottom: var(--space-sm); white-space: pre-wrap; }
+.prescription-rx { color: var(--blue); font-size: var(--print-rx-size); font-weight: 600; }
+.prescription-column-labels { color: var(--muted); font-size: var(--print-caption-size); border-bottom: 1px solid var(--line-2); }
+.prescription-medicine td { padding: var(--space-sm) var(--space-sm) var(--space-sm) 0; }
+.prescription-medicine p { margin: var(--space-2xs) 0 0; white-space: pre-wrap; }
+.prescription-signature { display: flex; justify-content: space-between; gap: var(--space-md); padding-top: var(--space-xl); font-size: var(--print-caption-size); }
+.prescription-signature > span:last-child { text-align: right; }
+.prescription-footer-space { height: var(--paper-footer); }
+@media print {
+  @page { size: A4; margin: 0; }
+  .prescription-sheet { display: block; min-height: 0; break-after: page; }
+  .prescription-paper-content thead { display: table-header-group; }
+  .prescription-paper-content tfoot { display: table-footer-group; }
+  .prescription-medicine, .prescription-note { break-inside: avoid; }
+  .rx-preview { display: none !important; }
+}
+
+.prescription-paper-content { height: var(--paper-height); }
+.prescription-paper-content tbody tr { height: 1px; }
+.prescription-paper-content tbody .prescription-fill { height: auto; }
+
+.billing-workspace { display: grid; grid-template-columns: minmax(0, 1fr) var(--doctor-side-width); min-width: 0; min-height: 100%; }
+.bill-editor { min-width: 0; padding: var(--page-top) var(--page-padding); }
+.bill-editor > * { max-width: var(--editor-width); margin-inline: auto; }
+.bill-editor .form-heading { font-size: var(--text-page); letter-spacing: var(--tracking-title); margin-block: var(--space-sm) var(--space-xl); }
+.bill-editor .readout-heading { font-size: var(--text-sm); color: var(--text-tertiary); font-weight: 400; }
+.bill-table-wrap { overflow-x: auto; }
+.bill-lines { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.bill-lines th { color: var(--text-tertiary); font-weight: 400; }
+.bill-lines th, .bill-lines td { text-align: right; padding: var(--space-md) var(--space-xs); border-bottom: 1px solid var(--border); }
+.bill-lines th:first-child, .bill-lines td:first-child { text-align: left; padding-left: 0; }
+.bill-lines small { display: block; color: var(--text-tertiary); margin-top: var(--space-2xs); }
+.receipt-preview { min-width: 0; background: var(--surface-2); padding: var(--page-top) var(--page-padding); }
+.receipt-preview > .print-page-plain { background: var(--surface); margin-top: var(--space-sm); padding: var(--space-lg); box-shadow: var(--shadow-paper); font-size: var(--text-xs); }
+.receipt-preview h1 { text-align: center; color: var(--accent); font-size: var(--text-base); margin: 0 0 var(--space-xs); }
+.receipt-preview .print-contact-line { text-align: center; color: var(--text-secondary); }
+.receipt-preview h2 { font-size: var(--text-sm); border-top: 1px dashed var(--border-strong); padding-top: var(--space-md); }
+.receipt-preview .print-table { width: 100%; border-collapse: collapse; }
+.receipt-preview td { padding-block: var(--space-xs); vertical-align: top; overflow-wrap: anywhere; }
+.receipt-preview td:last-child { text-align: right; white-space: nowrap; padding-left: var(--space-xs); }
+.receipt-preview .print-total-row { border-top: 1px dashed var(--border-strong); font-weight: 700; }
+.payment-method-row { flex-wrap: wrap; gap: var(--space-xs); }
+.payment-method-option { padding: var(--space-sm); border-radius: var(--radius-input); background: var(--surface-2); cursor: pointer; font-size: var(--text-sm); }
+.payment-method-option:has(input:checked) { background: var(--accent-wash); color: var(--accent); }
+.paid-stamp { color: var(--green); font-size: var(--text-sm); font-weight: 600; }
+@media (max-width: 1100px) { .billing-workspace { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 720px) { .bill-editor, .receipt-preview { padding: var(--space-lg) var(--space-md); } }
+@media print { .receipt-preview { display: none !important; } }
+
+.prescription-reference { font-size: var(--print-reference-size); }
+.prescription-medicine p { font-size: var(--print-dose-size); }
+
+@media print {
+ .prescription-paper-content thead { break-inside: avoid; }
+}
+@media print {
+  .prescription-sheet { background: none; }
+  .prescription-letterhead { display: block; position: fixed; z-index: 0; }
+  .print-page-plain { position: relative; z-index: 2; min-height: var(--paper-height); box-sizing: border-box; background: var(--bg); }
+}
+
+.receipt-preview > .sticky-panel { position: sticky; top: calc(var(--header-current-height) + var(--space-lg)); }
+.receipt-preview .print-page-plain { background: var(--bg); padding: var(--space-lg); box-shadow: var(--shadow-paper); }
+
+.payment-method-option { background: transparent; position: relative; min-height: 34px; padding: 0 12px; border-radius: var(--r-sm); font-size: var(--text-sm); font-weight: 500; color: var(--muted); cursor: pointer; }
+.payment-method-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.payment-method-option:has(input:checked) { background: var(--blue-tint); color: var(--blue); }
+.payment-method-option:has(input:focus-visible) { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+@media print {
+  /* Hidden worklists must not reserve paper after switching to window scrolling. */
+  body :has(.print-area) { display: contents !important; }
+  body *:not(.print-area):not(.print-area *):not(:has(.print-area)) { display: none !important; }
+  .print-area { display: block !important; position: static; }
+  html, body { height: auto; overflow: visible; }
+}
+
+@supports (font-size: 1cqw) {
+  .prescription-sheet { container-type: inline-size; }
+  .prescription-paper-content { font-size: var(--paper-body-cqw); }
+  .prescription-reference { font-size: var(--paper-reference-cqw); }
+  .prescription-column-labels, .prescription-signature { font-size: var(--paper-caption-cqw); }
+  .prescription-medicine p { font-size: var(--paper-dose-cqw); }
+  .prescription-rx { font-size: var(--paper-rx-cqw); }
+}
+@media print { .prescription-sheet:last-child { break-after: auto; } }

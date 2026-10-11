@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reports</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A4FB5}
+button,input{font-family:inherit;font-variant-numeric:tabular-nums}
+input:focus{outline:none;border-bottom-color:#1A4FB5 !important}
+button:focus-visible,a:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px;border-radius:6px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B; font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums">
+<dc-import name="Nav" active="reports" user="Dr. G. P. Kirupakaran" token="15" waiting="6" hint-size="100%,56px"></dc-import>
+
+<main style="box-sizing: border-box; padding: 32px 32px 56px">
+<div style="max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px">
+
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 700; font-size: 26px; letter-spacing: -0.02em">Reports</span>
+<span style="font-size: 14px; color: #5B6575">{{d.range}}</span>
+</div>
+<div style="display: flex; gap: 2px">
+<sc-for list="{{periods}}" as="p" hint-placeholder-count="3">
+<button type="button" onClick="{{p.pick}}" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{p.st}}">{{p.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 24px">
+<sc-for list="{{d.kpis}}" as="k" hint-placeholder-count="5">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; color: #7A8494">{{k.label}}</span>
+<span style="font-size: 26px; font-weight: 700; letter-spacing: -0.01em; {{k.st}}">{{k.value}}</span>
+<span style="font-size: 13px; color: #7A8494">{{k.sub}}</span>
+</div>
+</sc-for>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px">
+<span style="font-weight: 600">Collections by {{d.unit}}</span>
+<span style="display: flex; gap: 16px; font-size: 13px; color: #5B6575">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #1A4FB5"></span>UPI</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #A9C2F2"></span>Cash</span>
+</span>
+</div>
+<div role="img" aria-label="{{chartLabel}}" style="display: flex; align-items: flex-end; gap: 14px; height: 220px; padding-bottom: 4px; border-bottom: 1px solid #E3E6EB">
+<sc-for list="{{d.bars}}" as="b" hint-placeholder-count="6">
+<div style="flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 6px">
+<span style="font-size: 12px; color: #5B6575; text-align: center">{{b.total}}</span>
+<div style="display: flex; flex-direction: column; border-radius: 4px 4px 0 0; overflow: hidden; height: {{b.h}}%">
+<div style="background: #1A4FB5; flex: {{b.upi}}"></div>
+<div style="background: #A9C2F2; flex: {{b.cash}}; border-top: 2px solid #FFFFFF"></div>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="display: flex; gap: 14px; margin-top: -8px">
+<sc-for list="{{d.bars}}" as="b" hint-placeholder-count="6">
+<span style="flex: 1; min-width: 0; font-size: 13px; color: #7A8494; text-align: center">{{b.label}}</span>
+</sc-for>
+</div>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 32px">
+<div style="display: flex; flex-direction: column">
+<span style="font-weight: 600; margin-bottom: 8px">Where the money came from</span>
+<sc-for list="{{d.split}}" as="r" hint-placeholder-count="4">
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #EEF0F3"><span>{{r.label}}</span><span style="font-weight: 600; {{r.st}}">{{r.value}}</span></div>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column">
+<span style="font-weight: 600; margin-bottom: 8px">Top medicines supplied</span>
+<sc-for list="{{d.top}}" as="r" hint-placeholder-count="5">
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #EEF0F3"><span>{{r.label}}</span><span style="color: #5B6575">{{r.value}}</span></div>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column">
+<span style="font-weight: 600; margin-bottom: 8px">Clinic activity</span>
+<sc-for list="{{d.activity}}" as="r" hint-placeholder-count="5">
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #EEF0F3"><span>{{r.label}}</span><span style="color: #5B6575">{{r.value}}</span></div>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px; max-width: 620px; padding: 22px; border-radius: 14px; background: #F6F7F9">
+<span style="font-weight: 600">Close the day · cash drawer</span>
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 32px">
+<span style="display: flex; flex-direction: column"><span style="font-size: 13px; color: #7A8494">Cash expected</span><span style="font-size: 20px; font-weight: 700">₹1,742</span></span>
+<label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">Cash counted</span><input type="number" value="{{counted}}" onChange="{{onCount}}" placeholder="₹" style="width: 130px; height: 36px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 18px; color: #141C2B"></label>
+<span style="font-size: 15px; font-weight: 600; {{diffSt}}">{{diffText}}</span>
+</div>
+<span style="font-size: 13px; color: #7A8494">UPI ₹2,415 is matched against bank statements weekly, not counted here.</span>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+var GRN = 'color: #1F7A4D', AMB = 'color: #93520A';
+var DATA = {
+  today: { range: 'Saturday 10 October · up to 11:06', unit: 'hour',
+    kpis: [{ label: 'Collected', value: '₹4,157', sub: '4 visits · 2 refills' }, { label: 'UPI', value: '₹2,415', sub: '58%' }, { label: 'Cash', value: '₹1,742', sub: '42%' }, { label: 'Unpaid', value: '₹0', sub: 'nothing new today', st: GRN }, { label: 'Patients', value: '10', sub: '4 seen · 6 waiting' }],
+    bars: [['9–10', 860, 0], ['10–11', 1555, 942], ['11–12', 0, 800]].map(function (x) { return { label: x[0], upi: x[1], cash: x[2] }; }),
+    split: [{ label: 'Consultations', value: '₹1,200' }, { label: 'Medicines in visits', value: '₹2,179.50' }, { label: 'Refill sales', value: '₹837' }, { label: 'Discounts given by doctor', value: '− ₹59.50', st: GRN }],
+    top: [{ label: 'Nurokind-OD 1500', value: '60 tabs' }, { label: 'Pregabid 75', value: '45 caps' }, { label: 'Pan 40', value: '25 tabs' }, { label: 'Myoril 4', value: '10 caps' }, { label: 'Zerodol-P', value: '10 tabs' }],
+    activity: [{ label: 'New patients', value: '3' }, { label: 'Follow-ups', value: '7' }, { label: 'Average wait', value: '24 min' }, { label: 'Average consultation', value: '11 min' }, { label: 'Busiest hour', value: '10–11' }] },
+  week: { range: 'Mon 5 – Sat 10 October', unit: 'day',
+    kpis: [{ label: 'Collected', value: '₹56,957', sub: '+8% on last week' }, { label: 'UPI', value: '₹31,690', sub: '56%' }, { label: 'Cash', value: '₹25,267', sub: '44%' }, { label: 'Unpaid', value: '₹1,150', sub: '2 bills', st: AMB }, { label: 'Patients', value: '71', sub: '18 new · 53 follow-up' }],
+    bars: [['Mon', 5410, 4430], ['Tue', 6190, 5070], ['Wed', 5020, 3900], ['Thu', 6960, 5450], ['Fri', 5695, 4675], ['Sat', 2415, 1742]].map(function (x) { return { label: x[0], upi: x[1], cash: x[2] }; }),
+    split: [{ label: 'Consultations', value: '₹19,500' }, { label: 'Medicines in visits', value: '₹31,742' }, { label: 'Refill sales', value: '₹6,415' }, { label: 'Discounts given by doctor', value: '− ₹700', st: GRN }],
+    top: [{ label: 'Pregabid 75', value: '420 caps' }, { label: 'Nurokind-OD 1500', value: '390 tabs' }, { label: 'Pan 40', value: '310 tabs' }, { label: 'Ultracet', value: '146 tabs' }, { label: 'Duzela 20', value: '120 caps' }],
+    activity: [{ label: 'New patients', value: '18' }, { label: 'Follow-ups', value: '53' }, { label: 'Average wait', value: '27 min' }, { label: 'Refills', value: '14' }, { label: 'Busiest day', value: 'Thursday' }] },
+  month: { range: '1 – 10 October', unit: 'week',
+    kpis: [{ label: 'Collected', value: '₹96,840', sub: 'on track for ₹2.9 L' }, { label: 'UPI', value: '₹54,230', sub: '56%' }, { label: 'Cash', value: '₹42,610', sub: '44%' }, { label: 'Unpaid', value: '₹1,150', sub: '2 bills', st: AMB }, { label: 'Patients', value: '118', sub: '29 new · 89 follow-up' }],
+    bars: [['1–4 Oct', 22263, 17620], ['5–10 Oct', 31967, 24990]].map(function (x) { return { label: x[0], upi: x[1], cash: x[2] }; }),
+    split: [{ label: 'Consultations', value: '₹33,000' }, { label: 'Medicines in visits', value: '₹52,890' }, { label: 'Refill sales', value: '₹10,950' }, { label: 'Discounts given by doctor', value: '− ₹1,240', st: GRN }],
+    top: [{ label: 'Pregabid 75', value: '710 caps' }, { label: 'Nurokind-OD 1500', value: '660 tabs' }, { label: 'Pan 40', value: '520 tabs' }, { label: 'Ultracet', value: '240 tabs' }, { label: 'Glycomet 500', value: '600 tabs' }],
+    activity: [{ label: 'New patients', value: '29' }, { label: 'Follow-ups', value: '89' }, { label: 'Average wait', value: '26 min' }, { label: 'Refills', value: '23' }, { label: 'Palliative follow-ups', value: '11' }] }
+};
+function rupee(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+var ON = 'background: #EAF0FC; color: #1A4FB5';
+var OFF = 'background: transparent; color: #5B6575';
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { period: 'week', counted: '' }; }
+  renderVals() {
+    var self = this, s = this.state, d = DATA[s.period];
+    var max = Math.max.apply(null, d.bars.map(function (b) { return b.upi + b.cash; })) || 1;
+    var c = parseFloat(s.counted), diff = c - 1742;
+    return {
+      d: { range: d.range, unit: d.unit, kpis: d.kpis.map(function (k) { return Object.assign({ st: '' }, k); }), split: d.split.map(function (r) { return Object.assign({ st: '' }, r); }), top: d.top, activity: d.activity,
+        bars: d.bars.map(function (b) { var t = b.upi + b.cash; return { label: b.label, total: t ? rupee(t) : '—', h: Math.max(2, Math.round(t / max * 88)), upi: b.upi || 0.0001, cash: b.cash || 0.0001 }; }) },
+      chartLabel: 'Collections by ' + d.unit + ': ' + d.bars.map(function (b) { return b.label + ' ' + rupee(b.upi + b.cash); }).join(', '),
+      periods: [['today', 'Today'], ['week', 'This week'], ['month', 'This month']].map(function (p) { return { label: p[1], st: s.period === p[0] ? ON : OFF, pick: function () { self.setState({ period: p[0] }); } }; }),
+      counted: s.counted, onCount: function (e) { self.setState({ counted: e.target.value }); },
+      diffText: isNaN(c) ? 'Count the drawer and enter the total' : diff === 0 ? 'Matches · ready to close' : (diff > 0 ? rupee(diff) + ' extra' : rupee(-diff) + ' short') + ' · add a note before closing',
+      diffSt: isNaN(c) ? 'color: #9AA3B0' : diff === 0 ? 'color: #1F7A4D' : 'color: #B42318'
+    };
+  }
+}
+</script>
+</body>
+</html>

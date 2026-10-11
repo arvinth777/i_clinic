@@ -47,6 +47,94 @@ Sources: GitHub branch/deployment/Actions APIs, authenticated Vercel metadata,
 Supabase CLI project/migration/function listings, and Supabase dashboard metadata.
 Student-offer comparison and unaccepted recommendation: `docs/hosting-options.md`.
 
+## Initial production bootstrap — 2026-10-11
+
+The user explicitly requested production updating **now**, overriding the
+clinic-hours timing restriction for this release. All four physical printer
+samples were approved. Browser offline reload remains unverified; boundary
+replay/readiness tests passed and this limitation is retained in release notes.
+
+Historical migrations embed staging-only fixtures (including auth-user
+prerequisites). They must never be replayed into a fresh production project.
+`20261011060000_production_bootstrap.sql` is a schema-only snapshot of verified
+staging through `20261010224000`. Existing current installs skip it; empty installs
+create the schema, RLS, exact callable-function grants, four realtime publication
+members, one empty clinic and two stock points. It copies no patients, catalog,
+bills, identities or passwords. It refuses a partial public schema. The backup
+role has no password; the existing backup/restore setup remains open.
+
+Production CLI migrations use the dedicated chain, **not root migration history**:
+
+```sh
+supabase --workdir deploy/production link --project-ref rmuhpgpvgvwchovlgxae
+supabase --workdir deploy/production migration list --linked
+supabase --workdir deploy/production db push --dry-run
+supabase --workdir deploy/production db push
+```
+
+The production bootstrap is a symlink to the same immutable file applied to
+staging. For each future schema migration, apply/test it in staging first and add
+its symlink under `deploy/production/supabase/migrations/` before promoting it.
+The bootstrap was applied to staging first and then clinic-prod. Vercel's
+production branch is now `production`; production public frontend variables
+target clinic-prod and default Preview variables target staging. Production
+starts with one empty clinic and two placeholder staff accounts; randomly
+generated access details are in the maintainer's private local file outside Git.
+No real mailbox is required for these login IDs.
+
+Production history intentionally starts at the bootstrap; never use `--include-all`
+or repair-mark historical staging fixtures as applied there. Root remains linked
+to staging. Fresh local PostgreSQL 17 checks are in
+`scripts/production-bootstrap-test.sql`; use an isolated test database with
+Supabase auth/role/publication stubs, never live production.
+
+## Production readiness refresh — 2026-10-11
+
+The user approved all four physical clinic-printer samples (short, typical,
+continuation prescription and receipt) in chat. Production updating is authorized,
+but the before-10:00/after-15:00 IST mutation window still applies.
+Read-only checks confirm both Supabase projects are `ACTIVE_HEALTHY`, staging
+has all 60 committed migration versions through `20261010224000`, Vercel project
+`i_clinic` has **no Production-scoped environment variables**, production has
+**no deployed Edge Functions**, and `origin/production` is `41e6504` with guidance
+only. The previously observed empty production schema was not re-inspected in
+this refresh; verify migration history before the first production push.
+
+Before release: reconcile the intended production branch without auto-releasing
+main, configure browser-safe production Supabase variables, migrate the confirmed
+production project via CLI in the permitted window, provision clinic/logins and
+required Edge Functions, and verify the rendered app and role connection.
+Never point production at the synthetic staging database. Backup/restore setup
+and fresh browser offline-reload verification are still open. No production
+configuration, schema, data or deployment was changed by these checks.
+
+## UI review preview — 2026-10-10
+
+The branch `codex/clinic-screens-handoff` has branch-specific **Preview** variables
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, both targeting staging
+`cofnrcgsolluyhghutah`. These are the browser-safe public connection values, not a
+service-role credential. No Production-scoped variables were changed. Commit
+`0806102` produced preview `iclinic-7da96cjt7-arvinth777s-projects.vercel.app`;
+staging doctor sign-in and rendered queue/navigation were verified in Chrome.
+An earlier READY build was blank because these variables were absent. Verify the
+rendered application after deployment, not just Vercel's build result.
+Revision `31a2762` is published as
+`iclinic-qdxyrknh5-arvinth777s-projects.vercel.app` (Ready); browser staging login,
+queue rendering, Hanken / 15px text and no page overflow were verified.
+Revision `dee802c` is published at
+`iclinic-35ot07bdj-arvinth777s-projects.vercel.app`; authenticated staging doctor
+sign-in and the corrected workspace/queue/Hanken typography were verified.
+The UI now requires all committed migrations through `20261010224000` (queue,
+approval, partial supply and corrections), applied to staging only.
+Main/production branch reconciliation and clinical release prerequisites above
+remain unresolved.
+
+The step 4 frontend requires migration
+`20261010191500_billing_print_clinical_fields.sql` before deployment. It is applied
+to staging only. The scoped billing read now includes issued diagnosis/advice;
+old cached rows need one online refresh before prescription printing is enabled.
+Reception direct clinical-history reads remain restricted.
+
 ## Account inventory (where each thing lives)
 
 All infrastructure accounts are registered under the sole maintainer's
@@ -85,7 +173,7 @@ Migrations are **immutable once applied** -- never edit a migration file that ha
 2. Link the CLI to **staging** if not already (`supabase link --project-ref cofnrcgsolluyhghutah`) and run `supabase db push`. Confirm it applies cleanly and run the relevant test script(s) in `scripts/` against staging.
 3. Every `SECURITY DEFINER` function needs, without exception: `set search_path = ''`, fully-qualified references inside, and EXECUTE revoked from `public`/`anon`/`authenticated` then re-granted only to the specific role(s) that need it. **Supabase grants EXECUTE to `anon` and `authenticated` directly at `CREATE FUNCTION` time, as separate ACL entries from `PUBLIC`'s** -- revoking from `public` alone does not close this (this is a recurring gotcha in this project's history; confirm via `information_schema.routine_privileges` after every such migration, not just by reading the migration text).
 4. Changing an existing function's argument list (adding a required or extra parameter) creates a **second overload** if done via a bare `CREATE OR REPLACE` -- this breaks every existing caller with "function is not unique". Always `DROP FUNCTION` the old signature first, then `CREATE`, then redo every grant (grants never carry across a signature change).
-5. Only once staging is verified: link the CLI to **production** (`supabase link --project-ref rmuhpgpvgvwchovlgxae`) and `supabase db push`, during the 10am-before/3pm-after window.
+5. Only once staging is verified: add the migration symlink to `deploy/production/supabase/migrations/`, then use `supabase --workdir deploy/production link --project-ref rmuhpgpvgvwchovlgxae` and `supabase --workdir deploy/production db push`, during the before-10:00/after-15:00 window unless the user explicitly overrides it. Never link the root history to production or replay its staging fixtures.
 6. Never use the Supabase MCP tools to change anything, on either project -- they are read-only verification only (`get_advisors`, `execute_sql` for `SELECT`s, `list_tables`). Every schema or data change is a migration file, applied via the CLI, committed. A database fixed by direct SQL and a migration file that doesn't contain that fix is how staging and production silently diverge.
 
 ## Backups

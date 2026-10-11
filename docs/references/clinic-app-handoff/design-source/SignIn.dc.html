@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A4FB5}
+button{font-family:inherit;font-variant-numeric:tabular-nums}
+button:focus-visible,a:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B">
+<div style="flex: 1 1 420px; box-sizing: border-box; padding: 48px; background: #F6F7F9; display: flex; flex-direction: column; justify-content: space-between; gap: 32px">
+<span style="font-weight: 700; font-size: 16px">Salem Pain &amp; Palliative Care Clinic</span>
+<div style="display: flex; flex-direction: column; gap: 10px; max-width: 420px">
+<span style="font-weight: 700; font-size: 34px; line-height: 1.15; letter-spacing: -0.02em">Saturday, 10 October</span>
+<span style="font-size: 16px; color: #5B6575">Clinic opens 9:30 · 4 appointments booked · 2 follow-ups due today</span>
+</div>
+<span style="font-size: 13px; color: #7A8494">This computer · Front desk · works offline</span>
+</div>
+
+<div style="flex: 1 1 480px; box-sizing: border-box; padding: 48px; display: flex; align-items: center; justify-content: center">
+<div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 28px">
+
+<sc-if value="{{choosing}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 700; font-size: 24px">Who's signing in?</span>
+<span style="font-size: 15px; color: #5B6575">Pick your name, then enter your 4-digit PIN.</span>
+</div>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{users}}" as="u" hint-placeholder-count="3">
+<button type="button" onClick="{{u.pick}}" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 4px; border: 0; border-bottom: 1px solid #EEF0F3; background: transparent; text-align: left; cursor: pointer; color: #141C2B">
+<span style="display: flex; flex-direction: column"><span style="font-weight: 600; font-size: 16px">{{u.name}}</span><span style="font-size: 13px; color: #7A8494">{{u.role}}</span></span>
+<span style="color: #9AA3B0; font-size: 18px">›</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{entering}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<button type="button" onClick="{{back}}" style="align-self: flex-start; height: 32px; margin-left: -8px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-size: 14px; cursor: pointer">‹ Not you?</button>
+<span style="font-weight: 700; font-size: 24px">{{userName}}</span>
+<span style="font-size: 15px; {{msgSt}}">{{msg}}</span>
+</div>
+<div aria-label="PIN entered" style="display: flex; gap: 14px">
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="4">
+<span style="width: 14px; height: 14px; border-radius: 50%; {{d.st}}"></span>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{keys}}" as="k" hint-placeholder-count="12">
+<button type="button" onClick="{{k.press}}" aria-label="{{k.aria}}" style="height: 56px; border: 0; border-radius: 12px; font-size: 20px; font-weight: 600; cursor: pointer; {{k.st}}">{{k.label}}</button>
+</sc-for>
+</div>
+<span style="font-size: 13px; color: #9AA3B0">Sample PIN for this walkthrough: 1234</span>
+</sc-if>
+
+<sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 700; font-size: 24px">Welcome, {{firstName}}</span>
+<span style="font-size: 15px; color: #5B6575">Signed in on this computer. It locks after 5 minutes without use.</span>
+</div>
+<a href="{{homeHref}}" style="display: flex; align-items: center; justify-content: center; height: 48px; border-radius: 10px; background: #1A4FB5; color: #FFFFFF; font-weight: 600; font-size: 15px; text-decoration: none">{{homeLabel}}</a>
+</sc-if>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+var USERS = [
+  { name: 'Dr. G. P. Kirupakaran', first: 'Doctor', role: 'Doctor · approves charges and discounts', href: 'Doctor.dc.html', home: 'Open doctor workspace' },
+  { name: 'Selvi', first: 'Selvi', role: 'Reception · queue, billing, stock', href: 'Reception.dc.html', home: 'Open reception desk' },
+  { name: 'Anand', first: 'Anand', role: 'Reception · part-time', href: 'Reception.dc.html', home: 'Open reception desk' }
+];
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { user: -1, pin: '', status: 'idle' }; }
+  renderVals() {
+    var self = this, s = this.state, u = USERS[s.user];
+    var press = function (d) {
+      return function () {
+        if (s.status === 'checking') return;
+        if (d === 'del') { self.setState({ pin: s.pin.slice(0, -1), status: 'idle' }); return; }
+        var pin = (s.status === 'wrong' ? '' : s.pin) + d;
+        if (pin.length < 4) { self.setState({ pin: pin, status: 'idle' }); return; }
+        self.setState({ pin: pin, status: 'checking' });
+        setTimeout(function () { self.setState(pin === '1234' ? { status: 'ok' } : { status: 'wrong', pin: '' }); }, 700);
+      };
+    };
+    var keys = ['1','2','3','4','5','6','7','8','9','','0','del'].map(function (k) {
+      return { label: k === 'del' ? '⌫' : k, aria: k === 'del' ? 'Delete' : (k || 'blank'), press: k ? press(k) : function () {},
+        st: k ? 'background: #F2F4F7; color: #141C2B' : 'background: transparent; cursor: default' };
+    });
+    var msg = s.status === 'wrong' ? 'That PIN didn’t match. Try again.' : s.status === 'checking' ? 'Checking…' : 'Enter your PIN';
+    return {
+      choosing: s.user < 0, entering: s.user >= 0 && s.status !== 'ok', done: s.status === 'ok',
+      users: USERS.map(function (x, i) { return { name: x.name, role: x.role, pick: function () { self.setState({ user: i, pin: '', status: 'idle' }); } }; }),
+      userName: u ? u.name : '', firstName: u ? u.first : '', homeHref: u ? u.href : '#', homeLabel: u ? u.home : '',
+      back: function () { self.setState({ user: -1, pin: '', status: 'idle' }); },
+      msg: msg, msgSt: s.status === 'wrong' ? 'color: #B42318; font-weight: 600' : 'color: #5B6575',
+      dots: [0,1,2,3].map(function (i) { return { st: i < s.pin.length ? 'background: #141C2B' : 'background: #E3E6EB' }; }),
+      keys: keys
+    };
+  }
+}
+</script>
+</body>
+</html>

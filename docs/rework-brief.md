@@ -6,6 +6,13 @@ authorization to delete existing features or records.
 
 ## Purpose
 
+New UI direction: see `docs/ui-handoff-plan.md` and the preserved
+`docs/references/clinic-app-handoff/` screenshots/prototypes. The user confirmed
+on 2026-10-10 that the agreed clinic rules below remain in force while adopting
+that UI. The subsequent user-approved `docs/ui-handoff-decisions.md` resolves
+prescription filling and supersedes earlier queue ordering, price-snapshot timing
+and partial-supply rules. Where that addendum is silent, this brief governs.
+
 A personal clinical tool for the doctor and receptionist. The primary
 job is fast digital prescription writing, with patient details filled
 from reception and useful history available when a patient returns.
@@ -49,13 +56,17 @@ not assume the old phase checklist proves the product is useful.
 8. Recorded payments support a simple revenue view, including Cash/UPI
    totals and the link back to the patient and visit.
 
-The existing integer-money, doctor-controlled consultation final amount, immutable
+The existing integer-money, doctor-approved consultation pricing, immutable
 paid bills, transactional/idempotent stock deduction, RLS, offline
 printing, and durable queued-write requirements remain in force.
 The only agreed consultation-fee exception is a refill-only sale.
 Reception may confirm a refill total at saved unit prices without doctor
-approval, entering supplied quantities but never editing unit prices or
-giving discounts. Only the doctor can discount a refill.
+approval, entering supplied quantities at saved catalog prices. Both doctor
+and receptionist can set catalog unit prices; reception cannot override a
+bill line price or give discounts. Only the doctor can discount a refill.
+The addendum allows reception to reduce supplied quantities without new approval,
+using approval-time prices and the fixed doctor discount capped at subtotal.
+Record shortfalls; only the doctor can approve quantities above the approved cap.
 Prompt cross-device sync requires connectivity; queued offline work
 must be visibly pending rather than appearing delivered to the other
 station.
@@ -76,10 +87,11 @@ station.
   reporting. These need a keep/simplify/defer decision; their existence
   does not make them automatic priorities for the rework.
 
-## What source inspection establishes
+## Source inspection before the fix pass
 
-These are code-level observations, not a new live-browser or database
-audit. Existing historical test results do not verify the reworked flow.
+This table records the original source inspection. Subsequent implemented
+fixes and staging/browser evidence are recorded in docs/STATUS.md and
+docs/codebase-audit.md; the scanned A4 layout remains unimplemented.
 
 | Area | Current source | Difference to resolve |
 | --- | --- | --- |
@@ -104,26 +116,32 @@ audit. Existing historical test results do not verify the reworked flow.
   regardless of quantity. The previous flat-per-item formula is superseded
   for the rework; historical paid bills remain immutable.
 - Reception confirms refill-only sales at saved unit prices without
-  doctor approval. Only the doctor can discount; reception cannot edit
-  prices or discounts. Consultation final pricing remains doctor-owned.
+  doctor approval. Only the doctor can discount; both doctor and reception
+  can set saved catalog prices, but reception cannot override bill prices. Consultation final pricing remains doctor-owned.
+
+## Unit and refill decisions — 2026-10-10
+
+Both staff roles set catalog unit prices. Existing counts and prices must be
+confirmed against the selected unit before billing. Refills are visually
+verified at reception and billed by name alone, without patient history.
+Discounts remain doctor-only. Confirmed units stay fixed; use a separate catalog medicine for different
+packaging. No automatic stock conversion or historical paid-bill rewriting.
+Catalog price edits apply to new prescriptions/sales; prepared entries retain
+their saved price. Staging implementation and evidence are in docs/STATUS.md.
 
 ## Details needed before implementation
 
 - Review the A4 layout proposal and create a visual mockup of the supplied
   references, including overflowing medicine rows and printer margins.
-- Establish which existing prescription authorises a refill and how it
-  is selected; no new prescription should be silently created by reception.
-- Define the catalog billing/stock unit for each medicine (tablet, strip,
-  bottle, etc.) and whether received quantities use the same unit.
-  Existing catalog prices must not be reinterpreted as unit prices without
-  validation; existing stock quantities and paid bills must be preserved.
+- Refill selection and medicine units are resolved above. Staff verification
+  is required for existing prices/counts; preserve historical paid bills.
 
 ## Recommended next work
 
-Review the prescription layout and resolve refill prescription selection
-and unit definitions. Inspect the existing app against one representative real
+Implement and verify quantity billing and name-only pharmacy sales against
+the confirmed unit/price decisions. Review the prescription layout separately. Inspect the existing app against one representative real
 visit, then produce a small keep/simplify/defer plan before changing code.
 Prioritise prescription entry, the physical print output, and patient
 recall; include the confirmed quantity-billing and refill requirements.
 Preserve working backend guarantees and historical records. Invoke
-skills only as explicitly authorized under AGENTS.md.
+skills according to the current routing rules in AGENTS.md.

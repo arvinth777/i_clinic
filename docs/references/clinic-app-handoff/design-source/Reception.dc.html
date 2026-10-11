@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reception desk</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A4FB5}
+button,input,textarea{font-family:inherit;font-variant-numeric:tabular-nums}
+input::placeholder,textarea::placeholder{color:#9AA3B0}
+input:focus,textarea:focus{outline:none;border-bottom-color:#1A4FB5 !important}
+button:focus-visible,a:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px;border-radius:6px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B; font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums">
+<dc-import name="Nav" active="reception" user="Reception · Selvi" token="{{nowToken}}" waiting="{{waitingCount}}" event="{{navEvent}}" hint-size="100%,56px"></dc-import>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; min-height: calc(100vh - 56px)">
+
+<!-- ===== Queue ===== -->
+<main style="flex: 999 1 620px; min-width: 0; box-sizing: border-box; padding: 32px 32px 48px">
+<div style="max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px">
+
+<sc-if value="{{hasCalled}}" hint-placeholder-val="{{ true }}">
+<div role="status" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; border-radius: 14px; background: #EAF0FC">
+<span style="display: flex; flex-direction: column">
+<span style="font-size: 13px; color: #1A4FB5; font-weight: 600">Doctor called · {{calledAt}}</span>
+<span style="font-size: 20px; font-weight: 700">#{{called.token}} {{called.name}} — please send in</span>
+</span>
+<button type="button" onClick="{{sendIn}}" style="height: 44px; padding: 0 20px; border: 0; border-radius: 10px; background: #1A4FB5; color: #FFFFFF; font-weight: 600; font-size: 15px; cursor: pointer">Sent in</button>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px">
+<span style="font-weight: 700; font-size: 22px; letter-spacing: -0.01em">Today's queue</span>
+<span style="font-size: 14px; color: #7A8494">{{summaryLine}}</span>
+</div>
+
+<div style="display: flex; gap: 2px; margin: -16px 0 0 -10px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+<button type="button" onClick="{{t.pick}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{t.st}}">{{t.label}}</button>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 14px 0; border-bottom: 1px solid #EEF0F3">
+<span style="width: 44px; font-weight: 700; font-size: 17px; {{r.tokenSt}}">#{{r.token}}</span>
+<a href="Patient.dc.html" style="flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; color: #141C2B; text-decoration: none">
+<span style="font-weight: 600">{{r.name}} <span style="font-weight: 400; color: #7A8494">{{r.meta}}</span></span>
+<span style="font-size: 13px; color: #7A8494">{{r.reason}} · {{r.kind}}{{r.flagText}}</span>
+</a>
+<span style="font-size: 13px; color: #7A8494; min-width: 56px; text-align: right">{{r.time}}</span>
+<span style="min-width: 128px; font-size: 14px; font-weight: 600; {{r.statusSt}}">{{r.status}}</span>
+<span style="display: flex; gap: 2px; min-width: 150px; justify-content: flex-end">
+<sc-if value="{{r.isWaiting}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{r.up}}" aria-label="Move up" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-size: 13px; cursor: pointer">Move up</button>
+<button type="button" onClick="{{r.away}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-size: 13px; cursor: pointer">Not here</button>
+</sc-if>
+<sc-if value="{{r.isAway}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{r.back}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-size: 13px; font-weight: 600; cursor: pointer">Back in queue</button>
+</sc-if>
+<sc-if value="{{r.isBill}}" hint-placeholder-val="{{ false }}">
+<a href="Billing.dc.html" style="display: flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 8px; background: #141C2B; color: #FFFFFF; font-size: 13px; font-weight: 600; text-decoration: none">Bill · ₹{{r.amount}}</a>
+</sc-if>
+<sc-if value="{{r.isPaid}}" hint-placeholder-val="{{ false }}">
+<a href="Billing.dc.html" style="display: flex; align-items: center; height: 32px; padding: 0 10px; border-radius: 8px; color: #5B6575; font-size: 13px; text-decoration: none">Receipt</a>
+</sc-if>
+</span>
+</div>
+</sc-for>
+<sc-if value="{{noRows}}" hint-placeholder-val="{{ false }}">
+<span style="padding: 28px 0; color: #9AA3B0">Nobody here right now.</span>
+</sc-if>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 14px">
+<a href="Refill.dc.html" style="font-weight: 600; text-decoration: none">Refill-only sale →</a>
+<a href="More.dc.html" style="font-weight: 600; text-decoration: none">Unpaid bills (2) →</a>
+<a href="More.dc.html" style="font-weight: 600; text-decoration: none">Follow-ups due today (2) →</a>
+</div>
+</div>
+</main>
+
+<!-- ===== Check-in ===== -->
+<aside style="flex: 1 1 420px; max-width: 560px; min-width: 0; align-self: stretch; box-sizing: border-box; padding: 32px; background: #F6F7F9">
+<div style="position: sticky; top: 24px; display: flex; flex-direction: column; gap: 22px">
+
+<sc-if value="{{slipOn}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 14px; background: #FFFFFF">
+<span style="font-size: 13px; color: #1F7A4D; font-weight: 600">Checked in</span>
+<span style="font-size: 40px; font-weight: 700; line-height: 1">#{{slip.token}}</span>
+<span>{{slip.name}} · about {{slip.wait}} min wait</span>
+<span style="display: flex; gap: 6px; margin-left: -10px">
+<button type="button" style="height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-weight: 600; font-size: 14px; cursor: pointer">Print token slip</button>
+<button type="button" onClick="{{closeSlip}}" style="height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-size: 14px; cursor: pointer">Next patient</button>
+</span>
+</div>
+</sc-if>
+
+<sc-if value="{{modeFind}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 700; font-size: 20px">Check in</span>
+<span style="font-size: 14px; color: #5B6575">Find a returning patient by name, phone or ID.</span>
+</div>
+<input type="text" aria-label="Find patient" autocomplete="off" value="{{q}}" onChange="{{onQ}}" placeholder="e.g. Murugan, 98430…, P-0142" style="height: 48px; padding: 0; border: 0; border-bottom: 1.5px solid #1A4FB5; background: transparent; font-size: 17px; color: #141C2B">
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{found}}" as="f" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid #E8EBEF">
+<span style="display: flex; flex-direction: column; min-width: 0">
+<span style="font-weight: 600">{{f.name}} <span style="font-weight: 400; color: #7A8494">{{f.meta}}</span></span>
+<span style="font-size: 13px; color: #7A8494">{{f.id}} · {{f.phone}} · {{f.last}}</span>
+</span>
+<sc-if value="{{f.inQueue}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: #7A8494">In queue #{{f.qToken}}</span></sc-if>
+<sc-if value="{{f.canCheck}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{f.checkIn}}" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #FFFFFF; color: #1A4FB5; font-weight: 600; font-size: 14px; cursor: pointer">Check in</button>
+</sc-if>
+</div>
+</sc-for>
+<sc-if value="{{noFound}}" hint-placeholder-val="{{ false }}">
+<span style="padding: 12px 0; font-size: 14px; color: #7A8494">No patient matches “{{q}}”.</span>
+</sc-if>
+</div>
+<button type="button" onClick="{{openNew}}" style="align-self: flex-start; height: 44px; padding: 0 18px; border: 0; border-radius: 10px; background: #141C2B; color: #FFFFFF; font-weight: 600; font-size: 15px; cursor: pointer">Register new patient</button>
+</sc-if>
+
+<sc-if value="{{modeNew}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<span style="font-weight: 700; font-size: 20px">New patient</span>
+<button type="button" onClick="{{cancelNew}}" style="height: 32px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-size: 14px; cursor: pointer">Cancel</button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px">
+<sc-for list="{{fields}}" as="fd" hint-placeholder-count="10">
+<label style="display: flex; flex-direction: column; gap: 4px; {{fd.span}}">
+<span style="font-size: 13px; color: #7A8494">{{fd.label}}</span>
+<input type="{{fd.type}}" value="{{fd.value}}" onChange="{{fd.onChange}}" placeholder="{{fd.ph}}" style="height: 38px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B">
+<sc-if value="{{fd.hasErr}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; font-weight: 600; color: #B42318">{{fd.err}}</span></sc-if>
+</label>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #7A8494">Sex</span>
+<div style="display: flex; gap: 2px; margin-left: -12px">
+<sc-for list="{{sexes}}" as="sx" hint-placeholder-count="3">
+<button type="button" onClick="{{sx.pick}}" style="height: 34px; padding: 0 12px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; {{sx.st}}">{{sx.label}}</button>
+</sc-for>
+</div>
+</div>
+<sc-if value="{{dupOn}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 12px; background: #FFFFFF; font-size: 14px">
+<span style="font-weight: 600; color: #93520A">This phone number already belongs to {{dup.name}} ({{dup.id}}).</span>
+<span style="color: #5B6575">Same person? Use their record so history stays in one place.</span>
+<span style="display: flex; gap: 4px; margin-left: -10px">
+<button type="button" onClick="{{useDup}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #1A4FB5; font-weight: 600; font-size: 14px; cursor: pointer">Use {{dup.first}}'s record</button>
+<button type="button" onClick="{{forceNew}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #5B6575; font-size: 14px; cursor: pointer">Different person — register anyway</button>
+</span>
+</div>
+</sc-if>
+<button type="button" onClick="{{submitNew}}" style="align-self: flex-start; height: 46px; padding: 0 20px; border: 0; border-radius: 10px; background: #1A4FB5; color: #FFFFFF; font-weight: 600; font-size: 15px; cursor: pointer">Register &amp; issue token</button>
+</sc-if>
+</div>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+var PATIENTS = [
+  { id: 'P-0142', name: 'Murugan K', meta: '58 M', phone: '98430 12345', last: 'last visit 12 Sep' },
+  { id: 'P-0155', name: 'Murugan S', meta: '64 M', phone: '98652 10930', last: 'last visit 2 Aug' },
+  { id: 'P-0388', name: 'Lakshmi R', meta: '34 F', phone: '90034 55120', last: 'registered today' },
+  { id: 'P-0091', name: 'Selvaraj M', meta: '61 M', phone: '94431 77810', last: 'last visit 10 Sep' },
+  { id: 'P-0417', name: 'Kavitha S', meta: '52 F', phone: '99942 30118', last: 'registered today' },
+  { id: 'P-0203', name: 'Ramesh A', meta: '45 M', phone: '97888 41022', last: 'last visit 26 Sep' },
+  { id: 'P-0420', name: 'Priya N', meta: '29 F', phone: '80152 66334', last: 'registered today' },
+  { id: 'P-0057', name: 'Govindan T', meta: '67 M', phone: '94860 21745', last: 'last visit 3 Oct' },
+  { id: 'P-0211', name: 'Arul P', meta: '39 M', phone: '93631 50287', last: 'last visit today' },
+  { id: 'P-0310', name: 'Saroja V', meta: '70 F', phone: '98946 03312', last: 'last visit today' },
+  { id: 'P-0266', name: 'Mani R', meta: '55 M', phone: '97515 88406', last: 'last visit 19 Sep' }
+];
+var START = [
+  { token: 11, pid: 'P-0211', reason: 'Low back pain', kind: 'Follow-up', time: '9:42', status: 'paid', pay: 'UPI ₹860' },
+  { token: 12, pid: 'P-0310', reason: 'Knee OA review', kind: 'Follow-up', time: '9:55', status: 'paid', pay: 'Cash ₹540' },
+  { token: 13, pid: 'P-0266', reason: 'Shoulder pain', kind: 'Follow-up', time: '10:08', status: 'paid', pay: 'UPI ₹1,120' },
+  { token: 14, pid: 'P-0142', reason: 'Burning feet', kind: 'Follow-up', time: '10:21', status: 'bill', amount: '800' },
+  { token: 15, pid: 'P-0388', reason: 'Neck pain', kind: 'New', time: '10:31', status: 'called' },
+  { token: 16, pid: 'P-0091', reason: 'Refill · Pregabid', kind: 'Follow-up', time: '10:34', status: 'waiting' },
+  { token: 17, pid: 'P-0417', reason: 'Knee pain', kind: 'New', time: '10:40', status: 'waiting' },
+  { token: 18, pid: 'P-0203', reason: 'Post-op pain review', kind: 'Follow-up', time: '10:44', status: 'waiting' },
+  { token: 19, pid: 'P-0420', reason: 'Headache', kind: 'New', time: '10:49', status: 'waiting' },
+  { token: 20, pid: 'P-0057', reason: 'Cancer pain review', kind: 'Follow-up', time: '10:52', status: 'waiting', flag: 'Palliative · wheelchair' }
+];
+var STATUS = {
+  waiting: { label: 'Waiting', st: 'color: #5B6575; font-weight: 500' },
+  away: { label: 'Stepped out', st: 'color: #9AA3B0; font-weight: 500' },
+  called: { label: 'Called — send in', st: 'color: #1A4FB5' },
+  doctor: { label: 'With doctor', st: 'color: #1A4FB5' },
+  bill: { label: 'Ready to bill', st: 'color: #93520A' },
+  paid: { label: 'Paid', st: 'color: #1F7A4D' }
+};
+var ON = 'background: #EAF0FC; color: #1A4FB5';
+var OFF = 'background: transparent; color: #5B6575';
+function pfind(id) { for (var i = 0; i < PATIENTS.length; i++) if (PATIENTS[i].id === id) return PATIENTS[i]; return null; }
+var FIELDS = [
+  { k: 'name', label: 'Full name *', ph: 'As on ID', type: 'text', span: 'grid-column: 1 / -1' },
+  { k: 'phone', label: 'Phone *', ph: '10 digits', type: 'tel' },
+  { k: 'age', label: 'Age *', ph: 'Years', type: 'number' },
+  { k: 'wt', label: 'Weight (kg)', ph: '—', type: 'number' },
+  { k: 'ht', label: 'Height (cm)', ph: '—', type: 'number' },
+  { k: 'bp', label: 'BP', ph: '120/80', type: 'text' },
+  { k: 'pulse', label: 'Pulse', ph: '—', type: 'number' },
+  { k: 'reason', label: 'Reason for visit *', ph: 'In the patient’s words', type: 'text', span: 'grid-column: 1 / -1' },
+  { k: 'allergy', label: 'Allergies', ph: 'None known', type: 'text', span: 'grid-column: 1 / -1' }
+];
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = { queue: START.map(function (r) { return Object.assign({}, r); }), tab: 'active', q: '', mode: 'find', form: { sex: '' }, errs: {}, dup: null, slip: null, next: 21, calledAt: '10:58' };
+  }
+  addToQueue(pid, reason, kind) {
+    var s = this.state, t = s.next;
+    var waitingAhead = s.queue.filter(function (r) { return r.status === 'waiting' || r.status === 'called'; }).length;
+    this.setState({ queue: s.queue.concat([{ token: t, pid: pid, reason: reason, kind: kind, time: '11:02', status: 'waiting' }]), next: t + 1,
+      slip: { token: t, name: pfind(pid).name, wait: waitingAhead * 9 + 6 }, mode: 'find', q: '', form: { sex: '' }, errs: {}, dup: null });
+  }
+  renderVals() {
+    var self = this, s = this.state;
+    var called = s.queue.filter(function (r) { return r.status === 'called'; })[0];
+    var withDoc = s.queue.filter(function (r) { return r.status === 'doctor'; })[0];
+    var visible = s.queue.filter(function (r) {
+      if (s.tab === 'active') return r.status !== 'paid';
+      if (s.tab === 'done') return r.status === 'paid';
+      return true;
+    });
+    var waitingCount = s.queue.filter(function (r) { return r.status === 'waiting' || r.status === 'called'; }).length;
+    var rows = visible.map(function (r) {
+      var p = pfind(r.pid), st = STATUS[r.status];
+      var idx = s.queue.indexOf(r);
+      var setStatus = function (val) { return function () { self.setState({ queue: s.queue.map(function (x) { return x === r ? Object.assign({}, x, { status: val }) : x; }) }); }; };
+      return {
+        token: r.token, name: p.name, meta: p.meta, reason: r.reason, kind: r.kind, flagText: r.flag ? ' · ' + r.flag : '', time: r.time,
+        status: r.status === 'paid' ? 'Paid · ' + r.pay : st.label, statusSt: st.st,
+        tokenSt: r.status === 'called' || r.status === 'doctor' ? 'color: #1A4FB5' : r.status === 'paid' ? 'color: #9AA3B0' : 'color: #141C2B',
+        amount: r.amount, isWaiting: r.status === 'waiting', isAway: r.status === 'away', isBill: r.status === 'bill', isPaid: r.status === 'paid',
+        up: function () {
+          var q = s.queue.slice(), j = idx - 1;
+          while (j >= 0 && q[j].status !== 'waiting') j--;
+          if (j < 0) return;
+          var tmp = q[j]; q[j] = q[idx]; q[idx] = tmp; self.setState({ queue: q });
+        },
+        away: setStatus('away'), back: setStatus('waiting')
+      };
+    });
+    var term = s.q.trim().toLowerCase().replace(/\s/g, '');
+    var found = term ? PATIENTS.filter(function (p) { return (p.name + p.phone + p.id).toLowerCase().replace(/\s/g, '').indexOf(term) !== -1; }).slice(0, 5) : [];
+    var foundVals = found.map(function (p) {
+      var inQ = s.queue.filter(function (r) { return r.pid === p.id && r.status !== 'paid'; })[0];
+      return { name: p.name, meta: p.meta, id: p.id, phone: p.phone, last: p.last, inQueue: !!inQ, qToken: inQ ? inQ.token : '', canCheck: !inQ,
+        checkIn: function () { self.addToQueue(p.id, 'Review', 'Follow-up'); } };
+    });
+    var f = s.form;
+    var fields = FIELDS.map(function (fd) {
+      return { label: fd.label, ph: fd.ph, type: fd.type, span: fd.span || '', value: f[fd.k] || '', err: s.errs[fd.k] || '', hasErr: !!s.errs[fd.k],
+        onChange: function (e) { var nf = Object.assign({}, s.form); nf[fd.k] = e.target.value; var ne = Object.assign({}, s.errs); delete ne[fd.k]; self.setState({ form: nf, errs: ne, dup: fd.k === 'phone' ? null : s.dup }); } };
+    });
+    var register = function (force) {
+      var e = {};
+      if (!(f.name || '').trim()) e.name = 'Enter the patient’s name';
+      var digits = (f.phone || '').replace(/\D/g, '');
+      if (digits.length !== 10) e.phone = 'Phone needs 10 digits';
+      if (!(f.age > 0 && f.age < 120)) e.age = 'Enter age in years';
+      if (!(f.reason || '').trim()) e.reason = 'Add a reason so the doctor sees it';
+      if (Object.keys(e).length) { self.setState({ errs: e }); return; }
+      if (!force) {
+        var d = PATIENTS.filter(function (p) { return p.phone.replace(/\s/g, '') === digits; })[0];
+        if (d) { self.setState({ dup: d }); return; }
+      }
+      var id = 'P-0' + (430 + PATIENTS.length);
+      PATIENTS.push({ id: id, name: f.name.trim(), meta: f.age + ' ' + (f.sex || '').charAt(0), phone: digits.slice(0, 5) + ' ' + digits.slice(5), last: 'registered today' });
+      self.addToQueue(id, f.reason.trim(), 'New');
+    };
+    return {
+      nowToken: withDoc ? withDoc.token : called ? called.token : 14, waitingCount: waitingCount,
+      navEvent: called ? 'Doctor called #' + called.token : withDoc ? '#' + withDoc.token + ' with doctor' : '',
+      hasCalled: !!called, called: called ? { token: called.token, name: pfind(called.pid).name } : { token: '', name: '' }, calledAt: s.calledAt,
+      sendIn: function () { self.setState({ queue: s.queue.map(function (x) { return x === called ? Object.assign({}, x, { status: 'doctor' }) : x; }) }); },
+      summaryLine: waitingCount + ' waiting · ' + s.queue.filter(function (r) { return r.status === 'bill'; }).length + ' to bill · ' + s.queue.filter(function (r) { return r.status === 'paid'; }).length + ' done',
+      tabs: [['active', 'Active'], ['done', 'Done today'], ['all', 'All']].map(function (t) { return { label: t[1], st: s.tab === t[0] ? ON : OFF, pick: function () { self.setState({ tab: t[0] }); } }; }),
+      rows: rows, noRows: rows.length === 0,
+      q: s.q, onQ: function (e) { self.setState({ q: e.target.value }); },
+      found: foundVals, noFound: !!term && foundVals.length === 0,
+      modeFind: s.mode === 'find', modeNew: s.mode === 'new',
+      openNew: function () { self.setState({ mode: 'new', slip: null }); }, cancelNew: function () { self.setState({ mode: 'find', errs: {}, dup: null }); },
+      fields: fields,
+      sexes: ['Female', 'Male', 'Other'].map(function (x) { return { label: x, st: f.sex === x ? ON : OFF, pick: function () { self.setState({ form: Object.assign({}, f, { sex: x }) }); } }; }),
+      dupOn: !!s.dup, dup: s.dup ? { name: s.dup.name, id: s.dup.id, first: s.dup.name.split(' ')[0] } : { name: '', id: '', first: '' },
+      useDup: function () { self.addToQueue(s.dup.id, (f.reason || 'Review').trim(), 'Follow-up'); },
+      forceNew: function () { register(true); }, submitNew: function () { register(false); },
+      slipOn: !!s.slip, slip: s.slip || { token: '', name: '', wait: '' }, closeSlip: function () { self.setState({ slip: null }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

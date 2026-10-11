@@ -1,0 +1,14 @@
+{
+  "runs": [
+    {
+      "date": "2026-09-06",
+      "verb": "redesign",
+      "scope": "app",
+      "target": "src/components/AppShell.*, src/components/StagingBanner.*, src/pages/Reception.css, src/pages/Consultation.*, src/components/Billing.css",
+      "genre": "modern-minimal",
+      "theme": "cobalt (catalog, trimmed: no command palette, no live-code hero, no graphite band, no Google Fonts CDN)",
+      "macrostructure": "app pages -- existing sidebar+topbar+content shell kept as-is, visual skin only",
+      "notes": "v3 of this app's visual system. v1 (system font, zero cards) and v2 (Inter/indigo, elevated cards+shadows, 20px radii) both shipped and were superseded. v3: OKLCH tokens, self-hosted Space Grotesk/Inter/JetBrains Mono, tight 6px/10px radii, depth from border only (no box-shadow), mono face reserved for tabular numbers + uppercase eyebrow labels. design.md at project root is the system of record."
+    }
+  ]
+}

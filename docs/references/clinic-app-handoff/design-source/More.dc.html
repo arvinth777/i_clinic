@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Supporting tools</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A4FB5}
+button,input{font-family:inherit;font-variant-numeric:tabular-nums}
+input:focus{outline:none;border-bottom-color:#1A4FB5 !important}
+button:focus-visible,a:focus-visible{outline:2px solid #1A4FB5;outline-offset:2px;border-radius:6px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #141C2B; font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums">
+<dc-import name="Nav" active="more" user="Reception · Selvi" token="15" waiting="6" hint-size="100%,56px"></dc-import>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; min-height: calc(100vh - 56px)">
+<nav aria-label="Supporting tools" style="flex: 1 1 240px; max-width: 280px; min-width: 0; align-self: stretch; box-sizing: border-box; padding: 32px 24px; background: #F6F7F9; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; color: #7A8494; margin-bottom: 8px">Supporting tools</span>
+<sc-for list="{{tools}}" as="t" hint-placeholder-count="6">
+<button type="button" onClick="{{t.pick}}" style="display: flex; justify-content: space-between; align-items: center; height: 40px; padding: 0 12px; margin: 0 -12px; border: 0; border-radius: 8px; text-align: left; font-size: 15px; cursor: pointer; {{t.st}}">
+<span>{{t.label}}</span><span style="font-size: 13px; font-weight: 600; {{t.countSt}}">{{t.count}}</span>
+</button>
+</sc-for>
+<span style="font-size: 13px; color: #7A8494; margin: 22px 0 8px">Elsewhere</span>
+<a href="Suppliers.dc.html" style="height: 36px; display: flex; align-items: center; color: #5B6575; text-decoration: none">Suppliers</a>
+<a href="Reports.dc.html" style="height: 36px; display: flex; align-items: center; color: #5B6575; text-decoration: none">Reports</a>
+<a href="Settings.dc.html" style="height: 36px; display: flex; align-items: center; color: #5B6575; text-decoration: none">Admin &amp; settings</a>
+<a href="States.dc.html" style="height: 36px; display: flex; align-items: center; color: #5B6575; text-decoration: none">Offline &amp; error states</a>
+</nav>
+
+<main style="flex: 999 1 640px; min-width: 0; box-sizing: border-box; padding: 32px 36px 48px">
+<div style="max-width: 860px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 700; font-size: 24px; letter-spacing: -0.01em">{{title}}</span>
+<span style="font-size: 14px; color: #5B6575">{{intro}}</span>
+</div>
+
+<sc-if value="{{hasForm}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 20px; padding: 18px 20px; border-radius: 14px; background: #F6F7F9">
+<sc-for list="{{form}}" as="f" hint-placeholder-count="4">
+<label style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #7A8494">{{f.label}}</span><input type="text" value="{{f.value}}" style="width: {{f.w}}px; height: 36px; padding: 0; border: 0; border-bottom: 1px solid #DDE1E7; background: transparent; font-size: 15px; color: #141C2B"></label>
+</sc-for>
+<button type="button" onClick="{{formSubmit}}" style="height: 40px; padding: 0 16px; border: 0; border-radius: 10px; background: #141C2B; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer">{{formLabel}}</button>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 18px; padding: 16px 0; border-bottom: 1px solid #EEF0F3; {{r.rowSt}}">
+<span style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 600">{{r.title}}</span>
+<span style="font-size: 14px; color: #5B6575">{{r.detail}}</span>
+<sc-if value="{{r.hasNote}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; font-weight: 600; {{r.noteSt}}">{{r.note}}</span></sc-if>
+</span>
+<span style="font-weight: 600; {{r.rightSt}}">{{r.right}}</span>
+<span style="display: flex; gap: 2px">
+<sc-for list="{{r.actions}}" as="a" hint-placeholder-count="2">
+<button type="button" onClick="{{a.go}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; {{a.st}}">{{a.label}}</button>
+</sc-for>
+</span>
+</div>
+</sc-for>
+<sc-if value="{{noRows}}" hint-placeholder-val="{{ false }}"><span style="padding: 28px 0; color: #9AA3B0">{{emptyText}}</span></sc-if>
+</div>
+<sc-if value="{{hasMsg}}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size: 14px; font-weight: 600; color: #1F7A4D">{{msg}}</span></sc-if>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+var AMB = 'color: #93520A', RED = 'color: #B42318', GRN = 'color: #1F7A4D', MUT = 'color: #7A8494';
+var PRI = 'background: #141C2B; color: #FFFFFF', SEC = 'background: transparent; color: #1A4FB5', QUI = 'background: transparent; color: #5B6575';
+var TOOLS = {
+  unpaid: { label: 'Unpaid bills', intro: 'Bills marked "Pay later". Collect from Billing when the patient comes back.', empty: 'No unpaid bills.',
+    rows: [
+      { id: 'u1', title: 'Govindan T · Bill 1003', detail: '3 Oct · consultation + medicines · family paying on next visit', right: '₹350', rightSt: AMB, note: 'In today’s queue as #20 — collect after the visit', noteSt: 'color: #1A4FB5',
+        actions: [['Collect', PRI, 'collect'], ['Copy reminder', SEC, 'remind']] },
+      { id: 'u2', title: 'Mani R · Bill 0958', detail: '19 Sep · Genicular nerve block balance', right: '₹800', rightSt: RED, note: '21 days overdue', noteSt: RED,
+        actions: [['Collect', PRI, 'collect'], ['Copy reminder', SEC, 'remind'], ['Write off', QUI, 'writeoff']] }
+    ] },
+  fix: { label: 'Bill corrections', intro: 'Paid bills are never edited. A correction adds a credit or extra charge, and the doctor approves it.', empty: 'No correction requests.',
+    rows: [
+      { id: 'c1', title: 'Bill 1009 · Saroja V', detail: 'Pan 40 billed 15, supplied 10 · refund ₹36 · requested by Selvi, 10:40', right: '− ₹36', rightSt: GRN, note: 'Waiting for doctor', noteSt: AMB,
+        actions: [['Approve', PRI, 'approve'], ['Reject', QUI, 'reject']] },
+      { id: 'c2', title: 'Bill 0997 · Arul P', detail: 'Paid by UPI, recorded as cash · change method only', right: '₹0', rightSt: MUT, note: 'Approved by Dr. Kirupakaran · 8 Oct', noteSt: GRN, actions: [['View', SEC, 'view']] }
+    ] },
+  follow: { label: 'Follow-ups', intro: 'Long-term and palliative patients who should be seen or called.', empty: 'Nobody due.',
+    rows: [
+      { id: 'f1', title: 'Saroja V · knee OA, on Etoshine', detail: 'Due 28 Sep · prescription now 130 days old · 98946 03312', right: '12 days overdue', rightSt: RED, actions: [['Mark called', SEC, 'called'], ['Book visit', PRI, 'book']] },
+      { id: 'f2', title: 'Govindan T · palliative, every 2 weeks', detail: 'Due today · already in queue as #20', right: 'Today', rightSt: 'color: #1A4FB5', actions: [['Open record', SEC, 'record']] },
+      { id: 'f3', title: 'Murugan K · neuropathy review', detail: 'Due 24 Oct · Glycomet refill due 11 Oct', right: 'In 14 days', rightSt: MUT, actions: [['Open record', SEC, 'record']] },
+      { id: 'f4', title: 'Mani R · post nerve block review', detail: 'Due 17 Oct · 97515 88406', right: 'In 7 days', rightSt: MUT, actions: [['Mark called', SEC, 'called']] }
+    ] },
+  docs: { label: 'Clinic documents', intro: 'Licences, contracts and scanned papers, with renewal reminders.', empty: 'No documents.', form: [['Document', 'Fire NOC renewal', 220], ['Valid till', '31/03/2027', 130]], formLabel: 'Upload',
+    rows: [
+      { id: 'd1', title: 'Biomedical waste contract · Ramky', detail: 'PDF · uploaded Nov 2025', right: 'Renew in 25 days', rightSt: AMB, actions: [['Open', SEC, 'open']] },
+      { id: 'd2', title: 'Drug licence (Form 20/21)', detail: 'PDF · Tamil Nadu Drugs Control', right: 'Valid till Mar 2027', rightSt: MUT, actions: [['Open', SEC, 'open']] },
+      { id: 'd3', title: 'Clinical Establishment registration', detail: 'PDF', right: 'Valid till Dec 2028', rightSt: MUT, actions: [['Open', SEC, 'open']] },
+      { id: 'd4', title: 'Patient consent form · nerve block', detail: 'Template · English and Tamil', right: 'Printable', rightSt: MUT, actions: [['Print', SEC, 'open']] }
+    ] },
+  dup: { label: 'Duplicate patients', intro: 'Possible repeats found by phone, name and age. Merging keeps every visit and bill.', empty: 'No possible duplicates.',
+    rows: [
+      { id: 'p1', title: 'Murugan K (P-0142) and Muruganandam K (P-0398)', detail: 'Same phone 98430 12345 · both 58 M · P-0398 has 1 visit, 1 bill', right: 'Likely same', rightSt: AMB, actions: [['Merge into P-0142', PRI, 'merge'], ['Not the same', QUI, 'dismiss']] },
+      { id: 'p2', title: 'Lakshmi R (P-0388) and Laxmi R (P-0127)', detail: 'Similar name · different phone and age (34 F, 58 F)', right: 'Probably different', rightSt: MUT, actions: [['Merge', SEC, 'merge'], ['Not the same', QUI, 'dismiss']] }
+    ] },
+  rep: { label: 'Rep visits', intro: 'Pharmaceutical representative visits and samples left. Samples are tracked but never billed.', empty: 'No visits logged.', form: [['Rep & company', 'Vignesh · Sun Pharma', 220], ['Products', 'Pregabalin CR 75', 180], ['Samples left', '10 strips', 110]], formLabel: 'Log visit',
+    rows: [
+      { id: 'r1', title: 'Karthik · Intas', detail: 'Duloxetine 20/30, Pregabalin + Methylcobalamin · 6 sample strips', right: '7 Oct', rightSt: MUT, note: 'Next visit ~ 4 Nov', noteSt: MUT, actions: [['Edit', SEC, 'open']] },
+      { id: 'r2', title: 'Divya · Dr. Reddy’s', detail: 'Etoricoxib 60/90 · CME invite 18 Oct, Hotel Radisson', right: '30 Sep', rightSt: MUT, actions: [['Edit', SEC, 'open']] }
+    ] }
+};
+var ORDER = ['unpaid', 'fix', 'follow', 'docs', 'dup', 'rep'];
+var MSGS = { collect: 'Opening billing…', remind: 'Reminder copied — paste into WhatsApp or SMS', writeoff: 'Write-off sent to the doctor for approval', approve: 'Approved · credit note CN-014 created', reject: 'Rejected · Selvi notified',
+  called: 'Marked as called today', book: 'Booked for Monday 12 Oct, 10:00', merge: 'Merged · 1 visit and 1 bill moved to P-0142', dismiss: 'Marked as different people', open: 'Opening…', view: 'Opening…', record: 'Opening record…' };
+var REMOVE = { approve: 1, reject: 1, called: 1, book: 1, merge: 1, dismiss: 1, writeoff: 1 };
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { tool: 'unpaid', done: {}, msg: '', added: {} }; }
+  renderVals() {
+    var self = this, s = this.state, t = TOOLS[s.tool];
+    var live = function (k) { return (s.added[k] || []).concat(TOOLS[k].rows).filter(function (r) { return !s.done[r.id]; }); };
+    var rows = live(s.tool);
+    return {
+      tools: ORDER.map(function (k) { var n = live(k).length; return { label: TOOLS[k].label, count: (k === 'unpaid' || k === 'fix' || k === 'dup' || k === 'follow') && n ? String(n) : '',
+        countSt: k === 'unpaid' || k === 'dup' ? AMB : 'color: #7A8494',
+        st: k === s.tool ? 'background: #FFFFFF; color: #141C2B; font-weight: 600' : 'background: transparent; color: #5B6575', pick: function () { self.setState({ tool: k, msg: '' }); } }; }),
+      title: t.label, intro: t.intro, emptyText: t.empty,
+      hasForm: !!t.form, form: (t.form || []).map(function (f) { return { label: f[0], value: f[1], w: f[2] }; }), formLabel: t.formLabel || '',
+      formSubmit: function () {
+        var ad = Object.assign({}, s.added), nr = s.tool === 'rep'
+          ? { id: 'n' + Date.now(), title: 'Vignesh · Sun Pharma', detail: 'Pregabalin CR 75 · 10 sample strips', right: 'Today', rightSt: MUT, actions: [['Edit', SEC, 'open']] }
+          : { id: 'n' + Date.now(), title: 'Fire NOC renewal', detail: 'PDF · uploaded just now', right: 'Valid till Mar 2027', rightSt: MUT, actions: [['Open', SEC, 'open']] };
+        ad[s.tool] = [nr].concat(ad[s.tool] || []); self.setState({ added: ad, msg: s.tool === 'rep' ? 'Visit logged' : 'Uploaded' });
+      },
+      rows: rows.map(function (r) {
+        return { title: r.title, detail: r.detail, right: r.right, rightSt: r.rightSt || '', note: r.note || '', hasNote: !!r.note, noteSt: r.noteSt || '', rowSt: '',
+          actions: r.actions.map(function (a) { return { label: a[0], st: a[1], go: function () {
+            var d = Object.assign({}, s.done); if (REMOVE[a[2]]) d[r.id] = true; self.setState({ done: d, msg: MSGS[a[2]] || '' }); } }; }) };
+      }),
+      noRows: rows.length === 0, msg: s.msg, hasMsg: !!s.msg
+    };
+  }
+}
+</script>
+</body>
+</html>
