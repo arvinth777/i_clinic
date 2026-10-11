@@ -1,47 +1,51 @@
 # Status
 
-## Drive and actionable alerts — 2026-10-11 (staging verified; production setup in progress)
+## Drive and actionable alerts — production released 2026-10-11
 
-Staging Drive is connected. Real synthetic PNG/PDF uploads, repeated-upload
-idempotency, authenticated checksum-matched downloads and PDF browser preview
-passed. Hosted backend role/isolation tests passed; admin catalog reads are
-intentionally allowed, while clinical visits remain denied. Production Drive migration and endpoint were applied after staging verification.
-Production secrets use a separate key in the private local recovery file; Google
-consent is still pending. The Drive release PR is being promoted separately.
-
-Added reception call sound (explicit enable per session, mute, IndexedDB event
-deduplication) and role-scoped Alerts with read/dismiss/resolved history on
-this account/device. Reminders use 5 minutes for called-but-not-sent and 4 PM
-IST for closing review. Alerts refetch before opening their token, bill,
-medicine or patient document; they never execute clinical/billing actions.
-History retains all active alerts and the latest 500 resolved entries.
-
-Checks: build, local alert/chime/retention tests, hosted staging alert source
-role tests, document endpoint/upload queue tests, offline owner replay, print
-snapshot and queue-performance tests passed. Browser dismissal survives
-reload; Open selects bill #840; reception sound enable succeeds; Hanken
-Grotesk and no page overflow confirmed at 390/1440 px. Evidence lives in
-`docs/evidence/drive-alerts/`. Browser offline reload remains unverified
-(previous automatic approval rejection). Live doctor call events reached
-reception in 430–647 ms; reception Sent in appeared on the doctor screen
-with Start prescription enabled. Production consent remains unverified. Automatic PDF archival remains
-a separate approved backlog item, not implemented by manual upload.
-
-Standards/spec review found stale focused-query invalidation, repeated-target
-navigation and missing stale/error presentation; fixes were applied and
-rechecked. Reconnect alerts and pending descriptions were completed. Handler
-tests now cover revoked grants versus transient Google outage. Browser
-reopening #840 after choosing #830 selects #840 correctly.
-
-Review fixes include consuming doctor alert navigation once, preventing old
-requests from overriding Return to consultation or later bill reviews. Build,
-handler, upload queue, offline owner, print and performance checks pass; lint
-has zero errors and nine warnings (seven existing, two target-selection effects).
-The synthetic cross-role fixtures were cleaned up.
-
-Uncommitted work: none after the review-fix commit.
-Next: release reviewed Drive/alerts and complete production Google consent.
-
+- Drive PR #8 and alerts PR #10 merged into `production`; release SHA
+  `d3d7150edf6ebea25a6f3de027a80bddfa58a8b4`. GitHub Vercel status is success;
+  the live clinic shows Alerts after the service-worker release refresh.
+- Production migration history matches the bootstrap, patient Drive files and
+  rep realtime migrations. Only the missing Drive migration was applied.
+  `patient-documents` deployed with production-only secrets and a separate
+  token-encryption key. Private recovery configuration is outside Git at
+  `~/.codex/private/clinic-drive-production.env` (mode 600).
+- Read-only production checks: doctor sees configured=true/connected=false;
+  reception receives 403. Production has no synthetic patient fixtures.
+  Doctor reconnect alert opens global Documents without needing a patient.
+  Google accepts the production redirect and shows the account chooser;
+  the user must complete its own production consent. No production upload
+  or successful callback is claimed before that consent.
+- Staging: real synthetic PNG/PDF upload, duplicate retry, checksum-matched
+  authenticated content and browser image/PDF preview passed. Hosted doctor,
+  reception, admin-only, other-clinic and anonymous boundaries passed.
+  Saved Google grant refresh works; revoked-grant and outage paths are tested.
+- Alerts: explicit reception session sound/mute, atomic IndexedDB event
+  deduplication, account/device read/dismiss/resolved history, role-scoped
+  destinations and latest-state checks. Reminders are 5 minutes and 4 PM IST.
+  No reminder executes queue/billing actions. Live call event arrived at
+  reception in 430–647 ms; reception Sent in updated the doctor's screen and
+  enabled Start prescription. Synthetic connection fixtures were removed.
+- Standards review: stale focused-query invalidation and stale-error presentation
+  fixed. Spec review: repeated target selection and persistent doctor-alert
+  selection fixed; pending descriptions and independent reconnect notice added.
+  Focused re-review found no further concrete defect. Reopening bill #840 after
+  manually choosing #830 selects #840. No unexpected architectural refactor.
+- Fresh build, handler, alert/chime/retention, upload queue, offline owner replay,
+  print snapshot and queue-performance tests pass. Lint has zero errors/nine
+  warnings (seven pre-existing; two target-selection effects). Browser checks:
+  390/1440 px no sideways page scrolling, Hanken Grotesk, body-scroll locking,
+  dismissal survives reload, sound enable/mute control. Evidence:
+  `docs/evidence/drive-alerts/`; account chooser evidence stays private.
+- Uncommitted work: none after this release evidence commit. Original checkout's
+  user notes were preserved; work is attached under the clinic-alerts worktree.
+- Remaining: production Google consent/callback verification; browser offline
+  reload remains unverified after an earlier automatic approval rejection.
+  Loudspeaker audibility is not measured. Automatic prescription/receipt PDF
+  archival is separate approved backlog; manual document uploads do not satisfy it.
+  Google reconnect user consent itself is not automated. No print renderer change.
+- Next: complete production consent, verify configured/connected status and
+  then plan the separate durable finalised-PDF archive implementation.
 
 ## Google Drive integration — 2026-10-11
 

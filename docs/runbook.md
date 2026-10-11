@@ -254,3 +254,24 @@ Distilled from docs/STATUS.md's full build history -- read that file for the com
 3. Test convention: plain Node scripts in `scripts/` (and `isolation-test.mjs` at the repo root) run against live staging, not a mocked test framework -- read a couple of them (`scripts/phase-f-test.mjs` is a good recent example) before writing a new one, and follow the existing `loadEnv()`/sign-in pattern. Browser-level flows use a throwaway Playwright script, deleted after use, driving the **production build** (`npm run build && npx vite preview`) whenever the service worker/offline behavior matters -- `npm run dev` disables it.
 4. This project follows the skills named in `AGENTS.md`'s "Skill orchestration" section -- `tdd` before touching pricing/stock/discount logic, `docs/security-review.md` plus the Supabase security advisor before anything touching money/auth/RLS/patient data, `code-review` before merging anything non-trivial, `ponytail` as the standing discipline on file size and scope.
 5. Never disable RLS "temporarily" to debug, never store money as anything but bigint paise (including in a test fixture), never touch pricing/discount/stock logic without a test, never invent a feature not in the PRD (`prd-clinic-management-system.md`) without proposing it first.
+
+## Drive and alerts release — 2026-10-11
+
+Production release `d3d7150` (PR #8 Drive, #10 alerts) is deployed at
+https://iclinic-theta.vercel.app. Production CLI history contains only
+`20261011060000`, `20261011120000`, `20261011200000`; the missing Drive migration
+was safely applied using `db push --include-all` after its dry-run listed only
+that file. Endpoint secrets/function are independently configured per project.
+Local private recovery env files are `~/.codex/private/clinic-drive-staging.env`
+and `clinic-drive-production.env`, mode 600; never commit or print their values.
+Do not rotate these encryption keys without re-encrypting the connected token.
+
+Production callback is https://iclinic-theta.vercel.app/?drive_callback=1.
+Google account selection/consent remains a user action; verify connected status
+after returning. Staging tokens never transfer to production. Google console
+OAuth test-mode refresh-token lifetime may require recurrent reconnection;
+verify publishing/testing configuration before relying on unattended access.
+
+Older installed browser tabs can need a reload after service-worker activation.
+Confirmed live doctor alert navigation opens connection setup without creating
+a patient. Automatic issued-prescription/receipt PDF archival is not implemented.
