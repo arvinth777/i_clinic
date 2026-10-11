@@ -9,6 +9,13 @@ all screens have passed them. Product behaviour follows `ui-handoff-decisions.md
 and `rework-brief.md`: Finish and Call next remain separate, no Skip/draft workflow,
 no invented allergies, ₹250 consultation, existing name-only refill exception.
 
+## Stylesheet loading
+
+Shared workspace layouts live in `src/Workspace.css`, imported by `App.tsx`.
+Lazy screens must not rely on CSS loaded by another screen. The standalone
+Google Drive callback imports its own stylesheet and follows the same font,
+colour and spacing tokens, with clinic identity above a constrained result.
+
 ## Presentation
 
 White, paper-like, ruled rows with space between sections. No cards, page sidebar,

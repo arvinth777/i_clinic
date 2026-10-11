@@ -1,5 +1,21 @@
 # Status
 
+## Drive UI regression repair — 2026-10-11
+
+- Reproduced on production before editing: fresh Patients was display:block
+  with zero record padding; standalone Drive result also had zero padding.
+  Shared layouts depended on lazy Settings CSS; callback CSS belonged to a
+  different lazy document screen. Earlier functional checks missed this defect.
+- Shared workspace CSS now loads with App. Callback owns its styles. Documents
+  setup has one clear title; callback success/error/loading use the clinic
+  identity, constrained width, proper spacing and existing Hanken/tokens.
+- Local build, Drive handler checks and initial-route/style/state regression
+  checks pass. Browser synthetic views at 1440/390 have no page overflow;
+  screenshots under docs/evidence/drive-ui. No credentials or patient data used.
+- Pending: independent review, production deployment and fresh live-page check.
+  No database, consent scope, print renderer or upload behaviour changes.
+
+
 ## Drive and actionable alerts — production released 2026-10-11
 
 - Drive PR #8 and alerts PR #10 merged into `production`; release SHA

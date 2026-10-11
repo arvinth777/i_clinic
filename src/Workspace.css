@@ -62,6 +62,7 @@
 }
 
 .patients-workspace { display: grid; grid-template-columns: var(--patient-rail-width) minmax(0, 1fr); min-height: 100%; }
+@media (min-width: 721px) { .patients-workspace { min-height: calc(100dvh - var(--header-current-height)); } }
 .patient-record { min-width: 0; padding: var(--page-padding) var(--page-top); }
 .patient-record > * { max-width: var(--content-width); }
 .patient-record h1 { font-size: var(--text-page); font-weight: 700; overflow-wrap: anywhere; }
@@ -89,3 +90,10 @@
 .settings-page .admin-tabs h2 { font-size: var(--text-section); }
 .settings-page .admin-tabs .shell-nav-item { font-size: var(--text-base); }
 .settings-page .admin-panel .readout-heading { font-size: var(--text-xl); }
+
+.patient-empty { max-width: var(--editor-width); padding-top: var(--space-lg); }
+.patient-empty h1 { margin-block: var(--space-xs) var(--space-md); }
+.patient-empty-description { color: var(--text-secondary); }
+.drive-connection { margin-top: var(--space-xl); padding-top: var(--space-lg); border-top: 1px solid var(--line); }
+.drive-connection h2 { font-size: var(--text-section); font-weight: 700; margin-bottom: var(--space-sm); }
+.drive-connection .ui-button { margin-top: var(--space-lg); }

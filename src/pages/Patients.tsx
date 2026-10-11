@@ -81,7 +81,21 @@ export function Patients({ clinicId, isDoctor, canBill, initialPatientId, locked
     {patients?.length === 0 && <p className="readout-empty">No matching patients.</p>}
   </aside><div className="patient-record">
     {patient && <Button className="mobile-list-back" variant="ghost" onClick={() => { setPatient(null); setBillId(null) }}>← Patients</Button>}
-    {!patient ? <><h1>Patients</h1><p className="readout-empty">Choose a patient to see their details and visit history.</p>{isDoctor && initialTab==='documents' && <section><h2>Documents · Google Drive</h2><p className="field-hint">{drive.data?.connected ? 'Clinic Drive is connected. Choose a patient to upload or view files.' : 'Connect the clinic account to sync files. Pending uploads stay on this device.'}</p>{drive.isError && <QueryError retry={()=>void drive.refetch()} />}{connectionError && <p className="form-error" role="alert">{connectionError}</p>}<Button disabled={!drive.data?.configured} onClick={()=>void connectDrive(clinicId).catch(()=>setConnectionError('Could not start Google connection. Try again.'))}>{drive.data?.connected ? 'Reconnect Drive' : 'Connect Google Drive'}</Button></section>}</> : billId ? <Billing readOnly={!canBill} key={billId} clinicId={clinicId} visitId={billId} onClose={() => setBillId(null)} /> : <>
+    {!patient ? <section className="patient-empty">
+      {isDoctor && initialTab === 'documents' ? <>
+        <p className="field-hint">Clinic documents</p>
+        <h1>Google Drive</h1>
+        <p className="patient-empty-description">Store scans and reports privately in the clinic’s Google account. Choose a patient from the list to upload or view their files.</p>
+        <div className="drive-connection">
+          <h2>Clinic account</h2>
+          {drive.isPending ? <LoadingRows label="Checking Google Drive…" /> : <p className={drive.data?.connected ? 'status-green' : 'field-hint'}>{drive.data?.connected ? 'Connected · ready for patient documents' : 'Connect the clinic account to start uploading.'}</p>}
+          <p className="field-hint">Pending uploads stay on this device until they sync.</p>
+          {drive.isError && <QueryError retry={() => void drive.refetch()} />}
+          {connectionError && <p className="form-error" role="alert">{connectionError}</p>}
+          <Button disabled={!drive.data?.configured} onClick={() => void connectDrive(clinicId).catch(() => setConnectionError('Could not start Google connection. Try again.'))}>{drive.data?.connected ? 'Reconnect Drive' : 'Connect Google Drive'}</Button>
+        </div>
+      </> : <><h1>Patient records</h1><p className="patient-empty-description">Choose a patient from the list to see their details{isDoctor ? ' and visit history' : ''}.</p></>}
+    </section> : billId ? <Billing readOnly={!canBill} key={billId} clinicId={clinicId} visitId={billId} onClose={() => setBillId(null)} /> : <>
       <header className="patient-record-heading"><p className="field-hint">Patient record</p><h1>{patient.name}</h1><p>{[patient.age != null ? `${patient.age} years` : '', patient.gender, patient.phone].filter(Boolean).join(' · ')}</p>{patient.address && <p className="field-hint">{patient.address}</p>}</header>
       <div className="flow-stats"><div className="flow-stat"><strong className="flow-stat-value">{visits?.length ?? '—'}</strong><span className="flow-stat-label">Visits</span></div><div className="flow-stat"><strong className="flow-stat-value">{visits?.[0] ? formatDate(visits[0].arrived_at) : '—'}</strong><span className="flow-stat-label">Last visit</span></div><div className="flow-stat"><strong className="flow-stat-value">{visits?.[0]?.follow_up_date ? formatDateOnly(visits[0].follow_up_date) : '—'}</strong><span className="flow-stat-label">Review date</span></div></div>
       <nav className="admin-tabs" aria-label="Patient record"><button className="shell-nav-item" aria-current={tab === 'visits' ? 'page' : undefined} onClick={() => setTab('visits')}>Visits{isDoctor ? ' & prescriptions' : ''}</button>{isDoctor && <button className="shell-nav-item" aria-current={tab === 'notes' ? 'page' : undefined} onClick={() => setTab('notes')}>Personal notes</button>}{isDoctor && <button className="shell-nav-item" aria-current={tab === 'documents' ? 'page' : undefined} onClick={() => setTab('documents')}>Documents</button>}</nav>

@@ -5,7 +5,6 @@ import { TemplateList } from '../components/admin/TemplateList'
 import { CustomFieldList } from '../components/admin/CustomFieldList'
 import { LoginsPanel } from '../components/admin/LoginsPanel'
 import { ClinicSettings } from '../components/admin/ClinicSettings'
-import './Admin.css'
 import { QueueSettings } from '../components/admin/QueueSettings'
 
 const TABS = [

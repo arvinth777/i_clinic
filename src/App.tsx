@@ -1,3 +1,4 @@
+import './Workspace.css'
 import { Component, Suspense, lazy, useState, type ReactNode } from 'react'
 import { LoadingRows } from './components/QueryState'
 import { StagingBanner } from './components/StagingBanner'

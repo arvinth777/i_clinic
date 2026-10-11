@@ -19,7 +19,6 @@
 .document-preview iframe { display: block; width: 100%; height: var(--document-preview-height); border: 0; margin-block: var(--space-md); }
 .document-preview img { display: block; max-width: 100%; max-height: var(--document-preview-height); margin: var(--space-md) auto; object-fit: contain; }
 .document-preview a { color: var(--accent); font-weight: 600; }
-.drive-callback { max-width: var(--editor-width); margin: auto; padding: var(--space-lg); }
 @media (max-width: 600px) { .document-preview { padding: var(--space-md); } }
 
 .document-upload-form textarea:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 1px 0 0 var(--accent); }
