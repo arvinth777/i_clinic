@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { buttonVariants } from './ui/button'
 import { Input } from './ui/input'
@@ -171,9 +170,9 @@ export function NewPatientForm({
       ))}
 
       <div className="action-row">
-        <motion.button type="submit" className={buttonVariants({ variant: 'primary' })} whileTap={{ scale: 0.96, rotate: -1 }} disabled={submitting}>
+        <button type="submit" className={buttonVariants({ variant: 'primary' })} data-press="stamp" disabled={submitting}>
           {submitting ? 'Checking in…' : 'Check in'}
-        </motion.button>
+        </button>
       </div>
     </form>
   )

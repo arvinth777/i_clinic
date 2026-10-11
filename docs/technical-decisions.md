@@ -29,7 +29,7 @@ The distinction: **JSONB solves "I don't know what the columns are." A normal ta
 - Subscribe to `visits` with a **row filter**, not the whole table, so the receptionist's browser isn't processing every change.
 - **Turn RLS on before enabling Realtime.** Realtime respects RLS: misconfigured policies either leak rows or silently deliver no events. This is the most common debugging rabbit hole with this stack.
 - **An event invalidates a query and triggers a refetch. It never patches state from the payload.** Sockets drop when a laptop sleeps or wifi flaps; a missed event then self-heals on the next fetch.
-- Keep `refetchOnWindowFocus` on, plus a 15–30s `refetchInterval` while the socket is disconnected.
+- Keep `refetchOnWindowFocus` on. Queue and cross-role event reads use a 30s safety poll while subscribed, and a 3s fallback when disconnected. On subscription/reconnection, invalidate and refetch. Subscribe to `queue_events` directly so the ten-second event message does not depend on polling. Rep arrivals require `pharma_rep_checkins` publication membership.
 - Fallback worth knowing: at this scale — two browsers, a handful of rows — plain 2–3s polling would be entirely sufficient. If Realtime fights you, falling back to polling is not a downgrade.
 
 ### 4. Offline — optimistic UI is not an offline strategy

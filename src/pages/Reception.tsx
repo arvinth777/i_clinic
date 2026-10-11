@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { useClinicId } from '../lib/useClinicId'
@@ -12,11 +11,6 @@ import { Button, buttonVariants } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import './Reception.css'
 
-const tap = { scale: 0.97 }
-// A small press-and-tilt, reserved for the one moment this action really is
-// a stamp on the record (checking a patient in) -- not applied to every
-// button, or it stops meaning anything.
-const stampTap = { scale: 0.96, rotate: -1 }
 
 type SearchResult = {
   id: string
@@ -175,10 +169,10 @@ export function Reception({ userId, readOnly = false }: { userId: string; readOn
               <ul className="search-results">
                 {results!.map((r) => (
                   <li key={r.id}>
-                    <motion.button
+                    <button
                       type="button"
                       className="search-result-button"
-                      whileTap={tap}
+                      data-press="tap"
                       onClick={() => { setSelected(r); setQuery(''); setDebouncedQuery(''); setRepFormOpen(false) }}
                     >
                       {r.name}
@@ -188,7 +182,7 @@ export function Reception({ userId, readOnly = false }: { userId: string; readOn
                           {r.phone ? `— ${r.phone}` : ''} {r.age ? `— ${r.age}y` : ''}
                         </span>
                       ) : null}
-                    </motion.button>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -240,9 +234,9 @@ export function Reception({ userId, readOnly = false }: { userId: string; readOn
                   <Input id="complaint" value={complaint} onChange={(e) => setComplaint(e.target.value)} required autoFocus />
                 </div>
                 <div className="action-row">
-                  <motion.button type="submit" className={buttonVariants({ variant: 'primary' })} whileTap={stampTap} disabled={checkInExisting.isPending}>
+                  <button type="submit" className={buttonVariants({ variant: 'primary' })} data-press="stamp" disabled={checkInExisting.isPending}>
                     {checkInExisting.isPending ? 'Checking in…' : 'Check in'}
-                  </motion.button>
+                  </button>
                   <Button type="button" variant="secondary" onClick={reset}>
                     Cancel
                   </Button>
@@ -275,9 +269,9 @@ export function Reception({ userId, readOnly = false }: { userId: string; readOn
                   <Input id="rep-company" value={repCompany} onChange={(e) => setRepCompany(e.target.value)} required />
                 </div>
                 <div className="action-row">
-                  <motion.button type="submit" className={buttonVariants({ variant: 'primary' })} whileTap={stampTap} disabled={checkInRep.isPending}>
+                  <button type="submit" className={buttonVariants({ variant: 'primary' })} data-press="stamp" disabled={checkInRep.isPending}>
                     {checkInRep.isPending ? 'Checking in…' : 'Check in'}
-                  </motion.button>
+                  </button>
                   <Button type="button" variant="secondary" onClick={() => setRepFormOpen(false)}>
                     Cancel
                   </Button>

@@ -1,5 +1,14 @@
 # Status
 
+## Performance cleanup — 2026-10-11
+
+- Separate `codex/clinic-performance` branch starts from production `f01a36b`; pending Drive work is excluded. Removed unused full letterhead, SectionStepper, three unused font dependencies and Motion; button press/reduced-motion behaviour uses named CSS tokens. Secondary routes load lazily, with all chunks/fonts/print assets retained in the PWA precache.
+- Queue/header reads use a 30-second safety poll when subscribed and a 3-second disconnected fallback; reconnect invalidates and refetches. Today reads exclude historical rows. Earlier open visits and discount requests use server pages of 50, preserving legacy saved data and optimistic queued stage changes.
+- Immutable migration adds rep arrivals and queue-event messages to realtime publication without changing permissions or RLS; local apply/retry tests pass. Production migration symlink is prepared. Staging apply and browser verification remain pending.
+- Fresh build/lint pass (seven existing lint warnings); queue-performance, legacy cache, draft, offline ownership/replay, print readiness and billing print snapshot tests pass. Actual browser offline reload remains unverified because network emulation was previously rejected; no workaround used.
+- Same-base production build: eager JS 259.25 kB gzip before, 205.31 kB after (index plus shared utils, about 21% lower); PWA precache 2584.98→1338.06 KiB (48% lower). These are build sizes, not clinic-network timing or Core Web Vitals.
+- Uncommitted implementation/tests/docs pending independent review and staging browser checks; no production changes.
+
 ## Initial production release — 2026-10-11
 
 - User explicitly requested production updating now, overriding this release's

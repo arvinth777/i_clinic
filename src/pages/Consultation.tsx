@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { useClinicId } from '../lib/useClinicId'
@@ -18,6 +18,8 @@ import { readPrescriptionPrint } from '../lib/prescriptionPrint'
 import { Billing } from '../components/Billing'
 import '../components/Worklist.css'
 import './Consultation.css'
+import { useQueuePollInterval } from '../lib/realtimeStatus'
+import { restorePagedCache } from '../lib/pagedCache'
 
 // A wait past this is flagged in the overdue colour (danger), not just
 // shown as a plain elapsed time -- reserving colour for something that
@@ -80,22 +82,47 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
   const [guard, setGuard] = useState(false)
   const queueAction = useQueueAction(clinicId)
 
+  const interval = useQueuePollInterval()
+  const today = startOfToday()
   const queueKey = ['doctor-queue', clinicId]
   const { data: visits, isPending: queueLoading, error: queueError, refetch: reloadQueue, dataUpdatedAt: queueSavedAt } = useQuery({
-    queryKey: queueKey, refetchInterval:3000,
+    queryKey: queueKey, refetchInterval:interval,
     enabled: !!clinicId,
-    // Inherits queryClient's 3s default (was a 30s override here) --
-    // no reason for this one query to poll slower than everything else.
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visits')
         .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone)')
         .eq('clinic_id', clinicId)
+        .gte('arrived_at', today)
         .in('stage', ['waiting', 'called', 'with_doctor', 'not_here', 'ready_to_bill'])
         .order('queue_position', { ascending: true })
         .order('id', { ascending: true })
       if (error) throw error
       return data as unknown as DoctorVisit[]
+    },
+  })
+
+  const discountRequests = useInfiniteQuery({
+    queryKey: ['doctor-discount-requests', clinicId, 'pages'], enabled: !!clinicId,
+    refetchInterval: interval, initialPageParam: 0,
+    initialData: () => restorePagedCache<DoctorVisit>(undefined, queryClient.getQueryData<DoctorVisit[]>(queueKey)?.filter(v => v.stage === 'ready_to_bill' && v.discount_requested_at)),
+    getNextPageParam: (last: DoctorVisit[], pages: DoctorVisit[][]) => last.length === 50 ? pages.length * 50 : undefined,
+    queryFn: async ({ pageParam }) => {
+      const { data, error } = await supabase.from('visits')
+        .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone)')
+        .eq('clinic_id', clinicId!).eq('stage', 'ready_to_bill').not('discount_requested_at', 'is', null)
+        .order('discount_requested_at').order('id').range(pageParam, pageParam + 49)
+      if (error) throw error
+      return data as unknown as DoctorVisit[]
+    },
+  })
+  const { data: earlierCount = 0 } = useQuery({
+    queryKey: ['doctor-earlier-count', clinicId, today], enabled: !!clinicId, refetchInterval: interval,
+    queryFn: async () => {
+      const { count, error } = await supabase.from('visits').select('id', { count: 'exact', head: true })
+        .eq('clinic_id', clinicId!).lt('arrived_at', today).in('stage', ['waiting', 'called', 'with_doctor', 'not_here', 'ready_to_bill'])
+      if (error) throw error
+      return count ?? 0
     },
   })
 
@@ -124,21 +151,22 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
         () => {
           queryClient.invalidateQueries({ queryKey: queueKey })
           queryClient.invalidateQueries({ queryKey: metricsKey })
+          queryClient.invalidateQueries({ queryKey: ['doctor-discount-requests', clinicId] })
+          queryClient.invalidateQueries({ queryKey: ['doctor-earlier-count', clinicId] })
         },
       )
-      .subscribe()
+      .subscribe(status => { if (status === 'SUBSCRIBED') for (const key of [queueKey, metricsKey, ['doctor-discount-requests', clinicId], ['doctor-earlier-count', clinicId]]) void queryClient.invalidateQueries({ queryKey: key }) })
     return () => {
       supabase.removeChannel(channel)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clinicId])
 
-  const today = startOfToday()
   const todaysQueue = visits?.filter(v => v.arrived_at >= today) ?? []
   const queue = todaysQueue.filter(v => v.stage === 'waiting')
   const active = todaysQueue.find(v => ['called','with_doctor'].includes(v.stage))
-  const current = visits?.find(v=>v.id===reviewVisitId) ?? active ?? todaysQueue.filter(v => v.stage === 'ready_to_bill').sort((a,b)=>(b.sent_in_at??b.arrived_at).localeCompare(a.sent_in_at??a.arrived_at))[0]
-  const earlierCount = visits?.filter(v => v.arrived_at < today).length ?? 0
+  const requests = discountRequests.data?.pages.flat() ?? []
+  const current = requests.find(v=>v.id===reviewVisitId) ?? visits?.find(v=>v.id===reviewVisitId) ?? active ?? todaysQueue.filter(v => v.stage === 'ready_to_bill').sort((a,b)=>(b.sent_in_at??b.arrived_at).localeCompare(a.sent_in_at??a.arrived_at))[0]
   const rows = todaysQueue.filter(v => ['waiting','not_here'].includes(v.stage))
   const sent = current?.stage === 'ready_to_bill'
   const commentBody=current ? commentDrafts[current.patient_id]??'' : ''
@@ -253,8 +281,10 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
             {rows.length > visibleQueueCount && <li><Button variant="secondary" onClick={() => setVisibleQueueCount(count => count + 50)}>Show more</Button></li>}
             <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />
           </ul>
-          {visits?.filter(v=>v.discount_requested_at && v.stage==='ready_to_bill').map(v=><div className="doctor-earlier" key={v.id}><strong className="status-amber">Discount review · #{v.token_number}</strong><p>{v.patients?.name}</p><Button variant="secondary" disabled={prescribingActive} onClick={()=>{setReviewVisitId(v.id);setWorkspace('prescription')}}>Review bill</Button></div>)}
+          {requests.filter(v=>v.discount_requested_at && v.stage==='ready_to_bill').map(v=><div className="doctor-earlier" key={v.id}><strong className="status-amber">Discount review · #{v.token_number}</strong><p>{v.patients?.name}</p><Button variant="secondary" disabled={prescribingActive} onClick={()=>{setReviewVisitId(v.id);setWorkspace('prescription')}}>Review bill</Button></div>)}
           {reviewVisitId && <Button variant="secondary" onClick={()=>{setReviewVisitId(null);setWorkspace('overview')}}>Return to consultation</Button>}
+          {discountRequests.isError && <QueryError retry={() => void discountRequests.refetch()} savedAt={discountRequests.dataUpdatedAt} />}
+          {discountRequests.hasNextPage && <Button variant="secondary" disabled={discountRequests.isFetchingNextPage} onClick={() => void discountRequests.fetchNextPage()}>Show more discount requests</Button>}
           {earlierCount>0 && <div className="doctor-earlier"><p className="field-hint">Left open from earlier days · {earlierCount}</p><p>Not counted in today’s queue. Reception can review them under Earlier open visits.</p></div>}
           </div>
         </aside>

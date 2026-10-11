@@ -1,23 +1,32 @@
-import { useState } from 'react'
+import { Component, Suspense, lazy, useState, type ReactNode } from 'react'
+import { LoadingRows } from './components/QueryState'
 import { StagingBanner } from './components/StagingBanner'
 import { OfflineQueueBanner } from './components/OfflineQueueBanner'
 import { SignIn } from './components/SignIn'
 import { AppShell, type ShellSection } from './components/AppShell'
-import { Patients } from './pages/Patients'
-import { BillingDesk } from './pages/BillingDesk'
+const Patients = lazy(() => import('./pages/Patients').then(module => ({ default: module.Patients })))
+const BillingDesk = lazy(() => import('./pages/BillingDesk').then(module => ({ default: module.BillingDesk })))
 import { Reception } from './pages/Reception'
 import { Consultation } from './pages/Consultation'
-import { Admin } from './pages/Admin'
-import { PharmacyBills } from './pages/PharmacyBills'
-import { Stock } from './pages/Stock'
-import { Suppliers } from './components/stock/Suppliers'
-import { MergePatients } from './pages/MergePatients'
-import { UnpaidBills } from './pages/UnpaidBills'
-import { LongTermRegister } from './pages/LongTermRegister'
-import { Reconciliation } from './pages/Reconciliation'
-import { Reports } from './pages/Reports'
+const Admin = lazy(() => import('./pages/Admin').then(module => ({ default: module.Admin })))
+const PharmacyBills = lazy(() => import('./pages/PharmacyBills').then(module => ({ default: module.PharmacyBills })))
+const Stock = lazy(() => import('./pages/Stock').then(module => ({ default: module.Stock })))
+const Suppliers = lazy(() => import('./components/stock/Suppliers').then(module => ({ default: module.Suppliers })))
+const MergePatients = lazy(() => import('./pages/MergePatients').then(module => ({ default: module.MergePatients })))
+const UnpaidBills = lazy(() => import('./pages/UnpaidBills').then(module => ({ default: module.UnpaidBills })))
+const LongTermRegister = lazy(() => import('./pages/LongTermRegister').then(module => ({ default: module.LongTermRegister })))
+const Reconciliation = lazy(() => import('./pages/Reconciliation').then(module => ({ default: module.Reconciliation })))
+const Reports = lazy(() => import('./pages/Reports').then(module => ({ default: module.Reports })))
 import { useSession } from './lib/useSession'
 import { useUserRoles } from './lib/useUserRoles'
+
+class PageLoadBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  render() {
+    return this.state.failed ? <div className="query-error" role="alert"><div><strong>Couldn't open this screen.</strong><p>Reconnect and reload. Pending changes stay on this device.</p></div><button className="ui-button ui-button-neutral" onClick={() => window.location.reload()}>Reload</button></div> : this.props.children
+  }
+}
 
 function App() {
   const { session, loading } = useSession()
@@ -88,6 +97,7 @@ function App() {
         activeSection={activeSection}
         onSelectSection={setManualSection}
       >
+        <PageLoadBoundary key={activeSection}><Suspense fallback={<LoadingRows label="Opening screen…" />}>
         {activeSection === 'reception' && <Reception userId={session.user.id} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'patients' && clinicId && <Patients initialPatientId={recordPatientId} clinicId={clinicId} isDoctor={!!roles?.some(r => r.role === 'doctor')} canBill={!!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'billing' && clinicId && <BillingDesk clinicId={clinicId} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
@@ -101,6 +111,7 @@ function App() {
         {activeSection === 'reconciliation' && clinicId && <Reconciliation clinicId={clinicId} />}
         {activeSection === 'reports' && <Reports />}
         {activeSection === 'admin' && clinicId && <Admin clinicId={clinicId} isAdmin={roles?.some(r=>r.role==='admin')} />}
+        </Suspense></PageLoadBoundary>
       </AppShell>
     </>
   )
