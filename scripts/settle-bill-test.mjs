@@ -1,3 +1,4 @@
+import {consultationOnlyFixture} from './clinic-workflow-fixture.mjs'
 // TDD for Phase C (docs/build-plan.md): payments completed. Cash and
 // UPI already worked before this phase (Billing.tsx already builds a
 // real UPI QR and lets confirm_bill close a visit with payment_method
@@ -12,6 +13,7 @@
 //
 // Run from the project root: node scripts/settle-bill-test.mjs
 
+import assert from 'node:assert/strict'
 import { createClient } from '@supabase/supabase-js'
 import { readFileSync } from 'node:fs'
 import ws from 'ws'
@@ -31,6 +33,7 @@ function loadEnv(path) {
 const appEnv = loadEnv('.env.local')
 const userEnv = loadEnv('.env.test-users.local')
 const SUPABASE_URL = appEnv.VITE_SUPABASE_URL
+assert.equal(new URL(SUPABASE_URL).hostname, 'cofnrcgsolluyhghutah.supabase.co', 'Regression fixtures must run on synthetic staging')
 const ANON_KEY = appEnv.VITE_SUPABASE_ANON_KEY
 const CLINIC_A_ID = '23e03361-9d6c-49f5-83b7-ad57f4a0c5ce'
 
@@ -57,9 +60,7 @@ async function makeVisit(client, complaint) {
 }
 
 async function billAsPayLater(visitId) {
-  await doctorA.from('visits').update({ stage: 'with_doctor' }).eq('id', visitId)
-  await doctorA.from('visits').update({ stage: 'packing' }).eq('id', visitId)
-  await receptionA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId)
+  await consultationOnlyFixture(doctorA,receptionA,CLINIC_A_ID,visitId)
   const { data: billId, error } = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'pay_later' })
   if (error) throw new Error(`confirm_bill (pay_later) failed: ${error.message}`)
   return billId
@@ -139,9 +140,7 @@ let visitId, billId
 // ================================================================
 {
   const cashVisitId = await makeVisit(doctorA, 'settle test cash visit')
-  await doctorA.from('visits').update({ stage: 'with_doctor' }).eq('id', cashVisitId)
-  await doctorA.from('visits').update({ stage: 'packing' }).eq('id', cashVisitId)
-  await receptionA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', cashVisitId)
+  await consultationOnlyFixture(doctorA,receptionA,CLINIC_A_ID,cashVisitId)
   const { data: cashBillId } = await receptionA.rpc('confirm_bill', { p_visit_id: cashVisitId, p_payment_method: 'cash' })
 
   const { error: settleCashErr } = await receptionA.rpc('settle_bill', { p_bill_id: cashBillId, p_payment_method: 'cash' })

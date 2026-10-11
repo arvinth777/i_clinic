@@ -47,6 +47,26 @@ Sources: GitHub branch/deployment/Actions APIs, authenticated Vercel metadata,
 Supabase CLI project/migration/function listings, and Supabase dashboard metadata.
 Student-offer comparison and unaccepted recommendation: `docs/hosting-options.md`.
 
+## Production readiness refresh — 2026-10-11
+
+The user approved all four physical clinic-printer samples (short, typical,
+continuation prescription and receipt) in chat. Production updating is authorized,
+but the before-10:00/after-15:00 IST mutation window still applies.
+Read-only checks confirm both Supabase projects are `ACTIVE_HEALTHY`, staging
+has all 60 committed migration versions through `20261010224000`, Vercel project
+`i_clinic` has **no Production-scoped environment variables**, production has
+**no deployed Edge Functions**, and `origin/production` is `41e6504` with guidance
+only. The previously observed empty production schema was not re-inspected in
+this refresh; verify migration history before the first production push.
+
+Before release: reconcile the intended production branch without auto-releasing
+main, configure browser-safe production Supabase variables, migrate the confirmed
+production project via CLI in the permitted window, provision clinic/logins and
+required Edge Functions, and verify the rendered app and role connection.
+Never point production at the synthetic staging database. Backup/restore setup
+and fresh browser offline-reload verification are still open. No production
+configuration, schema, data or deployment was changed by these checks.
+
 ## UI review preview — 2026-10-10
 
 The branch `codex/clinic-screens-handoff` has branch-specific **Preview** variables

@@ -12,3 +12,13 @@ export async function sendToBilling(doctor,reception,clinicId,visitId,amount){
  checked(await command(doctor,'call'));checked(await command(reception,'sent_in'));checked(await command(doctor,'finish'))
  return {final_amount_paise:final,revision_number:revision}
 }
+
+// Legacy report/credit checks still need a valid prescription under the new Finish rule.
+export async function consultationOnlyFixture(doctor,reception,clinicId,visitId,amount){
+ const medicine=checked(await doctor.from('medicines').insert({clinic_id:clinicId,name:`TEST ONLY consultation fixture ${crypto.randomUUID()}`,price_paise:0}).select('id').single())
+ checked(await doctor.rpc('set_medicine_unit_price',{p_medicine_id:medicine.id,p_stock_unit:'tablet',p_price_paise:0}))
+ const counter=checked(await reception.from('stock_points').select('id').eq('clinic_id',clinicId).eq('name','Counter').single()).id
+ checked(await reception.rpc('adjust_stock',{p_clinic_id:clinicId,p_medicine_id:medicine.id,p_stock_point_id:counter,p_quantity_delta:1,p_reason:'Synthetic regression fixture stock'}))
+ checked(await doctor.rpc('save_prescription',{p_prescription_id:crypto.randomUUID(),p_visit_id:visitId,p_items:[{id:crypto.randomUUID(),medicine_id:medicine.id,quantity_dispensed:1,dosage_frequency:'SOS',duration_days:1}]}))
+ return sendToBilling(doctor,reception,clinicId,visitId,amount)
+}

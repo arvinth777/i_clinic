@@ -1,3 +1,4 @@
+import {consultationOnlyFixture} from './clinic-workflow-fixture.mjs'
 // TDD for Phase E (docs/build-plan.md): reports -- daily, monthly, GST.
 // The whole phase turns on one thing: admin sees financial aggregates
 // with zero row-level access to patients/visits/bills/prescriptions/
@@ -16,6 +17,7 @@
 //
 // Run from the project root: node scripts/phase-e-test.mjs
 
+import assert from 'node:assert/strict'
 import { createClient } from '@supabase/supabase-js'
 import { readFileSync } from 'node:fs'
 import ws from 'ws'
@@ -35,6 +37,7 @@ function loadEnv(path) {
 const appEnv = loadEnv('.env.local')
 const userEnv = loadEnv('.env.test-users.local')
 const SUPABASE_URL = appEnv.VITE_SUPABASE_URL
+assert.equal(new URL(SUPABASE_URL).hostname, 'cofnrcgsolluyhghutah.supabase.co', 'Regression fixtures must run on synthetic staging')
 const ANON_KEY = appEnv.VITE_SUPABASE_ANON_KEY
 const CLINIC_A_ID = '23e03361-9d6c-49f5-83b7-ad57f4a0c5ce'
 
@@ -61,12 +64,7 @@ async function makeVisit(complaint) {
 }
 
 async function billAs(visitId, paymentMethod, finalAmountPaise) {
-  await doctorA.from('visits').update({ stage: 'with_doctor' }).eq('id', visitId)
-  if (finalAmountPaise != null) {
-    await doctorA.from('visit_pricing').update({ final_amount_paise: finalAmountPaise }).eq('visit_id', visitId)
-  }
-  await doctorA.from('visits').update({ stage: 'packing' }).eq('id', visitId)
-  await receptionA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId)
+  await consultationOnlyFixture(doctorA,receptionA,CLINIC_A_ID,visitId,finalAmountPaise ?? undefined)
   const { data: billId, error } = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: paymentMethod })
   if (error) throw new Error(`confirm_bill failed: ${error.message}`)
   return billId

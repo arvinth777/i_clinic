@@ -43,5 +43,12 @@ reception/doctor/admin/anonymous/other-clinic boundaries, discount rejection,
 immutable paid bills, stock concurrency and idempotent retries. Price changes
 record actor/time/old/new; no service-role credential is used by these scripts.
 Independent Standards/Spec source rechecks found no remaining changed-scope
-blocker. The hosted security advisor is unavailable; this is not a full-system
-security certification. Evidence records are synthetic.
+blocker. The staging hosted security advisor was refreshed on 2026-10-11:
+0 errors and 34 warnings, including callable SECURITY DEFINER functions.
+This is not a warning-free result or a full-system security certification.
+Changed-path tests exercise role/clinic checks behind authenticated RPC grants;
+`health_ping` is intentionally public and `rls_auto_enable` is the platform
+trigger helper. The full warning export was unavailable after browser control
+interrupted, so not every warning is claimed individually cleared. Database
+lint has no errors and one `confirm_bill` text-to-jsonb initialization warning.
+Evidence records are synthetic.

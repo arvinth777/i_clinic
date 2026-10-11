@@ -1,5 +1,43 @@
 # Status
 
+## Requested release checks — 2026-10-11
+
+- User confirmed clinic-printer sign-off for short, typical and continuation-page
+  prescriptions plus a receipt. This acceptance gate is now closed.
+- Fresh staging queue, approval snapshot, partial dispensing, quantity pharmacy,
+  audit billing and prescription handoff suites pass. They verify real doctor/
+  reception backend boundaries, frozen paise prices, discount rules, concurrent
+  stock deduction, retries, immutable corrections and clinical-data isolation.
+- Legacy document/follow-up/long-term-care/rep checks passed 38/38; report checks
+  and settlement checks passed 24/24 and 17/17 after adapting fixtures to the
+  current valid-prescription/approval/queue workflow. Both updated scripts now
+  reject non-staging hosts before writes. Their aggregate delta tests must run
+  sequentially: an overlapping run was contaminated by another suite's bills.
+- Offline ownership/replay, print readiness, draft/quantity, legacy paged cache,
+  public health, stock expiry rendering and legacy-unit checks pass. Fresh browser
+  offline reload remains unavailable: network emulation was rejected by automatic
+  approval review and was not retried through another method. This is not a claim
+  that the browser offline acceptance gate passed.
+- Staging has all 60 committed migration versions; database lint has zero errors
+  and one text-to-jsonb initialization warning in `confirm_bill`. Hosted advisor
+  refresh shows 0 errors / 34 warnings. Changed-path role tests pass; the complete
+  warning list is not claimed cleared (see `docs/security-review.md`).
+- Production readiness: both Supabase projects are healthy, but Vercel has no
+  Production variables, production has no deployed Edge Functions and the release
+  branch still contains guidance rather than the app. Initial production schema
+  provisioning and branch/config reconciliation remain. See `docs/runbook.md`.
+- Production updating is authorized, but no production change was made during
+  clinic hours (checked around 11:13 IST). The allowed window remains before 10:00
+  or after 15:00 IST. No timer or automatic release was scheduled.
+- Fresh sequential rerun: reports 24/24, settlement 17/17, production build
+  passes and lint has zero errors / seven existing warnings. The earlier overlap
+  failed three report delta assertions; the clean rerun closes that test issue.
+- Checkpoint commits three regression-test files plus STATUS, runbook and security
+  notes to PR #5; independent Standards and Spec reviewers found no blocker in
+  test changes. No uncommitted implementation work remains after this checkpoint.
+  Next: resolve the browser offline gate, then provision/review production in the
+  permitted window and verify the deployed role flow before claiming release.
+
 ## Queue, money and corrected doctor workspace — 2026-10-11
 
 - Implemented the corrected Doctor HTML, real reception acknowledgement, logged
@@ -38,7 +76,7 @@
   this is boundary evidence, not a fresh browser network-offline test.
 - Independent Standards and Spec reviews rechecked the fixes and found no remaining
   blocker in the changed scope. Security tests caught and closed reception access
-  to clinical approval snapshots. A fresh hosted security-advisor run is unavailable.
+  to clinical approval snapshots. The subsequent hosted advisor refresh is recorded above.
 - PR #4 (`56ae668`) and PR #5 (`dee802c`) are pushed as drafts. Vercel
   built the screen preview at `iclinic-35ot07bdj-arvinth777s-projects.vercel.app`.
   Authenticated browser sign-in loaded the corrected doctor layout and real queue
