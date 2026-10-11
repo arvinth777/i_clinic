@@ -11,9 +11,11 @@ export function subscribeUploads(listener: () => void) { listeners.add(listener)
 function notify() { for (const listener of listeners) listener() }
 export async function listUploads() { return (await entries<string, DocumentUpload>(store)).map(([, upload]) => upload).sort((a, b) => a.createdAt.localeCompare(b.createdAt)) }
 export async function queueDocument(metadata: FileMetadata, file: Blob) {
-  validateMetadata(metadata); await validateFile(file)
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new Error('Sign in before adding a document.')
+  validateMetadata(metadata); await validateFile(file)
+  const current = (await supabase.auth.getSession()).data.session
+  if (current?.user.id !== session.user.id) throw new Error('Your account changed. Return to the account that selected this file.')
   const upload = { id: metadata.id, ownerId: session.user.id, clinicId: metadata.clinic_id, metadata, file, createdAt: new Date().toISOString() }
   await set(upload.id, upload, store)
   notify()

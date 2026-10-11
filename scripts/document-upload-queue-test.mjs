@@ -39,3 +39,17 @@ online = true; failure = new DocumentError('Temporary outage', 503); await queue
 failure = null; await queue.drainUploads(); assert.equal(rows.size, 0)
 online = false; await queue.queueDocument(metadata, file); await queue.cancelUpload(metadata.id); assert.equal(rows.size, 0)
 console.log('PASS: transient errors retain bytes and retry; original account can remove a pending upload')
+
+userId = 'doctor-a'; online = false
+class SwitchingBlob extends Blob {
+ slice(...args) {
+  const chunk = super.slice(...args)
+  const read = chunk.arrayBuffer.bind(chunk)
+  chunk.arrayBuffer = async () => { userId = 'reception-b'; return read() }
+  return chunk
+ }
+}
+await assert.rejects(queue.queueDocument(metadata, new SwitchingBlob(['%PDF-1.4\nsynthetic'], { type: 'application/pdf' })), /account changed/)
+assert.equal(rows.size, 0)
+userId = 'doctor-a'
+console.log('PASS: account switch during file validation cannot reassign or persist an upload')

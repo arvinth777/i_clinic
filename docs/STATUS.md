@@ -1,5 +1,31 @@
 # Status
 
+## Google Drive integration — 2026-10-11
+
+- Integrated the isolated patient-document feature into the released app on
+  `codex/clinic-drive-integration`, retaining current UI, history and deep links.
+  PDF/JPG/PNG uploads and previews are doctor-only; Drive holds private bytes,
+  Supabase holds patient links, and IndexedDB retains pending uploads.
+- Staging-only migration `20261011120000_patient_drive_files.sql` and
+  `patient-documents` endpoint deployed. Database lint: zero errors. Hosted
+  role checks pass for doctor, reception, admin-only, other clinic and anonymous
+  clients; direct metadata writes and credential/state reads are denied.
+- Fresh handler, upload-queue and isolated PostgreSQL/RLS suites pass. Build and
+  strict endpoint TypeScript pass; lint has zero errors and seven existing warnings.
+  Chrome checks at 1440/390px pass for layout, PDF/image preview, keyboard focus,
+  draft preservation and locking during open/delayed previews. Evidence:
+  `docs/evidence/patient-documents-integration/`.
+- Independent code reviews found two privacy bugs; both are fixed and rechecked:
+  account switching during file validation and native preview above screen lock.
+- Google account and OAuth client are not created yet. Staging reports setup
+  pending honestly. No real Google consent/upload/download/reconnect or phone
+  file-selection check has run. Browser offline reload remains unverified after
+  automatic approval review rejected network emulation; no workaround was tried.
+- Production is unchanged. Cloudflare R2/backups remain deferred as requested.
+  Next: create the clinic Google account, configure a separate synthetic staging
+  OAuth connection, verify live Drive flows, then review production promotion.
+
+
 ## Initial production release — 2026-10-11
 
 - User explicitly requested production updating now, overriding this release's

@@ -89,7 +89,7 @@ function App() {
         onSelectSection={setManualSection}
       >
         {activeSection === 'reception' && <Reception userId={session.user.id} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
-        {activeSection === 'patients' && clinicId && <Patients initialPatientId={recordPatientId} clinicId={clinicId} isDoctor={!!roles?.some(r => r.role === 'doctor')} canBill={!!roles?.some(r => r.role === 'receptionist')} />}
+        {activeSection === 'patients' && clinicId && <Patients locked={locked} initialPatientId={recordPatientId} clinicId={clinicId} isDoctor={!!roles?.some(r => r.role === 'doctor')} canBill={!!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'billing' && clinicId && <BillingDesk clinicId={clinicId} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'unpaid' && clinicId && <UnpaidBills clinicId={clinicId} />}
         {activeSection === 'consultation' && <Consultation userId={session.user.id} onOpenPatient={id=>{setRecordPatientId(id);setManualSection('patients')}} />}

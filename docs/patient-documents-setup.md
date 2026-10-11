@@ -1,7 +1,7 @@
 # Patient documents in Google Drive
 
 Integrated from `codex/clinic-drive-documents` into `codex/clinic-drive-integration`, based on the released app. The unshipped migration is dated after the production bootstrap; its SQL content is unchanged. Nothing in this branch
-connects a Google account or deploys a database/function automatically.
+connects a Google account automatically. The migration and endpoint are now deployed to staging; production remains unchanged.
 
 ## What is included
 
@@ -114,6 +114,7 @@ Run with Node 24 from the checkout:
 ```sh
 node scripts/patient-documents-test.mjs
 node scripts/document-upload-queue-test.mjs
+node scripts/patient-documents-staging-test.mjs # authenticated CLI + private staging test-user file
 node scripts/offline-queue-owner-test.mjs
 node scripts/prescription-draft-test.mjs
 npm run lint
@@ -140,12 +141,21 @@ link as if it were a real saved file.
 Local checks cover doctor/reception/other-clinic/anonymous access, protected
 credentials, one-use OAuth state, encryption integrity, metadata and file
 validation, upload retries, merge preservation and account-bound offline saves.
-Chrome checks cover actual IndexedDB persistence across an offline production
-reload, 1440/390px rendering, PDF viewing, dialog keyboard dismissal and focus.
-Evidence is in `docs/evidence/patient-documents/`.
+Fresh Chrome checks on the integrated component cover 1440/390px rendering,
+PDF/image viewing, dialog keyboard dismissal and focus return, and privacy
+when locking during an open or downloading preview. Evidence is in
+`docs/evidence/patient-documents-integration/`. Queue tests verify durable Blob
+persistence and account-bound replay. Actual browser offline reload remains
+unverified: network emulation was rejected by automatic approval review and
+was not retried through another method. Earlier isolated-branch evidence in
+`docs/evidence/patient-documents/` is not fresh verification of this integration.
 
-**Before release:** apply/test the migration on staging, test the actual Google
+The staging migration, database lint and hosted doctor/reception/other-clinic/
+anonymous permission checks pass. Independent Standards and Spec reviews found
+no remaining blocker after account-switch and lock privacy fixes.
+
+**Before release:** test the actual Google
 consent/upload/download/reconnect flow and file-size limit, run the available
-Supabase security advisor, and obtain independent code review. None of those
+Supabase security advisor and verify the final configured deployment. None of those
 external checks is replaced by the local test doubles. The native PDF check is
 Chrome desktop; mobile Safari and actual phone file selection need checking.

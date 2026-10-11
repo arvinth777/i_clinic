@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatDate, formatDateOnly } from '../lib/date'
@@ -9,7 +9,7 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import './PatientDocuments.css'
 
-export function PatientDocuments({ clinicId, patientId }: { clinicId: string; patientId: string }) {
+export function PatientDocuments({ clinicId, patientId, locked = false }: { clinicId: string; patientId: string; locked?: boolean }) {
   const client = useQueryClient()
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<string>('Other')
@@ -24,6 +24,12 @@ export function PatientDocuments({ clinicId, patientId }: { clinicId: string; pa
   const input = useRef<HTMLInputElement>(null)
   const dialog = useRef<HTMLDialogElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
+  const previewVersion = useRef(0)
+  useLayoutEffect(() => {
+    const invalidate = () => { previewVersion.current++ }
+    invalidate()
+    return invalidate
+  }, [locked])
   const status = useQuery({ queryKey: ['drive-status', clinicId], queryFn: () => documentRequest<DriveStatus>('status', { clinic_id: clinicId }), retry: false })
   const files = useQuery({ queryKey: ['patient-files', clinicId, patientId, limit], enabled: !!status.data?.configured, queryFn: async () => {
     const { data, error } = await supabase.from('patient_files').select('id, clinic_id, patient_id, title, category, examination_date, note, mime_type, size_bytes, created_at, status').eq('clinic_id', clinicId).eq('patient_id', patientId).eq('status', 'ready').order('created_at', { ascending: false }).order('id').limit(limit + 1)
@@ -41,13 +47,15 @@ export function PatientDocuments({ clinicId, patientId }: { clinicId: string; pa
     const unsubscribe = subscribeUploads(() => { void refresh() })
     return () => { alive = false; unsubscribe() }
   }, [clinicId, patientId])
-  useEffect(() => {
-    if (!preview) return
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url) }, [preview])
+  useLayoutEffect(() => {
+    if (!preview || locked) return
     const previous = returnFocus.current
+    const modal = dialog.current
     const oldOverflow = document.documentElement.style.overflow
-    dialog.current?.showModal(); document.documentElement.style.overflow = 'hidden'
-    return () => { URL.revokeObjectURL(preview.url); document.documentElement.style.overflow = oldOverflow; previous?.focus() }
-  }, [preview])
+    modal?.showModal(); document.documentElement.style.overflow = 'hidden'
+    return () => { modal?.close(); document.documentElement.style.overflow = oldOverflow; previous?.focus() }
+  }, [preview, locked])
   async function run(action: () => Promise<void>) {
     setBusy(true); setError('')
     try { await action() } catch (error) { setError(error instanceof Error ? error.message : 'Could not complete the document action.') } finally { setBusy(false) }
@@ -61,11 +69,13 @@ export function PatientDocuments({ clinicId, patientId }: { clinicId: string; pa
     })
   }
   async function open(record: PatientFile) {
+    const version = previewVersion.current
     returnFocus.current = document.activeElement as HTMLElement | null
     await run(async () => {
       const blob = await documentRequest<Blob>('content', { clinic_id: clinicId, patient_id: patientId, id: record.id }, undefined, true)
       const result = await documentRequest<{ url: string }>('link', { clinic_id: clinicId, patient_id: patientId, id: record.id })
       if (new URL(result.url).origin !== 'https://drive.google.com') throw new Error('Invalid Drive link.')
+      if (version !== previewVersion.current) return
       setPreview({ url: URL.createObjectURL(blob), driveUrl: result.url, file: record })
     })
   }
@@ -94,7 +104,7 @@ export function PatientDocuments({ clinicId, patientId }: { clinicId: string; pa
       {files.data?.length === 0 && <p className="readout-empty">No documents uploaded for this patient yet.</p>}
       {(files.data?.length ?? 0) > limit && <Button variant="secondary" onClick={() => setLimit(limit + 50)}>Show more</Button>}
     </div>
-    {preview && <dialog ref={dialog} className="document-preview" aria-labelledby="patient-document-preview-title" onCancel={e => { e.preventDefault(); setPreview(null) }} onClick={e => { if (e.target === e.currentTarget) setPreview(null) }}><header><h2 id="patient-document-preview-title">{preview.file.title}</h2><Button variant="ghost" onClick={() => setPreview(null)}>Close</Button></header>
+    {preview && !locked && <dialog ref={dialog} className="document-preview" aria-labelledby="patient-document-preview-title" onCancel={e => { e.preventDefault(); setPreview(null) }} onClick={e => { if (e.target === e.currentTarget) setPreview(null) }}><header><h2 id="patient-document-preview-title">{preview.file.title}</h2><Button variant="ghost" onClick={() => setPreview(null)}>Close</Button></header>
       {preview.file.mime_type === 'application/pdf' ? <iframe title={preview.file.title} src={preview.url} /> : <img src={preview.url} alt={preview.file.title} />}
       <footer><a href={preview.url} download={`${preview.file.title}.${preview.file.mime_type === 'application/pdf' ? 'pdf' : preview.file.mime_type === 'image/png' ? 'png' : 'jpg'}`}>Download</a><a href={preview.driveUrl} target="_blank" rel="noopener noreferrer">Open in Drive</a></footer>
     </dialog>}
