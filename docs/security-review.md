@@ -107,3 +107,14 @@ Google transient outages remain retryable errors. Tests cover both paths.
 Production migration dry-run identified only the missing patient-file migration
 (before already-applied realtime migration); `--include-all` applied that file
 only. Production role endpoint checks are read-only and do not create patients.
+
+Fresh staging Supabase security advisor (2026-10-11): Drive credential/state
+tables report RLS-with-no-policy informational findings intentionally: browser
+roles have no grants/policies, and the backend alone accesses them. Existing
+health/event-trigger and role-checked clinical SECURITY DEFINER RPC advisories
+remain, as does disabled leaked-password protection. These findings are not
+a clean advisor pass and were not silently changed by this feature. Hosted
+negative role tests verify the changed document/alert paths.
+References: [RLS no-policy advisory](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy),
+[function execution advisory](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable),
+[leaked-password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).

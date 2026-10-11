@@ -39,6 +39,10 @@
   `docs/evidence/drive-alerts/`; account chooser evidence stays private.
 - Uncommitted work: none after this release evidence commit. Original checkout's
   user notes were preserved; work is attached under the clinic-alerts worktree.
+- Fresh staging security advisor ran: intentional service-only Drive tables
+  produce RLS/no-policy informational notices; existing function-execution and
+  leaked-password advisories remain. See security-review.md; no clean advisor
+  pass is claimed.
 - Remaining: production Google consent/callback verification; browser offline
   reload remains unverified after an earlier automatic approval rejection.
   Loudspeaker audibility is not measured. Automatic prescription/receipt PDF
