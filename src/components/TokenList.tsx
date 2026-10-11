@@ -1,5 +1,5 @@
 import { LoadingRows, QueryError } from './QueryState'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { startOfToday, elapsedMinutes, formatElapsed } from '../lib/date'
@@ -61,7 +61,7 @@ function sortValue(v: Visit, key: SortKey): string | number {
   }
 }
 
-export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSelectVisit?: (visitId: string) => void }) {
+export function TokenList({ clinicId, onSelectVisit, highlightVisitId }: { clinicId: string; onSelectVisit?: (visitId: string) => void; highlightVisitId?: string }) {
   const queryClient = useQueryClient()
   const queryKey = ['visits-today', clinicId]
   const interval = useQueuePollInterval()
@@ -111,6 +111,8 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
     },
   })
 
+  const focused = useQuery({queryKey:['queue-alert-visit',clinicId,highlightVisitId],enabled:!!highlightVisitId,queryFn:async()=>{const {data,error}=await supabase.from('visits').select('id, token_number, stage, arrived_at, complaint, queue_position, not_here_at, queue_note, patients(name, age, gender)').eq('clinic_id',clinicId).eq('id',highlightVisitId!).maybeSingle();if(error)throw error;return data as unknown as Visit|null}})
+  useEffect(() => { if (focused.data) { setFilter(focused.data.arrived_at < today ? 'earlier' : 'all'); setVisibleCount(50) } }, [highlightVisitId,focused.data,today])
   const showingEarlier = filter === 'earlier'
   const viewData = showingEarlier ? earlier.data?.pages.flat() : data
   const viewError = showingEarlier ? earlier.isError : isError
@@ -118,7 +120,8 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
   const savedAt = showingEarlier ? earlier.dataUpdatedAt : dataUpdatedAt
   if (showingEarlier ? earlier.isLoading : isLoading) return <LoadingRows label="Loading queue…" />
   if (viewError && !viewData) return <QueryError retry={() => void reload()} />
-  const rows = sortRows((viewData ?? []).filter(v => showingEarlier ? v.arrived_at < today && !['paid','no_show'].includes(v.stage) : v.arrived_at >= today && (filter === 'all' || (filter === 'done' ? ['paid','no_show'].includes(v.stage) : !['paid','no_show'].includes(v.stage)))), sort, sortValue)
+  const viewWithFocus = focused.data && !(viewData ?? []).some(v=>v.id===focused.data!.id) ? [focused.data,...(viewData ?? [])] : viewData ?? []
+  const rows = sortRows(viewWithFocus.filter(v => showingEarlier ? v.arrived_at < today && !['paid','no_show'].includes(v.stage) : v.arrived_at >= today && (filter === 'all' || (filter === 'done' ? ['paid','no_show'].includes(v.stage) : !['paid','no_show'].includes(v.stage)))), sort, sortValue)
   const act = (v: Visit, value: QueueAction) => action.mutate({ visitId:v.id, action:value, reason })
   return <div className="queue-worklist">
     {viewError && <QueryError retry={() => void reload()} savedAt={savedAt} />}
@@ -129,7 +132,7 @@ export function TokenList({ clinicId, onSelectVisit }: { clinicId: string; onSel
     {onSelectVisit && <Input aria-label="Optional queue move reason" placeholder="Move reason (optional)" value={reason} onChange={e=>setReason(e.target.value)} maxLength={500} />}
     {action.isError && <p className="form-error" role="alert">{action.error.message}</p>}
     {!rows.length && <p className="readout-empty">No patients in this view.</p>}
-    <ul className={viewError ? "queue-patients stale-copy" : "queue-patients"}>{rows.slice(0, visibleCount).map(v => <li className="queue-patient" key={v.id}>
+    <ul className={viewError ? "queue-patients stale-copy" : "queue-patients"}>{[...rows].sort((a,b) => Number(b.id === highlightVisitId) - Number(a.id === highlightVisitId)).slice(0, visibleCount).map(v => <li className={`queue-patient${v.id === highlightVisitId ? ' alert-highlight' : ''}`} key={v.id}>
       <strong className="queue-token">#{v.token_number}</strong>
       <div className="queue-patient-name"><strong>{v.patients?.name}</strong> <span>{[v.patients?.age, v.patients?.gender].filter(Boolean).join(' ')}</span><p>{v.complaint}</p>{v.queue_note && <p className="status-blue">{v.queue_note}</p>}{v.not_here_at && <p>Not here since {new Date(v.not_here_at).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</p>}</div>
       <time className="queue-time" dateTime={v.arrived_at} title={new Date(v.arrived_at).toLocaleString()}>{formatElapsed(v.arrived_at)}</time>

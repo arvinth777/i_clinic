@@ -20,7 +20,7 @@ export const stockQueryKey = (clinicId: string) => ['stock', clinicId]
 
 type ActionKey = 'purchase' | 'transfer' | 'count' | 'adjust' | null
 
-export function StockList({ clinicId }: { clinicId: string }) {
+export function StockList({ clinicId, highlightMedicineId }: { clinicId: string; highlightMedicineId?: string }) {
   const queryClient = useQueryClient()
   const queryKey = stockQueryKey(clinicId)
   const [visibleCount, setVisibleCount] = useState(50)
@@ -72,7 +72,7 @@ export function StockList({ clinicId }: { clinicId: string }) {
     const total = stock.reduce((sum, r) => sum + r.quantity, 0)
     return { ...m, total, low: m.low_stock_threshold != null && total <= m.low_stock_threshold, expiry: stock.some(r => r.quantity > 0) ? expiryStatus(m.expiry_date) : null }
   })
-  const visible = rows.filter(m => m.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()) && (filter === 'all' || (filter === 'low' ? m.low : !!m.expiry)))
+  const visible = rows.filter(m => m.id === highlightMedicineId || m.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()) && (filter === 'all' || (filter === 'low' ? m.low : !!m.expiry)))
   const labelledMedicines = (medicines ?? []).map((m) => ({ ...m, name: `${m.name} (${m.stock_unit ?? 'unit not confirmed'})` }))
 
   if (action !== null) {
@@ -127,7 +127,7 @@ export function StockList({ clinicId }: { clinicId: string }) {
         {stockPoints.map(sp => <TableHead key={sp.id} className="text-right">{sp.name}</TableHead>)}
         <TableHead className="text-right">Total stock</TableHead><TableHead>Expiry</TableHead>
       </TableRow></TableHeader><TableBody>
-        {visible.slice(0, visibleCount).map(m => <TableRow key={m.id}>
+        {[...visible].sort((a,b) => Number(b.id === highlightMedicineId) - Number(a.id === highlightMedicineId)).slice(0, visibleCount).map(m => <TableRow key={m.id} className={m.id === highlightMedicineId ? 'alert-highlight' : undefined}>
           <TableCell><strong>{m.name}</strong><p className="field-hint">{m.unit_confirmed_at ? m.stock_unit : 'Confirm unit and price before billing'}</p></TableCell>
           <TableCell className="tabular-nums">{formatPaise(m.price_paise)}<p className="field-hint">per {m.stock_unit ?? 'unconfirmed unit'}</p></TableCell>
           {stockPoints.map(sp => <TableCell key={sp.id} className={`text-right tabular-nums ${quantityAt(m.id, sp.id) < 0 ? 'stock-qty-negative' : ''}`}>{quantityAt(m.id, sp.id)}</TableCell>)}

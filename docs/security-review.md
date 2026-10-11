@@ -87,3 +87,16 @@ Staging partial-dispensing role/discount/stock tests pass. Hosted advisor has ze
 errors/34 existing warnings, plus two intentional Drive private-table information
 notices. Four existing dependency advisories remain; no full-backlog clearance
 is claimed. No production security configuration changed.
+
+## Drive/alerts follow-up — 2026-10-11
+
+Alerts add no tables, grants or schema changes. Reads remain clinic scoped and
+RLS enforced; hosted synthetic tests exercise doctor/reception, admin-only
+clinical denial and other-clinic denial. Alert history/chime IDs are partitioned
+by clinic/user in IndexedDB; AppShell resets on account changes and the drawer
+is hidden while locked. Reception receives no clinical history/document query.
+Targets re-read state before navigation and rely on existing destination/backend
+permissions; read/dismiss never changes a visit or bill. Credentials and Google
+refresh tokens remain server-side; private recovery env files stay outside Git.
+Production Drive uses a separate encryption key and requires its own Google
+consent; staging connection success does not prove production configuration.

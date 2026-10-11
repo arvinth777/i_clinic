@@ -12,7 +12,7 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]['key']
 
-export function Stock({ clinicId }: { clinicId: string }) {
+export function Stock({ clinicId, highlightMedicineId }: { clinicId: string; highlightMedicineId?: string }) {
   const [tab, setTab] = useState<TabKey>('stock')
 
   return (
@@ -32,7 +32,7 @@ export function Stock({ clinicId }: { clinicId: string }) {
         ))}
       </nav>
       <div className="admin-panel">
-        {tab === 'stock' && <StockList clinicId={clinicId} />}
+        {tab === 'stock' && <StockList highlightMedicineId={highlightMedicineId} clinicId={clinicId} />}
         {tab === 'prices' && <DrugList clinicId={clinicId} pricesOnly />}
         {tab === 'suppliers' && <Suppliers clinicId={clinicId} />}
       </div>

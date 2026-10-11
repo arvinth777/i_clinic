@@ -2158,3 +2158,32 @@ supply migrations and browser verification. Physical-print and fresh browser
 offline release gates remain; production is untouched.
 The approval action uses the existing secondary variant so this stacked PR builds
 independently before step 4 introduces the dark button variant.
+
+## Drive and actionable alerts — 2026-10-11 (review pending)
+
+Staging Drive is connected. Real synthetic PNG/PDF uploads, repeated-upload
+idempotency, authenticated checksum-matched downloads and PDF browser preview
+passed. Hosted backend role/isolation tests passed; admin catalog reads are
+intentionally allowed, while clinical visits remain denied. No production
+Drive configuration or new release has been applied in this follow-up yet.
+
+Added reception call sound (explicit enable per session, mute, IndexedDB event
+deduplication) and role-scoped Alerts with read/dismiss/resolved history on
+this account/device. Reminders use 5 minutes for called-but-not-sent and 4 PM
+IST for closing review. Alerts refetch before opening their token, bill,
+medicine or patient document; they never execute clinical/billing actions.
+History retains all active alerts and the latest 500 resolved entries.
+
+Checks: build, local alert/chime/retention tests, hosted staging alert source
+role tests, document endpoint/upload queue tests, offline owner replay, print
+snapshot and queue-performance tests passed. Browser dismissal survives
+reload; Open selects bill #840; reception sound enable succeeds; Hanken
+Grotesk and no page overflow confirmed at 390/1440 px. Evidence lives in
+`docs/evidence/drive-alerts/`. Browser offline reload remains unverified
+(previous automatic approval rejection); real cross-role chime timing and
+production consent still require verification. Automatic PDF archival remains
+a separate approved backlog item, not implemented by manual upload.
+
+Uncommitted work: alert components/model, destination navigation, scripts and
+evidence. Next: review both standards/spec, verify cross-role call/sent flow,
+then promote reviewed Drive/alerts and complete production Google consent.

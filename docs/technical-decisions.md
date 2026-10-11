@@ -79,3 +79,19 @@ protect the file boundary. The browser PDF renderer requires an unsandboxed
 PDF iframe; HTML/SVG are rejected and responses are forced to the stored
 allowlisted MIME. Signature validation is not an antivirus scan.
 Setup and known operational limits: `patient-documents-setup.md`.
+
+## Actionable alerts and call sound — 2026-10-11
+
+Alerts derive from scoped database reads; realtime invalidates their query.
+Open refetches and verifies the visit's latest stage before choosing its
+permitted destination. No reminder automatically calls, pays or marks no-show.
+Called-but-not-sent reminder is 5 minutes; closing review starts at 16:00
+Asia/Kolkata. Read/dismiss/resolved history is IndexedDB account/clinic/device
+state, with all current alerts retained and resolved history capped at 500.
+Failed/offline reads preserve unresolved history.
+
+Reception enables Web Audio through an explicit gesture each session. Only
+call events newer than enablement and less than 10 seconds old qualify; an
+atomic IndexedDB event ledger prevents refetch/reload/cross-tab duplicates.
+Sound is supplemental: browser audio restrictions and client clock skew may
+suppress it, and the real queue remains authoritative.

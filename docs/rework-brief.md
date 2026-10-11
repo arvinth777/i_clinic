@@ -129,6 +129,179 @@ packaging. No automatic stock conversion or historical paid-bill rewriting.
 Catalog price edits apply to new prescriptions/sales; prepared entries retain
 their saved price. Staging implementation and evidence are in docs/STATUS.md.
 
+## Future work: second doctor with shared reception — 2026-10-11
+
+Requested for later planning, not current implementation. Support two doctors
+working simultaneously with one reception page. The user will explain their
+different workflows before requirements are finalised. Do not assume that
+adding a second doctor login provides independent consultations.
+
+Current constraints verified in source: accounts can hold the doctor role, but
+the consultation screen selects a clinic-wide active visit and the queue RPC
+allows only one called/with-doctor visit per clinic. Doctor name and registration
+are clinic settings; the existing letterhead identifies the current doctor.
+
+Proposed reception integration to evaluate:
+- Keep one patient search/check-in flow, billing desk and inventory.
+- Assign a consultation to a doctor; show each doctor's current patient,
+  waiting count and availability together on the reception page.
+- Label every called/sent-in event with doctor and token so reception knows
+  which room to send the patient to. Each doctor's screen shows their own work.
+- Preserve existing records and the single-doctor flow during the transition.
+
+Problems and decisions to resolve before building:
+- Routing: doctor selection, shared versus separate waiting lists, token
+  numbering, reassignment, absent doctors and patients consulting both doctors.
+- Concurrency: two doctors calling at once must not claim the same patient;
+  active-consultation checks, realtime refetches, cache keys and offline replay
+  must respect doctor assignment and handle stale/reassigned visits safely.
+- Access: decide whether clinical history, private notes and Drive attachments
+  are shared between doctors. Test backend permissions, not just UI filters.
+- Clinical ownership: record the treating/prescribing/approving doctor and
+  decide who may edit, hand over, approve quantities or discount another
+  doctor's visit. Retain actor audits and approval snapshots.
+- Printing: doctor profiles, registration numbers and letterheads must match
+  the issued prescription; historical/offline snapshots retain the original
+  identity. New layouts require physical-printer sign-off.
+- Charges and reporting: confirm fees for each doctor and two-doctor visits,
+  discount authority, receipts and doctor-level revenue attribution. Keep
+  integer paise, immutable paid bills and atomic/idempotent stock deduction.
+
+Future acceptance checks: simultaneous consultations on two doctor screens
+and one reception screen; concurrent calls, reassignment, reconnect/offline
+retries, cross-doctor permission denials, correct print identity and unchanged
+single-doctor/refill/billing/stock behaviour. No workflow choice above is final
+until the user supplies the second doctor's process.
+
+## Far-future realtime scaling — 2026-10-11
+
+User requested a long-term evaluation of dedicated WebSockets or server-sent
+events (SSE) as usage grows; the current version retains Supabase Realtime.
+Supabase already delivers notifications over WebSockets. SSE is an alternative
+server-to-browser transport with ordinary HTTP writes, not a requirement to
+operate both transports or a committed migration choice.
+
+Revisit when concurrent staff/clinic growth, measured cross-role delays,
+reconnect failures or service limits justify it. Compare private Supabase
+Broadcast first with a dedicated WebSocket or SSE service. Measure click to
+committed save to visible update across doctor/reception clients under expected
+load, including concurrent actions and reconnects; agree latency and capacity
+targets before choosing a replacement. Preserve database authority, authorised
+clinic/doctor channels, invalidation/refetch, durable IndexedDB writes, explicit
+pending status, replay idempotency and fallback recovery. Transport changes do
+not solve the separate multi-doctor workflow constraints above.
+
+No new realtime infrastructure is approved for this version. Existing checks
+support the current small-clinic scope; they do not prove unlimited capacity or
+guarantee instant communication during internet outages.
+
+## Alert backlog — 2026-10-11 side-conversation decision
+
+User-requested order for this follow-up work:
+1. Configure the supplied Google OAuth JSON credentials securely on staging
+   and test the clinic Google Drive connection. The user reports creating the
+   account/client and saving the staging callback after downloading the JSON;
+   this is not evidence of a working connection.
+   Setup context supplied by the user: created a clinic Google account and
+   Google Cloud project, enabled Google Drive API, created the web OAuth client
+   in Google Cloud Console, and downloaded its credentials JSON to
+   `/Users/arvinthcinmayankirupakaran/Downloads/client_secret_841094055048-6dstgq429ll0t31mapbl7ls04bsapl3t.apps.googleusercontent.com.json`.
+   After downloading, added the authorized redirect URI on the same client:
+   `https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app/?drive_callback=1`.
+   The downloaded JSON may therefore contain an older redirect list; this does
+   not invalidate its client ID/secret. Google uses the saved Console redirect
+   configuration and requires the app's redirect to match exactly.
+   The file has not been opened or imported in this side conversation. Keep
+   its contents outside Git and the frontend. Remaining: verify the current
+   staging target/callback and Console test-user/scope setup, securely configure
+   backend credentials and token encryption, then test consent, upload, preview,
+   download and reconnect. No production Google setup or live connection has
+   been verified here.
+2. Add a gentle reception chime when the doctor calls a patient, with explicit
+   sound enablement and mute. Deduplicate events across refetch/reconnect so a
+   call does not repeatedly sound.
+3. Add actionable in-app alerts: clicking opens the permitted destination and
+   highlights the relevant token, bill, medicine or stock batch. Cover patient
+   called/sent in, ready to bill, discount review, low stock and nearing expiry.
+   Navigation does not confirm a queue action, payment or stock change. Preserve
+   backend role boundaries and refetch current data before showing an item that
+   may have changed. Browser/OS push is a separate, unapproved feature.
+
+Additional user-approved backlog items (recorded, not implemented):
+- Automatically archive finalised prescriptions and confirmed-payment receipts
+  as PDFs in Google Drive, linked to the patient's profile and source visit/
+  prescription/bill. Current structured prescription/bill history remains the
+  source of truth; no automatic Drive PDF archive exists yet. Use the issued
+  snapshot and same print layout, durable offline retries, visible archive
+  status, and stable source/version identifiers to prevent duplicate uploads.
+  Drive failure must not block consultation, payment or offline printing.
+  Reception-triggered receipt archiving needs a narrowly authorised backend
+  path; it must not grant reception access to clinical documents or Google
+  tokens. Paid-bill corrections produce separate linked archives. Name-only
+  pharmacy sales remain name-only: do not invent a patient profile for them.
+- Failed/pending sync alerts with pending-change details and retry controls.
+- Persistent unread/recent notifications, with read/dismiss and quiet/mute controls.
+- No-show review reminders using the existing configured threshold; removal
+  from the queue remains an explicit reception action.
+- Failed Drive upload and reconnect alerts linked to Documents.
+- Called-patient reminder if reception has not marked Sent in after a
+  configurable delay; choose the delay before implementation.
+- Outstanding-bill alerts at closing time, linked to individual bills; confirm
+  the closing-time setting before implementation.
+- Doctor notice of partial medicine supply, linked to visit history.
+- Duplicate same-day check-in warning before another token is issued; check
+  existing duplicate protections before adding a new flow.
+- Connection lost/restored indication based on real connection/fresh-data state.
+- End-of-day checklist of unresolved visits, unpaid bills, pending saves and
+  failed uploads.
+- Group repeated stock alerts by medicine/batch to avoid notification noise.
+
+Smart-feature priorities clarified by the user:
+- Add possible duplicate patient detection with staff review and an option to
+  merge after review. Reuse and verify the existing merge flow and its role
+  permissions; matching phone/name is a warning, never automatic merging.
+  Preserve visit, billing and document associations without changing paid bills.
+- Add a unified patient document timeline for prescriptions, receipts and
+  uploaded reports, respecting existing role access. Existing visit dates are
+  already tagged; this is a presentation/integration improvement. Date and time
+  are important throughout: distinguish visit/event time, prescription issue,
+  payment, document upload and report/examination date where available. Display
+  timestamps consistently in clinic time and do not invent times for date-only
+  historical reports.
+- Stock-aware billing/earliest-expiry batch suggestions are nice-to-have, lower
+  priority because shortages are rare. Reuse current stock/dispensing checks.
+- Follow-up contact/booking worklist: far-future version, not current priority.
+- Repeat-last-prescription change review was declined. Prescription version/
+  change-history enhancements are deferred; leave current behaviour intact.
+- Partial-supply follow-through (tracking and later supplying a remaining
+  quantity) was explained but is not approved. Existing partial dispensing and
+  shortfall history remain in scope; do not add an owed-medicine workflow yet.
+- Last-visit summary was proposed but not explicitly approved in this reply.
+
+User-approved finishing pass (queued after the already ordered follow-up work):
+- Replace the generic browser title `app` with iClinic and the current section.
+- Make installed-app naming consistent and add appropriate raster home-screen/
+  install icons and launch colours using existing clinic branding tokens.
+  The new vector favicon is already a local change, not a verified deployment.
+- Use readable, consistently capitalised status labels rather than displaying
+  raw database stage names; leave stored statuses unchanged.
+- Replace browser-default confirmation prompts with accessible app dialogs
+  matching the design, preserving consequence descriptions and draft protection.
+- Show relevant dates and times in history; coordinate with the document
+  timeline item above to avoid duplicate work.
+- Check downloaded document filenames, clinic identity on receipts, keyboard
+  focus, and empty/error states; fix confirmed gaps in the affected flows.
+  These last checks are audit targets, not confirmed defects.
+
+Automatic clearing means removing a resolved issue from active alerts, while
+retaining it in recent history: e.g. an unpaid-bill alert clears after payment
+is confirmed. The user approved this behaviour: retain resolved alerts in
+recent history and clear them from the active list after confirmed resolution.
+The user declined the proposed additional lock-screen alert-redaction rule;
+this backlog does not change existing application locking or role permissions.
+Prefer actionable exceptions over routine alerts. This backlog does not replace
+ongoing performance work.
+
 ## Details needed before implementation
 
 - Review the A4 layout proposal and create a visual mockup of the supplied
