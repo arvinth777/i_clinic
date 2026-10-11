@@ -67,8 +67,8 @@ dose × days only for tablets/capsules with a determinate schedule, for explicit
 doctor confirmation/editing. Never suggest for bottles, tubes or SOS, and never
 cap the prescribed quantity at stock. Partial supply is a separate billing fact.
 
-Diagnosis and advice are not dedicated fields in the current prescription save
-path. Adding them requires durable storage, doctor write permissions, historical
+Diagnosis and advice were not dedicated fields in the original prescription save
+path. Their implementation requires durable storage, doctor write permissions, historical
 readback and offline print snapshots; a textarea that only affects the preview
 would lose clinical information. Follow-up currently uses `visits.follow_up_date`
 through `CarePanel`; use that established model rather than a second review date.
@@ -118,7 +118,16 @@ Each implementation PR carries the relevant tests and review evidence itself;
 step 5 is not permission to postpone money, security or offline checks. The
 full definition of done and physical gate are in the addendum.
 
-## Source-backed implementation gaps
+## Implementation checkpoint — 2026-10-11
+
+The queue, approval snapshots, catalog audit, saved clinical fields and partial
+supply below are implemented on the stacked feature branches and tested on
+synthetic staging. The corrected Doctor HTML is preserved as
+`design-source/Doctor-corrected.html`. See `STATUS.md` for fresh evidence and
+remaining offline, comprehensive regression and physical-printer release gates.
+The following list records the original source gaps, not current completion claims.
+
+## Initial source-backed implementation gaps
 
 - Current unit prices are frozen by `snapshot_prescription_unit` when a
   prescription item is inserted. The new requirement freezes bill prices at

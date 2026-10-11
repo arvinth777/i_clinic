@@ -44,4 +44,4 @@ try{
  assert.ok((await doctor.rpc('approve_visit_pricing',{...replay,p_request_id:crypto.randomUUID(),p_expected_lines:before.lines})).error,'different lines cannot pass by reusing a total')
  console.log('PASS: dependent source writes replay against the exact reviewed bill lines')
  console.log('PASS: approval-time unit prices, fixed discount, doctor-only approval, idempotent retries and immutable catalog audit')
-}finally{await Promise.all(clients.map(c=>c.auth.signOut()))}
+}finally{await Promise.all(clients.map(c=>c.auth.signOut({scope:'local'})))}

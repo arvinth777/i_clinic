@@ -1,3 +1,4 @@
+import { usePrintDocument } from '../lib/usePrintDocument'
 import { LoadingRows, QueryError } from './QueryState'
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -147,6 +148,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   const { data: clinic } = clinicQuery
 
   const [paymentMethod, setPaymentMethod] = useState<(typeof PAYMENT_METHODS)[number]['value']>('cash')
+  const print = usePrintDocument(`${clinicId}:${visitId}`)
   const [confirmedBill, setConfirmedBill] = useState<Bill | null>(null)
   const paidBillKey = ['paid-bill', visitId]
   const savedBillQuery = useQuery({
@@ -245,7 +247,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       // Give the DOM a tick to render the printable slip before invoking
       // the browser's print dialog -- the print path stays DOM-based, no
       // server round trip, works with zero connectivity, queued or not.
-      setTimeout(() => window.print(), 100)
+      setTimeout(() => print.mutate(), 100)
     },
   })
 
@@ -261,7 +263,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   return (
     <div className="billing-workspace"><div className="bill-editor">
       <Button className="mobile-list-back" variant="ghost" onClick={onClose}>← Back</Button>
-      {queryError}
+      {queryError}{print.isError && <p className="form-error" role="alert">{print.error.message}</p>}
       <div className={failedReads.length ? "stale-copy" : undefined}>
       <p className="field-hint">{bill ? 'Saved receipt' : 'Consultation bill'} · #{visit.token_number}</p>
       <h2 className="form-heading">
@@ -367,7 +369,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
             {bill.pending && ' Not saved yet — waiting for a connection to actually confirm with the server.'}
           </p>
           <div className="action-row">
-            <Button type="button" variant="dark" disabled={detailStillLoading} onClick={() => window.print()}>
+            <Button type="button" variant="dark" disabled={detailStillLoading || print.isPending} onClick={() => print.mutate()}>
               Print again
             </Button>
             <Button type="button" onClick={onClose}>

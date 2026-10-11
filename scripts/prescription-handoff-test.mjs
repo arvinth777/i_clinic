@@ -70,5 +70,5 @@ try {
   }
   console.log('PASS: reception print fields survive handoff through the authorized billing read, with role/clinic isolation')
 } finally {
-  await Promise.all(clients.map(client => client.auth.signOut()))
+  await Promise.all(clients.map(client => client.auth.signOut({scope:'local'})))
 }

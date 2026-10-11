@@ -1,3 +1,4 @@
+import { usePrintDocument } from '../lib/usePrintDocument'
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
@@ -68,6 +69,7 @@ function PrintableDocument({ doc, patientName, patientAge, doctorName, doctorReg
 }
 
 export function DocumentsPanel({ clinicId, visitId, patientName, patientAge, complaint, issuedBy }: { clinicId: string; visitId: string; patientName: string; patientAge: number | null; complaint: string; issuedBy: string }) {
+  const print = usePrintDocument(`${clinicId}:${visitId}`)
   const [docType, setDocType] = useState<DocType>('certificate')
   const [purpose, setPurpose] = useState('')
   const [restFrom, setRestFrom] = useState('')
@@ -109,7 +111,7 @@ export function DocumentsPanel({ clinicId, visitId, patientName, patientAge, com
       // Print stays DOM-based: the mutation already completed and its
       // result is in local state, so this reads nothing further over
       // the network (same idiom as Billing.tsx's confirm-then-print).
-      setTimeout(() => window.print(), 100)
+      setTimeout(() => print.mutate(), 100)
     },
   })
 
@@ -192,7 +194,8 @@ export function DocumentsPanel({ clinicId, visitId, patientName, patientAge, com
           </Button>
         </div>
         {issue.isError && <p className="form-error">Couldn't save — try again.</p>}
-        {issued && <p className="readout-empty">Issued and sent to print.</p>}
+        {print.isError && <p className="form-error" role="alert">{print.error.message}</p>}
+        {issued && <><p className="readout-empty">{print.isPending ? 'Preparing print…' : 'Document issued.'}</p><Button type="button" variant="dark" disabled={print.isPending} onClick={() => print.mutate()}>Print again</Button></>}
       </form>
 
       <PrintableDocument doc={issued} patientName={patientName} patientAge={patientAge} doctorName={clinicInfo?.doctor_name ?? null} doctorRegNo={clinicInfo?.doctor_registration_number ?? null} />

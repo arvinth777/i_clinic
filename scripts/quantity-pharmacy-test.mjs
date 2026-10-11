@@ -132,5 +132,5 @@ try {
   assert.ok((await reception.rpc('set_medicine_unit_price', { p_medicine_id: medicine.id, p_stock_unit: 'tablet', p_price_paise: -1 })).error)
   console.log('PASS: clinic isolation, admin/anonymous boundaries, immutable units and non-negative prices')
 } finally {
-  await Promise.all(clients.map((client) => client.auth.signOut()))
+  await Promise.all(clients.map((client) => client.auth.signOut({scope:'local'})))
 }

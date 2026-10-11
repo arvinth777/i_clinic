@@ -298,7 +298,7 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
                 <CarePanel clinicId={clinicId} key={`care-${current.id}`} visitId={current.id} patientId={current.patient_id} />
                 <details className="rx-support" open><summary>Procedures &amp; bill approval</summary><PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} /></details>
                 <details className="rx-support"><summary>Documents</summary><DocumentsPanel key={`docs-${current.id}`} clinicId={clinicId} visitId={current.id} patientName={current.patients?.name ?? ''} patientAge={current.patients?.age ?? null} complaint={current.complaint} issuedBy={userId} /></details>
-                <div className="action-row rx-actions"><Button variant={prescribingActive ? "secondary" : "primary"} disabled={prescribingActive || queueAction.isPending || !issuedComplete} onClick={() => void finish().catch(()=>{})}>{queueAction.isPending ? 'Saving…' : 'Finish consultation'}</Button></div>
+                {!prescribingActive && <div className="action-row rx-actions"><Button variant="primary" disabled={prescribingActive || queueAction.isPending || !issuedComplete} onClick={() => void finish().catch(()=>{})}>{queueAction.isPending ? 'Saving…' : 'Finish consultation'}</Button></div>}
                 {prescribingActive && <p className="field-hint">Review and confirm the prescription before finishing.</p>}
                 {!prescribingActive && !issuedComplete && <p className="field-hint">Finish requires a medicine, dose or SOS, and duration for every prescribed item.</p>}
                 {queueAction.isError && <p className="form-error">Couldn't finish — try again.</p>}

@@ -148,14 +148,14 @@ export function AppShell({
     return () => { supabase.removeChannel(channel) }
   }, [clinicId, clinical, queryClient])
   const {data: latestEvent}=useQuery({queryKey:['queue-events',clinicId,userId],refetchInterval:3000,enabled:!!clinicId&&clinical,queryFn:async()=>{
-    const {data,error}=await supabase.from('queue_events').select('action,created_at,visits(token_number)').eq('clinic_id',clinicId!).neq('actor_id',userId).in('action',['call','sent_in','finish','request_discount']).order('created_at',{ascending:false}).limit(1).maybeSingle()
+    const {data,error}=await supabase.from('queue_events').select('action,created_at,visits(token_number)').eq('clinic_id',clinicId!).neq('actor_id',userId).gte('created_at',new Date(Date.now()-10000).toISOString()).in('action',['call','sent_in','finish','request_discount']).order('created_at',{ascending:false}).limit(1).maybeSingle()
     if(error)throw error
     return data as {action:string;created_at:string;visits:{token_number:number}}|null
   }})
   const [expiredEvent,setExpiredEvent]=useState<string|null>(null)
   const eventTime=latestEvent?.created_at
-  const eventVisible=!!eventTime&&expiredEvent!==eventTime&&Date.now()<new Date(eventTime).getTime()+10000
-  useEffect(()=>{if(!eventTime)return;const remaining=new Date(eventTime).getTime()+10000-Date.now();if(remaining<=0)return;const timer=setTimeout(()=>setExpiredEvent(eventTime),remaining);return()=>clearTimeout(timer)},[eventTime])
+  const eventVisible=!!eventTime&&expiredEvent!==eventTime
+  useEffect(()=>{if(!eventTime)return;const remaining=new Date(eventTime).getTime()+10000-Date.now();const timer=setTimeout(()=>setExpiredEvent(eventTime),Math.max(0,remaining));return()=>clearTimeout(timer)},[eventTime])
   const eventText=latestEvent && ({call:'Doctor called',sent_in:'Reception sent in',finish:'Ready to bill',request_discount:'Discount review requested'}[latestEvent.action])
   const current = queue?.find((visit) => ['called','with_doctor'].includes(visit.stage))
   const primary = ['reception', 'consultation', 'billing', 'pharmacy', 'patients', 'stock', 'reports'].flatMap(key => sections.filter(section => section.key === key))

@@ -1,18 +1,51 @@
 # Status
 
-## Queue and corrected doctor workspace — in progress
+## Queue, money and corrected doctor workspace — 2026-10-11
 
-- Implementing the new queue command migration and corrected doctor HTML.
-  New actions use stable request IDs and the existing IndexedDB write queue.
-  Direct older stage updates fail explicitly for review rather than bypassing
-  acknowledgement. No production change.
-- Queue test reaches the new RPC boundary and fails because the migration is
-  not yet applied. Earlier test setup issues (unavailable reception-B account
-  and ambiguous role rows) were fixed to use the established synthetic clinic A.
-- Doctor/reception/menus/billing stage callers and queue Settings are being
-  updated together. Money snapshots and partial supply are still in progress.
-- This is a migration checkpoint, not a completion claim. Review, backend
-  tests, browser/offline evidence and physical-printer sign-off remain due.
+- Implemented the corrected Doctor HTML, real reception acknowledgement, logged
+  queue reordering/absence/return/no-show, separate Finish/Call next, approval-time
+  prices, catalog price audit, fixed doctor discount, partial supply/shortfalls,
+  discount requests and immutable correction bills. Both role screens use the
+  new stages; old queued raw-stage writes halt for review instead of bypassing it.
+- Committed migrations through `20261010224000_partial_correction_proposal.sql`
+  are applied to synthetic staging `cofnrcgsolluyhghutah` only. PR #4 contains the
+  prescription/approval snapshot boundary; PR #5 integrates queue/billing/screens.
+  Production database and release branch are untouched.
+- Fresh staging checks passed: queue-workflow, approval-snapshot,
+  partial-dispensing, quantity-pharmacy, audit-billing and prescription-handoff.
+  These cover role/clinic isolation, frozen prices, discount boundaries, partial
+  supply, stock concurrency, duplicate confirmations and correction immutability.
+  Test session cleanup now signs out locally without revoking browser staff sessions.
+- Browser: independent doctor/reception sessions completed check-in, Call, Sent in,
+  prescription issue, approval, Finish, discount request/reapproval, partial supply,
+  Cash payment and receipt/history readback. The verified example approved 10 ×
+  ₹10, supplied 3, applied a ₹40 discount and saved one ₹240 bill; stock fell by
+  3, with a shortfall of 7 retained in doctor history. A second synthetic visit
+  verified the corrected follow-up layout and was finished without dispensing.
+- Doctor visual checks passed at 1440 and 390 px: self-hosted Hanken, 15px body,
+  corrected patient/queue spacing and no horizontal page overflow. Fixed the mobile
+  prescription Review action being covered by the Finish bar. Evidence is in
+  `docs/evidence/corrected-doctor/` (synthetic records only).
+- Fixed hidden print fonts producing a blank English/Tamil letterhead. All print
+  callers wait for cached font faces, surface missing-asset errors and cancel
+  when the selected document changes or its screen unmounts. Document reprints
+  reuse the issued row. Actual browser prescription/receipt PDF and five production
+  renderer fixtures pass A4/header/footer/continuation assertions (long: 4 pages).
+- Fresh production build passes; lint has zero errors and seven existing warnings.
+  Draft/quantity, print rendering/data/readiness, UI cache, pricing proposal and
+  offline queue ownership/replay checks pass. Replay tests retain dependent
+  prescription→approval→Finish operations after reload and halt on rejection;
+  this is boundary evidence, not a fresh browser network-offline test.
+- Independent Standards and Spec reviews rechecked the fixes and found no remaining
+  blocker in the changed scope. Security tests caught and closed reception access
+  to clinical approval snapshots. A fresh hosted security-advisor run is unavailable.
+- Publication is pending the final feature-branch push/preview verification. No
+  implementation is claimed released. Remaining acceptance: fresh browser offline
+  reload (network emulation was denied), exhaustive regression/state coverage,
+  security advisor and physical clinic-printer sign-off for short/typical/long Rx
+  plus receipt. Existing backup and production configuration gaps remain.
+- Next: publish PR #4/#5 updates and verify the new staging preview, then collect
+  the missing release evidence. Never promote until physical print sign-off.
 
 ## Letterhead integration — 2026-10-10
 

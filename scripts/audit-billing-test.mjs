@@ -112,5 +112,5 @@ try {
   assert.ok(queue[0].token_number > queue[1].token_number, 'late-synced earlier arrivals carry later token labels')
   console.log(`PASS: late-sync queue fixture ${queueLabel}; verify earlier precedes later on both screens`)
 } finally {
-  await Promise.all(clients.map((client) => client.auth.signOut()))
+  await Promise.all(clients.map((client) => client.auth.signOut({scope:'local'})))
 }

@@ -56,3 +56,12 @@ Three jobs: PDF delivery (prescription + receipt), scheduled reminders (refill �
 - **Inbound webhook → a Supabase Edge Function**, not a separate backend service. Matches the sender to an existing patient by phone number (never creates a duplicate) and writes a pending patient record that expires at end of day if the patient never arrives.
 - **Pre-registration never grants queue priority.** It only pre-fills the check-in form; the token is still issued on physical arrival, strict arrival order.
 - **No BSP means no subscription floor, but also no safety net.** Meta bills usage directly to a linked payment method on the WhatsApp Business Account — a declined card or spending cap silently stops every send. Add a payment-method health check to the same monitoring surface as uptime and error tracking.
+
+### Print asset readiness — 2026-10-11
+
+Hidden DOM print areas do not start loading block-display letterhead fonts.
+All print entry points use `usePrintDocument` to load the existing self-hosted
+font faces before opening browser print. React Query uses `networkMode: always`
+so cached assets work without connectivity. Missing assets surface an inline
+error; request identity and unmount cleanup cancel stale print requests.
+Document reprints reuse the issued record and never insert another document.

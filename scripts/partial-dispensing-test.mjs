@@ -71,4 +71,4 @@ try{
  assert.equal(race.filter(r=>!r.error).length,1,'only one concurrent bill can take the last two units')
  assert.equal(value(await reception.from('medicine_stock').select('quantity').eq('medicine_id',medicine.id).eq('stock_point_id',counter).single()).quantity,0)
  console.log('PASS: concurrent bills cannot oversell the final stock')
-}finally{await Promise.all(clients.map(c=>c.auth.signOut()))}
+}finally{await Promise.all(clients.map(c=>c.auth.signOut({scope:'local'})))}

@@ -51,4 +51,4 @@ try {
  data(await doctor.rpc('set_no_show_minutes',{p_clinic_id:clinicId,p_minutes:setting}))
  console.log('PASS: absence, original/end return, timed no-show, new token, call retry and clinic/role boundaries')
  console.log('PASS: reception reorder is role-checked and idempotent; stage bypass blocked')
-} finally { await Promise.all(clients.map(c=>c.auth.signOut())) }
+} finally { await Promise.all(clients.map(c=>c.auth.signOut({scope:'local'}))) }

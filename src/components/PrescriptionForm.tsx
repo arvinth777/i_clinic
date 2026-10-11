@@ -1,3 +1,4 @@
+import { usePrintDocument } from '../lib/usePrintDocument'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
@@ -47,6 +48,7 @@ export function PrescriptionForm({
   children?: ReactNode
   onActiveChange: (active: boolean) => void
 }) {
+  const print = usePrintDocument(`${clinicId}:${visitId}`)
   const queryClient = useQueryClient()
   const printKey = ['prescription-print', userId, clinicId, visitId]
   const { data: printed } = useQuery({ queryKey: printKey, queryFn: async () => (await readPrescriptionPrint(userId, clinicId, visitId)) ?? null })
@@ -329,7 +331,8 @@ export function PrescriptionForm({
             {confirm.isPending ? 'Confirming…' : 'Confirm prescription'}
           </motion.button>
         </div>
-        {confirm.isError && <p className="form-error">Couldn't save — try again.</p>}
+        {print.isError && <p className="form-error" role="alert">{print.error.message}</p>}
+      {confirm.isError && <p className="form-error">Couldn't save — try again.</p>}
       </div>{preview}</div>
     )
   }
@@ -347,10 +350,11 @@ export function PrescriptionForm({
       </div>
       {printed && (
         <>
-          <Button type="button" variant="secondary" onClick={() => window.print()}>Print prescription</Button>
+          <Button type="button" variant="secondary" disabled={print.isPending} onClick={() => print.mutate()}>Print prescription</Button>
           <div className="print-area"><PrintablePrescription clinic={printed.clinic} visit={printed.visit} medicines={printed.medicines} /></div>
         </>
       )}
+      {print.isError && <p className="form-error" role="alert">{print.error.message}</p>}
       {confirm.isError && <p className="form-error">Not saved yet — the local print copy is available. Review and retry the prescription.</p>}
       <div className="field search-results-anchor">
         <label className="field-label" htmlFor="drug-search">

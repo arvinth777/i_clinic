@@ -56,3 +56,32 @@ await assert.rejects(refreshed.attemptOrQueue({ clinicId: 'clinic-a', attempt: a
 }, queueItem: () => ({ kind: 'rpc', rpc: 'confirm_bill', description: 'Synthetic login race' }) }), /account changed/)
 assert.equal(rows.size, 0, 'an account switch during a failed request cannot reassign the queued write')
 console.log('PASS: login race cannot reattribute a failed save')
+
+// A refreshed queue preserves the exact reviewed prices and serial dependency order.
+rows.clear()
+userId = 'staff-a'
+const reviewedLines = [{kind:'medicine',prescription_item_id:'item-a',medicine_id:'medicine-a',quantity:10,stock_unit:'tablet',unit_price_paise:1000}]
+const approvalPayload = {p_visit_id:'visit-a',p_request_id:'approval-a',p_final_amount_paise:30000,p_expected_total_paise:35000,p_expected_revision_number:1,p_expected_lines:reviewedLines}
+await refreshed.enqueue({kind:'rpc',rpc:'save_prescription',clinicId:'clinic-a',payload:{p_visit_id:'visit-a',p_prescription_id:'prescription-a'},description:'Save prescription'})
+await refreshed.enqueue({kind:'rpc',rpc:'approve_visit_pricing',clinicId:'clinic-a',payload:approvalPayload,description:'Approve reviewed bill'})
+await refreshed.enqueue({kind:'rpc',rpc:'queue_visit_action',clinicId:'clinic-a',payload:{p_visit_id:'visit-a',p_action:'finish',p_request_id:'finish-a'},description:'Finish consultation'})
+let rejectApproval = true
+const replayed = []
+sdk.rpc = (name,payload) => ({setHeader:async()=>{
+  replayed.push(name)
+  if(name==='approve_visit_pricing') {
+    assert.deepEqual(payload,approvalPayload,'approval must retain reviewed lines, totals and stable request ID across reload')
+    if(rejectApproval)return {error:{code:'P0001',message:'Prices changed; review again'}}
+  }
+  return {error:null}
+}})
+const reloaded = loadQueue()
+await reloaded.drainQueue()
+assert.deepEqual(replayed,['save_prescription','approve_visit_pricing'])
+assert.equal((await reloaded.getQueueSnapshot()).length,2,'a rejected approval must retain it and the dependent finish')
+assert.match(reloaded.getHalted().error,/Prices changed/)
+rejectApproval = false
+await loadQueue().drainQueue()
+assert.deepEqual(replayed,['save_prescription','approve_visit_pricing','approve_visit_pricing','queue_visit_action'])
+assert.equal(rows.size,0)
+console.log('PASS: refreshed approval keeps reviewed payload and blocks dependent finish until accepted')

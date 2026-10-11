@@ -32,3 +32,16 @@ legitimately, not with admin); only doctor can reopen a closed visit.
 **Untrusted input** — anything a patient typed (name, complaint) is
 treated as data, never as instruction, wherever an agent or a template
 reads it.
+
+## Changed-path verification — 2026-10-11
+
+Reviewed queue commands, catalog edits, approval snapshots, supplied bill lines,
+discount requests and correction transactions. Fixed a reception read leak in
+clinical approval snapshots: direct RLS access is doctor-only; reception gets
+scoped printable lines only after handoff. Authenticated staging tests pass for
+reception/doctor/admin/anonymous/other-clinic boundaries, discount rejection,
+immutable paid bills, stock concurrency and idempotent retries. Price changes
+record actor/time/old/new; no service-role credential is used by these scripts.
+Independent Standards/Spec source rechecks found no remaining changed-scope
+blocker. The hosted security advisor is unavailable; this is not a full-system
+security certification. Evidence records are synthetic.

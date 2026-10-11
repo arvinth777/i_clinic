@@ -163,7 +163,8 @@ export async function drainQueue(): Promise<void> {
           // quietly, nothing is wrong, retry on the next reconnect event.
           return
         }
-        halted = { mutation: next, error: err instanceof Error ? err.message : String(err) }
+        const message = err && typeof err === 'object' && 'message' in err ? err.message : err
+        halted = { mutation: next, error: String(message) }
         notify()
         return
       }
