@@ -1985,3 +1985,14 @@ Two independent tracks are open now, not one:
 Read this file (both "Phase G fix pass" sections and the new UI-redesign
 section above), `AGENTS.md`, `docs/architecture-spec.md`, and the PRD
 before picking either back up.
+
+## Step 3 approval follow-up — 2026-10-11
+
+Approval now snapshots reviewed unit prices, quantities and fixed doctor discount.
+Catalog price edits by both roles are audited. Clinical approval rows are restricted
+to doctor reads; reception uses the scoped post-handoff print RPC. Approval and
+role tests pass against synthetic staging. Step 4 integrates later queue/partial
+supply migrations and browser verification. Physical-print and fresh browser
+offline release gates remain; production is untouched.
+The approval action uses the existing secondary variant so this stacked PR builds
+independently before step 4 introduces the dark button variant.
