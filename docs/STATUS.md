@@ -11,7 +11,7 @@
 - Fresh staging scaling/realtime check traversed 1,005 older visits beyond the API cap while today's patient stayed accessible; rep cross-clinic isolation passed, and test fixtures were removed. Doctor deliveries: patient/rep 842ms and queue message 1498ms from check-in start (one sequential sample).
 - Browser checks on production build against staging: independent doctor/reception check-in visibility, earlier pages 50→100, lazy Inventory/Patients and chunk-failure Reload recovery. Both roles at 390px have no horizontal page overflow; Hanken/15px body retained. Staging partial-dispensing/discount/atomic stock suite passes.
 - Security: changed publication tables retain RLS/role policies; staging advisor zero errors/34 existing warnings, two Drive information notices. Four existing dependency advisories remain. Fresh browser offline reload still not claimed.
-- Implementation/tests/docs committed for review; final reviewer follow-up/PR creation in progress. No production migration or deployment. Next: review this standalone performance PR and promote separately from Drive.
+- Independent Standards and Spec reviews of `f01a36b...95e358b` found no remaining blocker after the fixes. Browser and scaling test fixtures removed; no pending browser writes. Performance branch pushed separately from Drive; no production migration or deployment. Next: review the standalone performance PR and promote after the unresolved browser offline gate is handled.
 
 ## Initial production release — 2026-10-11
 
