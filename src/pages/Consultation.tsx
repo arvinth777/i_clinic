@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
@@ -70,7 +70,7 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export function Consultation({ userId, onOpenPatient }: { userId: string; onOpenPatient: (id: string) => void }) {
+export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNavigation = 0 }: { userId: string; onOpenPatient: (id: string) => void; requestedVisitId?: string; alertNavigation?: number }) {
   const queryClient = useQueryClient()
   const { data: clinicId } = useClinicId(userId)
   const [visibleQueueCount, setVisibleQueueCount] = useState(7)
@@ -80,6 +80,14 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
   const [prescribingActive, setPrescribingActive] = useState(false)
   const [repCount, setRepCount] = useState(0)
   const [guard, setGuard] = useState(false)
+  const handledAlert = useRef(-1)
+  useEffect(() => {
+    if (!requestedVisitId || handledAlert.current === alertNavigation) return
+    handledAlert.current = alertNavigation
+    if (prescribingActive && requestedVisitId !== reviewVisitId) setGuard(true)
+    else if (!prescribingActive) setReviewVisitId(requestedVisitId)
+  }, [alertNavigation, requestedVisitId, prescribingActive, reviewVisitId])
+  const requested = useQuery({ queryKey: ['doctor-alert-visit', clinicId, requestedVisitId], refetchInterval: useQueuePollInterval(), enabled: !!clinicId && !!requestedVisitId, queryFn: async () => { const {data,error}=await supabase.from('visits').select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone)').eq('clinic_id',clinicId!).eq('id',requestedVisitId!).maybeSingle(); if(error) throw error; return data as unknown as DoctorVisit | null } })
   const queueAction = useQueueAction(clinicId)
 
   const interval = useQueuePollInterval()
@@ -145,7 +153,7 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
   const queue = todaysQueue.filter(v => v.stage === 'waiting')
   const active = todaysQueue.find(v => ['called','with_doctor'].includes(v.stage))
   const requests = discountRequests.data?.pages.flat() ?? []
-  const current = requests.find(v=>v.id===reviewVisitId) ?? visits?.find(v=>v.id===reviewVisitId) ?? active ?? todaysQueue.filter(v => v.stage === 'ready_to_bill').sort((a,b)=>(b.sent_in_at??b.arrived_at).localeCompare(a.sent_in_at??a.arrived_at))[0]
+  const current = (requested.data?.id === reviewVisitId ? requested.data : null) ?? requests.find(v=>v.id===reviewVisitId) ?? visits?.find(v=>v.id===reviewVisitId) ?? active ?? todaysQueue.filter(v => v.stage === 'ready_to_bill').sort((a,b)=>(b.sent_in_at??b.arrived_at).localeCompare(a.sent_in_at??a.arrived_at))[0]
   const rows = todaysQueue.filter(v => ['waiting','not_here'].includes(v.stage))
   const sent = current?.stage === 'ready_to_bill'
   const commentBody=current ? commentDrafts[current.patient_id]??'' : ''
@@ -248,7 +256,7 @@ export function Consultation({ userId, onOpenPatient }: { userId: string; onOpen
             <h2 className="readout-heading">Waiting · {queue.length}</h2>
             <span className="field-hint">{todayVisits?.filter(v=>['ready_to_bill','paid'].includes(v.stage)).length ?? '—'} seen today</span>
           </div>
-          {guard && <div className="inline-notice" role="alert"><strong>Finish the current prescription before calling next.</strong><p>Saved work stays with this patient.</p><Button variant="secondary" onClick={()=>{setWorkspace('prescription');setGuard(false)}}>Open prescription</Button><Button variant="ghost" onClick={()=>setGuard(false)}>Not now</Button></div>}
+          {guard && <div className="inline-notice" role="alert"><strong>Finish the current prescription before changing patients.</strong><p>Saved work stays with this patient.</p><Button variant="secondary" onClick={()=>{setWorkspace('prescription');setGuard(false)}}>Open prescription</Button><Button variant="ghost" onClick={()=>setGuard(false)}>Not now</Button></div>}
           {queue[0] && active?.stage !== 'called' && !guard && <Button variant="dark" disabled={queueAction.isPending} onClick={()=>void callNext().catch(()=>{})}>Call #{queue[0].token_number} {queue[0].patients?.name}</Button>}
           {rows.length === 0 && repCount === 0 && <p className="readout-empty">Your queue is empty.</p>}
           <ul className="rail-list">

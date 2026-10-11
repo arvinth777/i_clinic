@@ -1,5 +1,48 @@
 # Status
 
+## Drive and actionable alerts — 2026-10-11 (staging verified; production setup in progress)
+
+Staging Drive is connected. Real synthetic PNG/PDF uploads, repeated-upload
+idempotency, authenticated checksum-matched downloads and PDF browser preview
+passed. Hosted backend role/isolation tests passed; admin catalog reads are
+intentionally allowed, while clinical visits remain denied. Production Drive migration and endpoint were applied after staging verification.
+Production secrets use a separate key in the private local recovery file; Google
+consent is still pending. The Drive release PR is being promoted separately.
+
+Added reception call sound (explicit enable per session, mute, IndexedDB event
+deduplication) and role-scoped Alerts with read/dismiss/resolved history on
+this account/device. Reminders use 5 minutes for called-but-not-sent and 4 PM
+IST for closing review. Alerts refetch before opening their token, bill,
+medicine or patient document; they never execute clinical/billing actions.
+History retains all active alerts and the latest 500 resolved entries.
+
+Checks: build, local alert/chime/retention tests, hosted staging alert source
+role tests, document endpoint/upload queue tests, offline owner replay, print
+snapshot and queue-performance tests passed. Browser dismissal survives
+reload; Open selects bill #840; reception sound enable succeeds; Hanken
+Grotesk and no page overflow confirmed at 390/1440 px. Evidence lives in
+`docs/evidence/drive-alerts/`. Browser offline reload remains unverified
+(previous automatic approval rejection). Live doctor call events reached
+reception in 430–647 ms; reception Sent in appeared on the doctor screen
+with Start prescription enabled. Production consent remains unverified. Automatic PDF archival remains
+a separate approved backlog item, not implemented by manual upload.
+
+Standards/spec review found stale focused-query invalidation, repeated-target
+navigation and missing stale/error presentation; fixes were applied and
+rechecked. Reconnect alerts and pending descriptions were completed. Handler
+tests now cover revoked grants versus transient Google outage. Browser
+reopening #840 after choosing #830 selects #840 correctly.
+
+Review fixes include consuming doctor alert navigation once, preventing old
+requests from overriding Return to consultation or later bill reviews. Build,
+handler, upload queue, offline owner, print and performance checks pass; lint
+has zero errors and nine warnings (seven existing, two target-selection effects).
+The synthetic cross-role fixtures were cleaned up.
+
+Uncommitted work: none after the review-fix commit.
+Next: release reviewed Drive/alerts and complete production Google consent.
+
+
 ## Google Drive integration — 2026-10-11
 
 - Integrated the isolated patient-document feature into the released app on

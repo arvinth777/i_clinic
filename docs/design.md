@@ -202,3 +202,12 @@ with a browser PDF viewer or image, and text download/Drive links. New tokens:
 Button press feedback uses CSS, not an animation runtime: `--press-tap-scale`
 (.97), `--press-stamp-scale` (.96) and `--press-stamp-rotation` (-1deg). Disabled
 buttons and reduced-motion preferences do not transform.
+
+## Alerts drawer — 2026-10-11
+
+Use the shared Drawer, Hanken Grotesk and existing row, status, text-button
+and spacing tokens. Active/recent filters are text toggles. Alert targets use
+`--blue-row` highlighting and the existing focus outline. The reception sound
+control lives in Alerts at desktop and mobile widths; enabling lasts only
+this signed-in browser session. No card containers, extra primary buttons or
+new colours are introduced.

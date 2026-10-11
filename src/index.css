@@ -258,3 +258,7 @@ h1 { font-size: var(--text-page); line-height: 1.2; letter-spacing: var(--tracki
 button[data-press="tap"]:active:not(:disabled) { transform: scale(var(--press-tap-scale)); }
 button[data-press="stamp"]:active:not(:disabled) { transform: scale(var(--press-stamp-scale)) rotate(var(--press-stamp-rotation)); }
 @media (prefers-reduced-motion: reduce) { button[data-press]:active:not(:disabled) { transform: none; } }
+
+.clinic-alert-row { padding-block: var(--space-md); border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.clinic-alert-row p { color: var(--muted); margin-block: var(--space-xs); }
+.alert-highlight { background: var(--blue-row); outline: 2px solid var(--blue); outline-offset: -2px; }

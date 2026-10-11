@@ -95,7 +95,14 @@ export function createHandler(config: Config, fetcher: typeof fetch = fetch) {
       if (action === 'status' && !configured) return json({ configured: false, connected: false })
       if (!configured) throw new Failure(503, 'Google Drive setup is not complete yet.')
       const [connection] = await db<Connection[]>('clinic_drive_connections', { clinic_id: `eq.${clinicId}`, limit: '1' })
-      if (action === 'status') return json({ configured: true, connected: !!connection?.refresh_token_ciphertext, email: connection?.account_email ?? null })
+      if (action === 'status') {
+        let connected = !!connection?.refresh_token_ciphertext
+        if (connected) {
+          try { await tokenRequest({ refresh_token: await decryptToken(connection.refresh_token_ciphertext!, config.encryptionKey!, clinicId), grant_type: 'refresh_token' }) }
+          catch (error) { if (error instanceof Failure && error.status === 409) connected = false; else throw error }
+        }
+        return json({ configured: true, connected, email: connection?.account_email ?? null })
+      }
       if (action === 'connect') {
         const state = encode(crypto.getRandomValues(new Uint8Array(32))).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
         await db('clinic_drive_oauth_states', { expires_at: `lt.${new Date().toISOString()}` }, 'DELETE')

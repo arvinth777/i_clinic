@@ -5,6 +5,9 @@ import { useClinicId } from '../lib/useClinicId'
 import { useOfflineQueue } from '../lib/useOfflineQueue'
 import { useIdleTimer } from '../lib/useIdleTimer'
 import { hasPin, setPin } from '../lib/pinLock'
+import { ClinicAlerts } from './ClinicAlerts'
+import type { AlertTarget } from '../lib/clinicAlerts'
+import { useCallSound } from './CallSound'
 import { LockScreen } from './LockScreen'
 import { Drawer } from './Drawer'
 import { OfflineQueueBanner } from './OfflineQueueBanner'
@@ -89,6 +92,7 @@ export function AppShell({
   sections,
   activeSection,
   onSelectSection,
+  onOpenAlert,
   children,
 }: {
   userId: string
@@ -105,6 +109,7 @@ export function AppShell({
   sections: ShellSection[]
   activeSection: string
   onSelectSection: (key: string) => void
+  onOpenAlert: (target: AlertTarget) => void
   children: ReactNode
 }) {
   const { data: clinicId } = useClinicId(userId)
@@ -112,6 +117,7 @@ export function AppShell({
   const header = useRef<HTMLElement>(null)
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [activeSection])
   const [menuOpen, setMenuOpen] = useState(false)
+  const [alertsOpen, setAlertsOpen] = useState(false)
   const [connected, setConnected] = useState(false)
   useEffect(() => {
     if (!header.current) return
@@ -143,7 +149,7 @@ export function AppShell({
   useEffect(() => {
     if (!clinicId || !clinical) return
     function refreshQueue() {
-      for (const key of ['shell-queue', 'queue-events', 'doctor-queue', 'visits-today', 'visits-earlier', 'doctor-discount-requests', 'doctor-earlier-count', 'doctor-today-metrics']) {
+      for (const key of ['shell-queue', 'queue-events', 'doctor-queue', 'doctor-alert-visit', 'visits-today', 'visits-earlier', 'doctor-discount-requests', 'doctor-earlier-count', 'doctor-today-metrics', 'clinic-alerts']) {
         void queryClient.invalidateQueries({ queryKey: [key, clinicId] })
       }
     }
@@ -158,10 +164,11 @@ export function AppShell({
     return () => { events.close(); supabase.removeChannel(channel) }
   }, [clinicId, clinical, queryClient])
   const {data: latestEvent}=useQuery({queryKey:['queue-events',clinicId,userId],refetchInterval:queuePollInterval(connected),enabled:!!clinicId&&clinical,queryFn:async()=>{
-    const {data,error}=await supabase.from('queue_events').select('action,created_at,visits(token_number)').eq('clinic_id',clinicId!).neq('actor_id',userId).gte('created_at',new Date(Date.now()-10000).toISOString()).in('action',['call','sent_in','finish','request_discount']).order('created_at',{ascending:false}).limit(1).maybeSingle()
+    const {data,error}=await supabase.from('queue_events').select('id,visit_id,action,created_at,visits(token_number)').eq('clinic_id',clinicId!).neq('actor_id',userId).gte('created_at',new Date(Date.now()-10000).toISOString()).in('action',['call','sent_in','finish','request_discount']).order('created_at',{ascending:false}).limit(1).maybeSingle()
     if(error)throw error
-    return data as {action:string;created_at:string;visits:{token_number:number}}|null
+    return data as {id:string;visit_id:string;action:string;created_at:string;visits:{token_number:number}}|null
   }})
+  const soundControl = useCallSound({ event: latestEvent, userId, clinicId: clinicId ?? '', locked, available: !isDoctor && clinical })
   const [expiredEvent,setExpiredEvent]=useState<string|null>(null)
   const eventTime=latestEvent?.created_at
   const eventVisible=!!eventTime&&expiredEvent!==eventTime
@@ -203,6 +210,7 @@ export function AppShell({
         <nav className="shell-nav no-scrollbar" aria-label="Main">{navigation.map(navItem)}</nav>
         <div className="shell-status">
           {eventVisible && eventText && <span className="shell-event" role="status">{eventText} #{latestEvent?.visits.token_number}</span>}
+          {clinical && <button className="shell-nav-item" onClick={() => setAlertsOpen(true)}>Alerts</button>}
           {queueLink}
           {sync}
           {account}
@@ -210,10 +218,12 @@ export function AppShell({
         </div>
         <button className="shell-nav-item shell-mobile-toggle" onClick={() => setMenuOpen(true)} aria-expanded={menuOpen}>Menu ▾</button>
       </header>
+      {clinical && clinicId && <ClinicAlerts key={`${clinicId}:${userId}`} open={alertsOpen} onClose={() => setAlertsOpen(false)} onOpen={target => { if (sections.some(section => section.key === target.section)) onOpenAlert(target) }} clinicId={clinicId} userId={userId} isDoctor={isDoctor} online={online} connected={connected} locked={locked} soundControl={soundControl} />}
       <OfflineQueueBanner userId={userId} redact={locked || !clinical} />
       <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title="Menu" placement="top">
         {queueLink}
         {sync}
+        {clinical && <button className="shell-nav-item" onClick={() => { setMenuOpen(false); setAlertsOpen(true) }}>Alerts</button>}
         <nav className="shell-mobile-links" aria-label="Main menu">{navigation.map(navItem)}</nav>
         {account}
         <button type="button" className="shell-nav-item" onClick={() => { setMenuOpen(false); if (pinSet) onLock(); else setShowPinForm(true) }}>Lock</button>

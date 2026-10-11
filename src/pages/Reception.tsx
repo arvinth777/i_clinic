@@ -21,7 +21,7 @@ type SearchResult = {
   address: string | null
 }
 
-export function Reception({ userId, readOnly = false }: { userId: string; readOnly?: boolean }) {
+export function Reception({ userId, readOnly = false, highlightVisitId }: { userId: string; readOnly?: boolean; highlightVisitId?: string }) {
   const queryClient = useQueryClient()
   const { data: clinicId } = useClinicId(userId)
 
@@ -294,7 +294,7 @@ export function Reception({ userId, readOnly = false }: { userId: string; readOn
           ) : (
             <div className="worklist-panel">
               <h2 className="readout-heading">Today's queue</h2>
-              <TokenList clinicId={clinicId} onSelectVisit={readOnly ? undefined : setBillingVisitId} />
+              <TokenList highlightVisitId={highlightVisitId} clinicId={clinicId} onSelectVisit={readOnly ? undefined : setBillingVisitId} />
             </div>
           )}
         </div>

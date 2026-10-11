@@ -22,7 +22,7 @@ export function useQueueAction(clinicId: string | null | undefined) {
         })
       },
     })
-  }, onSuccess: () => { for(const key of ['doctor-queue','visits-today','shell-queue','doctor-today-metrics','billing-visits','billing-desk','queue-events','visits-earlier','doctor-discount-requests','doctor-earlier-count']) void client.invalidateQueries({queryKey:[key,clinicId]}) } })
+  }, onSuccess: () => { for(const key of ['doctor-queue','doctor-alert-visit','visits-today','shell-queue','doctor-today-metrics','billing-visits','billing-desk','queue-events','visits-earlier','doctor-discount-requests','doctor-earlier-count']) void client.invalidateQueries({queryKey:[key,clinicId]}) } })
 }
 
 export function updateQueueRows(old: QueueRow[] | undefined, visitId: string, action: QueueAction, time: string) {
