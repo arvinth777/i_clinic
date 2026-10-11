@@ -12,6 +12,7 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import './AppShell.css'
 import { startOfToday } from '../lib/date'
+import { RealtimeConnected, queuePollInterval, batchRealtimeEvents } from '../lib/realtimeStatus'
 
 // Per-station idle-lock timeout (docs/architecture-spec.md): the reception
 // desk is a walk-through space, unattended repeatedly through the day; the
@@ -130,7 +131,7 @@ export function AppShell({
   const clinical = sections.some((section) => section.key === 'consultation' || section.key === 'reception')
   const queueKey = ['shell-queue', clinicId]
   const { data: queue, isError: queueError } = useQuery({
-    queryKey: queueKey, refetchInterval:3000,
+    queryKey: queueKey, refetchInterval:queuePollInterval(connected),
     enabled: !!clinicId && clinical,
     queryFn: async () => {
       const { data, error } = await supabase.from('visits').select('id, token_number, stage, arrived_at, queue_position, called_at, sent_in_at')
@@ -141,13 +142,22 @@ export function AppShell({
   })
   useEffect(() => {
     if (!clinicId || !clinical) return
+    function refreshQueue() {
+      for (const key of ['shell-queue', 'queue-events', 'doctor-queue', 'visits-today', 'visits-earlier', 'doctor-discount-requests', 'doctor-earlier-count', 'doctor-today-metrics']) {
+        void queryClient.invalidateQueries({ queryKey: [key, clinicId] })
+      }
+    }
+    const events = batchRealtimeEvents(refreshQueue)
     const channel = supabase.channel(`shell-queue-${clinicId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'visits', filter: `clinic_id=eq.${clinicId}` },
-        () => { queryClient.invalidateQueries({ queryKey: ['shell-queue', clinicId] }); queryClient.invalidateQueries({queryKey:['queue-events',clinicId]}) })
-      .subscribe((status) => setConnected(status === 'SUBSCRIBED'))
-    return () => { supabase.removeChannel(channel) }
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visits', filter: `clinic_id=eq.${clinicId}` }, events.notify)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'queue_events', filter: `clinic_id=eq.${clinicId}` }, events.notify)
+      .subscribe(status => {
+        setConnected(status === 'SUBSCRIBED')
+        if (status === 'SUBSCRIBED') refreshQueue()
+      })
+    return () => { events.close(); supabase.removeChannel(channel) }
   }, [clinicId, clinical, queryClient])
-  const {data: latestEvent}=useQuery({queryKey:['queue-events',clinicId,userId],refetchInterval:3000,enabled:!!clinicId&&clinical,queryFn:async()=>{
+  const {data: latestEvent}=useQuery({queryKey:['queue-events',clinicId,userId],refetchInterval:queuePollInterval(connected),enabled:!!clinicId&&clinical,queryFn:async()=>{
     const {data,error}=await supabase.from('queue_events').select('action,created_at,visits(token_number)').eq('clinic_id',clinicId!).neq('actor_id',userId).gte('created_at',new Date(Date.now()-10000).toISOString()).in('action',['call','sent_in','finish','request_discount']).order('created_at',{ascending:false}).limit(1).maybeSingle()
     if(error)throw error
     return data as {action:string;created_at:string;visits:{token_number:number}}|null
@@ -187,7 +197,7 @@ export function AppShell({
     </div>
   </details>
   return (
-    <div className="shell">
+    <RealtimeConnected value={connected}><div className="shell">
       <header ref={header} className="shell-header">
         <a className="shell-clinic-name" href={isDoctor ? '#consultation' : '#reception'} onClick={e => { e.preventDefault(); select(isDoctor ? 'consultation' : sections[0]?.key ?? '') }}>Salem Pain &amp; Palliative Care</a>
         <nav className="shell-nav no-scrollbar" aria-label="Main">{navigation.map(navItem)}</nav>
@@ -215,6 +225,6 @@ export function AppShell({
       <main className="shell-content">
         {activeSection ? ((activeMore && !['admin', 'suppliers'].includes(activeSection)) || activeSection === 'more' ? <div className="support-layout"><aside className="record-sidebar"><h2 className="readout-heading">More</h2>{more.map(navItem)}</aside><div className="support-content">{activeSection === 'more' ? <><h1>More</h1><p className="readout-empty">Choose a tool from the list.</p><p className="field-hint">{clinicName}</p></> : children}</div></div> : children) : <p className="readout-empty">This account has no role assigned at this clinic. Contact your admin to get access.</p>}
       </main>
-    </div>
+    </div></RealtimeConnected>
   )
 }

@@ -188,3 +188,9 @@ show their real count separately. Long waits are amber after 45 minutes.
 A consultation clock is minutes, suppressed beyond 10 hours. Arrival and sent
 status come from persisted queue actions, not the mock timer. No mock allergy
 or vital values are imported. Use the existing self-hosted Hanken font.
+
+## Lightweight press feedback
+
+Button press feedback uses CSS, not an animation runtime: `--press-tap-scale`
+(.97), `--press-stamp-scale` (.96) and `--press-stamp-rotation` (-1deg). Disabled
+buttons and reduced-motion preferences do not transform.

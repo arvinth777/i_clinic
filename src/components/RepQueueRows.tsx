@@ -38,7 +38,7 @@ export function RepQueueRows({ clinicId, onCountChange }: { clinicId: string; on
         { event: '*', schema: 'public', table: 'pharma_rep_checkins', filter: `clinic_id=eq.${clinicId}` },
         () => queryClient.invalidateQueries({ queryKey }),
       )
-      .subscribe()
+      .subscribe(status => { if (status === 'SUBSCRIBED') void queryClient.invalidateQueries({ queryKey }) })
     return () => {
       supabase.removeChannel(channel)
     }

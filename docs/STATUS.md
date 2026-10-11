@@ -1,5 +1,26 @@
 # Status
 
+## Performance production promotion — 2026-10-11
+
+- User explicitly requested production promotion of reviewed PR #9 after the offline reload limitation was disclosed. Physical-printer sign-off remains recorded; this change preserves print rendering. Release executed after 15:00 IST.
+- Confirmed production branch `f01a36b`, performance head `a87232a`, mergeable PR and successful Vercel check. Vercel project `i_clinic` uses `production` and production variables target clinic-prod (`rmuhpgpvgvwchovlgxae`); pending Drive PR excluded.
+- Production CLI chain dry run contained only `20261011200000_rep_queue_realtime.sql`. Applied it to clinic-prod; migration list matches bootstrap plus this migration. Database lint has zero errors and the existing `confirm_bill` text-to-jsonb warning.
+- Fresh build, queue performance/cache/burst/precache regression and print-readiness tests pass. Code passed prior independent Standards/Spec review. Frontend promotion and live verification in progress; final outcome will be recorded below.
+- Actual browser offline reload and backup/restore remain unverified; existing dependency/security advisories are not cleared by this release.
+
+## Performance cleanup — 2026-10-11
+
+- Separate `codex/clinic-performance` branch starts from production `f01a36b`; pending Drive work is excluded. Removed unused full letterhead, SectionStepper, three unused font dependencies and Motion; button press/reduced-motion behaviour uses named CSS tokens. Secondary routes load lazily, with all chunks/fonts/print assets retained in the PWA precache.
+- Queue/header reads use a 30-second safety poll when subscribed and a 3-second disconnected fallback; reconnect invalidates and refetches. Today reads exclude historical rows. Earlier open visits and discount requests use server pages of 50, preserving legacy saved data and optimistic queued stage changes.
+- Immutable migration adds rep arrivals and queue-event messages to realtime publication without changing permissions or RLS; local apply/retry tests pass. Production migration symlink is prepared. Applied to synthetic staging only via CLI after a one-file dry run; read-only metadata confirms six publication tables and RLS retained. Browser verification completed below.
+- Fresh build/lint pass (seven existing lint warnings); queue-performance, legacy cache, draft, offline ownership/replay, print readiness and billing print snapshot tests pass. Actual browser offline reload remains unverified because network emulation was previously rejected; no workaround used.
+- Same-base production build: eager JS 259.25 kB gzip before, 205.15 kB after (index plus shared utils, about 21% lower); PWA precache 2584.98→1337.34 KiB (48% lower). These are build sizes, not clinic-network timing or Core Web Vitals.
+- Review fixed two issues: offline date rollover restores prior earlier pages, and one healthy subscription invalidates all queue views. Removed duplicate page subscriptions and coalesced bursts within 100ms; regression covers 1,005 saved rows and cancellation on unmount.
+- Fresh staging scaling/realtime check traversed 1,005 older visits beyond the API cap while today's patient stayed accessible; rep cross-clinic isolation passed, and test fixtures were removed. Doctor deliveries: patient/rep 842ms and queue message 1498ms from check-in start (one sequential sample).
+- Browser checks on production build against staging: independent doctor/reception check-in visibility, earlier pages 50→100, lazy Inventory/Patients and chunk-failure Reload recovery. Both roles at 390px have no horizontal page overflow; Hanken/15px body retained. Staging partial-dispensing/discount/atomic stock suite passes.
+- Security: changed publication tables retain RLS/role policies; staging advisor zero errors/34 existing warnings, two Drive information notices. Four existing dependency advisories remain. Fresh browser offline reload still not claimed.
+- Independent Standards and Spec reviews of `f01a36b...95e358b` found no remaining blocker after the fixes. Browser and scaling test fixtures removed; no pending browser writes. Performance branch pushed separately from Drive; no production migration or deployment. Next: review the standalone performance PR and promote after the unresolved browser offline gate is handled.
+
 ## Initial production release — 2026-10-11
 
 - User explicitly requested production updating now, overriding this release's
