@@ -359,7 +359,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
             </div>
           </div>
         )}
-        <Button variant="dark" disabled={updateFinalAmount.isPending || !proposal || (!finalAmountDirty && pricing?.final_amount_set)} onClick={commitFinalAmount}>{pricing?.final_amount_set && !finalAmountDirty ? 'Bill approved' : 'Approve bill'}</Button>
+        <Button variant="secondary" disabled={updateFinalAmount.isPending || !proposal || (!finalAmountDirty && pricing?.final_amount_set)} onClick={commitFinalAmount}>{pricing?.final_amount_set && !finalAmountDirty ? 'Bill approved' : 'Approve bill'}</Button>
         <p className="field-hint">Approval freezes these unit prices and the fixed discount. Catalog changes afterwards apply to new bills.</p>
         {proposalQuery.isError && <p className="form-error">Couldn’t load current prices. Try again when connected.</p>}
         {updateFinalAmount.isError && <p className="form-error">{updateFinalAmount.error.message}</p>}
