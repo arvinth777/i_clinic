@@ -1,7 +1,6 @@
 import { usePrintDocument } from '../lib/usePrintDocument'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { mergePrescriptionPrint, readPrescriptionPrint, savePrescriptionPrint, readPrescriptionDraft, savePrescriptionDraft } from '../lib/prescriptionPrint'
 import { PrintablePrescription, type PrintVisit, type ClinicPrintInfo, type DetailRow } from './VisitPrintout'
@@ -321,15 +320,15 @@ export function PrescriptionForm({
           <Button type="button" variant="secondary" disabled={confirm.isPending} onClick={() => setReviewOpen(false)}>
             Back to edit
           </Button>
-          <motion.button
+          <button
             type="button"
             className={buttonVariants({ variant: 'primary' })}
-            whileTap={{ scale: 0.96, rotate: -1 }}
+            data-press="stamp"
             disabled={confirm.isPending}
             onClick={() => confirm.mutate()}
           >
             {confirm.isPending ? 'Confirming…' : 'Confirm prescription'}
-          </motion.button>
+          </button>
         </div>
         {print.isError && <p className="form-error" role="alert">{print.error.message}</p>}
       {confirm.isError && <p className="form-error">Couldn't save — try again.</p>}

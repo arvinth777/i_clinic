@@ -5,6 +5,9 @@
 :root {
   --document-preview-height: 65dvh;
   --control-toggle-height: 34px;
+  --press-tap-scale: .97;
+  --press-stamp-scale: .96;
+  --press-stamp-rotation: -1deg;
   --doctor-main-basis: 620px; --doctor-content-width: 760px; --doctor-rail-basis: 380px; --doctor-rail-max: 520px; --doctor-history-date: 110px;
   --space-32: 32px; --space-36: 36px; --space-40: 40px;
   --ink: #141C2B; --ink-2: #364154; --muted: #5B6575; --faint: #7A8494; --placeholder: #9AA3B0;
@@ -251,3 +254,7 @@ h1 { font-size: var(--text-page); line-height: 1.2; letter-spacing: var(--tracki
 .query-error { display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); margin-block: var(--space-md); padding: var(--space-md); border-radius: var(--r-lg); background: var(--red-bg); color: var(--red); }
 .query-error p { color: var(--muted); font-size: var(--text-sm); margin: var(--space-2xs) 0 0; }
 .stale-copy { opacity: .55; }
+
+button[data-press="tap"]:active:not(:disabled) { transform: scale(var(--press-tap-scale)); }
+button[data-press="stamp"]:active:not(:disabled) { transform: scale(var(--press-stamp-scale)) rotate(var(--press-stamp-rotation)); }
+@media (prefers-reduced-motion: reduce) { button[data-press]:active:not(:disabled) { transform: none; } }

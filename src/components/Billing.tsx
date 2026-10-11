@@ -2,7 +2,6 @@ import { usePrintDocument } from '../lib/usePrintDocument'
 import { LoadingRows, QueryError } from './QueryState'
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'motion/react'
 import QRCode from 'qrcode'
 import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
@@ -341,15 +340,15 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
               <p className="readout-empty">UPI ID not configured for this clinic yet.</p>
             ))}
           <div className="action-row">
-            <motion.button
+            <button
               type="button"
               className={buttonVariants({ variant: 'primary' })}
-              whileTap={{ scale: 0.96, rotate: -1 }}
+              data-press="stamp"
               disabled={confirmPayment.isPending || detailStillLoading || supplyInvalid || approvalOutdated}
               onClick={() => confirmPayment.mutate()}
             >
               {confirmPayment.isPending ? 'Confirming…' : detailStillLoading ? 'Loading receipt details…' : `Mark paid · ${formatPaise(amountPaise)}`}
-            </motion.button>
+            </button>
             <Button type="button" variant="secondary" onClick={onClose}>
               Back to queue
             </Button>

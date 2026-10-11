@@ -76,3 +76,14 @@ Drive change. Guidance: [SECURITY DEFINER grants](https://supabase.com/docs/guid
 [no-policy notices](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
 Actual Google consent and file transfer remain blocked by absent account/OAuth
 setup, so no live end-to-end Drive security claim is made.
+## Performance data-path review — 2026-10-11
+
+No new role grants, policies, exposed API or raw patient markup. The migration
+adds `queue_events` and `pharma_rep_checkins` to realtime publication; staging
+metadata verifies RLS remains enabled. Existing doctor/reception clinic-scoped
+SELECT policies still apply. Events only invalidate/refetch; payloads never
+replace UI state. A different clinic cannot read the synthetic rep fixture.
+Staging partial-dispensing role/discount/stock tests pass. Hosted advisor has zero
+errors/34 existing warnings, plus two intentional Drive private-table information
+notices. Four existing dependency advisories remain; no full-backlog clearance
+is claimed. No production security configuration changed.

@@ -197,3 +197,8 @@ with a browser PDF viewer or image, and text download/Drive links. New tokens:
 `scrim` = rgba(20,28,43,.32), `control-toggle-height` = 34px, and
 `document-preview-height` = 65dvh. Backend/connection setup is documented in
 `patient-documents-setup.md`.
+## Lightweight press feedback
+
+Button press feedback uses CSS, not an animation runtime: `--press-tap-scale`
+(.97), `--press-stamp-scale` (.96) and `--press-stamp-rotation` (-1deg). Disabled
+buttons and reduced-motion preferences do not transform.
