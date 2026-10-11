@@ -47,6 +47,40 @@ Sources: GitHub branch/deployment/Actions APIs, authenticated Vercel metadata,
 Supabase CLI project/migration/function listings, and Supabase dashboard metadata.
 Student-offer comparison and unaccepted recommendation: `docs/hosting-options.md`.
 
+## Initial production bootstrap — 2026-10-11
+
+The user explicitly requested production updating **now**, overriding the
+clinic-hours timing restriction for this release. All four physical printer
+samples were approved. Browser offline reload remains unverified; boundary
+replay/readiness tests passed and this limitation is retained in release notes.
+
+Historical migrations embed staging-only fixtures (including auth-user
+prerequisites). They must never be replayed into a fresh production project.
+`20261011060000_production_bootstrap.sql` is a schema-only snapshot of verified
+staging through `20261010224000`. Existing current installs skip it; empty installs
+create the schema, RLS, exact callable-function grants, four realtime publication
+members, one empty clinic and two stock points. It copies no patients, catalog,
+bills, identities or passwords. It refuses a partial public schema. The backup
+role has no password; the existing backup/restore setup remains open.
+
+Production CLI migrations use the dedicated chain, **not root migration history**:
+
+```sh
+supabase --workdir deploy/production link --project-ref rmuhpgpvgvwchovlgxae
+supabase --workdir deploy/production migration list --linked
+supabase --workdir deploy/production db push --dry-run
+supabase --workdir deploy/production db push
+```
+
+The production bootstrap is a symlink to the same immutable file applied to
+staging. For each future schema migration, apply/test it in staging first and add
+its symlink under `deploy/production/supabase/migrations/` before promoting it.
+Production history intentionally starts at the bootstrap; never use `--include-all`
+or repair-mark historical staging fixtures as applied there. Root remains linked
+to staging. Fresh local PostgreSQL 17 checks are in
+`scripts/production-bootstrap-test.sql`; use an isolated test database with
+Supabase auth/role/publication stubs, never live production.
+
 ## Production readiness refresh — 2026-10-11
 
 The user approved all four physical clinic-printer samples (short, typical,
@@ -132,7 +166,7 @@ Migrations are **immutable once applied** -- never edit a migration file that ha
 2. Link the CLI to **staging** if not already (`supabase link --project-ref cofnrcgsolluyhghutah`) and run `supabase db push`. Confirm it applies cleanly and run the relevant test script(s) in `scripts/` against staging.
 3. Every `SECURITY DEFINER` function needs, without exception: `set search_path = ''`, fully-qualified references inside, and EXECUTE revoked from `public`/`anon`/`authenticated` then re-granted only to the specific role(s) that need it. **Supabase grants EXECUTE to `anon` and `authenticated` directly at `CREATE FUNCTION` time, as separate ACL entries from `PUBLIC`'s** -- revoking from `public` alone does not close this (this is a recurring gotcha in this project's history; confirm via `information_schema.routine_privileges` after every such migration, not just by reading the migration text).
 4. Changing an existing function's argument list (adding a required or extra parameter) creates a **second overload** if done via a bare `CREATE OR REPLACE` -- this breaks every existing caller with "function is not unique". Always `DROP FUNCTION` the old signature first, then `CREATE`, then redo every grant (grants never carry across a signature change).
-5. Only once staging is verified: link the CLI to **production** (`supabase link --project-ref rmuhpgpvgvwchovlgxae`) and `supabase db push`, during the 10am-before/3pm-after window.
+5. Only once staging is verified: add the migration symlink to `deploy/production/supabase/migrations/`, then use `supabase --workdir deploy/production link --project-ref rmuhpgpvgvwchovlgxae` and `supabase --workdir deploy/production db push`, during the before-10:00/after-15:00 window unless the user explicitly overrides it. Never link the root history to production or replay its staging fixtures.
 6. Never use the Supabase MCP tools to change anything, on either project -- they are read-only verification only (`get_advisors`, `execute_sql` for `SELECT`s, `list_tables`). Every schema or data change is a migration file, applied via the CLI, committed. A database fixed by direct SQL and a migration file that doesn't contain that fix is how staging and production silently diverge.
 
 ## Backups

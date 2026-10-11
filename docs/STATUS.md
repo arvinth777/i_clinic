@@ -1,5 +1,24 @@
 # Status
 
+## Initial production release — 2026-10-11
+
+- User explicitly requested production updating now, overriding this release's
+  clinic-hours timing restriction, and requested placeholder account IDs.
+  Supabase still uses email-shaped login IDs; passwords will be randomly generated
+  and delivered outside chat/Git.
+- Production migration history is empty. Historical migrations require staging
+  test identities and embed test patients, so they cannot be replayed into prod.
+  Prepared an immutable schema-only bootstrap and a separate production CLI chain.
+  Original migrations stay unchanged.
+- Fresh local PostgreSQL 17 install/retry checks pass: 32 tables, all RLS, exact
+  anonymous RPC boundaries, four realtime tables, one empty clinic/two stock
+  points, no copied patients/catalog/logins. Partial-schema test rejects bootstrap
+  and preserves pre-existing rows. Independent release source reviews are pending.
+- Production migration/config/deployment are pending at this preparation checkpoint.
+  Browser offline reload and backup/restore setup remain unverified; printer
+  approval is recorded above.
+
+
 ## Requested release checks — 2026-10-11
 
 - User confirmed clinic-printer sign-off for short, typical and continuation-page
