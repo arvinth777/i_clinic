@@ -75,6 +75,13 @@ supabase --workdir deploy/production db push
 The production bootstrap is a symlink to the same immutable file applied to
 staging. For each future schema migration, apply/test it in staging first and add
 its symlink under `deploy/production/supabase/migrations/` before promoting it.
+The bootstrap was applied to staging first and then clinic-prod. Vercel's
+production branch is now `production`; production public frontend variables
+target clinic-prod and default Preview variables target staging. Production
+starts with one empty clinic and two placeholder staff accounts; randomly
+generated access details are in the maintainer's private local file outside Git.
+No real mailbox is required for these login IDs.
+
 Production history intentionally starts at the bootstrap; never use `--include-all`
 or repair-mark historical staging fixtures as applied there. Root remains linked
 to staging. Fresh local PostgreSQL 17 checks are in

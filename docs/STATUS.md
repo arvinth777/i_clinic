@@ -13,8 +13,15 @@
 - Fresh local PostgreSQL 17 install/retry checks pass: 32 tables, all RLS, exact
   anonymous RPC boundaries, four realtime tables, one empty clinic/two stock
   points, no copied patients/catalog/logins. Partial-schema test rejects bootstrap
-  and preserves pre-existing rows. Independent release source reviews are pending.
-- Production migration/config/deployment are pending at this preparation checkpoint.
+  and preserves pre-existing rows. Independent Standards/Spec reviews found no remaining blocker after strengthening
+  the existing-schema guard and fixing the conflicting runbook command.
+- The identical committed bootstrap applied to staging first and then production.
+  Staging database lint passes with zero errors. Vercel now uses `production` as
+  the release branch; Production variables target clinic-prod and default Preview
+  variables target staging. Two placeholder staff accounts were provisioned with
+  random passwords in a private local access file outside Git/chat.
+- Frontend build passes. Backend function deployment and rendered-app verification
+  remain in progress at this checkpoint.
   Browser offline reload and backup/restore setup remain unverified; printer
   approval is recorded above.
 
