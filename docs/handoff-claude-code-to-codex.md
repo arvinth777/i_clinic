@@ -1,7 +1,7 @@
 # Handoff: Claude Code to Codex
 
 Living document. Claude Code appends to section 9 (change log) after every branch, merge, staging or production
-action, and refreshes sections 1 and 6. Last updated: 2026-10-13 01:30 IST. Covers everything Claude Code did in
+action, and refreshes sections 1 and 6. Last updated: 2026-10-13 01:40 IST. Covers everything Claude Code did in
 this repository, from the point it took over from Codex's last release (`production` at `87a6351`, PR #11 merged
 2026-10-11) to now.
 
@@ -15,7 +15,7 @@ Read `AGENTS.md`, `docs/STATUS.md` and `docs/runbook.md` as well; this note does
 | Thing | State |
 |---|---|
 | `production` branch | `b9e9511` (PR #16 merge). Vercel Production = deployment `dpl_BMMn61q6RJMHznDxmDwjRHvfRfTz`, READY, bundle `index-CO-4f_k8.js`. Rollback target: `dpl_H6n94JYJpdwdXN3TocHyCAh9Kq75` (`e7e1820`). |
-| `main` branch | `f70ced4`. It is a **fast-forward behind `production`** (`production` = `main` + the two release merge commits, same files). To re-sync, the user can run `git push origin production:main` (fast-forward; Claude Code is blocked from pushing `main`). |
+| `main` branch | `b9e9511`, **identical to `production`** (re-synced by the user: `git push origin origin/production:main`, fast-forward `f70ced4..b9e9511`). Vercel built it as a Preview; Production deployment unchanged. |
 | Production database (`rmuhpgpvgvwchovlgxae`, clinic-prod) | **Migrations applied 2026-10-13 ~00:55 IST** (by the user running the CLI): now has all 7 (`production_bootstrap`, `patient_drive_files`, `rep_queue_realtime` + the four in section 3). Security advisor unchanged (2 anon, 31 authenticated, nothing new). The user says it holds no useful data. |
 | Staging database (`cofnrcgsolluyhghutah`, clinic-staging) | Has the three production migrations **plus four new ones** (section 3). Staging may be changed freely (user decision, 2026-10-13). |
 | PR #12 | Closed without merging (its content is already in `main`). |
@@ -180,4 +180,10 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 - **PWA update behaviour (operational note):** the offline service worker serves the previous build on the first load after a release; the new build runs from the **second load**. A tab that is left open keeps the old build until it is reloaded or closed and reopened. Tell the clinic to refresh twice after a release.
 - **Live verification (production database, user signed in as the real doctor; read-only, nothing created):** all 8 sections load, titles `<section> · iClinic` (More = plain `iClinic`); **0 failed requests** across a full navigation round (previously `400` on `queue_events`); **6 `queue_events` requests, all `200`, using `select=id:request_id,...`**; `icon-192.png` is 192x192 (200); `favicon.svg` is the "i" mark. The call banner/chime path on production has not been exercised with a real call (production has no patients; verified on staging).
 - Not checked on production: the lock-screen centring and the no-show layout (the first would sign the user out; the second needs a reception login and a stale visit). Both verified on staging.
-- Pending: re-sync `main` to `production` (above); add the four `deploy/production/supabase/migrations/` symlinks to the repo; remaining backlog in `BACKLOG-AUDIT.md` (dialogs, height/weight, duplicate-patient detection, timeline, PDF archive); stale staging fixtures.
+- Pending: add the four `deploy/production/supabase/migrations/` symlinks to the repo; remaining backlog in `BACKLOG-AUDIT.md` (dialogs, height/weight, duplicate-patient detection, timeline, PDF archive); stale staging fixtures.
+
+### 2026-10-13 ~01:38-01:40 IST: `main` re-synced to `production`
+- The user first ran `git push origin production:main`, which was **rejected as non-fast-forward**: his **local** `production` branch in the main folder is stale (`9aca0ad`, the root commit), so that command would have pushed the wrong thing. Nothing changed. Lesson: push the remote-tracking ref, not the local branch name.
+- He then ran `git push origin origin/production:main`: fast-forward `f70ced4..b9e9511`. `main` == `production` == `b9e9511` (verified). Main project folder pulled, clean.
+- Vercel built `main` `b9e9511` as a **Preview** (deployment `dpl_7gpuY5BDd8r3feRiR5Ay6MqU1RvW`, target empty); newest Production deployment is still `dpl_BMMn61q6RJMHznDxmDwjRHvfRfTz`.
+- Housekeeping left: the main folder's **local `production` branch is stale** (`9aca0ad`); update or delete it (`git branch -f production origin/production` is safe: it is not checked out anywhere).
