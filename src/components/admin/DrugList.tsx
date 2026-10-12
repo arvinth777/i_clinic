@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { useConfirm } from '../../lib/confirm'
 
 type Medicine = {
   id: string
@@ -55,6 +56,7 @@ function toDraft(m: Medicine): Draft {
 // the database itself refuses the delete (caught below, shown plainly).
 export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; pricesOnly?: boolean }) {
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const queryKey = ['admin-medicines', clinicId]
   const { data: medicines } = useQuery({
     queryKey,
@@ -278,9 +280,9 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
                 {pricesOnly ? <Button type="button" variant="secondary" onClick={() => openEdit(m)}>{m.unit_confirmed_at ? 'Edit price' : 'Confirm unit'}</Button> : <button
                   type="button"
                   className="drug-row-remove"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation()
-                    if (confirm(`Remove ${m.name}?`)) remove.mutate(m.id)
+                    if (await confirm({ title: `Remove ${m.name}?`, confirmLabel: 'Remove' })) remove.mutate(m.id)
                   }}
                 >
                   Remove

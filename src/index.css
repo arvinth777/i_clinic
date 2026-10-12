@@ -8,7 +8,7 @@
   --press-tap-scale: .97;
   --press-stamp-scale: .96;
   --press-stamp-rotation: -1deg;
-  --doctor-main-basis: 620px; --doctor-content-width: 760px; --doctor-rail-basis: 380px; --doctor-rail-max: 520px; --doctor-history-date: 110px;
+  --dialog-width: 420px; --doctor-main-basis: 620px; --doctor-content-width: 760px; --doctor-rail-basis: 380px; --doctor-rail-max: 520px; --doctor-history-date: 110px;
   --space-32: 32px; --space-36: 36px; --space-40: 40px;
   --ink: #141C2B; --ink-2: #364154; --muted: #5B6575; --faint: #7A8494; --placeholder: #9AA3B0;
   --bg: #FFFFFF; --panel: #F6F7F9; --hover: #F2F4F7;

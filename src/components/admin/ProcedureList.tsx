@@ -5,11 +5,13 @@ import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../../lib/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
+import { useConfirm } from '../../lib/confirm'
 
 type Procedure = { id: string; name: string; default_price_paise: number }
 
 export function ProcedureList({ clinicId }: { clinicId: string }) {
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const queryKey = ['admin-procedures', clinicId]
   const { data: procedures } = useQuery({
     queryKey,
@@ -133,9 +135,9 @@ export function ProcedureList({ clinicId }: { clinicId: string }) {
                 <button
                   type="button"
                   className="drug-row-remove"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation()
-                    if (confirm(`Remove ${p.name}?`)) remove.mutate(p.id)
+                    if (await confirm({ title: `Remove ${p.name}?`, confirmLabel: 'Remove' })) remove.mutate(p.id)
                   }}
                 >
                   Remove
