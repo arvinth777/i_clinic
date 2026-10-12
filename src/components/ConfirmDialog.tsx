@@ -15,6 +15,8 @@ export function ConfirmProvider({ locked, children }: { locked: boolean; childre
   // While locked nothing is shown and nothing is confirmed (the page stays mounted behind the lock and still receives keys).
   const confirm = useCallback((options: ConfirmOptions) => locked ? Promise.resolve(false) : new Promise<boolean>((resolve) => setPending({ options, resolve })), [locked])
   useEffect(() => { if (locked) dialog.current?.close('no') }, [locked])
+  // Stable, so it runs only when the dialog mounts: an inline ref would run again on every render and reopen a closing dialog.
+  const mount = useCallback((el: HTMLDialogElement | null) => { dialog.current = el; if (el && !el.open) el.showModal() }, [])
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
@@ -22,7 +24,7 @@ export function ConfirmProvider({ locked, children }: { locked: boolean; childre
         <dialog
           className="confirm-dialog"
           aria-labelledby={titleId}
-          ref={(el) => { dialog.current = el; if (el && !el.open) el.showModal() }}
+          ref={mount}
           onClose={(e) => { pending.resolve(e.currentTarget.returnValue === 'yes'); setPending(null) }}
           onClick={(e) => { if (e.target === e.currentTarget) e.currentTarget.close('no') }}
         >
