@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MAX_ATTEMPTS, hasPin, setScreenLocked, verifyPin } from '../lib/pinLock'
 import { supabase } from '../lib/supabase'
 import { Button } from './ui/button'
@@ -15,6 +15,14 @@ export function LockScreen({ locked, onUnlock }: { locked: boolean; onUnlock: ()
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [checking, setChecking] = useState(false)
+
+  // Freeze the page behind the lock: its scrollbar would otherwise show through and pull the lock off-centre.
+  useEffect(() => {
+    if (!locked) return
+    const previous = document.documentElement.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    return () => { document.documentElement.style.overflow = previous }
+  }, [locked])
 
   if (!locked) return null
 
