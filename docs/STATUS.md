@@ -733,6 +733,12 @@ the prescription screen); "Pay later" on refills unchanged (not in the rework br
 open visits, ~219 alerts) untouched; legacy suites (billing/pricing/packing/stock/phase-f/phase-g/isolation) still fail
 as before. Not browser-tested: no-show confirm button, inline Confirm unit, no-PIN idle lock, Pricing panel and Finish button after the hook refactor.
 
+**Finishing pass and branch flow (2026-10-13, branch `feat/finishing-pass`, local):** tab title "<section> · iClinic",
+PNG/maskable install icons with a placeholder ℞ mark and manifest colours from the `blue`/`bg` tokens, shared stage
+labels (`lib/stageLabels.ts`). AGENTS.md, CLAUDE.md and the runbook now describe the practised flow (feature branch,
+test on staging, PR into `production`; `main` is legacy). PR #12 was retargeted from `main` to `production`.
+Still open: 11 browser `confirm()` calls, height/weight fields, backlog items in `BACKLOG-AUDIT.md`.
+
 **Next:** committed on `fix/audit-flow-findings` (not pushed); run the browser regression scripts against it, then promote the three
 migrations (`20261012010000`, `…020000`, `…030000`) to production in a quiet window.
 
