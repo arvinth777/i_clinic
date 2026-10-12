@@ -1,11 +1,11 @@
 # Handoff: Claude Code to Codex
 
 Living document. Claude Code appends to section 9 (change log) after every branch, merge, staging or production
-action, and refreshes sections 1 and 6. Last updated: 2026-10-13 01:40 IST. Covers everything Claude Code did in
+action, and refreshes sections 1 and 6. Last updated: 2026-10-13 01:45 IST. Covers everything Claude Code did in
 this repository, from the point it took over from Codex's last release (`production` at `87a6351`, PR #11 merged
 2026-10-11) to now.
 
-**Current branch of the Claude Code worktree: `docs/handoff-release`** (local; `origin/main` `f70ced4` + `origin/production` `b9e9511` merged in + handoff edits only). All fix branches are merged.
+**Current branch of the Claude Code worktree: `docs/handoff-release`** (local + pushed for a housekeeping PR into `main`; handoff-note edits and the four `deploy/production` symlinks only). All fix branches are merged and their local copies deleted.
 **Merges into `production`: two.** (1) PR #13 (`main` -> `production`), merge commit `e7e1820`, 00:52 IST; (2) PR #16 (`main` -> `production`: event-feed fix, lock-screen centring, no-show layout, "i" icons, schema check), merge commit `b9e9511`, 01:24 IST. Both merged by the user from his terminal.
 **Merges into `main`: three.** (1) fast-forward `a220a14..e066578`, pushed by the user, ~00:30 IST; (2) PR #14 (`integrate/unsaved-local-notes` -> `main`), merge commit `9936c20`, 01:08 IST; (3) PR #15 (`fix/lock-and-event-feed` -> `main`), merge commit `f70ced4`, ~01:53 IST. `main` is now 4 commits ahead of `production` (the no-show fix, the integrated notes/favicon, the handoff note, the merge) and `production` has 1 commit `main` lacks (`e7e1820`).
 Read `AGENTS.md`, `docs/STATUS.md` and `docs/runbook.md` as well; this note does not replace them.
@@ -19,7 +19,7 @@ Read `AGENTS.md`, `docs/STATUS.md` and `docs/runbook.md` as well; this note does
 | Production database (`rmuhpgpvgvwchovlgxae`, clinic-prod) | **Migrations applied 2026-10-13 ~00:55 IST** (by the user running the CLI): now has all 7 (`production_bootstrap`, `patient_drive_files`, `rep_queue_realtime` + the four in section 3). Security advisor unchanged (2 anon, 31 authenticated, nothing new). The user says it holds no useful data. |
 | Staging database (`cofnrcgsolluyhghutah`, clinic-staging) | Has the three production migrations **plus four new ones** (section 3). Staging may be changed freely (user decision, 2026-10-13). |
 | PR #12 | Closed without merging (its content is already in `main`). |
-| Claude Code worktree | `.claude/worktrees/initial-setup-7b40e6`, branch `docs/handoff-release`. Root `supabase/` linked to **staging**; `deploy/production/` linked to **production**, 7 symlinks (the 4 new ones still uncommitted). |
+| Claude Code worktree | `.claude/worktrees/initial-setup-7b40e6`, branch `docs/handoff-release` (handoff note + the 4 migration symlinks, in PR to `main`). Root `supabase/` linked to **staging**; `deploy/production/` linked to **production**; all 7 symlinks now tracked in git. |
 | Main project folder | `/Users/arvinthcinmayankirupakaran/Desktop/i_clinic`: branch `main` @ `9936c20`, clean, pulled after PR #14. Backups of its old unsaved work: branches `backup/unsaved-20261013`, `backup/local-main-20261013`, and `~/Desktop/i_clinic-unsaved-backup-20261013/`. |
 | Untracked, uncommitted | `BACKLOG-AUDIT.md`, `CHANGE-REPORT.md`, this file. |
 | Production promotion | **Done** (database 00:55 IST, code 00:52-00:53 IST). Live checks passed: page 200, title `iClinic`, manifest and icons served, bundle references only the production Supabase ref. No browser sign-in or console check of the live app yet (needs the user's login). |
@@ -187,3 +187,10 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 - He then ran `git push origin origin/production:main`: fast-forward `f70ced4..b9e9511`. `main` == `production` == `b9e9511` (verified). Main project folder pulled, clean.
 - Vercel built `main` `b9e9511` as a **Preview** (deployment `dpl_7gpuY5BDd8r3feRiR5Ay6MqU1RvW`, target empty); newest Production deployment is still `dpl_BMMn61q6RJMHznDxmDwjRHvfRfTz`.
 - Housekeeping left: the main folder's **local `production` branch is stale** (`9aca0ad`); update or delete it (`git branch -f production origin/production` is safe: it is not checked out anywhere).
+
+### 2026-10-13 ~01:42-01:48 IST: housekeeping
+- **Local `production` branch** (shared repo of the main folder and all worktrees) fast-forwarded from the stale `9aca0ad` to `origin/production` `b9e9511` (`git branch -f production origin/production`; it was not checked out anywhere), so `git push origin production:...` no longer misleads.
+- **Deleted 7 fully merged local branches of Claude Code's** (`git branch -d`, all merged into `origin/main`): `docs/handoff-log`, `feat/finishing-pass`, `fix/audit-flow-findings`, `fix/lock-and-event-feed`, `fix/lock-screen-centering`, `integrate/unsaved-local-notes`, `main-reconcile`. Their **remote copies were not deleted** (outward action; delete in GitHub or with `git push origin --delete <branch>` when wanted: `fix/audit-flow-findings`, `fix/lock-and-event-feed`, `integrate/unsaved-local-notes`).
+- **Left alone on purpose:** Codex's `codex/*` branches (several are checked out in Codex worktrees under `~/.codex/worktrees`) and the two backup branches `backup/unsaved-20261013`, `backup/local-main-20261013` plus `~/Desktop/i_clinic-unsaved-backup-20261013/`.
+- **Committed the four `deploy/production/supabase/migrations/` symlinks** (the 7 entries are all git mode 120000 and resolve) together with the pending handoff-note commits, in one docs/tooling PR into `main`. No app code, no migrations, so the next release `main` -> `production` is again a docs/tooling-only diff.
+- Dev server on port 5173 stopped. Browser pane still has the production tab open (signed in as the user's doctor).
