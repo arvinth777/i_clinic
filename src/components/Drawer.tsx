@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import './Drawer.css'
+import { useConfirm } from '../lib/confirm'
 
 export function Drawer({ open, onClose, title, children, placement = 'right' }: {
   open: boolean
@@ -11,9 +12,11 @@ export function Drawer({ open, onClose, title, children, placement = 'right' }: 
   const panel = useRef<HTMLDivElement>(null)
   const dirty = useRef(false)
   const close = useRef(onClose)
-  useEffect(() => { close.current = onClose }, [onClose])
-  function requestClose() {
-    if (!dirty.current || window.confirm('Close this form and discard unsaved input?')) close.current()
+  const confirm = useConfirm()
+  const confirmRef = useRef(confirm)
+  useEffect(() => { close.current = onClose; confirmRef.current = confirm }, [onClose, confirm])
+  async function requestClose() {
+    if (!dirty.current || await confirmRef.current({ title: 'Discard unsaved input?', body: 'Closing this form throws away what you entered.', confirmLabel: 'Discard', cancelLabel: 'Keep editing' })) close.current()
   }
   useEffect(() => {
     if (!open) return
@@ -24,6 +27,7 @@ export function Drawer({ open, onClose, title, children, placement = 'right' }: 
     const focusable = () => [...(panel.current?.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, [tabindex="0"]') ?? [])].filter(el => el.getClientRects().length > 0)
     focusable()[0]?.focus()
     function onKeyDown(event: KeyboardEvent) {
+      if ((event.target as Element | null)?.closest?.('dialog')) return // keys inside the confirmation dialog belong to it
       if (event.key === 'Escape') { event.preventDefault(); requestClose() }
       if (event.key !== 'Tab') return
       const items = focusable()

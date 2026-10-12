@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
+import { useConfirm } from '../../lib/confirm'
 
 type Template = { id: string; name: string; prescription_template_items: { medicine_id: string }[] }
 
@@ -12,6 +13,7 @@ type Template = { id: string; name: string; prescription_template_items: { medic
 // stays doctor-only). Admin can view, rename, and delete.
 export function TemplateList({ clinicId }: { clinicId: string }) {
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const queryKey = ['admin-templates', clinicId]
   const { data: templates } = useQuery({
     queryKey,
@@ -115,9 +117,9 @@ export function TemplateList({ clinicId }: { clinicId: string }) {
                 <button
                   type="button"
                   className="drug-row-remove"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation()
-                    if (confirm(`Remove template "${t.name}"?`)) remove.mutate(t.id)
+                    if (await confirm({ title: `Remove template "${t.name}"?`, confirmLabel: 'Remove' })) remove.mutate(t.id)
                   }}
                 >
                   Remove

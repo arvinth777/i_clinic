@@ -1,0 +1,16 @@
+.confirm-dialog {
+  margin: auto; /* the app's reset zeroes the margin that centres a modal <dialog> */
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-modal);
+  width: var(--dialog-width);
+  max-width: calc(100vw - 2 * var(--space-lg));
+}
+.confirm-dialog::backdrop { background: var(--scrim); }
+.confirm-dialog-body { display: grid; gap: var(--space-md); padding: var(--space-lg); }
+.confirm-dialog-title { margin: 0; font-size: var(--text-lg); font-weight: 600; overflow-wrap: anywhere; }
+.confirm-dialog-text { margin: 0; font-size: var(--text-sm); color: var(--text-secondary); overflow-wrap: anywhere; }
+.confirm-dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-sm); }

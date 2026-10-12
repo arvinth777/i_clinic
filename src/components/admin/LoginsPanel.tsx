@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { useConfirm } from '../../lib/confirm'
 
 type Login = { user_id: string; email: string; role: string }
 
@@ -23,6 +24,7 @@ const ROLES = ['doctor', 'receptionist', 'admin'] as const
 // clinic once a second one exists.
 export function LoginsPanel({ clinicId }: { clinicId: string }) {
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const queryKey = ['admin-logins', clinicId]
   const { data: logins } = useQuery({
     queryKey,
@@ -278,8 +280,8 @@ export function LoginsPanel({ clinicId }: { clinicId: string }) {
                 <button
                   type="button"
                   className="drug-row-remove"
-                  onClick={() => {
-                    if (confirm(`Remove ${l.email}'s ${l.role} access to this clinic?`)) removeRole.mutate({ userId: l.user_id, role: l.role })
+                  onClick={async () => {
+                    if (await confirm({ title: `Remove ${l.email}'s ${l.role} access?`, body: 'They lose this role at the clinic. The login itself is kept.', confirmLabel: 'Remove' })) removeRole.mutate({ userId: l.user_id, role: l.role })
                   }}
                 >
                   Remove

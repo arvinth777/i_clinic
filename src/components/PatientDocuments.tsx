@@ -8,9 +8,11 @@ import { FILE_CATEGORIES, validateFile } from '../../supabase/functions/_shared/
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import './PatientDocuments.css'
+import { useConfirm } from '../lib/confirm'
 
 export function PatientDocuments({ clinicId, patientId, locked = false }: { clinicId: string; patientId: string; locked?: boolean }) {
   const client = useQueryClient()
+  const confirm = useConfirm()
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<string>('Other')
   const [date, setDate] = useState('')
@@ -86,7 +88,7 @@ export function PatientDocuments({ clinicId, patientId, locked = false }: { clin
     <div className="documents-storage" role="status">
       {status.fetchStatus === 'paused' ? 'Offline. You can add files on this device; viewing saved files and syncing need a connection.' : status.isPending ? 'Checking document storage…' : status.isError ? 'Document storage is not available yet. Setup must be completed before files can sync.' : !status.data?.configured ? 'Google Drive setup is pending. Files you add stay on this device until the clinic account is connected.' : status.data.connected ? `Connected to ${status.data.email}. Files remain private.` : 'Connect the clinic Google account. Pending files stay on this device until connected.'}
       {status.isError && <Button variant="ghost" onClick={() => void status.refetch()}>Try again</Button>}
-      {status.data?.connected && <Button variant="ghost" disabled={busy} onClick={() => { if (window.confirm('Disconnect the app from Google Drive? Existing files stay in Drive. Pending uploads will wait until you reconnect.')) void run(async () => { await documentRequest('disconnect', { clinic_id: clinicId }); await client.invalidateQueries({ queryKey: ['drive-status', clinicId] }) }) }}>Disconnect</Button>}
+      {status.data?.connected && <Button variant="ghost" disabled={busy} onClick={async () => { if (await confirm({ title: 'Disconnect Google Drive?', body: 'Existing files stay in Drive. Pending uploads will wait until you reconnect.', confirmLabel: 'Disconnect' })) void run(async () => { await documentRequest('disconnect', { clinic_id: clinicId }); await client.invalidateQueries({ queryKey: ['drive-status', clinicId] }) }) }}>Disconnect</Button>}
     </div>
     <form className="document-upload-form" onSubmit={submit}>
       <label className="field"><span className="field-label">File</span><input ref={input} type="file" accept="application/pdf,image/jpeg,image/png" disabled={busy} required onChange={e => { const next = e.target.files?.[0]; setFile(null); if (next) void run(async () => { await validateFile(next); setFile(next); if (!title) setTitle(next.name.replace(/\.[^.]+$/, '').slice(0, 160)) }) }} /></label>
@@ -97,7 +99,7 @@ export function PatientDocuments({ clinicId, patientId, locked = false }: { clin
       {error && <p className="form-error" role="alert">{error}</p>}
       <Button type="submit" disabled={busy || !file || !title.trim()}>{busy ? 'Saving…' : 'Add document'}</Button>
     </form>
-    {pending.length > 0 && <section className="documents-pending"><h3>Not saved to Drive yet</h3><p className="field-hint">These files are stored on this device and survive a reload. Keep this device until they finish syncing.</p>{pending.map(item => <article className="document-row" key={item.id}><div><strong>{item.metadata.title}</strong><p>{item.error ?? 'Waiting to upload…'}</p></div><Button variant="ghost" disabled={busy} onClick={() => { if (window.confirm('Remove this pending upload from this device?')) void run(() => cancelUpload(item.id)) }}>Remove</Button></article>)}<Button variant="secondary" disabled={busy} onClick={() => void run(() => drainUploads(true))}>Retry pending uploads</Button></section>}
+    {pending.length > 0 && <section className="documents-pending"><h3>Not saved to Drive yet</h3><p className="field-hint">These files are stored on this device and survive a reload. Keep this device until they finish syncing.</p>{pending.map(item => <article className="document-row" key={item.id}><div><strong>{item.metadata.title}</strong><p>{item.error ?? 'Waiting to upload…'}</p></div><Button variant="ghost" disabled={busy} onClick={async () => { if (await confirm({ title: 'Remove this pending upload?', body: 'It is removed from this device and will not be saved to Drive.', confirmLabel: 'Remove' })) void run(() => cancelUpload(item.id)) }}>Remove</Button></article>)}<Button variant="secondary" disabled={busy} onClick={() => void run(() => drainUploads(true))}>Retry pending uploads</Button></section>}
     <div className="document-list">{files.isError && <p className="form-error">Could not load saved documents. <Button variant="ghost" onClick={() => void files.refetch()}>Try again</Button></p>}
       {files.isLoading && <p className="field-hint">Loading documents…</p>}
       {files.data?.slice(0, limit).map(record => <article className="document-row" key={record.id}><div><strong>{record.title}</strong><p>{record.category} · {record.examination_date ? formatDateOnly(record.examination_date) : formatDate(record.created_at)}</p>{record.note && <p>{record.note}</p>}</div><Button variant="secondary" disabled={busy} onClick={() => void open(record)}>View</Button></article>)}

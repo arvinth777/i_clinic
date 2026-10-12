@@ -5,6 +5,7 @@ import { formatDate } from '../lib/date'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import './MergePatients.css'
+import { useConfirm } from '../lib/confirm'
 
 type Candidate = { id: string; name: string; age: number | null; phone: string | null; last_visit_at: string | null }
 
@@ -69,6 +70,7 @@ function PatientSearch({ label, clinicId, selected, onSelect }: { label: string;
 
 export function MergePatients({ clinicId }: { clinicId: string }) {
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const [a, setA] = useState<Candidate | null>(null)
   const [b, setB] = useState<Candidate | null>(null)
   const [result, setResult] = useState('')
@@ -108,8 +110,8 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
         <Button
           type="button"
           disabled={!bothSelected || samePatient || merge.isPending}
-          onClick={() => {
-            if (confirm(`Merge "${a?.name}" and "${b?.name}"? This cannot be undone.`)) merge.mutate()
+          onClick={async () => {
+            if (await confirm({ title: 'Merge these two patients?', body: `"${a?.name}" and "${b?.name}" become one record. This cannot be undone.`, confirmLabel: 'Merge' })) merge.mutate()
           }}
         >
           {merge.isPending ? 'Merging…' : 'Merge'}
