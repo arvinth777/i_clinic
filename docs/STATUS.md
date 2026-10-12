@@ -745,8 +745,8 @@ Still open: 11 browser `confirm()` calls, height/weight fields, backlog items in
 (applied to staging); advisor output now equals production's (2 anon, 31 authenticated, same as before). Production DB
 has only `production_bootstrap`, `patient_drive_files`, `rep_queue_realtime`; staging has those plus the four new ones.
 
-**Next:** committed on `fix/audit-flow-findings` (not pushed); run the browser regression scripts against it, then promote the three
-migrations (`20261012010000`, `…020000`, `…030000`) to production in a quiet window.
+**Next:** committed on `fix/audit-flow-findings` (not pushed); run the browser regression scripts against it, then promote the four
+migrations (`20261012010000`, `…020000`, `…030000`, `20261013010000`) to production in a quiet window.
 
 ## Skill activation — 2026-10-10
 
