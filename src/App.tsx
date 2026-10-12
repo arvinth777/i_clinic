@@ -5,6 +5,7 @@ import { StagingBanner } from './components/StagingBanner'
 import { OfflineQueueBanner } from './components/OfflineQueueBanner'
 import { SignIn } from './components/SignIn'
 import { AppShell, type ShellSection } from './components/AppShell'
+import { ConfirmProvider } from './components/ConfirmDialog'
 const Patients = lazy(() => import('./pages/Patients').then(module => ({ default: module.Patients })))
 const BillingDesk = lazy(() => import('./pages/BillingDesk').then(module => ({ default: module.BillingDesk })))
 import { Reception } from './pages/Reception'
@@ -89,7 +90,7 @@ function App() {
   }
 
   return (
-    <>
+    <ConfirmProvider locked={locked}>
       <StagingBanner />
       <AppShell key={`${clinicId}:${session.user.id}`}
         userId={session.user.id}
@@ -119,7 +120,7 @@ function App() {
         {activeSection === 'admin' && clinicId && <Admin clinicId={clinicId} isAdmin={roles?.some(r=>r.role==='admin')} />}
         </Suspense></PageLoadBoundary>
       </AppShell>
-    </>
+    </ConfirmProvider>
   )
 }
 

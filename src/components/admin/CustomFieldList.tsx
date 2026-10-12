@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { useConfirm } from '../../lib/confirm'
 
 type FieldDef = { id: string; key: string; label: string; field_type: string; display_order: number }
 
@@ -23,6 +24,7 @@ function slugify(label: string): string {
 // the label later doesn't move the underlying data.
 export function CustomFieldList({ clinicId }: { clinicId: string }) {
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const queryKey = ['admin-field-definitions', clinicId]
   const { data: fields } = useQuery({
     queryKey,
@@ -182,9 +184,9 @@ export function CustomFieldList({ clinicId }: { clinicId: string }) {
                 <button
                   type="button"
                   className="drug-row-remove"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation()
-                    if (confirm(`Remove the "${f.label}" field? Existing patient values for it are kept but no longer shown.`)) remove.mutate(f.id)
+                    if (await confirm({ title: `Remove the "${f.label}" field?`, body: 'Existing patient values for it are kept but no longer shown.', confirmLabel: 'Remove' })) remove.mutate(f.id)
                   }}
                 >
                   Remove

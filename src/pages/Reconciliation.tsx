@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { LoadingRows, QueryError } from '../components/QueryState'
 import { Button } from '../components/ui/button'
+import { useConfirm } from '../lib/confirm'
 
 // The resolution half of docs/architecture-spec.md's offline money-
 // conflict design (detection -- bills_needing_reconciliation, surfaced as
@@ -27,6 +28,7 @@ type Flagged = {
 
 export function Reconciliation({ clinicId }: { clinicId: string }) {
   const queryClient = useQueryClient()
+  const confirm = useConfirm()
   const queryKey = ['bills-needing-reconciliation', clinicId]
   const { data: flagged,isPending,error,refetch } = useQuery({
     queryKey,
@@ -88,8 +90,8 @@ export function Reconciliation({ clinicId }: { clinicId: string }) {
                     type="button"
                     variant="secondary"
                     disabled={correct.isPending || b.live_final_amount_paise===null}
-                    onClick={() => {
-                      if (confirm(`Write a correction for ${b.patient_name}, billing ${b.live_final_amount_paise===null?'Review required':formatPaise(b.live_final_amount_paise)} instead of ${formatPaise(b.final_amount_paise)}?`)) {
+                    onClick={async () => {
+                      if (await confirm({ title: `Write a correction for ${b.patient_name}?`, body: `Billing ${b.live_final_amount_paise===null?'Review required':formatPaise(b.live_final_amount_paise)} instead of ${formatPaise(b.final_amount_paise)}.`, confirmLabel: 'Write correction' })) {
                         correct.mutate(b)
                       }
                     }}
