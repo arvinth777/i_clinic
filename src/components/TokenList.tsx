@@ -10,6 +10,7 @@ import { useQueueAction, type QueueAction } from '../lib/queueActions'
 import { Input } from './ui/input'
 import { restorePagedCache } from '../lib/pagedCache'
 import { useQueuePollInterval } from '../lib/realtimeStatus'
+import { STAGES, stageLabel } from '../lib/stageLabels'
 
 type Visit = {
   id: string
@@ -21,16 +22,6 @@ type Visit = {
   complaint: string
   arrived_at: string
   patients: { name: string; age: number | null; gender: string | null } | null
-}
-
-const STAGES: Record<string, { label: string; color: string }> = {
-  waiting: { label: 'Waiting', color: 'var(--stage-waiting)' },
-  with_doctor: { label: 'With doctor', color: 'var(--stage-with-doctor)' },
-  called: { label: 'Called · waiting for reception', color: 'var(--blue)' },
-  ready_to_bill: { label: 'Ready to bill', color: 'var(--amber)' },
-  not_here: { label: 'Not here', color: 'var(--muted)' },
-  no_show: { label: 'No-show', color: 'var(--muted)' },
-  paid: { label: 'Paid', color: 'var(--stage-paid)' },
 }
 
 function StageGlyph({ stage }: { stage: string }) {
@@ -55,7 +46,7 @@ function sortValue(v: Visit, key: SortKey): string | number {
     case 'name':
       return v.patients?.name ?? ''
     case 'stage':
-      return STAGES[v.stage]?.label ?? v.stage
+      return stageLabel(v.stage)
     case 'wait':
       return elapsedMinutes(v.arrived_at)
   }

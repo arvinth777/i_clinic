@@ -6,6 +6,7 @@ import { useClinicId } from '../lib/useClinicId'
 import { startOfToday } from '../lib/date'
 import { NewPatientForm, type NewPatientInput } from '../components/NewPatientForm'
 import { TokenList } from '../components/TokenList'
+import { stageLabel } from '../lib/stageLabels'
 import { Billing } from '../components/Billing'
 import { FollowUpTodos } from '../components/FollowUpTodos'
 import { Button, buttonVariants } from '../components/ui/button'
@@ -234,7 +235,7 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
                 ← Back to queue
               </button>
               <h2 className="readout-heading">{selected.name}</h2>
-              {openToday?.[0] && <p className="status-amber" role="status">Already in today's queue as #{openToday[0].token_number} ({openToday[0].stage.replace('_', ' ')}). Check in only if this is a new visit.</p>}
+              {openToday?.[0] && <p className="status-amber" role="status">Already in today's queue as #{openToday[0].token_number} ({stageLabel(openToday[0].stage)}). Check in only if this is a new visit.</p>}
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
