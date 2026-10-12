@@ -1,12 +1,12 @@
 # Handoff: Claude Code to Codex
 
 Living document. Claude Code appends to section 9 (change log) after every branch, merge, staging or production
-action, and refreshes sections 1 and 6. Last updated: 2026-10-13 01:55 IST. Covers everything Claude Code did in
+action, and refreshes sections 1 and 6. Last updated: 2026-10-13 01:30 IST. Covers everything Claude Code did in
 this repository, from the point it took over from Codex's last release (`production` at `87a6351`, PR #11 merged
 2026-10-11) to now.
 
-**Current branch of the Claude Code worktree: `docs/handoff-release`** (cut from `origin/main` `f70ced4`; local; holds only handoff-note edits). All earlier fix branches are merged into `main`.
-**Merges into `production`: one, PR #13 (`main` -> `production`), merge commit `e7e1820`, 2026-10-13 00:52 IST.**
+**Current branch of the Claude Code worktree: `docs/handoff-release`** (local; `origin/main` `f70ced4` + `origin/production` `b9e9511` merged in + handoff edits only). All fix branches are merged.
+**Merges into `production`: two.** (1) PR #13 (`main` -> `production`), merge commit `e7e1820`, 00:52 IST; (2) PR #16 (`main` -> `production`: event-feed fix, lock-screen centring, no-show layout, "i" icons, schema check), merge commit `b9e9511`, 01:24 IST. Both merged by the user from his terminal.
 **Merges into `main`: three.** (1) fast-forward `a220a14..e066578`, pushed by the user, ~00:30 IST; (2) PR #14 (`integrate/unsaved-local-notes` -> `main`), merge commit `9936c20`, 01:08 IST; (3) PR #15 (`fix/lock-and-event-feed` -> `main`), merge commit `f70ced4`, ~01:53 IST. `main` is now 4 commits ahead of `production` (the no-show fix, the integrated notes/favicon, the handoff note, the merge) and `production` has 1 commit `main` lacks (`e7e1820`).
 Read `AGENTS.md`, `docs/STATUS.md` and `docs/runbook.md` as well; this note does not replace them.
 
@@ -14,8 +14,8 @@ Read `AGENTS.md`, `docs/STATUS.md` and `docs/runbook.md` as well; this note does
 
 | Thing | State |
 |---|---|
-| `production` branch | `e7e1820` (merge of PR #13). Vercel Production = deployment `dpl_H6n94JYJpdwdXN3TocHyCAh9Kq75`, READY, built from it. Previous Production deployment `dpl_B1mwLof6iE577ErK73Ct4A8tMrDH` (`87a6351`) is the rollback target. |
-| `main` branch | `f70ced4` (PR #15 merge). Everything in `production` except the PR #13 merge commit, plus: no-show layout fix, "i" favicon/icons, header event-feed fix, lock-screen centring, `query-schema-smoke-test`, notes. Vercel builds `main` as a **Preview**. |
+| `production` branch | `b9e9511` (PR #16 merge). Vercel Production = deployment `dpl_BMMn61q6RJMHznDxmDwjRHvfRfTz`, READY, bundle `index-CO-4f_k8.js`. Rollback target: `dpl_H6n94JYJpdwdXN3TocHyCAh9Kq75` (`e7e1820`). |
+| `main` branch | `f70ced4`. It is a **fast-forward behind `production`** (`production` = `main` + the two release merge commits, same files). To re-sync, the user can run `git push origin production:main` (fast-forward; Claude Code is blocked from pushing `main`). |
 | Production database (`rmuhpgpvgvwchovlgxae`, clinic-prod) | **Migrations applied 2026-10-13 ~00:55 IST** (by the user running the CLI): now has all 7 (`production_bootstrap`, `patient_drive_files`, `rep_queue_realtime` + the four in section 3). Security advisor unchanged (2 anon, 31 authenticated, nothing new). The user says it holds no useful data. |
 | Staging database (`cofnrcgsolluyhghutah`, clinic-staging) | Has the three production migrations **plus four new ones** (section 3). Staging may be changed freely (user decision, 2026-10-13). |
 | PR #12 | Closed without merging (its content is already in `main`). |
@@ -174,3 +174,10 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 - **PR #15** (`fix/lock-and-event-feed` -> `main`: header event-feed fix `1e9ead5`, lock-screen centring `70ec7c0`, `scripts/query-schema-smoke-test.mjs`, handoff/CLAUDE.md edits; 5 files, 7 commits) **merged by Claude Code at the user's instruction**, merge commit `f70ced4`. Vercel queued a Preview of `main` (target empty). Main project folder pulled (`f70ced4`, clean).
 - Release `production` <- `main` would change **15 files (10 outside docs), 0 migrations**: 4 PNG icons + `favicon.svg`, `AppShell.tsx` (event-feed select), `LockScreen.tsx`, `TokenList.tsx` + `Worklist.css` (no-show layout), `scripts/query-schema-smoke-test.mjs`. `production` currently lacks `f70ced4`'s changes and has 1 commit `main` lacks (`e7e1820`, the PR #13 merge), so the release PR merges that back too.
 - **Pending (needs the user, window before 10:00 / after 15:00 IST):** `gh pr create --base production --head main`, then `gh pr merge main --merge` (the user runs these; the permission classifier blocks Claude Code from production steps). Afterwards Claude Code repeats the read-only live pass and confirms the `queue_events` 400s are gone. Rollback: promote Vercel deployment `dpl_H6n94JYJpdwdXN3TocHyCAh9Kq75` (`e7e1820`).
+
+### 2026-10-13 ~01:24-01:32 IST: release #2 to production (PR #16) and live verification
+- PR #16 (`main` -> `production`, 15 files / 10 non-doc, **0 migrations**, checks green incl. Vercel Preview) created and **merged by the user** (`gh pr merge main --merge`), merge commit `b9e9511`. Vercel built Production `dpl_BMMn61q6RJMHznDxmDwjRHvfRfTz` from `production`; the live site started serving `index-CO-4f_k8.js`.
+- **PWA update behaviour (operational note):** the offline service worker serves the previous build on the first load after a release; the new build runs from the **second load**. A tab that is left open keeps the old build until it is reloaded or closed and reopened. Tell the clinic to refresh twice after a release.
+- **Live verification (production database, user signed in as the real doctor; read-only, nothing created):** all 8 sections load, titles `<section> · iClinic` (More = plain `iClinic`); **0 failed requests** across a full navigation round (previously `400` on `queue_events`); **6 `queue_events` requests, all `200`, using `select=id:request_id,...`**; `icon-192.png` is 192x192 (200); `favicon.svg` is the "i" mark. The call banner/chime path on production has not been exercised with a real call (production has no patients; verified on staging).
+- Not checked on production: the lock-screen centring and the no-show layout (the first would sign the user out; the second needs a reception login and a stale visit). Both verified on staging.
+- Pending: re-sync `main` to `production` (above); add the four `deploy/production/supabase/migrations/` symlinks to the repo; remaining backlog in `BACKLOG-AUDIT.md` (dialogs, height/weight, duplicate-patient detection, timeline, PDF archive); stale staging fixtures.
