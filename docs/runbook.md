@@ -146,7 +146,7 @@ the actual handoff mechanism, not this document alone.
 
 | What | Where | Notes |
 |---|---|---|
-| Source code | GitHub, `arvinth777/i_clinic` | `production` is the release branch and deploy trigger; `main` is the GitHub default but a legacy branch (last updated 2026-10-10), not used for releases (see Deploying) |
+| Source code | GitHub, `arvinth777/i_clinic` | `main` branch is default; `production` branch is the deploy trigger (see Deploying) |
 | Frontend hosting | Vercel, Hobby tier | Static SPA build (`vite build`) -- the tier is a deliberate, temporary accommodation; upgrade trigger below |
 | Database + Auth + Realtime + Edge Functions | Supabase, two projects, Free tier | `clinic-staging` (ref `cofnrcgsolluyhghutah`) and `clinic-prod` (ref `rmuhpgpvgvwchovlgxae`) -- Free's 2-project ceiling is fully spent, no third slot exists |
 | Backup storage | Cloudflare R2 | Bucket holds weekly encrypted `pg_dump` snapshots (see Backups) |
@@ -157,13 +157,15 @@ the actual handoff mechanism, not this document alone.
 | Password manager / emergency access | (the maintainer's own) | Holds every actual secret value: Supabase DB passwords, R2 API tokens, the age private key, domain registrar login. A named trusted contact gets automatic access after a waiting period if the maintainer doesn't respond -- configure this *before* it's needed, not after |
 | WhatsApp / Meta | Not built | Out of scope for this build (see docs/build-plan.md's "Deliberately excluded") -- no account exists yet |
 
-## Deploying — branch flow as practised (updated 2026-10-13)
+## Deploying — intended workflow, not verified live
 
-- Build on a feature branch. Test it against the **staging** Supabase project (`clinic-staging`) and a Vercel preview. Staging data is synthetic and can be changed freely.
-- Open a PR into `production`. Merging it is the production deploy, pointed at **clinic-prod**. There is no separate staging branch; `main` is legacy and is not used (all releases #6, #8-#11 went feature branch -> `production`). Do not open PRs into `main`: it has diverged and a push to it was once built as Production.
-- Evidence for this flow is the PR history and docs/STATUS.md (Vercel project `i_clinic` builds from `production`); confirm the Vercel production-branch setting before relying on it.
+Update 2026-10-13: between 2026-10-11 and 2026-10-13 every release (#6, #8-#11) went from a `codex/` feature branch straight into `production`, bypassing `main`, which had stayed at `a220a14` (2026-10-10). `main` was then reconciled by merging it into the current `production` lineage (content = `production` plus the 2026-10-12 fixes; main's old history kept as a parent, no force-push). Before pushing `main`, confirm in Vercel (Settings -> Git -> Production Branch) that it is `production`; the only evidence so far is deployment history, and the last `main` push deployed as Production.
+
+
+- `main` -> automatic preview deploy on Vercel, pointed at the **staging** Supabase project. Never production.
+- Merging `main` -> `production` is the production deploy trigger, pointed at **clinic-prod**. Deliberate -- a push to `main` never auto-deploys to production.
 - Promotes (merging into `production`) and migrations happen **before 10am or after 3pm only** -- the clinic runs 10am-3pm. A bad change during clinic hours is the one outage this timing rule exists to prevent.
-- Migrations are applied **separately from deploys** (see "Applying a migration" below), always against staging first, and to production **before** merging the PR that needs them.
+- Migrations are applied **separately from deploys** (see "Applying a migration" below), and always run against staging first.
 - The upgrade trigger for Vercel Hobby -> Pro (or a move to Cloudflare Pages) is recorded so it's never rediscovered via a suspension notice: **the day a second clinic starts using the system.** That is also the day there is revenue to cover the tier change. The build is a portable static SPA specifically so this move is a config change, not a migration.
 
 ## Applying a migration

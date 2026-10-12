@@ -16,7 +16,7 @@ node isolation-test.mjs        # tenant/role isolation check
 
 - There is no unit-test framework. `scripts/*-test.mjs` are plain Node scripts that run **against live staging**, signing in as real test roles (secrets read from `.env.local` and `.env.test-users.local`, never printed). Pass/fail only. `scripts/prescription-draft-test.mjs` is the one that needs no database.
 - Frontend env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (see `.env.example`); `src/lib/supabase.ts` requires both.
-- Schema changes: new immutable file in `supabase/migrations/` (timestamped), applied with the Supabase CLI to staging first. Never live-patch SQL; Supabase MCP is read-only verification only. See `docs/runbook.md` before any push/deploy/migration — features are built on a feature branch, tested on staging, then PR'd into `production` (the release branch and production deploy trigger; merging deploys). `main` is a legacy branch; do not target it.
+- Schema changes: new immutable file in `supabase/migrations/` (timestamped), applied with the Supabase CLI to staging first. Never live-patch SQL; Supabase MCP is read-only verification only. See `docs/runbook.md` before any push/deploy/migration — `main` is the staging branch (feature PRs land here and deploy as a preview against staging), and `production` is the release branch (merging into it deploys). Confirm Vercel's production branch is `production` before pushing `main` (a `main` push once deployed as Production, 2026-10-10).
 
 ## Architecture
 

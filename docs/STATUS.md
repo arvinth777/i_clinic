@@ -735,8 +735,9 @@ as before. Not browser-tested: no-show confirm button, inline Confirm unit, no-P
 
 **Finishing pass and branch flow (2026-10-13, branch `feat/finishing-pass`, local):** tab title "<section> · iClinic",
 PNG/maskable install icons with a placeholder ℞ mark and manifest colours from the `blue`/`bg` tokens, shared stage
-labels (`lib/stageLabels.ts`). AGENTS.md, CLAUDE.md and the runbook now describe the practised flow (feature branch,
-test on staging, PR into `production`; `main` is legacy). PR #12 was retargeted from `main` to `production`.
+labels (`lib/stageLabels.ts`). Branch flow: AGENTS.md, CLAUDE.md and the runbook describe feature branch -> `main`
+(staging) -> `production`; `main` is being reconciled with `production` (merge keeping production's content, no
+force-push) once Vercel's production branch is confirmed. PR #12 was retargeted from `main` to `production`.
 Still open: 11 browser `confirm()` calls, height/weight fields, backlog items in `BACKLOG-AUDIT.md`.
 
 **Next:** committed on `fix/audit-flow-findings` (not pushed); run the browser regression scripts against it, then promote the three
