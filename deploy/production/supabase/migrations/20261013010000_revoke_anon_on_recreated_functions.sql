@@ -1,0 +1,1 @@
+../../../../supabase/migrations/20261013010000_revoke_anon_on_recreated_functions.sql
