@@ -10,6 +10,11 @@ type VisitFollowUp = { follow_up_date: string | null }
 
 export function CarePanel({ visitId, patientId, clinicId }: { visitId: string; patientId: string; clinicId: string }) {
   const queryClient = useQueryClient()
+  // Review date: today (clinic time) up to 5 years ahead, same window the database enforces.
+  const [{ today, maxDay }] = useState(() => {
+    const day = (ms: number) => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+    return { today: day(Date.now()), maxDay: day(Date.now() + 1825 * 864e5) }
+  })
 
   const longTermKey = ['patient-long-term', patientId]
   const { data: longTerm } = useQuery({
@@ -83,7 +88,7 @@ export function CarePanel({ visitId, patientId, clinicId }: { visitId: string; p
         <label className="field-label" htmlFor="follow-up-date">
           Follow-up date
         </label>
-        <Input id="follow-up-date" type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
+        <Input id="follow-up-date" type="date" min={today} max={maxDay} value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
         <div className="action-row">
           <Button type="submit" variant="secondary" disabled={saveFollowUp.isPending}>
             {saveFollowUp.isPending ? 'Saving…' : 'Save follow-up date'}

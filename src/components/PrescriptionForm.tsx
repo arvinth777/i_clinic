@@ -6,10 +6,11 @@ import { mergePrescriptionPrint, readPrescriptionPrint, savePrescriptionPrint, r
 import { PrintablePrescription, type PrintVisit, type ClinicPrintInfo, type DetailRow } from './VisitPrintout'
 import { LetterheadPreview } from './LetterheadPreview'
 import './PrescriptionForm.css'
-import { attemptOrQueue } from '../lib/offlineQueue'
+import { attemptOrQueue, setMedicineUnitPrice } from '../lib/offlineQueue'
 import { changeProposal, type PricingProposal } from '../lib/pricingProposal'
 import { parseRupeesToPaise } from '../lib/money'
 import { Button, buttonVariants } from './ui/button'
+import { ConfirmUnitRow } from './ConfirmUnitRow'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import {
@@ -28,7 +29,7 @@ const DRUG_TYPES = ['Tablet', 'Syrup', 'Capsule', 'Powder', 'Injection', 'Other'
 const FOOD_OPTIONS = ['Before food', 'After food', 'Either'] as const
 const FREQUENCY_OPTIONS = ['1-0-1', '1-1-1', '0-0-1', '1-0-0', 'SOS'] as const
 
-type MedicineResult = { id: string; name: string; stock_unit?: string | null; unit_confirmed_at?: string | null }
+type MedicineResult = { id: string; name: string; stock_unit?: string | null; unit_confirmed_at?: string | null; price_paise?: number | null }
 
 export function PrescriptionForm({
   clinicId,
@@ -139,7 +140,7 @@ export function PrescriptionForm({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('medicines')
-        .select('id, name, stock_unit, unit_confirmed_at')
+        .select('id, name, stock_unit, unit_confirmed_at, price_paise')
         .eq('clinic_id', clinicId)
         .ilike('name', `%${debouncedSearch}%`)
         .order('name', { ascending: true })
@@ -152,15 +153,29 @@ export function PrescriptionForm({
   const { data: medicineUnits } = useQuery({
     queryKey: ['prescription-medicine-units', clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('medicines').select('id, stock_unit, price_paise').eq('clinic_id', clinicId)
+      const { data, error } = await supabase.from('medicines').select('id, stock_unit, price_paise, unit_confirmed_at').eq('clinic_id', clinicId)
       if (error) throw error
-      return data as { id: string; stock_unit: string | null; price_paise:number }[]
+      return data as { id: string; stock_unit: string | null; price_paise:number; unit_confirmed_at: string | null }[]
     },
   })
 
+  // Quick-add must not undo what search enforces: no drug twice (a double-click doubled the whole set,
+  // and billing), and no drug whose billing unit is unconfirmed (the server rejects it at Confirm).
+  const [skipNote, setSkipNote] = useState('')
+  function addQuick(candidates: DraftItem[]) {
+    const unitOk = (id: string) => !medicineUnits || !!medicineUnits.find((m) => m.id === id)?.unit_confirmed_at
+    const unconfirmed = candidates.filter((i) => !unitOk(i.medicineId)).map((i) => i.medicineName)
+    // Filter against `prev`, not the render's draftItems: two clicks before a re-render must not both add.
+    setDraftItems((prev) => {
+      const have = new Set(prev.map((i) => i.medicineId))
+      return [...prev, ...candidates.filter((i) => !have.has(i.medicineId) && unitOk(i.medicineId))]
+    })
+    const duplicates = candidates.filter((i) => draftItems.some((d) => d.medicineId === i.medicineId)).length
+    setSkipNote([duplicates && `${duplicates} already on this prescription`, unconfirmed.length && `${unconfirmed.join(', ')}: confirm the unit under Inventory first`].filter(Boolean).join(' · '))
+  }
+
   function applyTemplate(template: Template) {
-    const items = template.prescription_template_items.map(draftFromExisting).filter((i): i is DraftItem => i !== null)
-    setDraftItems((prev) => [...prev, ...items])
+    addQuick(template.prescription_template_items.map(draftFromExisting).filter((i): i is DraftItem => i !== null))
   }
 
   // Majority of the patient's last 5 prescriptions, not just the most
@@ -170,12 +185,11 @@ export function PrescriptionForm({
   const combo = usualCombo(pastPrescriptions ?? [])
 
   function applyCombo() {
-    const items = combo.map((c) => draftFromExisting(c.item)).filter((i): i is DraftItem => i !== null)
-    setDraftItems((prev) => [...prev, ...items])
+    addQuick(combo.map((c) => draftFromExisting(c.item)).filter((i): i is DraftItem => i !== null))
   }
 
   function addFromSearch(medicine: MedicineResult) {
-    setDraftItems((prev) => [...prev, newDraftItem(medicine.id, medicine.name)])
+    setDraftItems((prev) => [...prev, newDraftItem(medicine.id, medicine.name, medicine.stock_unit)])
     setSearchQuery('')
     setDebouncedSearch('')
   }
@@ -191,10 +205,7 @@ export function PrescriptionForm({
         queueItem: () => ({ kind: 'insert', table: 'medicines', payload: row, description: 'Add medicine' }),
       })
       const payload = { p_medicine_id: row.id, p_stock_unit: newMedicineUnit.trim(), p_price_paise: pricePaise }
-      await attemptOrQueue({ clinicId,
-        attempt: (token) => supabase.rpc('set_medicine_unit_price', payload).setHeader('Authorization', `Bearer ${token}`),
-        queueItem: () => ({ kind: 'rpc', rpc: 'set_medicine_unit_price', payload, description: 'Confirm new medicine unit and price' }),
-      })
+      await setMedicineUnitPrice(clinicId, payload, 'Confirm new medicine unit and price')
       return { id: row.id, name: row.name, stock_unit: payload.p_stock_unit } as MedicineResult
     },
     onSuccess: (medicine) => {
@@ -331,7 +342,7 @@ export function PrescriptionForm({
           </button>
         </div>
         {print.isError && <p className="form-error" role="alert">{print.error.message}</p>}
-      {confirm.isError && <p className="form-error">Couldn't save — try again.</p>}
+      {confirm.isError && <p className="form-error" role="alert">Couldn't save: {confirm.error instanceof Error || (confirm.error && 'message' in confirm.error) ? String((confirm.error as { message: string }).message) : 'try again'}</p>}
       </div>{preview}</div>
     )
   }
@@ -354,7 +365,7 @@ export function PrescriptionForm({
         </>
       )}
       {print.isError && <p className="form-error" role="alert">{print.error.message}</p>}
-      {confirm.isError && <p className="form-error">Not saved yet — the local print copy is available. Review and retry the prescription.</p>}
+      {confirm.isError && <p className="form-error">Not saved yet — the local print copy is available. Fix the problem above, then retry.</p>}
       <div className="field search-results-anchor">
         <label className="field-label" htmlFor="drug-search">
           Medicines
@@ -383,6 +394,7 @@ export function PrescriptionForm({
           ))}
         </div>
       )}
+      {skipNote && <p className="form-error" role="status">{skipNote}</p>}
       {combo.length > 0 && (
         <p className="rx-quick-add-note">
           Usual combo is based on drugs common across this patient's last 5 visits, not just the most recent one.
@@ -396,8 +408,9 @@ export function PrescriptionForm({
               {searchResults.map((m) => (
                 <li key={m.id}>
                   <button type="button" className="search-result-button" disabled={!m.unit_confirmed_at} onClick={() => addFromSearch(m)}>
-                    <span>{m.name} · {m.stock_unit ?? 'confirm unit under Stock'}</span>
+                    <span>{m.name} · {m.stock_unit ?? 'unit not confirmed'}</span>
                   </button>
+                  {!m.unit_confirmed_at && <ConfirmUnitRow clinicId={clinicId} medicineId={m.id} name={m.name} pricePaise={m.price_paise} onDone={() => { queryClient.invalidateQueries({ queryKey: ['medicine-search', clinicId] }); queryClient.invalidateQueries({ queryKey: ['prescription-medicine-units', clinicId] }) }} />}
                 </li>
               ))}
             </ul>

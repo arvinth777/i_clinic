@@ -29,11 +29,19 @@ export default defineConfig({
         // Nothing here caches anything beyond this app's own build output.
       },
       manifest: {
-        name: 'i Clinic',
-        short_name: 'i Clinic',
+        name: 'iClinic',
+        short_name: 'iClinic',
         start_url: '/',
         display: 'standalone',
-        icons: [{ src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' }],
+        // Same values as the --blue and --bg tokens in src/index.css.
+        theme_color: '#1A4FB5',
+        background_color: '#FFFFFF',
+        icons: [
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' },
+        ],
       },
     }),
   ],

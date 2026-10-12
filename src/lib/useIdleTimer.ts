@@ -4,16 +4,13 @@ const ACTIVITY_EVENTS = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'scr
 
 // Per-station idle-lock timeout (docs/architecture-spec.md): fires onIdle
 // after timeoutMs with no activity, resetting on any of the events above.
-// Disabled entirely (no listeners attached) when `enabled` is false -- the
-// lock has nothing to arm itself with before a PIN exists (pinLock.ts).
-export function useIdleTimer(enabled: boolean, timeoutMs: number, onIdle: () => void) {
+// Armed even without a PIN: LockScreen then asks to sign in again.
+export function useIdleTimer(timeoutMs: number, onIdle: () => void) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const onIdleRef = useRef(onIdle)
   onIdleRef.current = onIdle
 
   useEffect(() => {
-    if (!enabled) return
-
     function reset() {
       if (timerRef.current) clearTimeout(timerRef.current)
       timerRef.current = setTimeout(() => onIdleRef.current(), timeoutMs)
@@ -25,5 +22,5 @@ export function useIdleTimer(enabled: boolean, timeoutMs: number, onIdle: () => 
       if (timerRef.current) clearTimeout(timerRef.current)
       for (const event of ACTIVITY_EVENTS) window.removeEventListener(event, reset)
     }
-  }, [enabled, timeoutMs])
+  }, [timeoutMs])
 }

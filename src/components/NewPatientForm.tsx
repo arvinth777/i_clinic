@@ -52,6 +52,7 @@ export function NewPatientForm({
 
   function set<K extends keyof NewPatientInput>(key: K, value: NewPatientInput[K]) {
     setForm((f) => ({ ...f, [key]: value }))
+    setErrors((e) => ({ ...e, [key]: undefined })) // a fixed field must stop showing its old error
   }
 
   function setCustom(def: FieldDef, raw: string | boolean) {
@@ -64,11 +65,14 @@ export function NewPatientForm({
     const next: typeof errors = {}
     if (!form.name.trim()) next.name = 'Required'
     if (!form.age.trim()) next.age = 'Required'
+    else if (!/^\d{1,3}$/.test(form.age.trim()) || Number(form.age) > 120) next.age = 'Enter a whole number from 0 to 120'
     if (!form.complaint.trim()) next.complaint = 'Required'
-    if (form.phone && !/^\d{10}$/.test(form.phone)) next.phone = 'Must be 10 digits'
+    // People type "98765 43210", "+91-98765-43210" or "098765 43210"; store the 10 digits.
+    const phone = form.phone.replace(/[\s-]/g, '').replace(/^(\+91|91|0)(?=\d{10}$)/, '')
+    if (phone && !/^\d{10}$/.test(phone)) next.phone = 'Must be 10 digits'
     setErrors(next)
     if (Object.keys(next).length > 0) return
-    onSubmit(form)
+    onSubmit({ ...form, phone })
   }
 
   return (
@@ -91,7 +95,7 @@ export function NewPatientForm({
         <label className="field-label" htmlFor="new-age">
           Age
         </label>
-        <Input id="new-age" type="number" value={form.age} onChange={(e) => set('age', e.target.value)} />
+        <Input id="new-age" type="number" min={0} max={120} step={1} value={form.age} onChange={(e) => set('age', e.target.value)} />
         {errors.age && (
           <span className="field-error" role="alert">
             {errors.age}

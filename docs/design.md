@@ -49,6 +49,11 @@ these tokens so all current screens use one palette.
 | shadow-modal / scrim | 0 24px 64px rgba(20,28,43,.20) / rgba(20,28,43,.32) |
 | shadow-paper | 0 1px 2px rgba(20,28,43,.06), 0 10px 30px rgba(20,28,43,.08) |
 
+Install icon and page title: the manifest, `theme-color` meta and PNG icons in `public/`
+use `blue` (#1A4FB5) and `bg` (#FFFFFF); the mark is a white ℞ on blue. It is a placeholder
+(no clinic brand is confirmed, see `PRODUCT.md`) and can be replaced by swapping the files.
+The tab title is "<section> · iClinic", set in `AppShell.tsx`.
+
 Blue means action/selection/live, amber attention, red error/danger/offline, green
 saved/paid. Status is coloured text with a word; the live dot belongs only in the
 queue readout. Placeholder colour is never real content. The supplied faint and

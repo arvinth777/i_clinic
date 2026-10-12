@@ -179,7 +179,8 @@ export function AppShell({
   const more = sections.filter((section) => !primary.includes(section))
   const activeMore = more.find((section) => section.key === activeSection)
 
-  useIdleTimer(pinSet, isDoctor ? DOCTOR_TIMEOUT_MS : OTHER_TIMEOUT_MS, onLock)
+  useIdleTimer(isDoctor ? DOCTOR_TIMEOUT_MS : OTHER_TIMEOUT_MS, onLock)
+  useEffect(() => { const label = sections.find((s) => s.key === activeSection)?.label; document.title = label ? `${label} · iClinic` : 'iClinic' }, [sections, activeSection])
 
   function select(key: string) { onSelectSection(key); setMenuOpen(false) }
   function navItem(section: ShellSection) {
@@ -206,7 +207,7 @@ export function AppShell({
   return (
     <RealtimeConnected value={connected}><div className="shell">
       <header ref={header} className="shell-header">
-        <a className="shell-clinic-name" href={isDoctor ? '#consultation' : '#reception'} onClick={e => { e.preventDefault(); select(isDoctor ? 'consultation' : sections[0]?.key ?? '') }}>Salem Pain &amp; Palliative Care</a>
+        <a className="shell-clinic-name" href={isDoctor ? '#consultation' : '#reception'} onClick={e => { e.preventDefault(); select(isDoctor ? 'consultation' : sections[0]?.key ?? '') }}>{clinicName ?? ''}</a>
         <nav className="shell-nav no-scrollbar" aria-label="Main">{navigation.map(navItem)}</nav>
         <div className="shell-status">
           {eventVisible && eventText && <span className="shell-event" role="status">{eventText} #{latestEvent?.visits.token_number}</span>}

@@ -81,8 +81,11 @@ These are decided. Do not relitigate them, and do not silently violate them.
 
 - Read `docs/runbook.md` before a push, promotion, deployment, or migration.
   Confirm the actual project, branch, and database target first.
-- GitHub `main` is the staging-development branch; `production` is the intended
-  release branch. Promote only the reviewed change, not unrelated branch history.
+- Branch flow: feature branch -> PR into `main` (the staging branch: Vercel preview
+  against the staging Supabase project, never production) -> test there -> PR from
+  `main` into `production`, the release branch and the only production deploy
+  trigger. `main` was reconciled with `production` on 2026-10-13; keep it a
+  descendant of `production`. Promote only the reviewed change.
 - Production deployments and migrations run before 10:00 or after 15:00 IST.
   Staging uses synthetic records only. Never copy production patient data into it.
 - Supabase MCP is for staging read-only verification. Confirm its project and

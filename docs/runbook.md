@@ -159,6 +159,9 @@ the actual handoff mechanism, not this document alone.
 
 ## Deploying — intended workflow, not verified live
 
+Update 2026-10-13: between 2026-10-11 and 2026-10-13 every release (#6, #8-#11) went from a `codex/` feature branch straight into `production`, bypassing `main`, which had stayed at `a220a14` (2026-10-10). `main` was then reconciled by merging it into the current `production` lineage (content = `production` plus the 2026-10-12 fixes; main's old history kept as a parent, no force-push). Before pushing `main`, confirm in Vercel (Settings -> Git -> Production Branch) that it is `production`; the only evidence so far is deployment history, and the last `main` push deployed as Production.
+
+
 - `main` -> automatic preview deploy on Vercel, pointed at the **staging** Supabase project. Never production.
 - Merging `main` -> `production` is the production deploy trigger, pointed at **clinic-prod**. Deliberate -- a push to `main` never auto-deploys to production.
 - Promotes (merging into `production`) and migrations happen **before 10am or after 3pm only** -- the clinic runs 10am-3pm. A bad change during clinic hours is the one outage this timing rule exists to prevent.

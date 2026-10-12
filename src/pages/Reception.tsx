@@ -3,8 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { useClinicId } from '../lib/useClinicId'
+import { startOfToday } from '../lib/date'
 import { NewPatientForm, type NewPatientInput } from '../components/NewPatientForm'
 import { TokenList } from '../components/TokenList'
+import { stageLabel } from '../lib/stageLabels'
 import { Billing } from '../components/Billing'
 import { FollowUpTodos } from '../components/FollowUpTodos'
 import { Button, buttonVariants } from '../components/ui/button'
@@ -39,7 +41,7 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
     return () => clearTimeout(t)
   }, [query])
 
-  const { data: results } = useQuery({
+  const { data: results, isFetching: searching } = useQuery({
     queryKey: ['search-patients', clinicId, debouncedQuery],
     enabled: !!clinicId && debouncedQuery.length > 0,
     queryFn: async () => {
@@ -49,6 +51,18 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
       })
       if (error) throw error
       return data as SearchResult[]
+    },
+  })
+
+  // A patient already waiting or with the doctor today: warn before issuing a second token.
+  const { data: openToday } = useQuery({
+    queryKey: ['open-visit-today', selected && selected !== 'new' ? selected.id : null],
+    enabled: !!selected && selected !== 'new',
+    queryFn: async () => {
+      const { data, error } = await supabase.from('visits').select('token_number, stage').eq('patient_id', (selected as SearchResult).id)
+        .gte('arrived_at', startOfToday()).not('stage', 'in', '(paid,no_show)').limit(1)
+      if (error) throw error
+      return data
     },
   })
 
@@ -187,7 +201,7 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
                 ))}
               </ul>
             )}
-            {debouncedQuery && (results?.length ?? 0) === 0 && (
+            {debouncedQuery && debouncedQuery === query.trim() && !searching && results && results.length === 0 && (
               <div className="no-match">
                 <p>No matching patient found.</p>
               </div>
@@ -221,6 +235,7 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
                 ← Back to queue
               </button>
               <h2 className="readout-heading">{selected.name}</h2>
+              {openToday?.[0] && <p className="status-amber" role="status">Already in today's queue as #{openToday[0].token_number} ({stageLabel(openToday[0].stage)}). Check in only if this is a new visit.</p>}
               <form
                 onSubmit={(e) => {
                   e.preventDefault()

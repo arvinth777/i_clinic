@@ -155,7 +155,8 @@ console.log('signed in as doctor.a, reception.a, admin.only\n')
   report('with no prior visit, next_review_due falls back to today + interval', noHistory?.next_review_due >= todayStr, JSON.stringify(noHistory))
 
   // A brand-new visit must reset next_review_due automatically.
-  const resetVisitArrival = new Date(Date.now() + 24 * 3600 * 1000).toISOString()
+  // Not in the future: the server clamps future arrival times (and a future visit at the queue head blocks Call next).
+  const resetVisitArrival = new Date().toISOString()
   await makeVisit(withHistoryId, 'phase d lt reset test', resetVisitArrival)
   const { data: afterNewVisit } = await doctorA.from('patients').select('next_review_due').eq('id', withHistoryId).single()
   const expectedResetDue = new Date(resetVisitArrival)
@@ -198,7 +199,7 @@ console.log('signed in as doctor.a, reception.a, admin.only\n')
   const { error: recDirectErr } = await receptionA.from('visits').update({ follow_up_date: '2026-10-01' }).eq('id', visitId)
   report('reception cannot set a follow-up date via a direct update either', !!recDirectErr, recDirectErr?.message)
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }) // clinic day, not UTC
   const { error: setErr } = await doctorA.rpc('set_visit_follow_up', { p_visit_id: visitId, p_follow_up_date: today })
   report('doctor can set a follow-up date', !setErr, setErr?.message)
 
