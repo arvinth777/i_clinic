@@ -49,10 +49,10 @@ these tokens so all current screens use one palette.
 | shadow-modal / scrim | 0 24px 64px rgba(20,28,43,.20) / rgba(20,28,43,.32) |
 | shadow-paper | 0 1px 2px rgba(20,28,43,.06), 0 10px 30px rgba(20,28,43,.08) |
 
-Install icon and page title: the manifest, `theme-color` meta and PNG icons in `public/`
-use `blue` (#1A4FB5) and `bg` (#FFFFFF); the mark is a white ℞ on blue. It is a placeholder
-(no clinic brand is confirmed, see `PRODUCT.md`) and can be replaced by swapping the files.
-The tab title is "<section> · iClinic", set in `AppShell.tsx`.
+Install icon and page title: the manifest, `theme-color` meta and PNG icons in `public/` use `blue` (#1A4FB5)
+and `bg` (#FFFFFF); the mark is the white lowercase "i" of `public/favicon.svg` (see the favicon note above), and
+the PNG icons are rendered from the same geometry (circle at 32,18 r5 and bar 27..37 x 28..51 on a 64 grid).
+Replace the mark by swapping `favicon.svg` and the four PNGs. The tab title is "<section> · iClinic", set in `AppShell.tsx`.
 
 Blue means action/selection/live, amber attention, red error/danger/offline, green
 saved/paid. Status is coloured text with a word; the live dot belongs only in the
@@ -61,6 +61,10 @@ placeholder colours do **not** meet 4.5:1 for small text on white; the specifica
 blanket contrast statement must not be reported as a verified accessibility pass.
 
 ## Typography and measurements
+
+Browser/app favicon: a white lowercase i on the existing clinic-blue rounded
+square, stored as standalone vector geometry in `public/favicon.svg` so it
+renders without loading a font. The SVG uses the blue/bg palette and r-lg radius.
 
 Self-host Hanken Grotesk woff2, weights 400/500/600/700. Fallback:
 `system-ui, -apple-system, "Segoe UI", sans-serif`. Use tabular numbers on body.

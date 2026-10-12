@@ -195,6 +195,58 @@ No new realtime infrastructure is approved for this version. Existing checks
 support the current small-clinic scope; they do not prove unlimited capacity or
 guarantee instant communication during internet outages.
 
+## Consolidated remaining work — 2026-10-11
+
+The user asked to retain these nine items alongside this brief's existing
+backlog. They supplement the detailed requirements below; they do not replace
+clinical decisions or authorise deferred features. This is the remaining-work
+checklist, not evidence that any item is complete. Consult `docs/STATUS.md`
+for fresh implementation and release evidence before marking an item done.
+
+1. [ ] **Full visual audit.** Compare every screen with `docs/design.md` and
+   the supplied HTML/screenshots at 1440 and 390 px. Enter each screen on a
+   fresh load before visiting Settings; check loading, empty, error and success
+   states, standalone callbacks, fonts, spacing, overflow and keyboard use.
+   Functional checks and screenshot capture alone do not establish visual QA.
+2. [ ] **Offline verification.** Exercise actual browser offline reload,
+   queued writes/uploads, pending state, reconnection and recovery. Prove
+   persistence and idempotent replay using an approved test method; record
+   unavailable checks rather than claiming the gate passed.
+3. [ ] **Daily backups and restore drill.** Resume the deferred backup setup
+   after confirming the storage destination; R2 activation was skipped at the
+   user's request. Verify scheduled encrypted daily backups, failure/freshness
+   reporting and a real restore into an isolated target. Keep private keys and
+   credentials outside Git; never restore over the serving production database.
+4. [ ] **Production Drive upload verification.** With an authorised clinic
+   document, verify upload, private preview and download in production. The
+   connection and synthetic staging checks already passed; these do not prove
+   that a real production document has been exercised.
+5. [ ] **Automatic PDF archiving.** Archive finalised prescriptions and paid
+   receipts in Drive using the issued snapshots, patient/source links, durable
+   retries, visible status and duplicate prevention. Follow the detailed PDF
+   archive requirements below, including receipt permissions and corrections.
+6. [ ] **Unified patient timeline.** Integrate prescriptions, receipts and
+   uploaded reports with clear event dates/times and existing role boundaries.
+   Distinguish issue, payment, upload and examination dates; never invent times.
+7. [ ] **Possible duplicate-patient detection.** Provide staff review and
+   the existing authorised merge flow, preserving records, bills and documents.
+   Matching phone/name must not automatically merge patients. Existing same-day
+   duplicate check-in alerts are a separate, already delivered capability.
+8. [ ] **Finishing pass.** Complete iClinic/section browser titles, consistent
+   installed-app naming/icons, readable statuses and accessible styled confirm
+   dialogs. Check history timestamps, download filenames, receipt identity,
+   keyboard focus and empty/error states; retain draft and consequence warnings.
+9. [ ] **Security and maintenance.** Resolve or explicitly document remaining
+   security/dependency advisories and lint warnings, with fresh relevant tests.
+   Distinguish intentional restricted service-only tables and reviewed RPC
+   access from exploitable findings; do not claim a clean advisor without proof.
+
+The manual Drive integration, current alerts/chime and the focused Patients/
+Drive styling repair are already released; do not rebuild them merely because
+an older scope list calls them unimplemented. A full-app visual audit remains
+outstanding. Existing two-doctor, stock-batch, follow-up, WhatsApp and far-future
+realtime notes retain their current priority and approval boundaries.
+
 ## Alert backlog — 2026-10-11 side-conversation decision
 
 User-requested order for this follow-up work:

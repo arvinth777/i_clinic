@@ -1,5 +1,126 @@
 # Status
 
+## Populated doctor visual check — 2026-10-12
+
+- Used the current staging preview (PR #11 build) with three owned synthetic
+  patients: one With doctor via Call/Sent in and two Waiting. Existing staging
+  test records were preserved. Populated diagnosis/advice and the existing
+  sample Paracetamol template; no prescription, approval, payment or stock
+  operation was issued. The test medicine's missing confirmed unit correctly
+  kept the draft unreviewable; this was a presentation check, not dispensing.
+- Browser evidence at 1440/390 px: new paper-like layout, Hanken, underline
+  fields, dose/food/duration choices and A4 preview. No horizontal page overflow.
+  Screenshots: docs/evidence/populated-design. History-rich states not tested.
+- Remaining visual defects observed: queue names/age metadata crowd together;
+  the desktop grey queue column ends before the page's bottom. Record these
+  under the consolidated full visual audit; no broad visual pass is claimed.
+- Cleared the sample draft fields and removed all owned synthetic patients,
+  visits and queue events; cleanup assertion passed. Temporary script removed.
+  Production was not modified. Existing staging records remain.
+- Uncommitted: new evidence/status note plus the earlier brief/status checklist.
+  Next: fix the documented queue presentation defects in the visual-audit pass.
+
+
+## Backlog consolidation — 2026-10-11
+
+- Added the user-requested nine-item remaining-work checklist to
+  `docs/rework-brief.md`, preserving existing detailed requirements, deferred
+  features and approval boundaries. Shipped Drive/alerts are distinguished
+  from pending acceptance checks and new work.
+- Checked all nine entries and retained the existing smart-feature, finishing,
+  multi-doctor and realtime sections in both the primary checkout and active
+  clinic worktree. This was documentation only; no runtime checks or deployment.
+- Uncommitted: this brief/status update; primary-checkout pre-existing edits
+  remain intact. Next: use the consolidated checklist to select the next task.
+
+
+## iClinic favicon — 2026-10-11 side-conversation change
+
+- Replaced the purple thunderbolt in `public/favicon.svg` with a white lowercase
+  i on clinic blue. Existing HTML and PWA manifest already reference this file.
+- Checked SVG structure/palette and both references, and `git diff --check`.
+  Local uncommitted change only; no deployment or live Chrome tab check.
+  Next: include the favicon in the main thread's reviewed release.
+
+## Far-future realtime scaling note — 2026-10-11
+
+- Added the user-requested deferred WebSocket/SSE evaluation to
+  `docs/rework-brief.md`, with measured growth/latency triggers and existing
+  correctness/offline safeguards. Supabase already uses WebSockets; SSE remains
+  an alternative to evaluate. Current runtime and production are unchanged.
+- Documentation only; checked `git diff --check`. Notes remain uncommitted
+  alongside existing local work. Next: revisit only when growth or measured
+  limits justify the evaluation; multi-doctor workflow remains separate.
+
+## Drive, chime and actionable-alert backlog — 2026-10-11
+
+- Added the user's finishing-pass request to the backlog: browser title,
+  installed-app branding/icons, status labels, app confirmation dialogs,
+  history timestamps, and filename/receipt/focus/empty/error checks. Current
+  source confirms generic title, SVG-only manifest icons, raw stage labels,
+  native confirms and date-only history presentation. Remaining checks are
+  audit targets. This entry records scope only; no implementation/deployment.
+
+- Recorded the user's follow-up order in `docs/rework-brief.md`: staging Google
+  OAuth configuration/connection test, reception call chime, then clickable
+  role-aware in-app alerts. User also added sync/upload failures, recent alerts,
+  no-show/Sent in reminders, unpaid bills, partial supply, duplicate check-in,
+  connection state, grouped stock alerts and an end-of-day checklist to the
+  backlog. Automatic clearing after confirmed resolution is now approved, with
+  resolved alerts retained in recent history; the extra
+  lock-screen redaction proposal was declined. Existing locking is unchanged.
+- Added automatic finalised-prescription and paid-receipt Drive PDF archiving
+  to the backlog, including patient/source links, offline retry/deduplication,
+  and restricted reception receipt access. Source inspection confirms current
+  patient history contains prescriptions and paid-receipt navigation; Drive
+  attachment uploads are manual/doctor-only, with no automatic archive flow.
+- User supplied a local OAuth JSON path and reports saving the staging callback;
+  no secret was opened, configured or committed in this side conversation.
+  Backlog now records the account/project/API/client setup, downloaded JSON
+  location, redirect added after download, and remaining staging verification.
+- Recorded revised smart-feature priorities: reviewed duplicate detection/merge
+  and a unified document timeline with accurate dates/times are approved;
+  stock-aware billing is optional/lower priority, follow-ups are far future,
+  repeat-prescription review declined and prescription-history enhancements
+  deferred. Later fulfilment of shortfalls remains undecided. Existing visit
+  date tagging is acknowledged; no runtime behaviour changed.
+- Documentation only; application/backend/production unchanged. Checked the
+  documentation diff with `git diff --check`; no runtime checks apply. These
+  notes are uncommitted. Next for this backlog: explicitly authorized staging
+  credential setup and live Google connection verification.
+
+## Loading, unused code and sync audit — 2026-10-11
+
+- Read-only application audit recorded in `docs/performance-audit.md`. Fresh build
+  passes; initial JS is 925.61 kB / 263.40 kB gzip. Confirmed one obsolete
+  72-line component, three unused font packages and an unused 1.17 MB public
+  scan still precached. Temporary animation-free build estimates 39.19 kB gzip
+  savings; no replacement UI or application code was committed.
+- Fresh synthetic two-role staging INSERT delivery: doctor 491 ms, reception
+  492 ms from request start; doctor refetch 227 ms. Fixture removed, including
+  its automatically created pricing row. This is backend timing, not a full
+  clinic UI latency guarantee. Staging metadata confirms rep check-ins lack
+  realtime membership; patient visits/pricing/bills/pharmacy sales have it.
+- Further findings: three-second polling while connected and unbounded earlier
+  queue downloads. No source/schema/production change was made. Browser
+  inspection was a cached staging session; cold-load/Core Web Vitals, actual
+  clinic devices and fresh offline/reconnect recovery remain unmeasured.
+- Audit/status and the prior future-doctor note remain uncommitted. Next:
+  implement the ranked improvements in a separate change and verify startup,
+  doctor/reception transitions, offline chunks/printing and queue boundaries.
+
+
+## Deferred second-doctor workflow — 2026-10-11
+
+- Recorded the user's future request in `docs/rework-brief.md`: two doctors
+  working simultaneously through one reception page. Includes proposed routing,
+  current clinic-wide consultation limitations, unresolved permissions/ownership,
+  print identity, concurrency/offline and billing questions, and acceptance checks.
+- Documentation only; no account, application, database or deployment changes.
+  Checked the note with `git diff --check`; runtime tests are not applicable.
+- This note and status entry are uncommitted. Next: await the user's explanation
+  of the second doctor's workflow before designing or implementing the change.
+
 ## Drive UI regression repair — 2026-10-11
 
 - Reproduced on production before editing: fresh Patients was display:block
