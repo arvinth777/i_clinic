@@ -164,7 +164,7 @@ export function AppShell({
     return () => { events.close(); supabase.removeChannel(channel) }
   }, [clinicId, clinical, queryClient])
   const {data: latestEvent}=useQuery({queryKey:['queue-events',clinicId,userId],refetchInterval:queuePollInterval(connected),enabled:!!clinicId&&clinical,queryFn:async()=>{
-    const {data,error}=await supabase.from('queue_events').select('id,visit_id,action,created_at,visits(token_number)').eq('clinic_id',clinicId!).neq('actor_id',userId).gte('created_at',new Date(Date.now()-10000).toISOString()).in('action',['call','sent_in','finish','request_discount']).order('created_at',{ascending:false}).limit(1).maybeSingle()
+    const {data,error}=await supabase.from('queue_events').select('id:request_id,visit_id,action,created_at,visits(token_number)').eq('clinic_id',clinicId!).neq('actor_id',userId).gte('created_at',new Date(Date.now()-10000).toISOString()).in('action',['call','sent_in','finish','request_discount']).order('created_at',{ascending:false}).limit(1).maybeSingle()
     if(error)throw error
     return data as {id:string;visit_id:string;action:string;created_at:string;visits:{token_number:number}}|null
   }})
