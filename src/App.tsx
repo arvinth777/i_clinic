@@ -73,6 +73,9 @@ function App() {
 
   if (loading || rolesLoading) return null
   if (!session) {
+    // Signing in again is itself the unlock. The lock screen's "Sign in again" only cleared the stored flag; this
+    // component stays mounted, so the in-memory lock survived and the next sign-in landed back on the lock screen.
+    if (locked) { setLocked(false); setScreenLocked(false) }
     return (
       <>
         <StagingBanner />
