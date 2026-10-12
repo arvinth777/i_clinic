@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { ConfirmContext, type ConfirmOptions } from '../lib/confirm'
 import { Button } from './ui/button'
+import { lockPageScroll } from '../lib/scrollLock'
 import './ConfirmDialog.css'
 
 type Pending = { options: ConfirmOptions; resolve: (confirmed: boolean) => void }
@@ -14,12 +15,7 @@ export function ConfirmProvider({ locked, children }: { locked: boolean; childre
   // The page stays mounted behind the lock and still receives keys, so refuse to open while locked.
   const confirm = useCallback((options: ConfirmOptions) => locked ? Promise.resolve(false) : new Promise<boolean>((resolve) => setPending({ options, resolve })), [locked])
   useEffect(() => { if (locked) dialog.current?.close('no') }, [locked])
-  useEffect(() => {
-    if (!pending) return
-    const previous = document.documentElement.style.overflow
-    document.documentElement.style.overflow = 'hidden'
-    return () => { document.documentElement.style.overflow = previous }
-  }, [pending])
+  useEffect(() => (pending ? lockPageScroll() : undefined), [pending])
   // Stable, so it runs only on mount: an inline ref would reopen a closing dialog on re-render.
   const mount = useCallback((el: HTMLDialogElement | null) => { dialog.current = el; if (el && !el.open) el.showModal() }, [])
   return (

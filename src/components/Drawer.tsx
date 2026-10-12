@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useConfirm } from '../lib/confirm'
+import { lockPageScroll } from '../lib/scrollLock'
 import './Drawer.css'
 
 export function Drawer({ open, onClose, title, children, placement = 'right' }: {
@@ -22,8 +23,7 @@ export function Drawer({ open, onClose, title, children, placement = 'right' }: 
     if (!open) return
     dirty.current = false
     const previousFocus = document.activeElement as HTMLElement | null
-    const previousOverflow = document.documentElement.style.overflow
-    document.documentElement.style.overflow = 'hidden'
+    const unlockScroll = lockPageScroll()
     const focusable = () => [...(panel.current?.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, [tabindex="0"]') ?? [])].filter(el => el.getClientRects().length > 0)
     focusable()[0]?.focus()
     function onKeyDown(event: KeyboardEvent) {
@@ -39,7 +39,7 @@ export function Drawer({ open, onClose, title, children, placement = 'right' }: 
     }
     document.addEventListener('keydown', onKeyDown)
     return () => {
-      document.documentElement.style.overflow = previousOverflow
+      unlockScroll()
       document.removeEventListener('keydown', onKeyDown)
       previousFocus?.focus()
     }

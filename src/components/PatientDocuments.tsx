@@ -8,6 +8,7 @@ import { FILE_CATEGORIES, validateFile } from '../../supabase/functions/_shared/
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { useConfirm } from '../lib/confirm'
+import { lockPageScroll } from '../lib/scrollLock'
 import './PatientDocuments.css'
 
 export function PatientDocuments({ clinicId, patientId, locked = false }: { clinicId: string; patientId: string; locked?: boolean }) {
@@ -54,9 +55,9 @@ export function PatientDocuments({ clinicId, patientId, locked = false }: { clin
     if (!preview || locked) return
     const previous = returnFocus.current
     const modal = dialog.current
-    const oldOverflow = document.documentElement.style.overflow
-    modal?.showModal(); document.documentElement.style.overflow = 'hidden'
-    return () => { modal?.close(); document.documentElement.style.overflow = oldOverflow; previous?.focus() }
+    modal?.showModal()
+    const unlockScroll = lockPageScroll()
+    return () => { modal?.close(); unlockScroll(); previous?.focus() }
   }, [preview, locked])
   async function run(action: () => Promise<void>) {
     setBusy(true); setError('')
