@@ -740,6 +740,11 @@ labels (`lib/stageLabels.ts`). Branch flow: AGENTS.md, CLAUDE.md and the runbook
 force-push) once Vercel's production branch is confirmed. PR #12 was retargeted from `main` to `production`.
 Still open: 11 browser `confirm()` calls, height/weight fields, backlog items in `BACKLOG-AUDIT.md`.
 
+**Security advisor, staging (2026-10-13, read-only MCP):** migration 20261012010000 had recreated `get_daily_report`
+(anon grant returned) and added `guard_visit_identity` without revoking execute. Fixed by `20261013010000`
+(applied to staging); advisor output now equals production's (2 anon, 31 authenticated, same as before). Production DB
+has only `production_bootstrap`, `patient_drive_files`, `rep_queue_realtime`; staging has those plus the four new ones.
+
 **Next:** committed on `fix/audit-flow-findings` (not pushed); run the browser regression scripts against it, then promote the three
 migrations (`20261012010000`, `…020000`, `…030000`) to production in a quiet window.
 
