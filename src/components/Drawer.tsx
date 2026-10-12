@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import './Drawer.css'
 import { useConfirm } from '../lib/confirm'
+import './Drawer.css'
 
 export function Drawer({ open, onClose, title, children, placement = 'right' }: {
   open: boolean

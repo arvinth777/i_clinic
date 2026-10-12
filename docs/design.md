@@ -45,7 +45,7 @@ these tokens so all current screens use one palette.
 | green / green-bg / live | #1F7A4D / #F2FAF5 / #22A55B |
 | scroll-thumb / scroll-hover / toast-undo | #D5DAE1 / #B4BBC6 / #9DBBF5 (explicit exceptions from scrollbar/toast spec) |
 | r-sm / md / lg / xl | 8 / 10 / 14 / 16px |
-| dialog-width | 420px (the shared confirmation dialog, `ConfirmDialog.tsx`; also uses scrim, shadow-modal, r-lg) |
+| dialog-width | 420px (the shared confirmation dialog, `ConfirmDialog.tsx`; uses the Dialogs rule below: r-xl, space-28, scrim, shadow-modal) |
 | shadow-pop | 0 12px 36px rgba(20,28,43,.14), 0 0 0 1px var(--line) |
 | shadow-modal / scrim | 0 24px 64px rgba(20,28,43,.20) / rgba(20,28,43,.32) |
 | shadow-paper | 0 1px 2px rgba(20,28,43,.06), 0 10px 30px rgba(20,28,43,.08) |

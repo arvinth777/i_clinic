@@ -4,8 +4,8 @@ import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/date'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import './MergePatients.css'
 import { useConfirm } from '../lib/confirm'
+import './MergePatients.css'
 
 type Candidate = { id: string; name: string; age: number | null; phone: string | null; last_visit_at: string | null }
 

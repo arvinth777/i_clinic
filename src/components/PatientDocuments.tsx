@@ -7,8 +7,8 @@ import { cancelUpload, drainUploads, listUploads, queueDocument, subscribeUpload
 import { FILE_CATEGORIES, validateFile } from '../../supabase/functions/_shared/patientFiles'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import './PatientDocuments.css'
 import { useConfirm } from '../lib/confirm'
+import './PatientDocuments.css'
 
 export function PatientDocuments({ clinicId, patientId, locked = false }: { clinicId: string; patientId: string; locked?: boolean }) {
   const client = useQueryClient()
