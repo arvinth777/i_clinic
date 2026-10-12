@@ -1,13 +1,13 @@
 # Handoff: Claude Code to Codex
 
 Living document. Claude Code appends to section 9 (change log) after every branch, merge, staging or production
-action, and refreshes sections 1 and 6. Last updated: 2026-10-13 01:50 IST. Covers everything Claude Code did in
+action, and refreshes sections 1 and 6. Last updated: 2026-10-13 01:55 IST. Covers everything Claude Code did in
 this repository, from the point it took over from Codex's last release (`production` at `87a6351`, PR #11 merged
 2026-10-11) to now.
 
-**Current branch of the Claude Code worktree: `fix/lock-and-event-feed`** (cut from `origin/main` `9936c20`; local, not pushed). It holds two fixes plus handoff edits: the lock-screen centring fix (`70ec7c0`) and the header event-feed fix (`1e9ead5`), merged together. The earlier local branches `fix/lock-screen-centering` and `docs/handoff-log` are superseded by it.
+**Current branch of the Claude Code worktree: `docs/handoff-release`** (cut from `origin/main` `f70ced4`; local; holds only handoff-note edits). All earlier fix branches are merged into `main`.
 **Merges into `production`: one, PR #13 (`main` -> `production`), merge commit `e7e1820`, 2026-10-13 00:52 IST.**
-**Merges into `main`: two.** (1) fast-forward `a220a14..e066578`, pushed by the user, ~00:30 IST; (2) PR #14 (`integrate/unsaved-local-notes` -> `main`), merge commit `9936c20`, 2026-10-13 01:08 IST. `main` is now 4 commits ahead of `production` (the no-show fix, the integrated notes/favicon, the handoff note, the merge) and `production` has 1 commit `main` lacks (`e7e1820`).
+**Merges into `main`: three.** (1) fast-forward `a220a14..e066578`, pushed by the user, ~00:30 IST; (2) PR #14 (`integrate/unsaved-local-notes` -> `main`), merge commit `9936c20`, 01:08 IST; (3) PR #15 (`fix/lock-and-event-feed` -> `main`), merge commit `f70ced4`, ~01:53 IST. `main` is now 4 commits ahead of `production` (the no-show fix, the integrated notes/favicon, the handoff note, the merge) and `production` has 1 commit `main` lacks (`e7e1820`).
 Read `AGENTS.md`, `docs/STATUS.md` and `docs/runbook.md` as well; this note does not replace them.
 
 ## 1. State right now (verify before acting)
@@ -15,11 +15,11 @@ Read `AGENTS.md`, `docs/STATUS.md` and `docs/runbook.md` as well; this note does
 | Thing | State |
 |---|---|
 | `production` branch | `e7e1820` (merge of PR #13). Vercel Production = deployment `dpl_H6n94JYJpdwdXN3TocHyCAh9Kq75`, READY, built from it. Previous Production deployment `dpl_B1mwLof6iE577ErK73Ct4A8tMrDH` (`87a6351`) is the rollback target. |
-| `main` branch | `9936c20` (PR #14 merge). Contains everything in `production` except the PR #13 merge commit, plus the no-show layout fix, the integrated notes and the "i" favicon. Vercel built it as a **Preview** (target empty), not Production. |
+| `main` branch | `f70ced4` (PR #15 merge). Everything in `production` except the PR #13 merge commit, plus: no-show layout fix, "i" favicon/icons, header event-feed fix, lock-screen centring, `query-schema-smoke-test`, notes. Vercel builds `main` as a **Preview**. |
 | Production database (`rmuhpgpvgvwchovlgxae`, clinic-prod) | **Migrations applied 2026-10-13 ~00:55 IST** (by the user running the CLI): now has all 7 (`production_bootstrap`, `patient_drive_files`, `rep_queue_realtime` + the four in section 3). Security advisor unchanged (2 anon, 31 authenticated, nothing new). The user says it holds no useful data. |
 | Staging database (`cofnrcgsolluyhghutah`, clinic-staging) | Has the three production migrations **plus four new ones** (section 3). Staging may be changed freely (user decision, 2026-10-13). |
 | PR #12 | Closed without merging (its content is already in `main`). |
-| Claude Code worktree | `.claude/worktrees/initial-setup-7b40e6`, branch `fix/lock-and-event-feed`. Root `supabase/` linked to **staging**; `deploy/production/` linked to **production**, with 7 symlinks (the 4 new ones are still uncommitted). |
+| Claude Code worktree | `.claude/worktrees/initial-setup-7b40e6`, branch `docs/handoff-release`. Root `supabase/` linked to **staging**; `deploy/production/` linked to **production**, 7 symlinks (the 4 new ones still uncommitted). |
 | Main project folder | `/Users/arvinthcinmayankirupakaran/Desktop/i_clinic`: branch `main` @ `9936c20`, clean, pulled after PR #14. Backups of its old unsaved work: branches `backup/unsaved-20261013`, `backup/local-main-20261013`, and `~/Desktop/i_clinic-unsaved-backup-20261013/`. |
 | Untracked, uncommitted | `BACKLOG-AUDIT.md`, `CHANGE-REPORT.md`, this file. |
 | Production promotion | **Done** (database 00:55 IST, code 00:52-00:53 IST). Live checks passed: page 200, title `iClinic`, manifest and icons served, bundle references only the production Supabase ref. No browser sign-in or console check of the live app yet (needs the user's login). |
@@ -169,3 +169,8 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 - New check **`scripts/query-schema-smoke-test.mjs`** (replaces a narrower one-query test): parses every `.from('table')` chain in `src` (83 read queries; select strings plus every column used in `eq/neq/gt/gte/lt/lte/in/is/like/ilike/not/order`) and runs each against **staging** with `.limit(0)` as doctor, falling back to reception on permission errors. It fails on unknown column, table or relationship (codes 42703, 42P01, PGRST200/201/204/100) and ignores permission/type errors. **Red on the code as released to production (`e7e1820`): exactly one failure, `AppShell.tsx:167 queue_events: column queue_events.id does not exist`; green on the fix.** A deliberately broken column is also caught. Not covered: `.rpc()` calls (35; calling them would execute functions), select strings built with `${}`, and chains that insert/update before `.select()`. Run it after changing any query: `node scripts/query-schema-smoke-test.mjs`.
 - Staging data created: synthetic visits tokens 3003, 3004, 3005 ("CALL... synthetic call check"), all parked with reception `not_here`. The temporary helper script was deleted.
 - **This bug is live in production.** The fix is only on the local branch above; it needs a PR into `main`, then `main` -> `production`, together with the no-show layout fix, the "i" icon and the lock-screen centring fix. No migrations in that release.
+
+### 2026-10-13 ~01:50-01:56 IST: PR #15 merged into `main`; release to production is next
+- **PR #15** (`fix/lock-and-event-feed` -> `main`: header event-feed fix `1e9ead5`, lock-screen centring `70ec7c0`, `scripts/query-schema-smoke-test.mjs`, handoff/CLAUDE.md edits; 5 files, 7 commits) **merged by Claude Code at the user's instruction**, merge commit `f70ced4`. Vercel queued a Preview of `main` (target empty). Main project folder pulled (`f70ced4`, clean).
+- Release `production` <- `main` would change **15 files (10 outside docs), 0 migrations**: 4 PNG icons + `favicon.svg`, `AppShell.tsx` (event-feed select), `LockScreen.tsx`, `TokenList.tsx` + `Worklist.css` (no-show layout), `scripts/query-schema-smoke-test.mjs`. `production` currently lacks `f70ced4`'s changes and has 1 commit `main` lacks (`e7e1820`, the PR #13 merge), so the release PR merges that back too.
+- **Pending (needs the user, window before 10:00 / after 15:00 IST):** `gh pr create --base production --head main`, then `gh pr merge main --merge` (the user runs these; the permission classifier blocks Claude Code from production steps). Afterwards Claude Code repeats the read-only live pass and confirms the `queue_events` 400s are gone. Rollback: promote Vercel deployment `dpl_H6n94JYJpdwdXN3TocHyCAh9Kq75` (`e7e1820`).
