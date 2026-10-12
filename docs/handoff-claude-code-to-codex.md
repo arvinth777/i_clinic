@@ -1,11 +1,11 @@
 # Handoff: Claude Code to Codex
 
 Living document. Claude Code appends to section 9 (change log) after every branch, merge, staging or production
-action, and refreshes sections 1 and 6. Last updated: 2026-10-13 01:45 IST. Covers everything Claude Code did in
+action, and refreshes sections 1 and 6. Last updated: 2026-10-13 02:00 IST. Covers everything Claude Code did in
 this repository, from the point it took over from Codex's last release (`production` at `87a6351`, PR #11 merged
 2026-10-11) to now.
 
-**Current local branch: `feat/finishing-pass`** (worktree `.claude/worktrees/initial-setup-7b40e6`, HEAD = the layout-fix commit after `6ad388e`,
+**Current local branch of the Claude Code worktree: `integrate/unsaved-local-notes`** (stacked on `feat/finishing-pass`, which has the no-show fix; this branch adds the integrated notes and favicon). Earlier branch name: `feat/finishing-pass` (worktree `.claude/worktrees/initial-setup-7b40e6`, HEAD = the layout-fix commit after `6ad388e`,
 not pushed under that name; its content is already in `origin/main` through a merge commit).
 **Merges into `production`: one, PR #13 (`main` -> `production`), merge commit `e7e1820`, 2026-10-13 00:52 IST.** **Merges into `main`: one, a fast-forward, `a220a14..e066578` (section 9).**
 Read `AGENTS.md`, `docs/STATUS.md` and `docs/runbook.md` as well; this note does not replace them.
@@ -139,3 +139,11 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 - Staging data: synthetic stale visit token 2988 ("Follow-up Test Patient") closed as no-show through the UI.
 - **Branch `feat/finishing-pass`: new commit** "Fix no-show confirmation layout..." (`src/components/TokenList.tsx`, `src/components/Worklist.css`). Not pushed. `origin/main` and `origin/production` do not have it yet.
 - Open follow-up (replaces item 1 above): push this fix to `main` (PR from `feat/finishing-pass` or via the small sync PR), then release `main` -> `production` in the next window, together with merging `production` back into `main` and committing the four `deploy/production` symlinks.
+
+### 2026-10-13 02:00 IST: the main project folder (`/Users/arvinthcinmayankirupakaran/Desktop/i_clinic`) brought up to date
+- That folder was a **separate git worktree** on the old branch `codex/clinic-drive-integration` (`daf1bfa`, 6 commits behind) with **uncommitted work** (STATUS.md +121, rework-brief.md +225, design.md +4, `public/favicon.svg`, untracked `docs/performance-audit.md`) and a local `main` carrying **2 unpushed commits** (`2986888`, `36455a9`). Claude Code's changes live in its own worktree, so they were not in that folder.
+- Line-by-line check against `origin/main`: both local-only commits are **fully present** on `origin/main` (0 lines missing). Uncommitted work **not** on `main`: 103 STATUS lines (Oct 11-12 notes), 48 rework-brief lines ("Consolidated remaining work - 2026-10-11"), 3 design.md lines (the favicon note), and the favicon itself (white lowercase "i" on clinic blue). `docs/performance-audit.md` on `main` is the newer version (kept).
+- **Safety copies:** files copied to `~/Desktop/i_clinic-unsaved-backup-20261013/` (plus `all-unsaved-changes.patch`); the unsaved work committed to local branch `backup/unsaved-20261013` (`840644e`); the old local `main` kept as `backup/local-main-20261013` (`2986888`). Nothing was deleted.
+- Main folder now: branch `main` = `origin/main` `e066578`, clean tree. It does **not** yet have the no-show fix or the integration commit until they are merged to `main`.
+- **Integrated** (branch `integrate/unsaved-local-notes`, commit `2f399e6`, via 3-way patch; conflicts in STATUS.md resolved by keeping both blocks, newest first; rework-brief conflict resolved by keeping the added section): all of the above, and **your "i" favicon replaces Claude Code's placeholder R-slash mark**; the 192/512/maskable/apple PNG icons were regenerated from the same geometry; `docs/design.md` install-icon note updated to match. The handoff note itself is now committed on this branch.
+- Chain on this branch, oldest first: `f3dd1af` no-show layout fix, `2f399e6` integration. Merge it into `main`, then `git pull` in the main folder, then `main` -> `production` for release.
