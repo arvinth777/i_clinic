@@ -1,1 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#1A4FB5"/><path d="M156 120V400M156 140H256a72 72 0 0 1 0 144H156M238 284L326 400M270 366H342" fill="none" stroke="#FFFFFF" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>iClinic</title>
+  <rect width="64" height="64" rx="14" fill="#1A4FB5"/>
+  <g fill="#FFFFFF">
+    <circle cx="32" cy="18" r="5"/>
+    <path d="M27 28h10v23H27z"/>
+  </g>
+</svg>
