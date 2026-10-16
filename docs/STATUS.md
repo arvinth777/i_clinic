@@ -6,7 +6,7 @@
 - Staging-only migration `20261016204344_clinic_alert_settings` applied. Backend tests verify doctor persistence/retry, reception reads, invalid values and role/clinic/anonymous denial. Alert timing/checklist and unpaid-target regression tests pass, including keeping the payment form mounted during background validation.
 - Fresh tsc/build pass, lint is the 8-warning baseline, schema smoke passes 88 queries. Doctor browser checked at measured 1440/390 px: Hanken, no page overflow, settings persist and defaults restored. Standards/Spec review blockers fixed and re-reviewed. Security advisor: no errors, existing warnings retained; not a full-system certification.
 - Implementation committed in draft PR #36 on `codex/alert-settings`. Reception browser navigation, sound toggle and offline save/reload checks remain pending the user signing in; the internal browser was doctor-signed-in and has now idle-locked. Production untouched; no merge authorized.
-- Next: complete those browser checks, then ask for merge of the reviewed PR. GitHub Actions currently cannot start because the GitHub account is locked due to a billing issue; local checks are distinct evidence. Drive archive implementation is isolated in its own managed worktree.
+- Next: complete those browser checks, then ask for merge of the reviewed PR. Archive implementation is now draft PR #37 in the managed archive worktree; live synthetic Drive upload/retry/download checks passed there, while full app/offline/printer acceptance remains open. GitHub Actions currently cannot start because the GitHub account is locked due to a billing issue; local checks are distinct evidence. Drive archive implementation is isolated in its own managed worktree.
 
 ## Populated doctor visual check — 2026-10-12
 

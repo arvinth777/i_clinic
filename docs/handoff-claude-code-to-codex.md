@@ -344,3 +344,7 @@ Pushed `codex/alert-settings` and opened draft PR #36 into main, commit `9ef2ea1
 ### 2026-10-17 — Release packaging ordering correction (local only)
 
 Renamed the alert production-chain symlink to `20261017030000_clinic_alert_settings.sql`, preserving its exact immutable staging SQL target. It now sorts after production's existing `20261017020000` without forbidden production `--include-all`. Archive will use the next alias `20261017040000`. No production command or database change; pending reviewer/user release gate remains. Added `test:alerts` for the baseline CI optional feature check.
+
+### 2026-10-17 — Backlog draft review checkpoint
+
+PR35 baseline CI repaired (feature hooks added), draft PR36 alert settings and draft PR37 Drive PDF archives are all unmerged. Archive worktree has staging-only migration20261016205705 and JWT-verified endpoint deployed; actual synthetic issued prescription and name-only receipt Drive upload/retry/byte-exact download pass. Application browser/offline/printer acceptance remains pending; internal doctor session idle-locked and user was asked to sign in as reception. Production and main remain `1eeaa92`; no production commands. Both worktrees have only generated local evidence untracked; no credentials committed. Primary checkout returned to `codex/alert-settings`. Shared docs/package edits may need reconciliation when reviewed PRs merge in35,36,37 order.
