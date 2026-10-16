@@ -2,6 +2,8 @@
 
 ## START HERE (written 2026-10-17 for the switch to Codex; this block is the current state, the rest is history)
 
+**Current Codex delta (2026-10-17):** main/production verified at `1eeaa92`; timeline is already released (PR #34). Baseline tests are repaired in unmerged PR #35; local checks pass but GitHub Actions cannot start due to account billing lock. Alert settings branch is ready for draft review with remaining reception/offline browser acceptance pending user login. New alert migration is applied to staging only. See newest section 9 entries; old table below is historical.
+
 **Verify first:** `git fetch origin && git log --oneline -3 origin/main origin/production && gh pr list` and `cat supabase/.temp/project-ref` (root must say `cofnrcgsolluyhghutah`, staging).
 
 | Thing | State at hand-off |
@@ -321,3 +323,16 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 - **code-review gate (standards + spec agents):** no migration or RLS issues. Fixed from it: the tab keeps its last good data and shows the saved-time banner when a refresh fails; receipt / documents buttons carry a descriptive aria-label; the files query key now sits under `['patient-files', clinic, patient]`, which a finished upload already invalidates; a correction row is titled "replaces the earlier bill"; tie order no longer uses `localeCompare`; shared row types come from the lib; `formatDate` now also uses clinic time (IST) so the Visits tab and the Timeline agree. Left as is: "Prescription issued" is `created_at` (the schema has no separate issued time); a settlement or correction made on another device reaches an open Timeline via the 30 s poll / focus refetch, not instantly; the original bill of a corrected pair still reads "Payment received"; no role-boundary test.
 - **Limits:** no pagination (all events for one patient load at once); no filters; reception does not get the tab; the timeline shows the amount of each bill row as stored (a correction row shows its own final amount).
 - **Release needs:** no migration, so only the feature PR into `main`, then the `main` -> `production` release PR.
+
+### 2026-10-17: test baseline PR #35; alert settings branch
+- `codex/test-baseline` pushed, PR #35 into main opened; not merged. Fresh staging suites pass (billing 16, pricing 15, handoff 10, stock 25, offline 21, phase-g 21, isolation 21), local CI suites 7/7; typecheck/build, lint at eight warnings and 86 query-schema checks pass. Standards/spec review complete.
+- Started `codex/alert-settings` from `origin/main` `1eeaa92`, independently of unmerged #35. User approved notification sound mute with all alerts still visible. Defaults remain five-minute called reminder and 16:00 IST close; make timing configurable and add a closing checklist with individual unpaid-bill links.
+- Root remains staging. No production commands or merges. User signs in themselves in the internal browser.
+
+### 2026-10-17: alert-settings migration applied to staging
+- CLI target checked as `cofnrcgsolluyhghutah`; dry run listed only `20261016204344_clinic_alert_settings.sql`, then applied that immutable migration to staging. CLI-generated timestamp sorts before the latest existing files, so `--include-all` was necessary and the dry run was inspected. No production command.
+- New settings: called delay 5 minutes, closing 960 minutes (16:00 IST), doctor/admin-only atomic setter; no client UPDATE policy added. Pure timing test was red before implementation; backend test was red on missing columns. Post-migration checks in progress.
+
+### 2026-10-17 — Alert implementation review/checkpoint
+
+Atomic alert settings, closing checklist and unpaid-bill targets implemented. Fresh backend/pure regression checks pass; tsc/build pass, lint8, schema smoke88. Standards/Spec re-review clear after retaining UPI/notes across background target refresh and disabling confirmation until validation finishes. Doctor browser1440/390 checked; reception and offline reload browser checks pending user sign-in. Production untouched. Preparing draft PR into main; no merge authorized.

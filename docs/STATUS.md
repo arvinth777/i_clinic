@@ -1,5 +1,13 @@
 # Status
 
+## Alert settings and closing checklist — 2026-10-17
+
+- Implemented configurable called-patient/no-show reminders and IST closing time through an atomic doctor/admin RPC. Defaults remain 5 minutes, 30 minutes and 16:00 IST. Mute silences sound only; alerts remain visible. Added individual unpaid-bill links and a closing checklist, with current-state validation before opening settlement.
+- Staging-only migration `20261016204344_clinic_alert_settings` applied. Backend tests verify doctor persistence/retry, reception reads, invalid values and role/clinic/anonymous denial. Alert timing/checklist and unpaid-target regression tests pass, including keeping the payment form mounted during background validation.
+- Fresh tsc/build pass, lint is the 8-warning baseline, schema smoke passes 88 queries. Doctor browser checked at measured 1440/390 px: Hanken, no page overflow, settings persist and defaults restored. Standards/Spec review blockers fixed and re-reviewed. Security advisor: no errors, existing warnings retained; not a full-system certification.
+- Uncommitted implementation on `codex/alert-settings` pending PR. Reception browser navigation, sound toggle and offline save/reload checks remain pending the user signing in; the internal browser was doctor-signed-in and has now idle-locked. Production untouched; no merge authorized.
+- Next: complete those browser checks, then ask for merge of the reviewed PR. GitHub Actions currently cannot start because the GitHub account is locked due to a billing issue; local checks are distinct evidence. Drive archive implementation is isolated in its own managed worktree.
+
 ## Populated doctor visual check — 2026-10-12
 
 - Used the current staging preview (PR #11 build) with three owned synthetic

@@ -380,3 +380,14 @@ metadata and authorization. Preserve doctor-only clinical access. No DICOM
 viewer, public sharing, reception access or Drive migration was requested.
 Google Cloud OAuth setup is required in addition to creating the account.
 See `patient-documents-setup.md` for implementation, setup and release gates.
+
+## Alert settings decisions — 2026-10-17
+
+User approved completing alert settings and confirmed sound-only mute: every
+clinical, stock, offline and failed-save alert stays visible. The existing
+five-minute called-patient reminder and 16:00 IST closing are defaults; doctor
+or administrator may change them with the no-show threshold in Settings.
+Closing review includes unresolved visits, visits awaiting billing, individual
+unpaid bills at reception, and this device's pending saves/failed uploads.
+The checklist does not claim visibility into another device's pending queue.
+Nothing removes patients or settles payments automatically.
