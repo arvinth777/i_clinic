@@ -1,0 +1,22 @@
+name: App checks
+on:
+  pull_request:
+    branches: [main, production]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx tsc -b
+      - run: npm run lint -- --max-warnings 8
+      - run: npm run build
+      - run: npm run test:unit

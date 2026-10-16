@@ -1,3 +1,5 @@
+import { assertStaging } from './clinic-workflow-fixture.mjs'
+import { checked, sendToBilling, consultationOnlyFixture } from './clinic-workflow-fixture.mjs'
 // TDD for the billing screen's backend (AGENTS.md Phase 3: money touches --
 // tests before UI). Same convention as isolation-test.mjs/pricing-test.mjs:
 // a plain script against live staging, signed in as the real roles, no
@@ -41,6 +43,7 @@ const appEnv = loadEnv('.env.local')
 const userEnv = loadEnv('.env.test-users.local')
 
 const SUPABASE_URL = appEnv.VITE_SUPABASE_URL
+assertStaging(SUPABASE_URL)
 const ANON_KEY = appEnv.VITE_SUPABASE_ANON_KEY
 const CLINIC_A_ID = '23e03361-9d6c-49f5-83b7-ad57f4a0c5ce'
 
@@ -51,7 +54,7 @@ function report(label, pass, detail) {
 }
 
 async function signIn(email, password) {
-  const client = createClient(SUPABASE_URL, ANON_KEY, { realtime: { transport: ws } })
+  const client = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false }, realtime: { transport: ws } })
   const { error } = await client.auth.signInWithPassword({ email, password })
   if (error) throw new Error(`sign-in failed for ${email}: ${error.message}`)
   return client
@@ -116,7 +119,7 @@ async function prescribeToVisit(doctorA, visitId, medicineId) {
   const { data: rx, error: rxErr } = await doctorA.from('prescriptions').insert({ clinic_id: CLINIC_A_ID, visit_id: visitId }).select('id').single()
   if (rxErr) throw new Error(`fixture: creating prescription failed: ${rxErr.message}`)
   const { error } = await doctorA.from('prescription_items').insert({
-    clinic_id: CLINIC_A_ID, prescription_id: rx.id, medicine_id: medicineId, duration_days: 5, quantity_dispensed: 1,
+    clinic_id: CLINIC_A_ID, prescription_id: rx.id, medicine_id: medicineId, duration_days: 5, quantity_dispensed: 1, dosage_frequency: 'SOS',
   })
   if (error) throw new Error(`prescribing failed: ${error.message}`)
 }
@@ -215,15 +218,14 @@ async function main() {
   }
 
   {
-    const { error } = await doctorA.from('visits').update({ stage: 'packing' }).eq('id', visit2)
-    if (error) throw new Error(`moving visit2 to packing failed: ${error.message}`)
     const { data, error: rpcErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visit2, p_payment_method: 'cash' })
-    report('confirm_bill refuses a visit still at packing (not opened at reception yet)', !!rpcErr && !data, rpcErr?.message)
+    report('confirm_bill refuses a visit before doctor handoff', !!rpcErr && !data, rpcErr?.message)
   }
 
   {
-    const { error } = await doctorA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visit2)
-    if (error) throw new Error(`moving visit2 to ready_at_reception failed: ${error.message}`)
+    const counter = checked(await receptionA.from('stock_points').select('id').eq('clinic_id', CLINIC_A_ID).eq('name', 'Counter').single())
+    checked(await receptionA.rpc('adjust_stock', { p_clinic_id: CLINIC_A_ID, p_medicine_id: med2a, p_stock_point_id: counter.id, p_quantity_delta: 1, p_reason: 'Synthetic billing fixture' }))
+    await sendToBilling(doctorA, receptionA, CLINIC_A_ID, visit2, 30000)
   }
   {
     const { data, error } = await receptionA.rpc('get_visit_billing_detail', { p_visit_id: visit2 })
@@ -284,9 +286,7 @@ async function main() {
   {
     const { error } = await doctorA.from('visit_pricing').update({ final_amount_paise: 10000 }).eq('visit_id', visit3)
     if (error) throw new Error(`doctor setting final_amount on visit3 failed: ${error.message}`)
-    const p = await readPricing(doctorA, visit3)
-    await doctorA.from('visits').update({ stage: 'packing' }).eq('id', visit3)
-    await receptionA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visit3)
+    const p = await consultationOnlyFixture(doctorA, receptionA, CLINIC_A_ID, visit3, 10000)
     await doctorA.from('visit_pricing').update({ final_amount_paise: 9000 }).eq('visit_id', visit3)
     const { data: billId, error: billErr } = await receptionA.rpc('confirm_bill', {
       p_visit_id: visit3, p_payment_method: 'cash',
@@ -304,7 +304,10 @@ async function main() {
   if (failed.length) process.exitCode = 1
 }
 
-main().catch((err) => {
+await main().catch((err) => {
   console.error('billing test errored:', err.message)
   process.exitCode = 1
 })
+
+
+process.exit(process.exitCode ?? 0)

@@ -1,3 +1,4 @@
+import { assertStaging } from './clinic-workflow-fixture.mjs'
 // TDD for visit_pricing arithmetic (AGENTS.md Phase 3: money touches -- tests
 // before UI). Same convention as isolation-test.mjs: a plain script against
 // live staging, signed in as the real roles, no framework. Run from the
@@ -44,6 +45,7 @@ const appEnv = loadEnv('.env.local')
 const userEnv = loadEnv('.env.test-users.local')
 
 const SUPABASE_URL = appEnv.VITE_SUPABASE_URL
+assertStaging(SUPABASE_URL)
 const ANON_KEY = appEnv.VITE_SUPABASE_ANON_KEY
 const CLINIC_A_ID = '23e03361-9d6c-49f5-83b7-ad57f4a0c5ce'
 
@@ -56,7 +58,7 @@ function report(tag, label, pass, detail) {
 }
 
 async function signIn(email, password) {
-  const client = createClient(SUPABASE_URL, ANON_KEY, { realtime: { transport: ws } })
+  const client = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false }, realtime: { transport: ws } })
   const { error } = await client.auth.signInWithPassword({ email, password })
   if (error) throw new Error(`sign-in failed for ${email}: ${error.message}`)
   return client
@@ -140,6 +142,10 @@ async function main() {
     .select('id')
     .single()
   if (medBErr) throw new Error(`fixture: creating medicine B failed: ${medBErr.message}`)
+  for (const [medicine, price] of [[medA, 8000], [medB, 3000]]) {
+    const result = await doctorA.rpc('set_medicine_unit_price', { p_medicine_id: medicine.id, p_stock_unit: 'tablet', p_price_paise: price })
+    if (result.error) throw result.error
+  }
 
   // ================================================================
   // A. Visit creation seeds visit_pricing at the flat consultation fee.
@@ -185,7 +191,7 @@ async function main() {
   let itemB
   {
     const { error } = await doctorA.from('prescription_items').insert({
-      clinic_id: CLINIC_A_ID, prescription_id: prescription.id, medicine_id: medA.id, duration_days: 5,
+      clinic_id: CLINIC_A_ID, prescription_id: prescription.id, medicine_id: medA.id, duration_days: 5, quantity_dispensed: 1,
     })
     if (error) throw new Error(`step D insert failed: ${error.message}`)
     const p = await readPricing(doctorA, visitId)
@@ -193,7 +199,7 @@ async function main() {
   }
   {
     const { data, error } = await doctorA.from('prescription_items').insert({
-      clinic_id: CLINIC_A_ID, prescription_id: prescription.id, medicine_id: medB.id, duration_days: 3,
+      clinic_id: CLINIC_A_ID, prescription_id: prescription.id, medicine_id: medB.id, duration_days: 3, quantity_dispensed: 1,
     }).select('id').single()
     if (error) throw new Error(`step E insert failed: ${error.message}`)
     itemB = data
@@ -252,7 +258,7 @@ async function main() {
         discountOk && revisionOk,
         `discount ${after.discount_paise} (want ${expectedDiscount}), revision ${before.revision_number} -> ${after.revision_number}`)
     }
-    await setFinalAmount('final_amount at calculated_total (upper bound, no discount)', 57000, 0, false)
+    await setFinalAmount('final_amount at calculated_total (upper bound, no discount)', 57000, 0, true)
     await setFinalAmount('final_amount at 0 (lower bound, full discount)', 0, 57000)
     await setFinalAmount('final_amount at an arbitrary mid-range value', 20000, 37000)
 
@@ -344,7 +350,9 @@ async function main() {
   if (results.some((r) => r.pass === false)) process.exitCode = 1
 }
 
-main().catch((err) => {
+await main().catch((err) => {
   console.error('pricing test errored:', err.message)
   process.exitCode = 1
 })
+
+process.exit(process.exitCode ?? 0)

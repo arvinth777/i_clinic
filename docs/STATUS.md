@@ -1,5 +1,30 @@
 # Status
 
+## Test baseline restored — 2026-10-17 (pending review/PR)
+
+- Branch `codex/test-baseline`, based on `origin/main` `1eeaa92`.
+  Updated seven legacy suites for explicit doctor approval, queue actions,
+  confirmed medicine units/quantities, supply caps, immutable arrivals,
+  idempotent corrections and blocked direct bill insertion. No app or SQL change.
+- Fresh staging results: billing 16/16, pricing 15/15, approval/handoff 10/10,
+  stock 23/23, offline payment 21/21, phase-g 19/19, isolation 21/21.
+  The former negative-dispensing case now verifies rejection without stock
+  change; negative stock from adjustment remains covered.
+- Added credential-free CI: Node 24, typecheck, max eight lint warnings,
+  build and seven local unit suites. Node 24 is needed for existing direct TS
+  imports. All seven pass after a fresh build. Removed an unused test login;
+  lint is at eight warnings. The schema smoke check is in progress.
+- Staging preparation: two old synthetic with-doctor visits finished through
+  approved queue actions (zero-price sample medicine where no prescription
+  existed). No bill/payment was confirmed for those preparation visits.
+  Test scripts created synthetic fixtures; no production data copied or touched.
+- User signed into the internal browser themselves. No browser credentials
+  entered by Codex. Physical printer, real Safari and real Drive remain unverified.
+- Uncommitted: this test/CI/doc change. Next: finish review and PR into main,
+  then separate alert-settings and Drive PDF archive changes. Never merge #7;
+  all merges require user instruction; production commands remain user-only.
+
+
 ## Populated doctor visual check — 2026-10-12
 
 - Used the current staging preview (PR #11 build) with three owned synthetic

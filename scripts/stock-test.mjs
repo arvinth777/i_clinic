@@ -1,3 +1,5 @@
+import { assertStaging } from './clinic-workflow-fixture.mjs'
+import { checked, sendToBilling } from './clinic-workflow-fixture.mjs'
 // TDD for Phase B (docs/build-plan.md): stock. "Tests first" is this
 // phase's own explicit instruction (AGENTS.md tdd checkpoint -- this
 // touches money and quantities). Same convention as every other script:
@@ -28,6 +30,7 @@ function loadEnv(path) {
 const appEnv = loadEnv('.env.local')
 const userEnv = loadEnv('.env.test-users.local')
 const SUPABASE_URL = appEnv.VITE_SUPABASE_URL
+assertStaging(SUPABASE_URL)
 const ANON_KEY = appEnv.VITE_SUPABASE_ANON_KEY
 const CLINIC_A_ID = '23e03361-9d6c-49f5-83b7-ad57f4a0c5ce'
 
@@ -38,7 +41,7 @@ function report(label, pass, detail) {
 }
 
 async function signIn(email, password) {
-  const client = createClient(SUPABASE_URL, ANON_KEY, { realtime: { transport: ws } })
+  const client = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false }, realtime: { transport: ws } })
   const { error } = await client.auth.signInWithPassword({ email, password })
   if (error) throw new Error(`sign-in failed for ${email}: ${error.message}`)
   return client
@@ -47,6 +50,7 @@ async function signIn(email, password) {
 async function makeMedicine(client, name, price) {
   const { data, error } = await client.from('medicines').insert({ clinic_id: CLINIC_A_ID, name: `${name} ${Date.now()}${Math.random()}`, price_paise: price }).select('id').single()
   if (error) throw new Error(`fixture: creating medicine failed: ${error.message}`)
+  checked(await client.rpc('set_medicine_unit_price', { p_medicine_id: data.id, p_stock_unit: 'tablet', p_price_paise: price }))
   return data.id
 }
 
@@ -64,7 +68,7 @@ async function prescribe(client, visitId, medicineId, quantityDispensed) {
   if (rxErr) throw new Error(`fixture: creating prescription failed: ${rxErr.message}`)
   const { data: item, error } = await client
     .from('prescription_items')
-    .insert({ clinic_id: CLINIC_A_ID, prescription_id: rx.id, medicine_id: medicineId, duration_days: 5, quantity_dispensed: quantityDispensed })
+    .insert({ clinic_id: CLINIC_A_ID, prescription_id: rx.id, medicine_id: medicineId, duration_days: 5, dosage_frequency: 'SOS', quantity_dispensed: quantityDispensed })
     .select('id')
     .single()
   if (error) throw new Error(`prescribing failed: ${error.message}`)
@@ -164,7 +168,6 @@ let medA, counterPointId
   })
 
   const visitId = await makeVisit(doctorA, 'stock deduction test visit')
-  await doctorA.from('visits').update({ stage: 'with_doctor' }).eq('id', visitId)
   await prescribe(doctorA, visitId, medB, 4) // dispensed for real
   const itemCId = await prescribe(doctorA, visitId, medC, 6) // will be "dispensed externally" -- removed below
   // doctor removes medC before finishing -- the PRD's "bought outside" path
@@ -172,8 +175,7 @@ let medA, counterPointId
 
   // moving to packing flips final_amount_set true automatically
   // (trg_ensure_final_amount_set_on_packing), same as the real app flow
-  await doctorA.from('visits').update({ stage: 'packing' }).eq('id', visitId)
-  await receptionA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId)
+  await sendToBilling(doctorA, receptionA, CLINIC_A_ID, visitId)
 
   const beforeB = await stockQuantity(doctorA, medB, 'Counter')
   const beforeC = await stockQuantity(doctorA, medC, 'Counter')
@@ -199,16 +201,16 @@ let medA, counterPointId
   const medD = await makeMedicine(doctorA, 'Stock Test Med D (goes negative)', 300)
   // deliberately no purchase -- this medicine starts at 0 stock
   const visitId = await makeVisit(doctorA, 'negative stock test visit')
-  await doctorA.from('visits').update({ stage: 'with_doctor' }).eq('id', visitId)
   await prescribe(doctorA, visitId, medD, 3)
-  await doctorA.from('visits').update({ stage: 'packing' }).eq('id', visitId)
-  await receptionA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId)
+  await sendToBilling(doctorA, receptionA, CLINIC_A_ID, visitId)
 
   const { error: billErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' })
-  report('confirm_bill does not block on a deduction that would go negative', !billErr, billErr?.message)
+  report('confirm_bill blocks supplying more than available stock', !!billErr, billErr?.message)
 
   const after = await stockQuantity(doctorA, medD, 'Counter')
-  report('the deduction still applies, going negative rather than clamping at 0', after.quantity === -3, JSON.stringify(after))
+  report('blocked dispensing leaves stock unchanged', after.quantity === 0, JSON.stringify(after))
+  checked(await receptionA.rpc('adjust_stock', { p_clinic_id: CLINIC_A_ID, p_medicine_id: medD, p_stock_point_id: after.stockPointId, p_quantity_delta: -3, p_reason: 'Synthetic negative-stock reconciliation case' }))
+  report('negative stock remains visible for reconciliation', (await stockQuantity(doctorA, medD, 'Counter')).quantity === -3)
 }
 
 // ================================================================
@@ -288,10 +290,8 @@ let medA, counterPointId
   })
 
   const visitId = await makeVisit(doctorA, 'reopen double-deduction test visit')
-  await doctorA.from('visits').update({ stage: 'with_doctor' }).eq('id', visitId)
   await prescribe(doctorA, visitId, medG, 5)
-  await doctorA.from('visits').update({ stage: 'packing' }).eq('id', visitId)
-  await receptionA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId)
+  await sendToBilling(doctorA, receptionA, CLINIC_A_ID, visitId)
 
   const beforeFirstBill = await stockQuantity(doctorA, medG, 'Counter')
   await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' })
@@ -314,3 +314,5 @@ if (failed.length) {
   for (const f of failed) console.log(`  FAIL - ${f.label}`)
   process.exitCode = 1
 }
+
+process.exit(process.exitCode ?? 0)

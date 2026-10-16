@@ -6,8 +6,8 @@
 
 | Thing | State at hand-off |
 |---|---|
-| `main` (staging branch) | `40dfb42` (Timeline merged, PR #32), plus this note's PR if merged |
-| `production` (release branch, Vercel Production) | `5920ce8`: has everything **except the unified patient timeline** (PR #32). A `main` -> `production` release PR for it is the next release step (no migration needed) |
+| `main` (staging branch) | `1eeaa92` (synced with production after PR #34; verified 2026-10-17) |
+| `production` (release branch, Vercel Production) | `1eeaa92`: unified patient timeline released by PR #34; no timeline release pending |
 | Production database `rmuhpgpvgvwchovlgxae` | all 9 migrations applied, last `20261017020000` (duplicates). Nothing pending. Contains **one test patient** "ZZ TEST height-weight release check (delete)" (token #1, state `called`); no other data |
 | Staging database `cofnrcgsolluyhghutah` | same migrations; full of synthetic/test clutter (many `BODY<tag>`, `Ramesh Kumar <tag>`, audit fixtures). Free to change |
 | Open PRs | only **#7** (Codex, draft, backups): **do not merge**; its real delta is 4 files, re-apply on a fresh branch from `main` when R2 is ready |
@@ -15,7 +15,7 @@
 | Claude Code worktree | `/Users/arvinthcinmayankirupakaran/Desktop/i_clinic/.claude/worktrees/initial-setup-7b40e6` (own branch per task). The user's main folder `/Users/arvinthcinmayankirupakaran/Desktop/i_clinic` tracks `main`; the user pulls it themself. `deploy/production/` is linked to the **production** Supabase project, root `supabase/` to **staging**: never run `db push` from the root toward production |
 | Not committed | `CHANGE-REPORT.md` (historical report of the first fix PR, root of the worktree, intentionally untracked). The backlog audit is now `docs/backlog-audit.md` |
 
-**Delivered since the first hand-off (all on production unless noted):** flow-audit fixes (queue identity, search, IST reports, offline, PIN lock), in-app confirm dialog, lock-screen/scroll hotfixes, production bootstrap + Drive code released, height/weight at registration (PRs #25/#26), possible-duplicate detection on the doctor's Merge screen (#28/#29), unified patient timeline (#32, **main only**). Details per item are in section 9, newest at the bottom.
+**Delivered since the first hand-off (all on production unless noted):** flow-audit fixes (queue identity, search, IST reports, offline, PIN lock), in-app confirm dialog, lock-screen/scroll hotfixes, production bootstrap + Drive code released, height/weight at registration (PRs #25/#26), possible-duplicate detection on the doctor's Merge screen (#28/#29), unified patient timeline (#32/#34, released). Details per item are in section 9, newest at the bottom.
 
 **The loop that has worked for every feature** (follow `AGENTS.md`; this is how it was applied):
 1. Branch from `origin/main`. Write the failing test first (plain Node script in `scripts/`, against live staging with the test roles; pure logic scripts transpile the TS file in-process, see `scripts/patient-timeline-test.mjs`).
@@ -30,7 +30,7 @@
 **User preferences and rules:** staging may be changed freely, **production never unless the user asks**; the user signs in everywhere (never type or request passwords); the user runs every production command; no `Co-Authored-By` trailer on commits (their global CLAUDE.md); ponytail style (smallest working change, native before libraries); new colour/size/spacing values must be tokens in `docs/design.md` + `src/index.css`; money is integer paise; never copy patient data into staging or logs.
 
 **Open work, in the order the user cares about** (details and status table: `docs/backlog-audit.md`):
-1. **Release the timeline** (PR for `main` -> `production`; no migration).
+1. **Timeline released** (PR #34, `1eeaa92`); no release action needed.
 2. **Backups**: waiting on the user to say R2 is ready (PR #7 plan above).
 3. **Drive PDF auto-archive** of prescriptions and receipts (largest item; offline-safe retries, narrowly authorised receipt path).
 4. Decisions needed from the user before building: configurable called-patient reminder delay, closing time / end-of-day checklist, notification mute.
@@ -321,3 +321,13 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 - **code-review gate (standards + spec agents):** no migration or RLS issues. Fixed from it: the tab keeps its last good data and shows the saved-time banner when a refresh fails; receipt / documents buttons carry a descriptive aria-label; the files query key now sits under `['patient-files', clinic, patient]`, which a finished upload already invalidates; a correction row is titled "replaces the earlier bill"; tie order no longer uses `localeCompare`; shared row types come from the lib; `formatDate` now also uses clinic time (IST) so the Visits tab and the Timeline agree. Left as is: "Prescription issued" is `created_at` (the schema has no separate issued time); a settlement or correction made on another device reaches an open Timeline via the 30 s poll / focus refetch, not instantly; the original bill of a corrected pair still reads "Payment received"; no role-boundary test.
 - **Limits:** no pagination (all events for one patient load at once); no filters; reception does not get the tab; the timeline shows the amount of each bill row as stored (a correction row shows its own final amount).
 - **Release needs:** no migration, so only the feature PR into `main`, then the `main` -> `production` release PR.
+
+### 2026-10-17: Codex resumes approved backlog — branch `codex/test-baseline`
+- User approved Drive PDF auto-archive, alert settings and test/validation gaps. Branch created from `origin/main` `1eeaa92`; `origin/production` is the same commit. Timeline release PR #34 is already merged; older START HERE timeline-pending statements are stale.
+- Root CLI target confirmed staging (`cofnrcgsolluyhghutah`). No production commands, merge or database changes. Begin by reproducing the seven reported failing legacy suites, then separate feature PRs into main. Merges require user instruction.
+- User confirmed notification mute silences sounds while all alerts remain visible. Existing 16:00 IST closing and five-minute called-patient reminder retained as defaults.
+
+### 2026-10-17: test-baseline staging run
+- Reproduced seven failures; corrected legacy fixtures/assertions to current public APIs, not backend weakening. Fresh results: billing 16, pricing 15, approval/handoff 10, stock 23, offline 21, phase-g 19, isolation 21 all pass; CI seven local suites pass after a fresh build.
+- Two existing synthetic with-doctor fixtures were finished with explicit approval and valid synthetic prescriptions to unblock the shared staging queue. The attempted Not here action was rejected for with-doctor as expected. No production commands or merges.
+- Added pull-request CI with no database credentials; lint enforces at most eight warnings. Browser sign-in performed by the user in the internal browser. Physical/Safari/Drive checks are not claimed.
