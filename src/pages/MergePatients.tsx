@@ -132,17 +132,17 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
         </Button>
       </div>
       {(suggestions?.length ?? 0) > 0 && (
-        <section className="merge-suggestions">
+        <section>
           <h3 className="readout-heading">Possible duplicates</h3>
-          <p className="readout-empty">Matching name or phone is only a hint. Review each pair before merging.</p>
+          <p className="readout-empty">Matching name or phone is only a hint. Review each pair before merging; the older record is the one kept.</p>
           <ul className="merge-suggestion-list">
             {suggestions!.map((s) => (
-              <li key={s.a.id + s.b.id} className="merge-suggestion">
+              <li key={`${s.a.id}-${s.b.id}`} className="merge-suggestion">
                 <span>
                   {brief(s.a)} <span className="search-result-meta">and</span> {brief(s.b)}
                   <span className="search-result-meta"> — {s.reason}</span>
                 </span>
-                <button type="button" className="merge-suggestion-review" onClick={() => { setA(s.a); setB(s.b); setResult(''); window.scrollTo(0, 0) }}>
+                <button type="button" className="merge-suggestion-review" onClick={() => { setA(s.a); setB(s.b); setResult(''); window.scrollTo({ top: 0, behavior: 'instant' }) }}>
                   Review
                 </button>
               </li>

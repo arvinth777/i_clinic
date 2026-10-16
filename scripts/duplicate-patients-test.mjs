@@ -34,6 +34,7 @@ await check('same phone and a similar name is listed', () => assert.ok(has(C, D)
 await check('a shared family phone with different names is not listed', () => assert.ok(!has(E, F)))
 await check('same name but a different age is not listed', () => assert.ok(!has(A, G) && !has(B, G)))
 await check('each pair is listed once, with a reason', () => { assert.equal(pairs.length, 3); assert.ok(pairs.every(r => r.reason && r.a.name && r.b.name)) })
+await check('anonymous callers are refused', async () => { const anon = createClient(app.VITE_SUPABASE_URL, app.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false }, realtime: { transport: ws } }); const { data, error } = await anon.rpc('possible_duplicate_patients', { p_clinic_id: clinicId }); assert.ok(error || (data ?? []).length === 0, 'anon must not receive pairs') })
 await check('the function only reads: all eight patients still exist', async () => { const { data: rows } = await doctor.from('patients').select('id').in('id', [...ours]); assert.equal(rows.length, 8) })
 if (failures.length) { console.log(`\nFAILED ${failures.length}`); process.exit(1) }
 console.log('\nPASS: possible duplicate patients')

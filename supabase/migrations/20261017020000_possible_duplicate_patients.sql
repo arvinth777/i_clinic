@@ -22,13 +22,13 @@ language sql stable set search_path to '' as $$
     union all
     select a.id, b.id, 'Same phone, similar name', 2
     from p a join p b on a.id < b.id and a.phone = b.phone
-    where extensions.similarity(a.nm, b.nm) >= 0.5
+    where extensions.similarity(a.nm, b.nm) >= 0.5 -- 'ramesh k' vs 'ramesh kumar' passes; unrelated names do not
   ), best as (
     select distinct on (x, y) x, y, why from pairs order by x, y, rank
   )
   select to_jsonb(pa) - 'nm', to_jsonb(pb) - 'nm', best.why
   from best join p pa on pa.id = best.x join p pb on pb.id = best.y
-  order by greatest(pa.last_visit_at, pb.last_visit_at) desc nulls last
+  order by greatest(pa.last_visit_at, pb.last_visit_at) desc nulls last, pa.id, pb.id
   limit 100;
 $$;
 revoke all on function public.possible_duplicate_patients(uuid) from public, anon;
