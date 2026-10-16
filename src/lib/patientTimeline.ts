@@ -5,7 +5,7 @@ export type TimelineEvent = { key: string; kind: TimelineKind; at: string; title
 
 type Settlement = { payment_method: string; settled_at: string }
 export type TimelineBill = { id: string; visit_id: string; final_amount_paise: number; payment_method: string; confirmed_at: string; corrects_bill_id: string | null; bill_settlements: Settlement | Settlement[] | null }
-type TimelineInput = {
+export type TimelineInput = {
   visits: { id: string; arrived_at: string; complaint: string; token_number: number }[]
   prescriptions: { id: string; visit_id: string; created_at: string; diagnosis: string | null }[]
   bills: TimelineBill[]
@@ -20,12 +20,11 @@ export function buildTimeline({ visits, prescriptions, bills, files }: TimelineI
   for (const p of prescriptions) events.push({ key: `rx:${p.id}`, kind: 'prescription', at: p.created_at, title: 'Prescription issued', detail: p.diagnosis || undefined, visitId: p.visit_id })
   for (const b of bills) {
     const base = { kind: 'payment' as const, amountPaise: b.final_amount_paise, visitId: b.visit_id }
-    if (b.corrects_bill_id) events.push({ ...base, key: `bill:${b.id}`, at: b.confirmed_at, title: `Bill correction · ${method(b.payment_method)}` })
-    else if (b.payment_method === 'pay_later') events.push({ ...base, key: `bill:${b.id}`, at: b.confirmed_at, title: 'Bill confirmed · pay later, not paid yet' })
-    else events.push({ ...base, key: `bill:${b.id}`, at: b.confirmed_at, title: `Payment received · ${method(b.payment_method)}` })
+    const title = b.corrects_bill_id ? `Bill correction, replaces the earlier bill · ${method(b.payment_method)}` : b.payment_method === 'pay_later' ? 'Bill confirmed · pay later, not paid yet' : `Payment received · ${method(b.payment_method)}`
+    events.push({ ...base, key: `bill:${b.id}`, at: b.confirmed_at, title })
     const settlement = Array.isArray(b.bill_settlements) ? b.bill_settlements[0] : b.bill_settlements
     if (settlement) events.push({ ...base, key: `settle:${b.id}`, at: settlement.settled_at, title: `Pay-later bill settled · ${method(settlement.payment_method)}` })
   }
   for (const f of files) if (f.status === 'ready') events.push({ key: `file:${f.id}`, kind: 'upload', at: f.created_at, title: `Document uploaded · ${f.title}`, detail: f.category, examinationDate: f.examination_date ?? undefined })
-  return events.sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || a.key.localeCompare(b.key))
+  return events.sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
 }

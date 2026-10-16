@@ -18,7 +18,7 @@ export function formatElapsed(arrivedAt: string): string {
 // Billing.tsx and MergePatients.tsx before UnpaidBills.tsx made it a
 // third copy.
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) // clinic time, same as formatDateTime
 }
 
 // Date and time of a real event, always in clinic time (IST), whatever the device's own time zone is.
