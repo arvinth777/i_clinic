@@ -1,16 +1,55 @@
 # Handoff: Claude Code to Codex
 
+## START HERE (written 2026-10-17 for the switch to Codex; this block is the current state, the rest is history)
+
+**Verify first:** `git fetch origin && git log --oneline -3 origin/main origin/production && gh pr list` and `cat supabase/.temp/project-ref` (root must say `cofnrcgsolluyhghutah`, staging).
+
+| Thing | State at hand-off |
+|---|---|
+| `main` (staging branch) | `40dfb42` (Timeline merged, PR #32), plus this note's PR if merged |
+| `production` (release branch, Vercel Production) | `5920ce8`: has everything **except the unified patient timeline** (PR #32). A `main` -> `production` release PR for it is the next release step (no migration needed) |
+| Production database `rmuhpgpvgvwchovlgxae` | all 9 migrations applied, last `20261017020000` (duplicates). Nothing pending. Contains **one test patient** "ZZ TEST height-weight release check (delete)" (token #1, state `called`); no other data |
+| Staging database `cofnrcgsolluyhghutah` | same migrations; full of synthetic/test clutter (many `BODY<tag>`, `Ramesh Kumar <tag>`, audit fixtures). Free to change |
+| Open PRs | only **#7** (Codex, draft, backups): **do not merge**; its real delta is 4 files, re-apply on a fresh branch from `main` when R2 is ready |
+| Branches to ignore | `origin/codex/*` (old, superseded), merged feature branches |
+| Claude Code worktree | `/Users/arvinthcinmayankirupakaran/Desktop/i_clinic/.claude/worktrees/initial-setup-7b40e6` (own branch per task). The user's main folder `/Users/arvinthcinmayankirupakaran/Desktop/i_clinic` tracks `main`; the user pulls it themself. `deploy/production/` is linked to the **production** Supabase project, root `supabase/` to **staging**: never run `db push` from the root toward production |
+| Not committed | `CHANGE-REPORT.md` (historical report of the first fix PR, root of the worktree, intentionally untracked). The backlog audit is now `docs/backlog-audit.md` |
+
+**Delivered since the first hand-off (all on production unless noted):** flow-audit fixes (queue identity, search, IST reports, offline, PIN lock), in-app confirm dialog, lock-screen/scroll hotfixes, production bootstrap + Drive code released, height/weight at registration (PRs #25/#26), possible-duplicate detection on the doctor's Merge screen (#28/#29), unified patient timeline (#32, **main only**). Details per item are in section 9, newest at the bottom.
+
+**The loop that has worked for every feature** (follow `AGENTS.md`; this is how it was applied):
+1. Branch from `origin/main`. Write the failing test first (plain Node script in `scripts/`, against live staging with the test roles; pure logic scripts transpile the TS file in-process, see `scripts/patient-timeline-test.mjs`).
+2. Schema change: one new migration in `supabase/migrations/`, applied to staging with `supabase db push`; add the symlink in `deploy/production/supabase/migrations/`. A migration reworked on staging before production ever saw it: `supabase migration repair --status reverted <version>` then `db push` again (a function whose return type changes needs `drop function if exists` first).
+3. Code, then `npx tsc -b`, `npm run lint` (8 existing warnings is the baseline), `npm run build`, `node scripts/query-schema-smoke-test.mjs` (every `.from().select()` column against staging) and the relevant scripts.
+4. Browser check on staging (`npm run dev`, the user signs in as `doctor.a` / `reception.a`; test accounts are `*@staging.test`, passwords in `.env.test-users.local`, never print them).
+5. `code-review` gate (a standards agent and a spec agent against `docs/rework-brief.md`), fix, re-test.
+6. PR into `main`, merge only when the user says so. Update this note (section 9 entry, this block).
+7. Release (the user runs these in their terminal; one command per step): production migration in a quiet window (before 10:00 or after 15:00 IST): `supabase --workdir deploy/production link --project-ref rmuhpgpvgvwchovlgxae`, `migration list --linked` (only the new one pending; **pull `main` in the user's folder first**), `db push --dry-run`, `db push`, type `Y` in the terminal. Then merge the `main` -> `production` PR (`gh pr merge <n> --merge`), wait for Vercel (`gh api repos/arvinth777/i_clinic/commits/<sha>/status`), then `git fetch origin && git push origin origin/production:main` so the branches match. Confirm Vercel's Production branch is `production` before pushing `main`.
+8. Verify live at https://iclinic-theta.vercel.app with the user signed in. The PWA serves the previous bundle on the first load after a release: reload twice. Use clicks, not Enter, in forms on production (Enter once submitted a PIN form).
+
+**User preferences and rules:** staging may be changed freely, **production never unless the user asks**; the user signs in everywhere (never type or request passwords); the user runs every production command; no `Co-Authored-By` trailer on commits (their global CLAUDE.md); ponytail style (smallest working change, native before libraries); new colour/size/spacing values must be tokens in `docs/design.md` + `src/index.css`; money is integer paise; never copy patient data into staging or logs.
+
+**Open work, in the order the user cares about** (details and status table: `docs/backlog-audit.md`):
+1. **Release the timeline** (PR for `main` -> `production`; no migration).
+2. **Backups**: waiting on the user to say R2 is ready (PR #7 plan above).
+3. **Drive PDF auto-archive** of prescriptions and receipts (largest item; offline-safe retries, narrowly authorised receipt path).
+4. Decisions needed from the user before building: configurable called-patient reminder delay, closing time / end-of-day checklist, notification mute.
+5. Quality: 7 legacy suites fail (billing, pricing, packing, stock, phase-f, phase-g, isolation) and no CI runs tests; unverified in real use: physical A4 print, phone/Safari, full offline cold start, backup restore, Drive on staging.
+6. Small known gaps: no "not a duplicate" dismissal; returning patients cannot edit height/weight (no patient edit screen); reception has no Timeline tab by design; a settlement made on another device reaches an open Timeline within ~30 s.
+
+**Gotchas that cost time:** the in-app Browser pane is often `document.hidden` (React cleanup is delayed; screenshots can come back blank, read the DOM instead; use real clicks/`find` refs, `form_input` sets the DOM but may not update React state); Node 20 needs the `ws` transport for Supabase clients in scripts; `patients.phone` must be exactly 10 digits; the offline queue and persisted query cache make a stale first load normal.
+
 Living document. Claude Code appends to section 9 (change log) after every branch, merge, staging or production
-action, and refreshes sections 1 and 6. Last updated: 2026-10-13 01:45 IST. Covers everything Claude Code did in
+action, and refreshes sections 1 and 6. Last updated: 2026-10-17 (START HERE block). Covers everything Claude Code did in
 this repository, from the point it took over from Codex's last release (`production` at `87a6351`, PR #11 merged
 2026-10-11) to now.
 
-**Current branch of the Claude Code worktree: `docs/handoff-duplicates-release`** (this note only). `main` == `production` == `36f41aa` (after the duplicate-detection release).
-**Merges into `production`: seven.** (1) PR #13 (`main` -> `production`), merge commit `e7e1820`, 00:52 IST; (2) PR #16 (`main` -> `production`: event-feed fix, lock-screen centring, no-show layout, "i" icons, schema check), merge commit `b9e9511`, 01:24 IST; (3) PR #19 (`main` -> `production`: confirm dialog), merge commit `606c27d`; (4) PR #21 (scroll-lock hotfix), merge commit `ac55370`; (5) PR #23 (lock-screen loop hotfix), merge commit `50fd6b7`; (6) PR #26 (height/weight release), merge commit `a2b821c`; (7) PR #29 (duplicate detection release), merge commit `36f41aa`. All merged by the user from their terminal.
-**Merges into `main`: five (the three below, then #24 and #25; #25 = `309ec85`).** (1) fast-forward `a220a14..e066578`, pushed by the user, ~00:30 IST; (2) PR #14 (`integrate/unsaved-local-notes` -> `main`), merge commit `9936c20`, 01:08 IST; (3) PR #15 (`fix/lock-and-event-feed` -> `main`), merge commit `f70ced4`, ~01:53 IST. `main` is now 4 commits ahead of `production` (the no-show fix, the integrated notes/favicon, the handoff note, the merge) and `production` has 1 commit `main` lacks (`e7e1820`).
+**Current branch of the Claude Code worktree: `docs/handoff-codex-switch`** (this note and `docs/backlog-audit.md` only).
+**Merges into `production`: eight.** (1) PR #13 (`main` -> `production`), merge commit `e7e1820`, 00:52 IST; (2) PR #16 (`main` -> `production`: event-feed fix, lock-screen centring, no-show layout, "i" icons, schema check), merge commit `b9e9511`, 01:24 IST; (3) PR #19 (`main` -> `production`: confirm dialog), merge commit `606c27d`; (4) PR #21 (scroll-lock hotfix), merge commit `ac55370`; (5) PR #23 (lock-screen loop hotfix), merge commit `50fd6b7`; (6) PR #26 (height/weight release), merge commit `a2b821c`; (7) PR #29 (duplicate detection release), merge commit `36f41aa`; (8) PR #31 (docs-only), merge commit `5920ce8`. All merged by the user from their terminal.
+**Merges into `main`: the three below, then PRs #24, #25, #27, #28, #30 and #32 (#32 = `40dfb42`); the release PRs #26, #29, #31 came back to `main` by re-sync.** (1) fast-forward `a220a14..e066578`, pushed by the user, ~00:30 IST; (2) PR #14 (`integrate/unsaved-local-notes` -> `main`), merge commit `9936c20`, 01:08 IST; (3) PR #15 (`fix/lock-and-event-feed` -> `main`), merge commit `f70ced4`, ~01:53 IST. `main` is now 4 commits ahead of `production` (the no-show fix, the integrated notes/favicon, the handoff note, the merge) and `production` has 1 commit `main` lacks (`e7e1820`).
 Read `AGENTS.md`, `docs/STATUS.md` and `docs/runbook.md` as well; this note does not replace them.
 
-## 1. State right now (verify before acting)
+## 1. State as of 2026-10-13 (HISTORICAL: superseded by START HERE above)
 
 | Thing | State |
 |---|---|
@@ -84,7 +123,7 @@ The permission classifier blocked Claude Code from the production steps, so the 
 - The permission classifier blocked: pushing `main`, reading production tables, and creating production migration symlinks. The user pushed `main` themselves.
 - macOS: no `timeout`; use `perl -e 'alarm N; exec @ARGV'`. zsh errors on unmatched globs.
 
-## 8. Open work (details in `BACKLOG-AUDIT.md`)
+## 8. Open work (as of 2026-10-13; current list is in START HERE and `docs/backlog-audit.md`)
 Missing: duplicate-patient detection with review, unified patient timeline, Drive PDF archive of prescriptions and receipts, replace 11 browser `confirm()` calls with an accessible dialog, height/weight fields (Admin custom fields, or dedicated). Partial, needing a user decision: called-patient reminder delay (hard-coded 5 min), closing time (hard-coded 16:00 IST), notification mute. Quality: seven legacy suites fail (billing, pricing, packing, stock, phase-f, phase-g, isolation), no CI runs tests, staging has stale fixtures (token 104 stuck `with_doctor`).
 
 ## 9. Change log (append new entries at the bottom; times IST, 2026-10-12/13)
@@ -272,3 +311,13 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 ### 2026-10-17: duplicate detection released to production (PR #28 -> main, PR #29 -> production)
 - **PR #28** merged into `main` as `76bc71f`. **Production migration** `20261017020000_possible_duplicate_patients.sql` applied by the user at about 01:40 IST (`supabase --workdir deploy/production`: `migration list --linked` showed it as the only pending one, dry run listed only it, `db push` confirmed; the NOTICE "function ... does not exist, skipping" is the expected `drop function if exists`). **PR #29** (`main` -> `production`) merged as `36f41aa`; Vercel deploy succeeded; `main` re-synced, so `main` == `production` == `36f41aa`.
 - **Live check** (production, doctor signed in by the user, clicks only): the running bundle is the new one; More -> Merge patients opens; `possible_duplicate_patients` returned HTTP 200; the list is empty, as expected (production holds only the one test patient). No console errors. No merge was attempted on production; the Review -> merge path was verified on staging only.
+
+### 2026-10-17: unified patient timeline (backlog item 4) - branch `feat/patient-timeline`
+- **What:** a doctor-only **Timeline** tab on the patient record (between "Visits & prescriptions" and "Personal notes"): one newest-first list of visits, prescriptions issued, payments and uploaded documents. **No migration**: everything is read through tables the doctor can already read (`visits`, `prescriptions`, `bills` + `bill_settlements`, `patient_files`). Doctor-only because prescriptions and documents are doctor-only reads; reception keeps the existing Visits tab with receipts.
+- **Dates (the brief's point):** each event shows the time of that event in clinic time (`formatDateTime`, fixed to Asia/Kolkata, "IST"): visit = `arrived_at`; prescription = `prescriptions.created_at` ("issued"); payment = `bills.confirmed_at` for cash/UPI; a **pay-later bill** is shown as "Bill confirmed, not paid yet" and its later `bill_settlements.settled_at` as a separate "settled" event; corrections ("Bill correction") are their own rows; an upload = `patient_files.created_at`, with the **examination date shown separately as "date only"** and never turned into a time. Uploads still in `uploading` status are hidden.
+- **Code:** `src/lib/patientTimeline.ts` (pure `buildTimeline`, no imports), `src/components/PatientTimeline.tsx` (two queries: bills with settlements, files; visits and prescriptions are passed from `Patients.tsx`, which now also selects `prescriptions.created_at`), `formatDateTime` in `lib/date.ts`, tab wiring in `Patients.tsx`. Receipt buttons reuse the existing `billId` receipt view; document events switch to the Documents tab.
+- **Test:** `scripts/patient-timeline-test.mjs` (pure logic, no DB): ordering, pay-later vs payment vs settlement vs correction, uploading file hidden, examination date never used as a time, empty case. Passes; `query-schema-smoke-test` (86 queries), tsc, build pass, lint unchanged.
+- **Verified in the browser on staging (doctor):** the tab lists visit, prescription, pay-later bill and its settlement with IST times in the right order; View receipt opens the saved receipt and Back returns to the Timeline tab; no console errors. **Not verified live:** the document-upload events (Drive is not configured on staging; covered by the pure test only).
+- **code-review gate (standards + spec agents):** no migration or RLS issues. Fixed from it: the tab keeps its last good data and shows the saved-time banner when a refresh fails; receipt / documents buttons carry a descriptive aria-label; the files query key now sits under `['patient-files', clinic, patient]`, which a finished upload already invalidates; a correction row is titled "replaces the earlier bill"; tie order no longer uses `localeCompare`; shared row types come from the lib; `formatDate` now also uses clinic time (IST) so the Visits tab and the Timeline agree. Left as is: "Prescription issued" is `created_at` (the schema has no separate issued time); a settlement or correction made on another device reaches an open Timeline via the 30 s poll / focus refetch, not instantly; the original bill of a corrected pair still reads "Payment received"; no role-boundary test.
+- **Limits:** no pagination (all events for one patient load at once); no filters; reception does not get the tab; the timeline shows the amount of each bill row as stored (a correction row shows its own final amount).
+- **Release needs:** no migration, so only the feature PR into `main`, then the `main` -> `production` release PR.
