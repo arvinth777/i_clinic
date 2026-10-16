@@ -60,7 +60,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visits')
-        .select('id, token_number, stage, arrived_at, complaint, follow_up_date, discount_requested_at, patients(name, age, gender)')
+        .select('id, token_number, stage, arrived_at, complaint, follow_up_date, discount_requested_at, patients(name, age, gender, height_cm, weight_kg)')
         .eq('id', visitId)
         .single()
       if (error) throw error

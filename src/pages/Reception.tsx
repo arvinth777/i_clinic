@@ -97,6 +97,8 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
         clinic_id: clinicId,
         name: input.name,
         age: Number(input.age),
+        height_cm: input.height.trim() ? Number(input.height) : null,
+        weight_kg: input.weight.trim() ? Number(input.weight) : null,
         gender: input.gender || null,
         address: input.address || null,
         phone: input.phone || null,

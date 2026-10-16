@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 export type NewPatientInput = {
   name: string
   age: string
+  height: string
+  weight: string
   gender: string
   address: string
   phone: string
@@ -21,7 +23,7 @@ export type NewPatientInput = {
 
 type FieldDef = { key: string; label: string; field_type: string }
 
-const emptyForm: NewPatientInput = { name: '', age: '', gender: '', address: '', phone: '', complaint: '', customFields: {} }
+const emptyForm: NewPatientInput = { name: '', age: '', height: '', weight: '', gender: '', address: '', phone: '', complaint: '', customFields: {} }
 
 export function NewPatientForm({
   clinicId,
@@ -66,6 +68,10 @@ export function NewPatientForm({
     if (!form.name.trim()) next.name = 'Required'
     if (!form.age.trim()) next.age = 'Required'
     else if (!/^\d{1,3}$/.test(form.age.trim()) || Number(form.age) > 120) next.age = 'Enter a whole number from 0 to 120'
+    // Optional; one decimal at most, within what the database accepts (patients_height_range / patients_weight_range).
+    const bodyOk = (v: string, lo: number, hi: number) => !v.trim() || (/^\d{1,3}(\.\d)?$/.test(v.trim()) && Number(v) >= lo && Number(v) <= hi)
+    if (!bodyOk(form.height, 30, 260)) next.height = 'Enter 30 to 260 cm'
+    if (!bodyOk(form.weight, 1, 400)) next.weight = 'Enter 1 to 400 kg'
     if (!form.complaint.trim()) next.complaint = 'Required'
     // People type "98765 43210", "+91-98765-43210" or "098765 43210"; store the 10 digits.
     const phone = form.phone.replace(/[\s-]/g, '').replace(/^(\+91|91|0)(?=\d{10}$)/, '')
@@ -99,6 +105,30 @@ export function NewPatientForm({
         {errors.age && (
           <span className="field-error" role="alert">
             {errors.age}
+          </span>
+        )}
+      </div>
+
+      <div className="field">
+        <label className="field-label" htmlFor="new-height">
+          Height (cm), optional
+        </label>
+        <Input id="new-height" type="number" inputMode="decimal" min={30} max={260} step={0.1} value={form.height} onChange={(e) => set('height', e.target.value)} />
+        {errors.height && (
+          <span className="field-error" role="alert">
+            {errors.height}
+          </span>
+        )}
+      </div>
+
+      <div className="field">
+        <label className="field-label" htmlFor="new-weight">
+          Weight (kg), optional
+        </label>
+        <Input id="new-weight" type="number" inputMode="decimal" min={1} max={400} step={0.1} value={form.weight} onChange={(e) => set('weight', e.target.value)} />
+        {errors.weight && (
+          <span className="field-error" role="alert">
+            {errors.weight}
           </span>
         )}
       </div>
