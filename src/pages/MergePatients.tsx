@@ -8,6 +8,9 @@ import { useConfirm } from '../lib/confirm'
 import './MergePatients.css'
 
 type Candidate = { id: string; name: string; age: number | null; phone: string | null; last_visit_at: string | null }
+type DuplicatePair = { a: Candidate; b: Candidate; reason: string }
+
+const brief = (c: Candidate) => [c.name, c.age ? `${c.age}y` : '', c.phone ?? ''].filter(Boolean).join(' · ')
 
 // Deciding two records are the same person is a clinical judgment about a
 // patient, not configuration -- this lives with the doctor, who already
@@ -75,6 +78,16 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
   const [b, setB] = useState<Candidate | null>(null)
   const [result, setResult] = useState('')
 
+  // A warning list only: nothing merges until the doctor picks a pair, then confirms below.
+  const { data: suggestions } = useQuery({
+    queryKey: ['possible-duplicates', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('possible_duplicate_patients', { p_clinic_id: clinicId })
+      if (error) throw error
+      return data as DuplicatePair[]
+    },
+  })
+
   const merge = useMutation({
     mutationFn: async () => {
       if (!a || !b) return
@@ -87,6 +100,7 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
       setA(null)
       setB(null)
       queryClient.invalidateQueries({ queryKey: ['merge-search'] })
+      queryClient.invalidateQueries({ queryKey: ['possible-duplicates'] })
     },
     onError: (e: Error) => setResult(e.message),
   })
@@ -117,6 +131,25 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
           {merge.isPending ? 'Merging…' : 'Merge'}
         </Button>
       </div>
+      {(suggestions?.length ?? 0) > 0 && (
+        <section className="merge-suggestions">
+          <h3 className="readout-heading">Possible duplicates</h3>
+          <p className="readout-empty">Matching name or phone is only a hint. Review each pair before merging.</p>
+          <ul className="merge-suggestion-list">
+            {suggestions!.map((s) => (
+              <li key={s.a.id + s.b.id} className="merge-suggestion">
+                <span>
+                  {brief(s.a)} <span className="search-result-meta">and</span> {brief(s.b)}
+                  <span className="search-result-meta"> — {s.reason}</span>
+                </span>
+                <button type="button" className="merge-suggestion-review" onClick={() => { setA(s.a); setB(s.b); setResult(''); window.scrollTo(0, 0) }}>
+                  Review
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   )
 }
