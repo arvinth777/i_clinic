@@ -16,6 +16,7 @@ import { useQueueAction } from '../lib/queueActions'
 import { LoadingRows, QueryError } from '../components/QueryState'
 import { readPrescriptionPrint } from '../lib/prescriptionPrint'
 import { Billing } from '../components/Billing'
+import { formatBody } from '../lib/patientBody'
 import '../components/Worklist.css'
 import './Consultation.css'
 import { useQueuePollInterval } from '../lib/realtimeStatus'
@@ -41,7 +42,7 @@ type DoctorVisit = {
   discount_requested_at: string | null
   patient_id: string
   with_doctor_at: string | null
-  patients: { name: string; age: number | null; gender: string | null; address: string | null; phone: string | null } | null
+  patients: { name: string; age: number | null; gender: string | null; address: string | null; phone: string | null; height_cm: number | null; weight_kg: number | null } | null
 }
 
 type PastVisit = { id: string; arrived_at: string; complaint: string }
@@ -88,7 +89,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
     if (prescribingActive && requestedVisitId !== reviewVisitId) setGuard(true)
     else if (!prescribingActive) setReviewVisitId(requestedVisitId)
   }, [alertNavigation, requestedVisitId, prescribingActive, reviewVisitId])
-  const requested = useQuery({ queryKey: ['doctor-alert-visit', clinicId, requestedVisitId], refetchInterval: useQueuePollInterval(), enabled: !!clinicId && !!requestedVisitId, queryFn: async () => { const {data,error}=await supabase.from('visits').select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone)').eq('clinic_id',clinicId!).eq('id',requestedVisitId!).maybeSingle(); if(error) throw error; return data as unknown as DoctorVisit | null } })
+  const requested = useQuery({ queryKey: ['doctor-alert-visit', clinicId, requestedVisitId], refetchInterval: useQueuePollInterval(), enabled: !!clinicId && !!requestedVisitId, queryFn: async () => { const {data,error}=await supabase.from('visits').select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone, height_cm, weight_kg)').eq('clinic_id',clinicId!).eq('id',requestedVisitId!).maybeSingle(); if(error) throw error; return data as unknown as DoctorVisit | null } })
   const queueAction = useQueueAction(clinicId)
 
   const interval = useQueuePollInterval()
@@ -100,7 +101,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visits')
-        .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone)')
+        .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone, height_cm, weight_kg)')
         .eq('clinic_id', clinicId)
         .gte('arrived_at', today)
         .in('stage', ['waiting', 'called', 'with_doctor', 'not_here', 'ready_to_bill'])
@@ -118,7 +119,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
     getNextPageParam: (last: DoctorVisit[], pages: DoctorVisit[][]) => last.length === 50 ? pages.length * 50 : undefined,
     queryFn: async ({ pageParam }) => {
       const { data, error } = await supabase.from('visits')
-        .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone)')
+        .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone, height_cm, weight_kg)')
         .eq('clinic_id', clinicId!).eq('stage', 'ready_to_bill').not('discount_requested_at', 'is', null)
         .order('discount_requested_at').order('id').range(pageParam, pageParam + 49)
       if (error) throw error
@@ -287,7 +288,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
                 <div className="doctor-patient-summary"><div>
                   <p className="doctor-queue-meta">#{current.token_number} · {pastVisits ? pastVisits.length ? `Follow-up · ${pastVisits.length+1} visits` : 'New patient' : 'Loading visits…'}{current.stage === 'with_doctor' && current.with_doctor_at && <ConsultationClock startedAt={current.with_doctor_at} />}</p>
                   <h2>{current.patients?.name}</h2>
-                  <p>{formatAgeSex(current.patients?.age ?? null, current.patients?.gender ?? null)}{current.patients?.phone ? ` · ${current.patients.phone}` : ''}</p>
+                  <p>{formatAgeSex(current.patients?.age ?? null, current.patients?.gender ?? null)}{formatBody(current.patients?.height_cm, current.patients?.weight_kg) ? ` · ${formatBody(current.patients?.height_cm, current.patients?.weight_kg)}` : ''}{current.patients?.phone ? ` · ${current.patients.phone}` : ''}</p>
                 </div>{sent ? <div className="doctor-sent"><strong className="status-green">Prescription sent to billing</strong><Button variant="secondary" onClick={()=>setWorkspace('prescription')}>View prescription</Button></div> : <Button disabled={current.stage==='called'} onClick={() => setWorkspace('prescription')}>{prescribingActive ? 'Continue prescription →' : 'Start prescription →'}</Button>}</div>
               </section>
               <div className="doctor-context">
