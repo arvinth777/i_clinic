@@ -9,6 +9,7 @@ import { restorePagedCache } from '../lib/pagedCache'
 import { Billing } from '../components/Billing'
 import { PatientDocuments } from '../components/PatientDocuments'
 import { LoadingRows, QueryError } from '../components/QueryState'
+import { formatBody } from '../lib/patientBody'
 
 type Patient = { id: string; name: string; age: number | null; gender: string | null; phone: string | null; address: string | null }
 type Visit = { id: string; arrived_at: string; complaint: string; stage: string; token_number: number; follow_up_date: string | null }
@@ -22,6 +23,8 @@ export function Patients({ clinicId, isDoctor, canBill, initialPatientId, locked
   const [selectedPatient, setPatient] = useState<Patient | null | undefined>(undefined)
   const {data: requestedPatient} = useQuery({queryKey:['patient-detail',clinicId,initialPatientId],enabled:!!initialPatientId,queryFn:async()=>{const {data,error}=await supabase.from('patients').select('id,name,age,gender,phone,address').eq('clinic_id',clinicId).eq('id',initialPatientId!).single();if(error)throw error;return data as Patient}})
   const patient=selectedPatient===undefined ? requestedPatient??null : selectedPatient
+  // search_patients returns a fixed column list without height/weight, so read them for the selected patient.
+  const { data: body } = useQuery({ queryKey: ['patient-body', patient?.id], enabled: !!patient, queryFn: async () => { const { data, error } = await supabase.from('patients').select('height_cm, weight_kg').eq('id', patient!.id).single(); if (error) throw error; return data as { height_cm: number | null; weight_kg: number | null } } })
   const [tab, setTab] = useState<'visits' | 'notes' | 'documents'>(isDoctor && initialTab === 'documents' ? 'documents' : 'visits')
   const [connectionError, setConnectionError] = useState('')
   const drive = useQuery({queryKey:['drive-status',clinicId],enabled:isDoctor && initialTab==='documents' && !patient && !locked,queryFn:()=>documentRequest<DriveStatus>('status',{clinic_id:clinicId}),retry:false,refetchInterval:300_000})
@@ -96,7 +99,7 @@ export function Patients({ clinicId, isDoctor, canBill, initialPatientId, locked
         </div>
       </> : <><h1>Patient records</h1><p className="patient-empty-description">Choose a patient from the list to see their details{isDoctor ? ' and visit history' : ''}.</p></>}
     </section> : billId ? <Billing readOnly={!canBill} key={billId} clinicId={clinicId} visitId={billId} onClose={() => setBillId(null)} /> : <>
-      <header className="patient-record-heading"><p className="field-hint">Patient record</p><h1>{patient.name}</h1><p>{[patient.age != null ? `${patient.age} years` : '', patient.gender, patient.phone].filter(Boolean).join(' · ')}</p>{patient.address && <p className="field-hint">{patient.address}</p>}</header>
+      <header className="patient-record-heading"><p className="field-hint">Patient record</p><h1>{patient.name}</h1><p>{[patient.age != null ? `${patient.age} years` : '', patient.gender, formatBody(body?.height_cm, body?.weight_kg), patient.phone].filter(Boolean).join(' · ')}</p>{patient.address && <p className="field-hint">{patient.address}</p>}</header>
       <div className="flow-stats"><div className="flow-stat"><strong className="flow-stat-value">{visits?.length ?? '—'}</strong><span className="flow-stat-label">Visits</span></div><div className="flow-stat"><strong className="flow-stat-value">{visits?.[0] ? formatDate(visits[0].arrived_at) : '—'}</strong><span className="flow-stat-label">Last visit</span></div><div className="flow-stat"><strong className="flow-stat-value">{visits?.[0]?.follow_up_date ? formatDateOnly(visits[0].follow_up_date) : '—'}</strong><span className="flow-stat-label">Review date</span></div></div>
       <nav className="admin-tabs" aria-label="Patient record"><button className="shell-nav-item" aria-current={tab === 'visits' ? 'page' : undefined} onClick={() => setTab('visits')}>Visits{isDoctor ? ' & prescriptions' : ''}</button>{isDoctor && <button className="shell-nav-item" aria-current={tab === 'notes' ? 'page' : undefined} onClick={() => setTab('notes')}>Personal notes</button>}{isDoctor && <button className="shell-nav-item" aria-current={tab === 'documents' ? 'page' : undefined} onClick={() => setTab('documents')}>Documents</button>}</nav>
       {(visitError || prescriptionError || noteError || shortfallError) && <QueryError retry={() => { void client.invalidateQueries({ queryKey: ['patient-history-visits', clinicId, patient.id] }); void client.invalidateQueries({ queryKey: ['patient-history-prescriptions', clinicId, patient.id] }); void client.invalidateQueries({ queryKey: ['patient-comments', patient.id] }); void client.invalidateQueries({queryKey:['patient-shortfalls',clinicId,patient.id]}) }} />}

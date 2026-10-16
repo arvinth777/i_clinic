@@ -1,5 +1,6 @@
 import { formatPaise } from '../lib/money'
 import { formatDate, formatDateOnly } from '../lib/date'
+import { formatBody } from '../lib/patientBody'
 import './Billing.css'
 import { PrescriptionLetterhead } from './PrescriptionLetterhead'
 
@@ -13,7 +14,7 @@ export type PrintVisit = {
   diagnosis?: string | null
   advice?: string | null
   follow_up_date?: string | null
-  patients: { name: string; age?: number | null; gender?: string | null } | null
+  patients: { name: string; age?: number | null; gender?: string | null; height_cm?: number | null; weight_kg?: number | null } | null
 }
 
 export type DetailRow = {
@@ -71,7 +72,7 @@ export function PrintablePrescription({ clinic, visit, medicines }: { clinic: Cl
           <div className="prescription-reference"><span>#{visit.token_number}</span><span>{formatDate(visit.arrived_at)}</span></div>
         </td></tr></thead>
         <tbody>
-          <tr><td colSpan={2}><div className="prescription-patient"><strong>Patient: {visit.patients?.name}</strong><span>{[visit.patients?.age != null ? `${visit.patients.age} years` : '', visit.patients?.gender].filter(Boolean).join(' · ')}</span></div></td></tr>
+          <tr><td colSpan={2}><div className="prescription-patient"><strong>Patient: {visit.patients?.name}</strong><span>{[visit.patients?.age != null ? `${visit.patients.age} years` : '', visit.patients?.gender, formatBody(visit.patients?.height_cm, visit.patients?.weight_kg)].filter(Boolean).join(' · ')}</span></div></td></tr>
           {visit.complaint && <tr><td colSpan={2} className="prescription-note"><strong>Complaints: </strong>{visit.complaint}</td></tr>}
           {visit.diagnosis && <tr><td colSpan={2} className="prescription-note"><strong>Diagnosis: </strong>{visit.diagnosis}</td></tr>}
           <tr><td colSpan={2} className="prescription-rx">℞</td></tr>
