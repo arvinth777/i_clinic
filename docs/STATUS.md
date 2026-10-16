@@ -1,5 +1,13 @@
 # Status
 
+## Issued PDF archives — 2026-10-17
+
+- Implemented immutable server archive jobs for finalised approved prescriptions, paid receipts, settlements and separate bill corrections. Patient links survive merges through visits; name-only pharmacy receipts retain no patient/visit. Reception is restricted to receipts. Staging migration and JWT-verified endpoint deployed only to `cofnrcgsolluyhghutah`.
+- Unlocked app worker stores rendered PDF bytes in owner/clinic IndexedDB, retries stable server jobs and Drive IDs, isolates individual failures and visibly reports pending/error states. Same print components/fonts/artwork; continuation pages repeat context; totals stay together. Downloads cancel across lock/unmount/account changes.
+- Backend staging and handler/worker/download regressions pass; actual staging Drive issued-prescription and name-only-receipt uploads, duplicate retries and byte-exact downloads pass. Reception clinical/OAuth denial verified. PDF short/typical/45-medicine5-page/receipt and70-item3-page samples visually inspected. Tsc/build pass; lint8; schema smoke90. Production dependency audit reports0 known vulnerabilities. Security advisor has0 errors,35 existing warnings and2 INFO notices; review findings fixed.
+- Uncommitted implementation in managed `codex/drive-pdf-archive` worktree, preparing draft PR into main. No merge/production action. Remaining: full application browser desktop/mobile and offline reload of pending archives, phone/Safari, fresh physical printer acceptance. Single rows taller than a page remain pending with an explicit error rather than clipping; other jobs continue. Initial app JS remains about145kB gzip; PDF renderer is a separate241kB gzip lazy chunk, PWA precache about2MiB.
+- Next: user signs in to finish browser acceptance; review/merge PR35 first to activate CI feature-script hooks. GitHub account billing lock currently prevents hosted Actions from starting. Backups/R2 and production remain outside this change.
+
 ## Populated doctor visual check — 2026-10-12
 
 - Used the current staging preview (PR #11 build) with three owned synthetic

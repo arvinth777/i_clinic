@@ -279,3 +279,7 @@ Reference: [Google refresh-token expiration](https://developers.google.com/ident
 Older installed browser tabs can need a reload after service-worker activation.
 Confirmed live doctor alert navigation opens connection setup without creating
 a patient. Automatic issued-prescription/receipt PDF archival is not implemented.
+
+## Pending archive release migration ordering — 2026-10-17
+
+The staging archive migration is immutable `20261016205705_document_pdf_archives.sql`. The host CLI UTC date made it sort before the already-released `20261017020000` migration. Its exact SQL is linked into the dedicated production chain with the later alias `20261017040000_document_pdf_archives.sql`; the alert step uses `20261017030000`. These are local preparation only. Production commands remain user-run after approval, with the dedicated-chain dry run listing only approved aliases and no `--include-all`. Never repair staging history or rename the applied source file.

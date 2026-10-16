@@ -100,3 +100,13 @@ Drive status verifies the saved Google refresh grant server-side. Alert checks
 run only for doctors while Alerts is open, every five minutes; revoked grants
 produce a reconnect alert, transient outages produce a retry notice. A global
 Documents connection view avoids needing a patient record just to connect.
+
+## Issued PDF archives — 2026-10-17
+
+Finalisation snapshots the approved prescription; paid-bill insertion and pay-later settlement create receipt snapshots after immutable bill lines exist. Jobs and snapshots persist in Postgres with source/version uniqueness. Patient links derive through visits so merges retain history; name-only pharmacy receipts have no patient/visit. New events only: no bulk historical backfill.
+
+An unlocked clinical app processes pending jobs in batches: lazily renders the existing print components to A4 PDFs, stores the bytes in account/clinic-scoped IndexedDB, then uploads through the private Drive endpoint. Rendering uses bundled fonts/artwork, repeated letterheads and row-level continuation pages; receipt summary rows stay together. Oversized single paragraphs/rows or PDFs above25MiB surface a pending error without truncating or blocking other jobs. Source snapshots remain unchanged.
+
+The server authorises each job, leases uploads, reserves a stable Drive ID and checks the canonical checksum. A lost completion response recovers the original file rather than replacing it with newly rendered bytes. Reception can process/download receipts only; manual clinical attachments and Google connection management remain doctor-only. Tokens stay server-side. Lock/unmount generations cancel late downloads.
+
+Jobs survive device closure, but processing requires a signed-in, unlocked app with connectivity; no unattended server PDF renderer was added. Existing IndexedDB clinical writes create their archive job when they sync. Drive failure never blocks printing or clinical/payment saves. New PDF dependencies load outside the initial application bundle; PWA precaches them for local availability.

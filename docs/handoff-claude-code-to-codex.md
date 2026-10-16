@@ -2,6 +2,8 @@
 
 ## START HERE (written 2026-10-17 for the switch to Codex; this block is the current state, the rest is history)
 
+**Archive checkpoint (2026-10-17):** `codex/drive-pdf-archive` worktree now has the new staging migration and JWT-verified endpoint. Actual synthetic issued prescription and name-only receipt Drive uploads/retries/byte-exact private downloads pass; clinical/OAuth access remains denied to reception. Draft browser/offline/printer acceptance is still pending. Alert draft PR #36 and baseline PR #35 are unmerged. Main/production freshly verified at `1eeaa92`.
+
 **Verify first:** `git fetch origin && git log --oneline -3 origin/main origin/production && gh pr list` and `cat supabase/.temp/project-ref` (root must say `cofnrcgsolluyhghutah`, staging).
 
 | Thing | State at hand-off |
@@ -321,3 +323,28 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 - **code-review gate (standards + spec agents):** no migration or RLS issues. Fixed from it: the tab keeps its last good data and shows the saved-time banner when a refresh fails; receipt / documents buttons carry a descriptive aria-label; the files query key now sits under `['patient-files', clinic, patient]`, which a finished upload already invalidates; a correction row is titled "replaces the earlier bill"; tie order no longer uses `localeCompare`; shared row types come from the lib; `formatDate` now also uses clinic time (IST) so the Visits tab and the Timeline agree. Left as is: "Prescription issued" is `created_at` (the schema has no separate issued time); a settlement or correction made on another device reaches an open Timeline via the 30 s poll / focus refetch, not instantly; the original bill of a corrected pair still reads "Payment received"; no role-boundary test.
 - **Limits:** no pagination (all events for one patient load at once); no filters; reception does not get the tab; the timeline shows the amount of each bill row as stored (a correction row shows its own final amount).
 - **Release needs:** no migration, so only the feature PR into `main`, then the `main` -> `production` release PR.
+
+### 2026-10-17: Drive PDF archive branch started
+- Created managed worktree `~/.codex/worktrees/clinic-drive-pdf-archive/i_clinic`, branch `codex/drive-pdf-archive`, from `origin/main` `1eeaa92`. Separate from pending test-baseline PR #35 and alert-settings work. Root target is staging only; no production commands or merges.
+- User-approved scope: issued prescription and paid receipt PDFs using the existing print layout; durable retries, stable source/version identity, corrections separately linked, name-only pharmacy sales retained, reception archive permission restricted to receipts.
+- Baseline PR #35 local checks pass; GitHub Actions cannot start because the account is locked due to billing. Vercel preview succeeds.
+
+### 2026-10-17 — Drive archive staging migration
+
+Applied `20261016205705_document_pdf_archives` to staging `cofnrcgsolluyhghutah` only after dry run listed only that file. First attempt rolled back because diagnosis/advice live on prescriptions, not visits; corrected the unapplied file and retried successfully. New durable issued snapshots and receipt jobs use RLS and a service-only upload lease. No historical backfill, merge, production action or live Google transfer. Implementation/tests remain in progress. An exact local copy of the already-applied alert migration is present only for CLI history matching and is not part of this PR.
+
+### 2026-10-17 — Archive endpoint deployed to staging for synthetic verification
+
+Deployed `patient-documents` with JWT verification retained to staging `cofnrcgsolluyhghutah`; no secret values changed and production untouched. Mock handler tests cover narrow receipt access, stable Drive IDs, lost-ready recovery and leases. Live staging Drive connection metadata reports a saved connection; refreshing the grant and transferring an issued synthetic PDF are next, not yet claimed. Source remains uncommitted pending checks/review.
+
+### 2026-10-17 — Alert draft PR #36
+
+Pushed `codex/alert-settings` and opened draft PR #36 into main, commit `9ef2ea1`. No merge. Remaining reception/offline browser acceptance is explicit in the PR. Production untouched. Separate Drive archive migration is now also on staging, so local alert-only schema smoke sees archive tables but depends only on its own migration.
+
+### 2026-10-17 — Live archive checks and release preparation
+
+Actual saved staging Google grant worked without new consent or secret changes. Uploaded an exact issued synthetic prescription snapshot and a name-only pharmacy receipt; repeated uploads kept one Drive ID and canonical bytes; private downloads matched byte-for-byte. Reception receipt upload/download passed; prescription and OAuth status access denied. New anonymous/direct-snapshot-write backend checks pass. All generated source exports contained explicit SYNTHETIC fixtures only.
+
+Fixed review findings: failed individual jobs no longer block later jobs; unchanged polls/manual retries trigger processing; queue read errors are visible; final download generation/lock/user checks run after session awaits; receipt totals stay together. Corresponding handler/worker/download tests pass. Actual PDFs generated from same React print components, embedded fonts/artwork, short/typical/45-medicine5-page/receipt/70-item3-page visually checked. Initial blank-capture and missing-artwork defects caught visually and fixed. Final PDF writer is pdf-lib with html2canvas-pro; lazy renderer avoids loading PDF code in the initial bundle.
+
+Local release alias `20261017040000_document_pdf_archives.sql` links the exact applied staging SQL, sorting after the existing production chain and alert alias0300. Release in reviewed alert-then-archive order; no production `--include-all`, no staging history repair. No production command, merge or historical archive backfill. PR35 now provides optional feature-script CI hooks, but hosted jobs are still blocked by GitHub account billing. Preparing archive draft PR; full app browser/offline/phone/Safari/printer acceptance remains pending user sign-in.

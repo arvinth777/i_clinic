@@ -1,3 +1,4 @@
+import { DocumentArchives } from './DocumentArchives'
 import { usePrintDocument } from '../lib/usePrintDocument'
 import { LoadingRows, QueryError } from './QueryState'
 import { useEffect, useState } from 'react'
@@ -368,6 +369,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
 
       {bill && (
         <section className="record-section">
+          <DocumentArchives clinicId={clinicId} billId={bill.id} />
           <div className="paid-stamp" aria-hidden="true">
             Paid
           </div>
