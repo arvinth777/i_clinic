@@ -328,6 +328,7 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 - User confirmed notification mute silences sounds while all alerts remain visible. Existing 16:00 IST closing and five-minute called-patient reminder retained as defaults.
 
 ### 2026-10-17: test-baseline staging run
-- Reproduced seven failures; corrected legacy fixtures/assertions to current public APIs, not backend weakening. Fresh results: billing 16, pricing 15, approval/handoff 10, stock 23, offline 21, phase-g 19, isolation 21 all pass; CI seven local suites pass after a fresh build.
+- Reproduced seven failures; corrected legacy fixtures/assertions to current public APIs, not backend weakening. Fresh results: billing 16, pricing 15, approval/handoff 10, stock 25, offline 21, phase-g 21, isolation 21 all pass; CI seven local suites pass after a fresh build.
 - Two existing synthetic with-doctor fixtures were finished with explicit approval and valid synthetic prescriptions to unblock the shared staging queue. The attempted Not here action was rejected for with-doctor as expected. No production commands or merges.
 - Added pull-request CI with no database credentials; lint enforces at most eight warnings. Browser sign-in performed by the user in the internal browser. Physical/Safari/Drive checks are not claimed.
+- Standards/spec review findings fixed: stock rejection proves no bill, paid retry proves the same ID, midnight regression retains older ready-to-bill/paid cases. Source re-review has no remaining blockers. No merge authorized.

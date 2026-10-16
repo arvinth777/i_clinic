@@ -194,8 +194,8 @@ let medA, counterPointId
 }
 
 // ================================================================
-// Section 5 -- a deduction taking stock below zero still applies, and
-// the item is flagged (queryable as negative stock, not blocked)
+// Section 5 -- dispensing is capped at stock; negative adjustments remain
+// visible for reconciliation.
 // ================================================================
 {
   const medD = await makeMedicine(doctorA, 'Stock Test Med D (goes negative)', 300)
@@ -205,7 +205,8 @@ let medA, counterPointId
   await sendToBilling(doctorA, receptionA, CLINIC_A_ID, visitId)
 
   const { error: billErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' })
-  report('confirm_bill blocks supplying more than available stock', !!billErr, billErr?.message)
+  report('confirm_bill blocks supplying more than available stock', /stock/i.test(billErr?.message ?? ''), billErr?.message)
+  report('stock rejection creates no bill', checked(await doctorA.from('bills').select('id').eq('visit_id', visitId)).length === 0)
 
   const after = await stockQuantity(doctorA, medD, 'Counter')
   report('blocked dispensing leaves stock unchanged', after.quantity === 0, JSON.stringify(after))
@@ -294,17 +295,16 @@ let medA, counterPointId
   await sendToBilling(doctorA, receptionA, CLINIC_A_ID, visitId)
 
   const beforeFirstBill = await stockQuantity(doctorA, medG, 'Counter')
-  await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' })
+  const firstBillId = checked(await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' }))
   const afterFirstBill = await stockQuantity(doctorA, medG, 'Counter')
   report('first confirm deducts once', afterFirstBill.quantity === beforeFirstBill.quantity - 5, JSON.stringify(afterFirstBill))
 
-  // Doctor reopens the closed visit (a real, allowed flow -- security-review.md's
-  // "only doctor can reopen a closed visit"), reception re-confirms.
-  await doctorA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId)
-  const { error: rebillErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' })
-  report('rebilling a reopened visit still succeeds', !rebillErr, rebillErr?.message)
+  const forbidden = await doctorA.from('visits').update({ stage: 'ready_to_bill' }).eq('id', visitId)
+  report('paid visit cannot be reopened by a direct stage write', !!forbidden.error && checked(await doctorA.from('visits').select('stage').eq('id', visitId).single()).stage === 'paid')
+  const { data: retryId, error: rebillErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' })
+  report('payment retry returns the same immutable bill', !rebillErr && retryId === firstBillId, rebillErr?.message)
   const afterRebill = await stockQuantity(doctorA, medG, 'Counter')
-  report('rebilling a reopened visit does not deduct stock a second time', afterRebill.quantity === afterFirstBill.quantity, `after first bill ${afterFirstBill.quantity}, after rebill ${afterRebill.quantity}`)
+  report('payment retry does not deduct stock a second time', afterRebill.quantity === afterFirstBill.quantity, `after first bill ${afterFirstBill.quantity}, after rebill ${afterRebill.quantity}`)
 }
 
 console.log('\n== Summary ==')

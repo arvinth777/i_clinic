@@ -7,13 +7,13 @@
   confirmed medicine units/quantities, supply caps, immutable arrivals,
   idempotent corrections and blocked direct bill insertion. No app or SQL change.
 - Fresh staging results: billing 16/16, pricing 15/15, approval/handoff 10/10,
-  stock 23/23, offline payment 21/21, phase-g 19/19, isolation 21/21.
+  stock 25/25, offline payment 21/21, phase-g 21/21, isolation 21/21.
   The former negative-dispensing case now verifies rejection without stock
   change; negative stock from adjustment remains covered.
 - Added credential-free CI: Node 24, typecheck, max eight lint warnings,
   build and seven local unit suites. Node 24 is needed for existing direct TS
   imports. All seven pass after a fresh build. Removed an unused test login;
-  lint is at eight warnings. The schema smoke check is in progress.
+  lint is at eight warnings. Schema smoke passes for all 86 table queries.
 - Staging preparation: two old synthetic with-doctor visits finished through
   approved queue actions (zero-price sample medicine where no prescription
   existed). No bill/payment was confirmed for those preparation visits.

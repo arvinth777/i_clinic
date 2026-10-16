@@ -203,6 +203,13 @@ async function pricingOf(visitId) {
   const fixedIds = new Map((fixedQuery ?? []).map((v) => [v.id, v.stage]))
   report('the fixed query surfaces the stale UNBILLED visit', fixedIds.get(staleUnbilledId) === 'waiting', JSON.stringify(fixedIds.get(staleUnbilledId)))
   report('the fixed query still excludes the stale NO-SHOW visit (closed history stays out of earlier open visits)', !fixedIds.has(staleClosedId), JSON.stringify(fixedIds.has(staleClosedId)))
+  // Existing immutable staging history supplies midnight billing cases that
+  // cannot be fabricated by editing arrival timestamps through the public API.
+  for (const stage of ['ready_to_bill', 'paid']) {
+    const historical = checked(await doctorA.from('visits').select('id').eq('clinic_id', CLINIC_A_ID).lt('arrived_at', todayStart.toISOString()).eq('stage', stage).limit(1))
+    if (!historical.length) throw new Error(`Staging requires an older synthetic ${stage} fixture for the midnight regression`)
+    report(`earlier-open query ${stage === 'paid' ? 'excludes paid' : 'includes ready-to-bill'} history`, fixedIds.has(historical[0].id) === (stage === 'ready_to_bill'))
+  }
 }
 
 // ============================================================

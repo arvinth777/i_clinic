@@ -239,9 +239,7 @@ async function main() {
       `before: ${JSON.stringify(before.data)}, after: ${JSON.stringify(after.data)}`)
   }
 
-  // doctor.a inserting a bill with corrects_bill_id set -- must succeed
-  // (doctor authors corrections); with it null -- must fail (receptionist
-  // authors original bills, not doctor).
+  // Direct bill inserts are forbidden; doctor corrections use correct_bill.
   {
     const { error: correctionErr } = await doctorA.from('bills').insert({
       clinic_id: CLINIC_A_ID,

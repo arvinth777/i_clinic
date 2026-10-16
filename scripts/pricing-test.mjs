@@ -234,15 +234,8 @@ async function main() {
     // calculated_total down to 0; discount is derived; every edit that
     // actually changes the value bumps revision by exactly 1.
     //
-    // The first call below (final_amount at calculated_total) is the one
-    // exception: since a later migration made an untouched final_amount
-    // auto-track calculated_total (see 20260906130000_billing_confirm.sql),
-    // final_amount_paise here is ALREADY 57000 -- so confirming it at that
-    // same value is a real doctor action (it flips final_amount_set true)
-    // but not a numeric change, and revision correctly does not bump for a
-    // no-op write. Every subsequent call sets a genuinely different value
-    // and does bump revision by 1, same as before.
-    // ================================================================
+    // Confirming the tracked total is an explicit approval and now bumps
+    // the revision even when its numeric value is unchanged.
     async function setFinalAmount(label, value, expectedDiscount, expectRevisionBump = true) {
       const before = await readPricing(doctorA, visitId)
       const { error } = await doctorA.from('visit_pricing').update({ final_amount_paise: value }).eq('visit_id', visitId)
