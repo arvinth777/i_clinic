@@ -340,3 +340,7 @@ Atomic alert settings, closing checklist and unpaid-bill targets implemented. Fr
 ### 2026-10-17 — Alert draft PR #36
 
 Pushed `codex/alert-settings` and opened draft PR #36 into main, commit `9ef2ea1`. No merge. Remaining reception/offline browser acceptance is explicit in the PR. Production untouched. Separate Drive archive migration and endpoint are now on staging in an isolated worktree; no archive code is in this PR.
+
+### 2026-10-17 — Release packaging ordering correction (local only)
+
+Renamed the alert production-chain symlink to `20261017030000_clinic_alert_settings.sql`, preserving its exact immutable staging SQL target. It now sorts after production's existing `20261017020000` without forbidden production `--include-all`. Archive will use the next alias `20261017040000`. No production command or database change; pending reviewer/user release gate remains. Added `test:alerts` for the baseline CI optional feature check.
