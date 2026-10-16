@@ -332,3 +332,7 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 - Two existing synthetic with-doctor fixtures were finished with explicit approval and valid synthetic prescriptions to unblock the shared staging queue. The attempted Not here action was rejected for with-doctor as expected. No production commands or merges.
 - Added pull-request CI with no database credentials; lint enforces at most eight warnings. Browser sign-in performed by the user in the internal browser. Physical/Safari/Drive checks are not claimed.
 - Standards/spec review findings fixed: stock rejection proves no bill, paid retry proves the same ID, midnight regression retains older ready-to-bill/paid cases. Source re-review has no remaining blockers. No merge authorized.
+
+### 2026-10-17 — PR #35 CI feature hooks
+
+Temporarily checked out `codex/test-baseline` from the alert branch to add optional `test:alerts` and `test:archives` CI steps. Their scripts are introduced by the independent feature PRs and run once those features are present. Existing baseline unit suites remain mandatory. No merge or staging/production mutation; GitHub account billing lock still prevents hosted jobs from starting. Returning to `codex/alert-settings` after push.

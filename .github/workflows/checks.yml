@@ -20,3 +20,5 @@ jobs:
       - run: npm run lint -- --max-warnings 8
       - run: npm run build
       - run: npm run test:unit
+      - run: npm run test:alerts --if-present
+      - run: npm run test:archives --if-present
