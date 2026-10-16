@@ -21,6 +21,11 @@ export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+// Date and time of a real event, always in clinic time (IST), whatever the device's own time zone is.
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) + ' IST'
+}
+
 // For a plain YYYY-MM-DD value (next_review_due, follow_up_date,
 // rest_from/rest_to -- date columns, not timestamptz): Date's own
 // parsing treats a date-only string as UTC midnight, which a browser in
