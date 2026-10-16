@@ -336,3 +336,7 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 ### 2026-10-17 — Alert implementation review/checkpoint
 
 Atomic alert settings, closing checklist and unpaid-bill targets implemented. Fresh backend/pure regression checks pass; tsc/build pass, lint8, schema smoke88. Standards/Spec re-review clear after retaining UPI/notes across background target refresh and disabling confirmation until validation finishes. Doctor browser1440/390 checked; reception and offline reload browser checks pending user sign-in. Production untouched. Preparing draft PR into main; no merge authorized.
+
+### 2026-10-17 — Alert draft PR #36
+
+Pushed `codex/alert-settings` and opened draft PR #36 into main, commit `9ef2ea1`. No merge. Remaining reception/offline browser acceptance is explicit in the PR. Production untouched. Separate Drive archive migration and endpoint are now on staging in an isolated worktree; no archive code is in this PR.
