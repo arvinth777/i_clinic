@@ -23,7 +23,8 @@ const code=ts.transpileModule(readFileSync('src/pages/Consultation.tsx','utf8'),
 const context={exports:{},require:dependency,Date};vm.runInNewContext(code,context)
 const walk=node=>!node||typeof node!=='object'?[]:[node,...[node.props?.children].flat(Infinity).flatMap(walk)]
 function render(){index=0;return walk(context.exports.Consultation({userId:'owner',onOpenPatient:()=>{}}))}
-let tree=render();const button=tree.find(node=>node.props?.children==='View prescription');assert.ok(button);button.props.onClick()
+// The "View prescription" button lives in the DoctorOverview component; its onViewPrescription is what the button calls.
+let tree=render();const overview=tree.find(node=>node.type?.displayName==='DoctorOverview');assert.ok(overview&&overview.props.sent,'a finished visit shows the overview in its sent state');overview.props.onViewPrescription()
 tree=render();assert.ok(tree.some(node=>node.type?.displayName==='IssuedPrescription'),'View prescription must mount the read-only issued prescription, not Billing')
 assert.ok(!tree.some(node=>node.type?.displayName==='Billing'),'Prescription view must not mount payment UI')
 console.log('PASS: completed consultation opens issued prescription rather than billing')
