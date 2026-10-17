@@ -2,11 +2,8 @@
 
 ## START HERE (written 2026-10-17 for the switch to Codex; this block is the current state, the rest is history)
 
-**Archive checkpoint (2026-10-17):** `codex/drive-pdf-archive` worktree now has the new staging migration and JWT-verified endpoint. Actual synthetic issued prescription and name-only receipt Drive uploads/retries/byte-exact private downloads pass; clinical/OAuth access remains denied to reception. Draft browser/offline/printer acceptance is still pending. Alert draft PR #36 and baseline PR #35 are unmerged. Main/production freshly verified at `1eeaa92`.
 
-**Current Codex delta (2026-10-17):** main/production verified at `1eeaa92`. Open, unmerged PR35 repairs tests/CI; draft PR36 adds reminder settings; draft PR37 adds Drive PDF archives and continuation/receipt fixes; PR38 fixes issued-prescription viewing and offline printing. Doctor/reception browser and offline replay checks passed. Physical printer/Safari acceptance and hosted CI (account billing block) remain. Production untouched; merge only when the user instructs. The table below is historical; see newest section9 entries.
-
-**Current Codex delta (2026-10-17):** main/production remain `1eeaa92`. Unmerged PR35 repairs baseline tests/CI; draft PR36 implements alert settings; draft PR37 implements Drive PDF archives. Doctor/reception app checks and offline replay passed; all17 synthetic archive jobs ready. Fresh physical print/Safari acceptance and completed-consultation prescription navigation remain open. GitHub Actions cannot start due to billing lock. Production untouched; merge only on user instruction. See newest section9 entries.
+**Current Codex delta (2026-10-17):** user authorized merging. PR35 merged at3804ce6, PR36 at8724301 and PR37 atf6ea5fd. PR38 is being integrated/tested before merge. Production remains1eeaa92 and is untouched. Physical printer/Safari acceptance and hosted CI billing remain open. Historical sections below are superseded by newest section9 entries.
 
 **Verify first:** `git fetch origin && git log --oneline -3 origin/main origin/production && gh pr list` and `cat supabase/.temp/project-ref` (root must say `cofnrcgsolluyhghutah`, staging).
 
@@ -328,6 +325,20 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 - **Limits:** no pagination (all events for one patient load at once); no filters; reception does not get the tab; the timeline shows the amount of each bill row as stored (a correction row shows its own final amount).
 - **Release needs:** no migration, so only the feature PR into `main`, then the `main` -> `production` release PR.
 
+### 2026-10-17 — Remaining acceptance fixes started
+
+User requested the remaining fixes. Created codex/issued-prescription-view from origin/main 1eeaa92 to repair completed-consultation prescription navigation without mixing the unmerged alert/archive changes. Root remains staging; production untouched, no merge authorized. Existing archive worktree/PR37 retained for PDF rendering follow-up.
+
+### 2026-10-17 — Prescription navigation fix verified
+
+Completed View prescription mounts IssuedPrescription rather than Billing; discount review keeps billing, and paid visits cannot enter the editable form. Existing account-bound issued print copies are preserved. Uncached visits reconstruct from immutable approved medicine lines and independent prescription clinical fields, including procedure-only visits. Regression red/green, tsc/build/lint8/schema89 and standards/spec re-review pass. Browser at1440/390 and offline reload/browser A4 print passed; generated evidence local. No schema, auth/RLS or production mutation. Preparing a new PR into main; no merge authorized. PR35/36/37 remain open.
+
+### 2026-10-17 — Navigation PR38 and remaining PDF fixes
+
+Pushed codex/issued-prescription-view and opened PR38 into main; attached to this task, unmerged. Added saved clinical details beside preview using existing classes and aligned Print. Baseline PR35's optional unit runner hook pushed as85743ac; baseline7/7 passes, combined baseline test harness with navigation feature8/8 passes. The old queue-performance harness in origin/main requires PR35's existing stageLabels stub; that is not a feature-code failure. Standards/spec review clear; no production command. Returning from baseline branch to navigation branch recorded.
+
+Archive PR37 follow-up in its own worktree resolves oversized text rows by measured word/grapheme splitting with markup retained; actual DOM character retention tests pass for Tamil, emoji, medicine and receipt columns. Also fixed ordinary receipt totals incorrectly spilling to a second page by measuring intrinsic content without A4 min-height. Browser fixture's new1page assertion fails onoldcode andpasses onfix. Fresh printer PDF packet under archive worktree output/pdf (short, typical, long, receipt); no physical printer or Safari sign-off claimed. Production untouched; merge only on user instruction.
+
 ### 2026-10-17: Drive PDF archive branch started
 - Created managed worktree `~/.codex/worktrees/clinic-drive-pdf-archive/i_clinic`, branch `codex/drive-pdf-archive`, from `origin/main` `1eeaa92`. Separate from pending test-baseline PR #35 and alert-settings work. Root target is staging only; no production commands or merges.
 - User-approved scope: issued prescription and paid receipt PDFs using the existing print layout; durable retries, stable source/version identity, corrections separately linked, name-only pharmacy sales retained, reception archive permission restricted to receipts.
@@ -442,3 +453,7 @@ User instructed merge. PR35 merged into main at3804ce6. Verified Vercel producti
 ### 2026-10-17 — Authorized merge36 and archive integration
 
 PR36 merged into main at8724301 after integrating PR35 and passing tsc/lint8/build/unit/alert checks. Integrated origin/main into PR37's archive worktree; source App merged additively, preserving both alert navigation and ArchiveWorker. Retained all test scripts and both feature requirement/runbook records in document conflicts. Running combined checks before archive merge; no database/secret or production command. PR7 remains untouched.
+
+### 2026-10-17 — Authorized merge37 and final application integration
+
+PR37 merged into main atf6ea5fd after combined baseline/alert/archive tests, typecheck, lint8 and build passed. Integrated main into PR38; conflict resolution retained all package dependencies and test scripts plus both documentation histories. Running the complete8-suite baseline, alert/archive regressions, build/lint/typecheck and staging schema smoke before merging PR38. No new behavior was introduced by conflict resolution; production and PR7 untouched.
