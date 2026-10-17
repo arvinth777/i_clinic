@@ -2,7 +2,7 @@
 
 ## START HERE (written 2026-10-17 for the switch to Codex; this block is the current state, the rest is history)
 
-**Current Codex delta (2026-10-17):** main/production verified at `1eeaa92`; timeline is already released (PR #34). Baseline tests are repaired in unmerged PR #35; local checks pass but GitHub Actions cannot start due to account billing lock. Alert settings branch is ready for draft review with remaining reception/offline browser acceptance pending user login. New alert migration is applied to staging only. See newest section 9 entries; old table below is historical.
+**Current Codex delta (2026-10-17):** main/production remain `1eeaa92`. Unmerged PR35 repairs baseline tests/CI; draft PR36 implements alert settings; draft PR37 implements Drive PDF archives. Doctor/reception app checks and offline replay passed; all17 synthetic archive jobs ready. Fresh physical print/Safari acceptance and completed-consultation prescription navigation remain open. GitHub Actions cannot start due to billing lock. Production untouched; merge only on user instruction. See newest section9 entries.
 
 **Verify first:** `git fetch origin && git log --oneline -3 origin/main origin/production && gh pr list` and `cat supabase/.temp/project-ref` (root must say `cofnrcgsolluyhghutah`, staging).
 
@@ -360,3 +360,11 @@ Temporarily setting staging-only `CLINIC_APP_URL` to localhost5173 for integrate
 Reception mute/checklist navigation/background refetch and1440/390 layout checks pass. Offline PWA check-in/reload/sync produced exactly one patient/visit (synthetic token3062); no settlement was issued. On the separate archive build, pending PDFs survived offline reload and resumed on reconnect; all11 synthetic receipts are ready while5 doctor-only prescription jobs remain pending. Receipt Download PDF worked from reception and a real browser print PDF generated while offline was one unclipped A4 page. Source follow-up in PR37 adds immediate per-upload pending counts and existing LoadingRows; tests/review pass.
 
 Restored staging `CLINIC_APP_URL` to the original permitted preview origin; OPTIONS204/ACAO verified. No production or OAuth credential change. Pending doctor sign-in requested only for doctor archive history and doctor reminder settings offline. Physical printer/Safari checks and merge permission remain open. Local screenshots/PDF under output/playwright; browser network/latency overrides restored.
+
+### 2026-10-17 — Doctor acceptance and staging origin restored
+
+User signed in as staging doctor. Reminder settings changed offline to 35-minute no-show, 7-minute call and 16:15 close; one queued write survived PWA reload. Read-only backend verification stayed at 30/5/960 offline, then became 35/7/975 on reconnect. Doctor restored 30/5/16:00; backend confirmed 30/5/960.
+
+Doctor archive worker completed all remaining prescription jobs. Staging now has 6 prescription PDFs and 11 receipts ready, none pending. Patient Documents shows issued receipt and prescription; private prescription Download PDF worked and the downloaded A4 PDF was rendered and visually inspected. Hanken and no horizontal page overflow verified at 1440/390; local evidence: output/playwright/doctor-archive-desktop.png and doctor-archive-mobile.png. Existing completed-consultation “View prescription” opened billing/receipt instead of prescription print in this fixture; record as a separate navigation issue, not a passed offline prescription-print check. Earlier offline receipt printing and multi-page renderer checks remain valid; fresh physical printer and Safari acceptance remain open.
+
+Restored staging CLINIC_APP_URL to https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app; OPTIONS 204 and matching allowed-origin verified. No OAuth credential change, production action or merge. PR35/36/37 remain unmerged, hosted Actions blocked by GitHub billing; only generated local evidence is untracked after documentation commits.
