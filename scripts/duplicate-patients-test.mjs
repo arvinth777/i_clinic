@@ -36,6 +36,23 @@ await check('same name but a different age is not listed', () => assert.ok(!has(
 await check('each pair is listed once, with a reason', () => { assert.equal(pairs.length, 3); assert.ok(pairs.every(r => r.reason && r.a.name && r.b.name)) })
 await check('anonymous callers are refused', async () => { const anon = createClient(app.VITE_SUPABASE_URL, app.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false }, realtime: { transport: ws } }); const { data, error } = await anon.rpc('possible_duplicate_patients', { p_clinic_id: clinicId }); assert.ok(error || (data ?? []).length === 0, 'anon must not receive pairs') })
 await check('the function only reads: all eight patients still exist', async () => { const { data: rows } = await doctor.from('patients').select('id').in('id', [...ours]); assert.equal(rows.length, 8) })
+// Dismissal ("not a duplicate"): the doctor can, reception and anonymous cannot; the pair stops being listed, others stay.
+const [lo, hi] = C < D ? [C, D] : [D, C]
+await check('reception cannot dismiss a pair', async () => { const { error } = await reception.from('duplicate_dismissals').insert({ clinic_id: clinicId, patient_a: lo, patient_b: hi }); assert.ok(error, 'insert must be refused') })
+await check('the doctor can dismiss a pair; it stops being listed and the other pair stays', async () => {
+  assert.ifError((await doctor.from('duplicate_dismissals').insert({ clinic_id: clinicId, patient_a: lo, patient_b: hi })).error)
+  const { data: after, error } = await doctor.rpc('possible_duplicate_patients', { p_clinic_id: clinicId }); assert.ifError(error)
+  const mine = after.filter(r => ours.has(r.a.id) && ours.has(r.b.id))
+  assert.ok(!mine.some(r => [r.a.id, r.b.id].includes(C) && [r.a.id, r.b.id].includes(D)), 'dismissed pair must be gone')
+  assert.equal(mine.length, 2, 'the two name+age pairs remain')
+})
+await check('a pair must be stored in order, and only for patients of the doctor\'s clinic', async () => {
+  const wrong = await doctor.from('duplicate_dismissals').insert({ clinic_id: clinicId, patient_a: hi, patient_b: lo })
+  assert.ok(wrong.error, 'a > b must be refused')
+  const missing = await doctor.from('duplicate_dismissals').insert({ clinic_id: clinicId, patient_a: A, patient_b: crypto.randomUUID() })
+  assert.ok(missing.error, 'an unknown patient must be refused')
+})
+await check('reception cannot read dismissals', async () => { const { data } = await reception.from('duplicate_dismissals').select('patient_a').in('patient_a', [lo]); assert.equal((data ?? []).length, 0) })
 if (failures.length) { console.log(`\nFAILED ${failures.length}`); process.exit(1) }
 console.log('\nPASS: possible duplicate patients')
 process.exit(0)

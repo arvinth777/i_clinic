@@ -6,7 +6,7 @@ export type TimelineEvent = { key: string; kind: TimelineKind; at: string; title
 type Settlement = { payment_method: string; settled_at: string }
 export type TimelineBill = { id: string; visit_id: string; final_amount_paise: number; payment_method: string; confirmed_at: string; corrects_bill_id: string | null; bill_settlements: Settlement | Settlement[] | null }
 export type TimelineInput = {
-  visits: { id: string; arrived_at: string; complaint: string; token_number: number }[]
+  visits: { id: string; arrived_at: string; complaint?: string | null; token_number: number }[]
   prescriptions: { id: string; visit_id: string; created_at: string; diagnosis: string | null }[]
   bills: TimelineBill[]
   files: { id: string; title: string; category: string; examination_date: string | null; created_at: string; status: string }[]

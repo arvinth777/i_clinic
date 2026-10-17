@@ -105,6 +105,16 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
     onError: (e: Error) => setResult(e.message),
   })
 
+  const dismiss = useMutation({
+    mutationFn: async (pair: DuplicatePair) => {
+      const [patient_a, patient_b] = pair.a.id < pair.b.id ? [pair.a.id, pair.b.id] : [pair.b.id, pair.a.id]
+      const { error } = await supabase.from('duplicate_dismissals').insert({ clinic_id: clinicId, patient_a, patient_b })
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['possible-duplicates'] }),
+    onError: (e: Error) => setResult(e.message),
+  })
+
   const bothSelected = !!a && !!b
   const samePatient = bothSelected && a!.id === b!.id
 
@@ -142,9 +152,14 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
                   {brief(s.a)} <span className="search-result-meta">and</span> {brief(s.b)}
                   <span className="search-result-meta"> — {s.reason}</span>
                 </span>
-                <button type="button" className="merge-suggestion-review" onClick={() => { setA(s.a); setB(s.b); setResult(''); window.scrollTo({ top: 0, behavior: 'instant' }) }}>
-                  Review
-                </button>
+                <span className="merge-suggestion-actions">
+                  <button type="button" className="merge-suggestion-review" onClick={() => { setA(s.a); setB(s.b); setResult(''); window.scrollTo({ top: 0, behavior: 'instant' }) }}>
+                    Review
+                  </button>
+                  <button type="button" className="merge-suggestion-dismiss" disabled={dismiss.isPending} onClick={() => dismiss.mutate(s)}>
+                    Not a duplicate
+                  </button>
+                </span>
               </li>
             ))}
           </ul>
