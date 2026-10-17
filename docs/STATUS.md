@@ -1,5 +1,12 @@
 # Status
 
+## Production release prepared — 2026-10-17
+
+- User requested production promotion and explicitly confirmed fresh clinic-printer samples plus Safari checks are approved. Those human acceptance gates are now satisfied; older pending-sign-off statements below are historical.
+- Prepared draft PR40 from main to production, excluding backup PR7. Staging CLI history freshly confirms both new source migrations applied. Production dedicated chain contains only the two new aliases0300/0400 relative to the released branch; no production migration, function deploy, secret change or merge was performed.
+- User-run production commands remain mandatory per the handoff. Next: user checks migration list and dry run in deploy/production; only20261017030000 and20261017040000 should be pending. Apply them, then deploy patient-documents with JWT verification retained, then ready/merge PR40. Preserve the before10:00/after15:00 IST mutation window unless user explicitly overrides it. At preparation the clock was10:59 IST, within the clinic window.
+- Combined app checks from the authorized main merge remain passing; GitHub Actions still cannot start due to billing. No uncommitted source after this docs checkpoint; output/ remains local evidence. Production stays1eeaa92 until user completes release commands.
+
 ## Merged clinic backlog features — 2026-10-17
 
 - User-authorized PR35/36/37/38 merged into main, application mergee2cc288. Includes repaired tests/CI, configurable alerts, Drive PDF archive and corrected read-only/offline prescription viewing. Shared document/script conflicts resolved while preserving each feature. This newest checkpoint supersedes historical pending-merge statements below.
