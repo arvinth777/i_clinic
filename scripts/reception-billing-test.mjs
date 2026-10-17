@@ -75,6 +75,7 @@ try {
   assert.deepEqual(bill.bill_line_items.find(line => line.kind === 'medicine'), { kind: 'medicine', medicine_id: brand.id, quantity: 3, unit_price_paise: 1250, approved_quantity: 10, shortfall: 7 })
   assert.equal(ok(await reception.from('stock_movements').select('id').eq('reference_id', itemId)).length, 1)
   assert.equal(ok(await pay(wrong.id)), billId, 'retry cannot change a paid bill')
+  assert.ok((await reception.rpc('confirm_bill', { p_visit_id: visit.id, p_payment_method: 'cash' })).error, 'retired confirmation RPC cannot bypass brand matching')
   const repeat = ok(await reception.from('visits').insert({ clinic_id: clinicId, patient_id: patient.id, arrived_at: new Date().toISOString(), complaint: 'Synthetic follow-up' }).select('consultation_charge_paise').single())
   assert.equal(repeat.consultation_charge_paise, 20000, 'return visit defaults to ₹200')
   console.log('PASS: doctor consultation charge, matching reception brand, integer money, partial stock, retry, role boundaries, returning default')

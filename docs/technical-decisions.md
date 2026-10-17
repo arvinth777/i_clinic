@@ -20,6 +20,9 @@ unfamiliar form; familiar forms derive tablet, capsule, bottle, sachet, vial or
 tube. Reception's billing RPC exposes only molecule, strength, quantity, unit and
 amounts. Clinical dose, diagnosis and advice stay with the doctor's prescription
 read and archive. This keeps billing access narrower than clinical access.
+The retired `confirm_bill` RPC is no longer callable by clinic accounts: it
+could bypass the new brand-matching transaction. Historical paid bills remain
+readable; a queued confirmation from an old client requires manual review.
 
 Browser prescription printing uses the saved IndexedDB prescribed time before
 the consultation is finished and `consultation_ended_at` afterward; the server
