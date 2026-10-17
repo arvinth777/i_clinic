@@ -293,3 +293,17 @@ Fresh physical release acceptance still requires short, typical and continuation
 ## Pending alert/archive release migration ordering — 2026-10-17
 
 The host CLI generated the new staging migrations with UTC 20261016 versions, before the already-released 20261017020000 duplicate-patient migration. Staging applied only the reviewed new files with `--include-all`. Do not use that flag in production. The dedicated production chain uses later alias filenames pointing to the exact same immutable SQL: `20261017030000_clinic_alert_settings.sql` -> source `20261016204344_clinic_alert_settings.sql`; the archive step will use `20261017040000_document_pdf_archives.sql` -> source `20261016205705_document_pdf_archives.sql`. These are local release preparations only, not applied production migrations. Before a user-run release, inspect the dedicated-chain dry run and ensure it lists only the approved aliases. No staging history repair or rewriting of applied source migrations is needed.
+
+## Prepared release PR40 — 2026-10-17
+
+User approved fresh clinic-printer and Safari acceptance in chat. Production operations remain user-run. Run from the main checkout after pulling reviewed main; inspect each step before continuing. Production mutations must be before10:00 or after15:00 IST unless explicitly overridden. Never use --include-all or repair history.
+
+1. Confirm deploy/production/supabase/.temp/project-ref is rmuhpgpvgvwchovlgxae; root supabase/.temp/project-ref must remain cofnrcgsolluyhghutah.
+2. User: `supabase --workdir deploy/production migration list --linked`. Only20261017030000_clinic_alert_settings and20261017040000_document_pdf_archives should be pending. Stop if the history differs.
+3. User: `supabase --workdir deploy/production db push --dry-run`. Inspect exactly those two aliases and their immutable source links.
+4. User, in release window: `supabase --workdir deploy/production db push`. Accept only the reviewed plan; keep credentials out of chat.
+5. User: `supabase functions deploy patient-documents --project-ref rmuhpgpvgvwchovlgxae`. Root config retains verify_jwt=true; do not pass --no-verify-jwt. Existing production Google credentials and narrow grant remain unchanged.
+6. User: `gh pr ready 40`, then `gh pr merge 40 --merge` after gates and production steps succeed. Vercel production branch is production.
+7. Check deployment status and live doctor/reception flows with the user signed in; do not create financial transactions as a smoke test. Reconcile main as documented after the production merge.
+
+Production history/endpoint changes are not verified until the user runs these commands and supplies non-secret results. Preparing this PR did not apply production changes.
