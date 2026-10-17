@@ -199,6 +199,8 @@ The weekly `pg_dump` **is** the primary backup, not a supplement to Supabase's o
 
 **Every new public table needs a read policy for the backup role**, in the same migration that creates it: `create policy backup_reader_read on public.<table> for select to backup_reader using (true);`. `backup_reader` has no BYPASSRLS (a hosted project cannot grant it), so without the policy the table dumps empty; `scripts/backup.sh` checks this first and fails the run naming the table. The policies were added by migration `20261017060000`.
 
+**Restore drill script:** `bash scripts/backup-restore-drill.sh <downloaded .sql.gz.age>` decrypts a downloaded backup using the age private key from the clipboard (never a file), prints row counts per table, checks the core tables are not empty and deletes its temp files; set `RESTORE_DB_URL` to a scratch Postgres to also replay the whole dump with psql (needs a Postgres server; never point it at staging or production).
+
 **One restore drill should happen before this is trusted with real patients** (docs/architecture-spec.md: "an untested backup is a hope, not a backup") -- steps 1-4 above have been dry-run against staging with a synthetic payload during this build (encryption round-trip verified byte-for-byte), but the actual `backup_reader` credential path, the real R2 upload, and a real `psql` restore have **not** been exercised end-to-end yet, because they need real credentials that don't exist until the pending setup steps below are done. Do that drill as the very first real run of this pipeline, not the first time it's actually needed.
 
 ## Monitoring: what's live vs. what's pending
