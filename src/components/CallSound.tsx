@@ -51,5 +51,5 @@ export function useCallSound({ event, tokenNumber, userId, clinicId, locked, ava
     {permission === 'unsupported' && <span className="field-hint">Browser notifications unavailable here</span>}
     {error && <span className="form-error" role="alert">{error}</span>}
   </div> : null
-  return { controls, flash, enabled, permission }
+  return { controls, flash, enabled, permission, enableNotifications }
 }

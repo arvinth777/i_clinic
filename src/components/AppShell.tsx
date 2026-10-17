@@ -162,7 +162,7 @@ export function AppShell({
   }})
   const latestEvent=recentEvents?.latest
   const latestCall=recentEvents?.call
-  const { controls: soundControl, flash, enabled: chimeEnabled, permission: notificationPermission } = useCallSound({ event: latestCall, tokenNumber: latestCall?.visits.token_number, userId, clinicId: clinicId ?? '', locked, available: !isDoctor && clinical })
+  const { controls: soundControl, flash, enabled: chimeEnabled, permission: notificationPermission, enableNotifications } = useCallSound({ event: latestCall, tokenNumber: latestCall?.visits.token_number, userId, clinicId: clinicId ?? '', locked, available: !isDoctor && clinical })
   const [expiredEvent,setExpiredEvent]=useState<string|null>(null)
   const eventTime=latestEvent?.created_at
   const eventVisible=!!eventTime&&expiredEvent!==eventTime
@@ -225,6 +225,7 @@ export function AppShell({
         </div>
         <button className="shell-nav-item shell-mobile-toggle" onClick={() => setMenuOpen(true)} aria-expanded={menuOpen}>Menu ▾</button>
       </header>
+      {!isDoctor && clinical && !locked && notificationPermission === 'default' && <div className="call-alert-setup" role="status">Get browser alerts when the doctor calls a patient. <button type="button" className="shell-nav-item" onClick={() => { setAlertsOpen(true); void enableNotifications() }}>Enable notifications</button></div>}
       {clinical && clinicId && <ClinicAlerts key={`${clinicId}:${userId}`} open={alertsOpen} onClose={() => setAlertsOpen(false)} onOpen={target => { if (sections.some(section => section.key === target.section)) onOpenAlert(target) }} clinicId={clinicId} userId={userId} isDoctor={isDoctor} online={online} connected={connected} locked={locked} soundControl={soundControl} />}
       <OfflineQueueBanner userId={userId} redact={locked || !clinical} />
       <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title="Menu" placement="top">
