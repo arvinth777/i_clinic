@@ -93,7 +93,7 @@ for (const amount of [25000, 0]) {
   report('direct stage write cannot bypass doctor approval', !!bypass.error)
   const early = await receptionA.rpc('confirm_reception_bill', { p_visit_id: visitId, p_payment_method: 'cash', p_expected_total_paise: 0, p_items: [] })
   report('unapproved visit cannot be billed', !!early.error)
-  const approved = await consultationOnlyFixture(doctorA, receptionA, CLINIC_A_ID, visitId, amount)
+  await consultationOnlyFixture(doctorA, receptionA, CLINIC_A_ID, visitId, amount)
   const after = await readPricing(doctorA, visitId)
   report('explicit approval preserves the doctor amount, including zero', after.final_amount_set && after.final_amount_paise === amount)
   const paid = await payVisitResult(receptionA, visitId)
