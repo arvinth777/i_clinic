@@ -47,6 +47,7 @@ these tokens so all current screens use one palette.
 | scroll-thumb / scroll-hover / toast-undo | #D5DAE1 / #B4BBC6 / #9DBBF5 (explicit exceptions from scrollbar/toast spec) |
 | r-sm / md / lg / xl | 8 / 10 / 14 / 16px |
 | dialog-width | 420px (the shared confirmation dialog, `ConfirmDialog.tsx`; uses the Dialogs rule below: r-xl, space-28, scrim, shadow-modal) |
+| print-receipt-size | 11pt: the receipt body (`.rcpt`, black on white, solid rules, em units; Rs. columns; amount in words; prints on 9.5 × 11 in dot-matrix stock) |
 | nav-count-size | 20px for the reception Billing waiting-count circle |
 | call-flash-duration / opacity / layer | 600ms × three pulses / .22 / 60, with a persistent alert banner during the pulses; reduced-motion users see the banner and a steady tint |
 | shadow-pop | 0 12px 36px rgba(20,28,43,.14), 0 0 0 1px var(--line) |
@@ -106,12 +107,11 @@ More menu (revised 2026-10-18 at the owner's direction; the doctor is the admini
 | Receptionist | Queue, Billing, Patients, Stock |
 | Doctor | Consultation, Billing, Patients, Stock, Reports |
 
-Related tools are tabs inside their page, never separate bar items: Billing > To collect, Medicine sale, Unpaid bills
-(receptionist); Patients > Everyone, Long-term care, Possible duplicates (doctor); Reports > Summary, Needs review
+Related tools are tabs inside their page, never separate bar items: Billing > To collect, Medicine sale (Unpaid bills only while older unpaid bills still exist); Patients > Everyone, Due for review; Reports > Summary, Needs review
 (doctor); Stock holds Medicines, Medicine units and prices, Suppliers. Tabs are a 36px text row under the bar with a
 2px blue underline on the current one. The doctor has no Reception tab (the waiting list is in Consultation).
-Billing carries the ready-to-bill count; the doctor's Patients carries the possible-duplicate count (both the
-`nav-count-size` circle).
+Billing carries the ready-to-bill count (the `nav-count-size` circle). Possible duplicates have no menu entry: they surface
+inside the registration form ("Already registered?") and as a notice at the top of that patient's own file.
 
 The right side holds the search box, an optional save warning, and the profile circle. There is no queue pill:
 the waiting count is a badge on the login's first tab (Queue for reception, Consultation for the doctor), like the

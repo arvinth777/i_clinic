@@ -327,7 +327,7 @@ export function PrescriptionForm({
         </ul>
         {advice && <p>Advice: {advice}</p>}
         {diagnosis ? <p>Diagnosis: {diagnosis}</p> : <p className="rx-reminder" role="status">Diagnosis is missing. You can still issue this prescription.</p>}
-        {!followUp?.follow_up_date && <p className="rx-reminder" role="status">Review date is missing. Set it under Long-term care if needed.</p>}
+        {!followUp?.follow_up_date && <p className="rx-reminder" role="status">Review date is missing. Set it under Regular check-ups if needed.</p>}
         <div className="action-row">
           <Button type="button" variant="secondary" disabled={confirm.isPending} onClick={() => setReviewOpen(false)}>
             Back to edit

@@ -90,7 +90,7 @@ export function DoctorOverview({ clinicId, visit, pastVisits, prescriptions, com
 
       {(followUp || patient?.is_long_term) && (
         <p className="dv-notice" role="status">
-          {patient?.is_long_term && <span>Long-term care patient.</span>}
+          {patient?.is_long_term && <span>On regular check-ups.</span>}
           {followUp && <span> Follow-up from the last visit was set for {formatDateOnly(followUp)}.</span>}
         </p>
       )}

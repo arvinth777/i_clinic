@@ -24,17 +24,18 @@ export function LongTermRegister({ clinicId }: { clinicId: string }) {
   return (
     <div className="admin-page">
       <div className="admin-toolbar">
-        <h2 className="readout-heading">Long-term care</h2>
+        <h2 className="readout-heading">Due for review</h2>
       </div>
+      <p className="field-hint">Patients you asked to come back regularly (set in the prescription under Regular check-ups). The date turns amber when a check-up is due.</p>
       {!rows || rows.length === 0 ? (
-        <p className="readout-empty">No long-term patients flagged yet.</p>
+        <p className="readout-empty">Nobody is on regular check-ups yet. In a prescription, open Regular check-ups to add a patient.</p>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Last visit</TableHead>
-              <TableHead>Next review due</TableHead>
+              <TableHead>Come back by</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

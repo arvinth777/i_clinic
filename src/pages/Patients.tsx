@@ -9,6 +9,7 @@ import { restorePagedCache } from '../lib/pagedCache'
 import { Billing } from '../components/Billing'
 import { PatientDocuments } from '../components/PatientDocuments'
 import { PatientTimeline } from '../components/PatientTimeline'
+import { DuplicateNotice } from '../components/DuplicateNotice'
 import { PatientBodyEdit } from '../components/PatientBodyEdit'
 import { LoadingRows, QueryError } from '../components/QueryState'
 import { formatBody } from '../lib/patientBody'
@@ -22,12 +23,15 @@ export function Patients({ clinicId, isDoctor, canBill, initialPatientId, locked
   const [visibleCount, setVisibleCount] = useState(50)
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
+  const [forcedId, setForcedId] = useState<string | null>(null)
   const [selectedPatient, setPatient] = useState<Patient | null | undefined>(undefined)
-  const {data: requestedPatient} = useQuery({queryKey:['patient-detail',clinicId,initialPatientId],enabled:!!initialPatientId,queryFn:async()=>{const {data,error}=await supabase.from('patients').select('id,name,age,gender,phone,address').eq('clinic_id',clinicId).eq('id',initialPatientId!).single();if(error)throw error;return data as Patient}})
+  const {data: requestedPatient} = useQuery({queryKey:['patient-detail',clinicId,forcedId ?? initialPatientId],enabled:!!(forcedId ?? initialPatientId),queryFn:async()=>{const {data,error}=await supabase.from('patients').select('id,name,age,gender,phone,address').eq('clinic_id',clinicId).eq('id',(forcedId ?? initialPatientId)!).single();if(error)throw error;return data as Patient}})
   const patient=selectedPatient===undefined ? requestedPatient??null : selectedPatient
   // search_patients returns a fixed column list without height/weight, so read them for the selected patient.
   const { data: body } = useQuery({ queryKey: ['patient-body', patient?.id], enabled: !!patient, queryFn: async () => { const { data, error } = await supabase.from('patients').select('height_cm, weight_kg').eq('id', patient!.id).single(); if (error) throw error; return data as { height_cm: number | null; weight_kg: number | null } } })
-  const [tab, setTab] = useState<'visits' | 'timeline' | 'notes' | 'documents'>(isDoctor && initialTab === 'documents' ? 'documents' : 'visits')
+  const [filesOpen, setFilesOpen] = useState(isDoctor && initialTab === 'documents')
+  // Opened from a consultation ("Full record"): show only this patient's file; "All patients" brings the list back.
+  const [showList, setShowList] = useState(!initialPatientId)
   const [connectionError, setConnectionError] = useState('')
   const drive = useQuery({queryKey:['drive-status',clinicId],enabled:isDoctor && initialTab==='documents' && !patient && !locked,queryFn:()=>documentRequest<DriveStatus>('status',{clinic_id:clinicId}),retry:false,refetchInterval:300_000})
   const [billId, setBillId] = useState<string | null>(null)
@@ -73,14 +77,14 @@ export function Patients({ clinicId, isDoctor, canBill, initialPatientId, locked
     if(error)throw error
     return data
   }})
-  return <div className={`patients-workspace${patient ? " has-selection" : ""}`}><aside className="record-sidebar">
+  return <div className={`patients-workspace${patient ? " has-selection" : ""}${showList ? "" : " is-focus"}`}><aside className="record-sidebar">
     <h2 className="readout-heading">Patients</h2>
     <Input className="main-search" aria-label="Search patients" placeholder="Name, phone or token" value={search} onChange={e => { setSearch(e.target.value); setVisibleCount(50) }} />
     <p className="field-hint">{query ? 'Search results' : 'Recently added patients'}</p>
     {searchError && <QueryError retry={() => void refetch()} savedAt={dataUpdatedAt} />}
     {isPending && <LoadingRows label="Loading patients…" />}
     <div className={searchError ? "stale-copy" : undefined}>
-    {patients?.slice(0, visibleCount).map(p => <button key={p.id} className="record-selector" aria-pressed={p.id === patient?.id} onClick={() => { setPatient(p); setBillId(null); setTab('visits'); window.scrollTo({ top: 0, behavior: 'instant' }) }}><strong>{p.name}</strong><small>{[p.age != null ? `${p.age} years` : '', p.gender, p.phone].filter(Boolean).join(' · ')}</small></button>)}
+    {patients?.slice(0, visibleCount).map(p => <button key={p.id} className="record-selector" aria-pressed={p.id === patient?.id} onClick={() => { setPatient(p); setForcedId(null); setShowList(true); setBillId(null); window.scrollTo({ top: 0, behavior: 'instant' }) }}><strong>{p.name}</strong><small>{[p.age != null ? `${p.age} years` : '', p.gender, p.phone].filter(Boolean).join(' · ')}</small></button>)}
     </div>
     {(visibleCount < (patients?.length ?? 0) || hasNextPage) && <Button variant="secondary" disabled={isFetchingNextPage} onClick={async () => { if (visibleCount >= (patients?.length ?? 0) && (await fetchNextPage()).isError) return; setVisibleCount(count => count + 50) }}>{isFetchingNextPage ? 'Loading…' : 'Show more'}</Button>}
     {patients?.length === 0 && <p className="readout-empty">No matching patients.</p>}
@@ -101,12 +105,23 @@ export function Patients({ clinicId, isDoctor, canBill, initialPatientId, locked
         </div>
       </> : <><h1>Patient records</h1><p className="patient-empty-description">Choose a patient from the list to see their details{isDoctor ? ' and visit history' : ''}.</p></>}
     </section> : billId ? <Billing readOnly={!canBill} key={billId} clinicId={clinicId} visitId={billId} onClose={() => setBillId(null)} /> : <>
-      <header className="patient-record-heading"><p className="field-hint">Patient record</p><h1>{patient.name}</h1><p>{[patient.age != null ? `${patient.age} years` : '', patient.gender, formatBody(body?.height_cm, body?.weight_kg), patient.phone].filter(Boolean).join(' · ')}</p>{patient.address && <p className="field-hint">{patient.address}</p>}<PatientBodyEdit key={patient.id} clinicId={clinicId} patientId={patient.id} height={body ? body.height_cm : undefined} weight={body ? body.weight_kg : undefined} /></header>
-      <div className="flow-stats"><div className="flow-stat"><strong className="flow-stat-value">{visits?.length ?? '—'}</strong><span className="flow-stat-label">Visits</span></div><div className="flow-stat"><strong className="flow-stat-value">{visits?.[0] ? formatDate(visits[0].arrived_at) : '—'}</strong><span className="flow-stat-label">Last visit</span></div><div className="flow-stat"><strong className="flow-stat-value">{visits?.[0]?.follow_up_date ? formatDateOnly(visits[0].follow_up_date) : '—'}</strong><span className="flow-stat-label">Review date</span></div></div>
-      <nav className="admin-tabs" aria-label="Patient record"><button className="shell-nav-item" aria-current={tab === 'visits' ? 'page' : undefined} onClick={() => setTab('visits')}>Visits{isDoctor ? ' & prescriptions' : ''}</button><button className="shell-nav-item" aria-current={tab === 'timeline' ? 'page' : undefined} onClick={() => setTab('timeline')}>Timeline</button>{isDoctor && <button className="shell-nav-item" aria-current={tab === 'notes' ? 'page' : undefined} onClick={() => setTab('notes')}>Personal notes</button>}{isDoctor && <button className="shell-nav-item" aria-current={tab === 'documents' ? 'page' : undefined} onClick={() => setTab('documents')}>Documents</button>}</nav>
+      <header className="pf-head">
+        {!showList && <p className="pf-nav"><button type="button" className="pf-link" onClick={() => window.history.back()}>← Back</button><button type="button" className="pf-link" onClick={() => setShowList(true)}>All patients</button></p>}
+        <h1>{patient.name}</h1>
+        <p className="pf-facts">{[patient.age != null ? `${patient.age} years` : '', patient.gender, formatBody(body?.height_cm, body?.weight_kg), patient.phone].filter(Boolean).map(text => <span key={text}>{text}</span>)}</p>
+        {patient.address && <p className="pf-address">{patient.address}</p>}
+        <p className="pf-glance">{visits ? `${visits.length} visit${visits.length === 1 ? '' : 's'}` : 'Loading visits…'}{visits?.[0] ? ` · last seen ${formatDate(visits[0].arrived_at)}` : ''}{visits?.[0]?.follow_up_date ? ` · follow-up ${formatDateOnly(visits[0].follow_up_date)}` : ''}</p>
+        <PatientBodyEdit key={patient.id} clinicId={clinicId} patientId={patient.id} height={body ? body.height_cm : undefined} weight={body ? body.weight_kg : undefined} />
+      </header>
+      {isDoctor && <DuplicateNotice clinicId={clinicId} patientId={patient.id} onMerged={keptId => { setForcedId(keptId); setPatient(undefined) }} />}
       {(visitError || prescriptionError || noteError || shortfallError) && <QueryError retry={() => { void client.invalidateQueries({ queryKey: ['patient-history-visits', clinicId, patient.id] }); void client.invalidateQueries({ queryKey: ['patient-history-prescriptions', clinicId, patient.id] }); void client.invalidateQueries({ queryKey: ['patient-comments', patient.id] }); void client.invalidateQueries({queryKey:['patient-shortfalls',clinicId,patient.id]}) }} />}
-      {((tab === 'visits' && !visits && !visitError) || (tab === 'notes' && !notes && !noteError)) && <LoadingRows label="Loading patient record…" />}
-      {tab === 'documents' && isDoctor ? <PatientDocuments locked={locked} key={patient.id} clinicId={clinicId} patientId={patient.id} /> : tab === 'timeline' ? <PatientTimeline key={patient.id} clinicId={clinicId} patientId={patient.id} isDoctor={isDoctor} visits={visits} prescriptions={prescriptions} onReceipt={setBillId} onDocuments={() => setTab('documents')} /> : tab === 'visits' ? <div className="patient-history">{visits?.map(v => <article key={v.id} className={`history-row${v.id === highlightVisitId ? ' alert-highlight' : ''}`}><div><time>{formatDate(v.arrived_at)}</time><p className="field-hint">#{v.token_number} · {v.stage.replaceAll('_', ' ')}</p></div><div>{isDoctor && <h3>{v.complaint || 'No complaint recorded'}</h3>}{isDoctor && prescriptions?.filter(p => p.visit_id === v.id).map(p => <div key={p.id}>{p.diagnosis && <p>{p.diagnosis}</p>}<ul className="patient-medicines">{p.prescription_items.map((item, i) => <li key={i}>{item.molecule_name || item.medicines?.name} {item.strength}<span>{item.dosage_frequency} · {item.duration_days} days</span></li>)}</ul>{p.advice && <p className="field-hint">Advice / investigations: {p.advice}</p>}</div>)}{isDoctor && shortfalls?.filter(b=>b.visit_id===v.id).flatMap(b=>b.bill_line_items).filter(l=>l.shortfall>0).map((l,i)=><p className="status-amber" key={i}>{l.description} · {l.quantity} of {l.approved_quantity} {l.stock_unit} supplied · {l.shortfall} not supplied</p>)}{(isDoctor || canBill) && v.stage === 'paid' && <Button variant="ghost" onClick={() => setBillId(v.id)}>View receipt →</Button>}</div></article>)}{visits?.length === 0 && <p className="readout-empty">No visits recorded.</p>}</div> : isDoctor ? <div className="patient-history">{notes?.map(note => <article className="history-row" key={note.id}><time>{formatDate(note.created_at)}</time><p>{note.body}</p></article>)}{notes?.length === 0 && <p className="readout-empty">No personal notes recorded.</p>}</div> : null}
+      <section className="pf-section"><h2>{isDoctor ? 'Visits and prescriptions' : 'Visits'}</h2>
+        {!visits && !visitError && <LoadingRows label="Loading patient record…" />}
+        <div className="patient-history">{visits?.map(v => <article key={v.id} className={`history-row${v.id === highlightVisitId ? ' alert-highlight' : ''}`}><div><time>{formatDate(v.arrived_at)}</time><p className="field-hint">#{v.token_number} · {v.stage.replaceAll('_', ' ')}</p></div><div>{isDoctor && <h3>{v.complaint || 'No complaint recorded'}</h3>}{isDoctor && prescriptions?.filter(p => p.visit_id === v.id).map(p => <div key={p.id}>{p.diagnosis && <p>{p.diagnosis}</p>}<ul className="patient-medicines">{p.prescription_items.map((item, i) => <li key={i}>{item.molecule_name || item.medicines?.name} {item.strength}<span>{item.dosage_frequency} · {item.duration_days} days</span></li>)}</ul>{p.advice && <p className="field-hint">Advice / investigations: {p.advice}</p>}</div>)}{isDoctor && shortfalls?.filter(b=>b.visit_id===v.id).flatMap(b=>b.bill_line_items).filter(l=>l.shortfall>0).map((l,i)=><p className="status-amber" key={i}>{l.description} · {l.quantity} of {l.approved_quantity} {l.stock_unit} supplied · {l.shortfall} not supplied</p>)}{(isDoctor || canBill) && v.stage === 'paid' && <Button variant="ghost" onClick={() => setBillId(v.id)}>View receipt →</Button>}</div></article>)}{visits?.length === 0 && <p className="readout-empty">No visits recorded.</p>}</div>
+      </section>
+      {isDoctor && <details className="pf-section" open={!!notes?.length}><summary><h2>Personal notes{notes?.length ? ` (${notes.length})` : ''}</h2></summary>{!notes && !noteError && <LoadingRows label="Loading notes…" />}<div className="patient-history">{notes?.map(note => <article className="history-row" key={note.id}><time>{formatDate(note.created_at)}</time><p>{note.body}</p></article>)}{notes?.length === 0 && <p className="readout-empty">No personal notes recorded.</p>}</div></details>}
+      {isDoctor && <details className="pf-section" open={filesOpen} onToggle={event => setFilesOpen(event.currentTarget.open)}><summary><h2>Files and documents</h2></summary><PatientDocuments locked={locked} key={patient.id} clinicId={clinicId} patientId={patient.id} /></details>}
+      <details className="pf-section"><summary><h2>Activity log</h2></summary><PatientTimeline key={patient.id} clinicId={clinicId} patientId={patient.id} isDoctor={isDoctor} visits={visits} prescriptions={prescriptions} onReceipt={setBillId} onDocuments={() => setFilesOpen(true)} /></details>
     </>}
   </div></div>
 }

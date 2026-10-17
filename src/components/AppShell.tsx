@@ -189,12 +189,6 @@ export function AppShell({
       return count ?? 0
     },
   })
-  // The doctor's Patients tab shows how many people look like they were registered twice (same cache as the Possible duplicates tab).
-  const { data: duplicateCount = 0 } = useQuery({
-    queryKey: ['possible-duplicates', clinicId], enabled: !!clinicId && isDoctor, staleTime: 5 * 60_000,
-    queryFn: async () => { const { data, error } = await supabase.rpc('possible_duplicate_patients', { p_clinic_id: clinicId }); if (error) throw error; return data },
-    select: (rows: unknown[]) => rows.length,
-  })
   const homeSection = isDoctor ? 'consultation' : 'reception'
   const navigation = sections.filter(section => !section.group && !section.account)
   const hubOf = (key: string) => sections.find(section => section.key === key)?.group ?? key
@@ -206,9 +200,9 @@ export function AppShell({
   function select(key: string) { onSelectSection(key); setMenuOpen(false) }
   function navItem(section: ShellSection) {
     return <a key={section.key} href={`#${section.key}`} className="shell-nav-item"
-      aria-label={section.key === homeSection && waitingCount ? `${section.label}, ${waitingCount} waiting` : section.key === 'billing' && readyToBill ? `Billing, ${readyToBill} patients waiting` : section.key === 'patients' && duplicateCount ? `Patients, ${duplicateCount} possible duplicates` : undefined}
+      aria-label={section.key === homeSection && waitingCount ? `${section.label}, ${waitingCount} waiting` : section.key === 'billing' && readyToBill ? `Billing, ${readyToBill} patients waiting` : undefined}
       aria-current={section.key === activeHub ? 'page' : undefined}
-      onClick={(event) => { event.preventDefault(); select(section.key) }}>{section.label}{section.key === 'billing' && readyToBill > 0 && <span className="shell-billing-count" aria-hidden="true">{readyToBill}</span>}{section.key === homeSection && waitingCount > 0 && <span className="shell-billing-count" aria-hidden="true">{waitingCount}</span>}{section.key === 'patients' && duplicateCount > 0 && <span className="shell-billing-count" aria-hidden="true">{duplicateCount}</span>}</a>
+      onClick={(event) => { event.preventDefault(); select(section.key) }}>{section.label}{section.key === 'billing' && readyToBill > 0 && <span className="shell-billing-count" aria-hidden="true">{readyToBill}</span>}{section.key === homeSection && waitingCount > 0 && <span className="shell-billing-count" aria-hidden="true">{waitingCount}</span>}</a>
   }
   // Quiet when everything is fine: only speak up when work is waiting or at risk.
   const syncLabel = halted ? 'Save needs attention' : !online ? `Offline · ${pending.length} changes waiting` : pending.length ? `${pending.length} not saved yet` : ''

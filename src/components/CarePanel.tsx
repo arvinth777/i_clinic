@@ -106,7 +106,7 @@ export function CarePanel({ visitId, patientId, clinicId }: { visitId: string; p
         {saveFollowUp.isError && <p className="form-error">Couldn't save — try again.</p>}
       </form>
 
-      <details className="rx-support"><summary>Long-term care</summary><form
+      <details className="rx-support"><summary>Regular check-ups</summary><form
         className="field"
         onSubmit={(e) => {
           e.preventDefault()
@@ -114,12 +114,12 @@ export function CarePanel({ visitId, patientId, clinicId }: { visitId: string; p
         }}
       >
         <label className="field-label" htmlFor="long-term-checkbox">
-          <input id="long-term-checkbox" type="checkbox" checked={isLongTerm} onChange={(e) => setIsLongTerm(e.target.checked)} /> Long-term patient
+          <input id="long-term-checkbox" type="checkbox" checked={isLongTerm} onChange={(e) => setIsLongTerm(e.target.checked)} /> This patient needs regular check-ups
         </label>
         {isLongTerm && (
           <>
             <label className="field-label" htmlFor="long-term-interval">
-              Review interval (days)
+              Ask them to come back every (days)
             </label>
             <Input id="long-term-interval" type="number" min={1} value={intervalDays} onChange={(e) => setIntervalDays(e.target.value)} required />
           </>
