@@ -38,6 +38,7 @@
   color: var(--accent);
   background: none;
   border: none;
+  min-height: var(--control-height);
   cursor: pointer;
 }
 

@@ -97,3 +97,9 @@
 .drive-connection { margin-top: var(--space-xl); padding-top: var(--space-lg); border-top: 1px solid var(--line); }
 .drive-connection h2 { font-size: var(--text-section); font-weight: 700; margin-bottom: var(--space-sm); }
 .drive-connection .ui-button { margin-top: var(--space-lg); }
+
+/* Text buttons inside ruled rows and the record heading sit flush with the text above them. */
+.history-row .ui-button, .patient-record-heading .ui-button { padding-inline: 0; min-height: var(--control-height); }
+
+/* An explanatory line under the figures: readable measure, clear of the next section. */
+.report-note { max-width: 70ch; margin-block: var(--space-md) var(--space-xl); }

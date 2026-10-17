@@ -17,12 +17,14 @@
 .rail-row-name small { display: block; font-size: var(--text-xs); color: var(--text-tertiary); margin-top: var(--space-2xs); }
 .doctor-context { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg); margin-bottom: var(--space-xl); }
 .doctor-context h3 { font-size: var(--text-xs); color: var(--text-tertiary); font-weight: 400; margin: 0 0 var(--space-xs); }
-.doctor-context p { margin: 0; }
+.doctor-context p { margin: 0; font-weight: 600; }
 .history-row { display: grid; grid-template-columns: auto 1fr; gap: var(--space-lg); padding: var(--space-lg) 0; border-top: 1px solid var(--border); }
 .history-row p { margin: 0 0 var(--space-2xs); }
 .history-row time { font-size: var(--text-sm); font-weight: 600; }
 .rx-support { margin-top: var(--space-lg); padding-block: var(--space-md); border-top: 1px solid var(--border); }
 .rx-support > summary { cursor: pointer; font-weight: 600; }
+/* The disclosure title is the section heading; headings inside it are sub-labels, never larger than it. */
+.rx-support .readout-heading { font-size: var(--text-base); color: var(--ink-2); margin: var(--space-lg) 0 var(--space-sm); }
 .rail-head {
   display: flex;
   align-items: center;
@@ -453,7 +455,7 @@
   .consultation-rail { flex-basis: auto; width: 100%; order: 2; }
   .consultation-stage, .consultation-rail { padding: var(--space-lg) var(--space-md); }
 }
-@media (max-width: 520px) { .doctor-context, .history-row { grid-template-columns: 1fr; gap: var(--space-sm); } }
+@media (max-width: 520px) { .doctor-context, .history-row { grid-template-columns: 1fr; gap: var(--space-sm); } .doctor-context { gap: var(--space-lg); } }
 
 .consultation-stage .stage-head h2 { line-height: var(--line-title); letter-spacing: var(--tracking-title); }
 .doctor-overview .record-section > .readout-heading { font-size: var(--text-xs); color: var(--text-tertiary); font-weight: 400; letter-spacing: normal; }
