@@ -1,0 +1,10 @@
+.dup-notice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-sm) var(--space-lg); padding: var(--space-sm) var(--space-md); border-radius: var(--r-md); background: var(--amber-bg); color: var(--ink); }
+.dup-notice p { margin: 0; min-width: 0; flex: 1 1 18rem; }
+.dup-notice p span { color: var(--ink-2); }
+.dup-actions { display: flex; align-items: center; gap: var(--space-md); }
+.dup-link { border: 0; background: transparent; padding: 0; font: inherit; font-size: var(--text-sm); font-weight: 600; color: var(--blue); cursor: pointer; }
+.dup-manual { color: var(--ink-2); }
+.dup-manual > summary { cursor: pointer; color: var(--muted); font-size: var(--text-sm); }
+.dup-results { list-style: none; margin: var(--space-xs) 0 0; padding: 0; }
+.dup-results li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); padding: var(--space-xs) 0; border-top: 1px solid var(--line); }
+.dup-results small { color: var(--muted); }

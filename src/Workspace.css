@@ -108,3 +108,21 @@
 .patient-body-edit { display: grid; grid-template-columns: repeat(2, minmax(0, 12rem)); gap: var(--space-md); margin-top: var(--space-sm); }
 .patient-body-edit > .form-error, .patient-body-edit > .action-row { grid-column: 1 / -1; }
 @media (max-width: 520px) { .patient-body-edit { grid-template-columns: minmax(0, 1fr); } }
+
+/* One patient's file (opened from "Full record"): a single column, no list rail, sections in the order a doctor reads them. */
+.patients-workspace.is-focus { grid-template-columns: minmax(0, 1fr); }
+.patients-workspace.is-focus > .record-sidebar { display: none; }
+.patients-workspace.is-focus .patient-record { max-width: var(--doctor-content-width); margin-inline: auto; width: 100%; }
+.pf-head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2xs); }
+.pf-head h1 { margin: 0; font-size: var(--text-3xl); line-height: var(--line-title); letter-spacing: var(--tracking-title); overflow-wrap: anywhere; }
+.pf-nav { display: flex; gap: var(--space-lg); margin: 0 0 var(--space-xs); }
+.pf-link { border: 0; background: transparent; padding: 0; font: inherit; font-size: var(--text-sm); font-weight: 600; color: var(--blue); cursor: pointer; }
+.pf-facts { display: flex; flex-wrap: wrap; gap: var(--space-2xs) var(--space-lg); margin: 0; color: var(--ink-2); }
+.pf-address { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.pf-glance { margin: var(--space-xs) 0 0; padding: var(--space-xs) var(--space-md); border-radius: var(--r-md); background: var(--panel); color: var(--ink); font-size: var(--text-sm); font-weight: 600; align-self: flex-start; }
+.pf-section { margin-top: var(--space-xl); }
+.pf-section > h2, .pf-section > summary > h2 { display: inline; margin: 0 0 var(--space-sm); font-size: var(--text-lg); font-weight: 700; color: var(--ink); }
+.pf-section > summary { cursor: pointer; list-style: none; margin-bottom: var(--space-sm); }
+.pf-section > summary::-webkit-details-marker { display: none; }
+.pf-section > summary::after { content: ' ▾'; color: var(--muted); }
+.pf-section[open] > summary::after { content: ''; }

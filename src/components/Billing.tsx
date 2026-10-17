@@ -22,7 +22,6 @@ const normal = (text: string | null | undefined) => text?.trim().toLocaleLowerCa
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
   { value: 'upi', label: 'UPI' },
-  { value: 'pay_later', label: 'Pay later / Credit' },
 ] as const
 
 function UpiQr({ vpa, amountPaise, payeeName }: { vpa: string; amountPaise: number; payeeName: string }) {
