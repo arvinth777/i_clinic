@@ -1,0 +1,35 @@
+<h1 id="ch10"><span class="num">Chapter 10</span>The More menu</h1>
+<p class="lead">Less common jobs live under <b>More</b>. What you see depends on your role.</p>
+<div class="pair">
+<figure><img src="img/more-reception.png" alt=""><figcaption>More, on a reception login.</figcaption></figure>
+<figure><img src="img/more-doctor.png" alt=""><figcaption>More, on a doctor login.</figcaption></figure>
+</div>
+<h2 id="s10-1">Unpaid bills</h2>
+<p>Every bill that was left as <b>Pay later / Credit</b> is listed here with the patient, token, the date billed and the amount. When the money arrives:</p>
+<ol class="steps">
+<li>Open <span class="ui">More → Unpaid bills</span> and press <span class="btn">Settle</span> on the right row.</li>
+<li>Under <b>Paid via</b> choose <b>Cash</b> or <b>UPI</b>.</li>
+<li>Add a note if you like (for example "paid in person on next visit"), then press <span class="btn primary">Mark settled</span>.</li>
+</ol>
+{{pair:unpaid-bills-list|The list of unpaid bills.;;unpaid-settle|Settling a bill.}}
+<h2 id="s10-2">Long-term care</h2>
+<p>A register of patients the doctor has marked for ongoing care (set in the prescription's Review step). It shows <b>Name</b>, <b>Last visit</b> and <b>Next review due</b>; a date in amber means the review is due or overdue. Use it to phone patients who need to come back.</p>
+{{fig:long-term-care|The long-term care register.}}
+<h2 id="s10-3">Suppliers</h2>
+<p>The same supplier list as in Inventory, available here for quick reference.</p>
+<h2 id="s10-4">Merge patients <span class="who doc">Doctor</span></h2>
+<p>Sometimes the same person gets registered twice. Merging combines the two records into one so that the history is complete.</p>
+{{fig:merge-home|Merge duplicate patients.}}
+<ol class="steps">
+<li>Open <span class="ui">More → Merge patients</span>.</li>
+<li>Under <b>Possible duplicates</b> iClinic lists pairs with the same name and age or phone. Press <span class="btn">Review</span> to compare a pair.</li>
+<li>If they are the same person, confirm the merge. The <b>older record is always kept</b> and the newer one's visits and notes move into it.</li>
+<li>If they are different people, press <span class="btn">Not a duplicate</span>. That pair will not be suggested again.</li>
+</ol>
+{{fig:merge-review-pair|Reviewing a pair before merging.}}
+<div class="callout warn"><b>Be careful</b><p>A merge cannot be undone with one click. Merging is blocked while either patient has an open visit today. A matching name or phone is only a hint: two relatives can share a phone number. Always read the pair before you confirm.</p></div>
+<h2 id="s10-5">Needs reconciliation <span class="who doc">Doctor</span></h2>
+<p>If a bill was finalised while the internet was down and the price changed before it synced, it lands here. The page shows the patient, token, date, <b>Billed as</b> and the <b>Actual amount</b>. Press <span class="btn">Correct</span> to write a new bill using the supplied quantities and the doctor's current discount. The original receipt is not changed. Rows that say <i>Review required</i> cannot be corrected automatically and need the doctor's attention.</p>
+{{fig:reconciliation|Bills that need a correction.}}
+<h2 id="s10-6">Settings <span class="who adm">Doctor / Admin</span></h2>
+<p>Described in Chapter 11.</p>
