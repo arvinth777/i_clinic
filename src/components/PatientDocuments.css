@@ -3,11 +3,6 @@
 .documents-heading { flex-wrap: wrap; }
 .documents-heading .readout-heading { margin-bottom: var(--space-xs); }
 .documents-storage { margin-block: var(--space-lg); color: var(--text-secondary); font-size: var(--text-sm); }
-.document-upload-form { max-width: var(--editor-width); padding-bottom: var(--space-lg); border-bottom: 1px solid var(--border); }
-.document-upload-form textarea { width: 100%; border: 0; border-bottom: 1px solid var(--border-strong); background: transparent; color: var(--text); padding-block: var(--space-xs); font: inherit; resize: none; field-sizing: content; }
-.document-categories { border: 0; padding: 0; margin-bottom: var(--space-md); }
-.document-categories button { border: 0; background: transparent; color: var(--text-secondary); font: inherit; font-size: var(--text-sm); min-height: var(--control-toggle-height); padding: 0 var(--space-sm); border-radius: var(--radius-input); }
-.document-categories button[aria-pressed=true] { background: var(--accent-wash); color: var(--accent); }
 .document-row { padding-block: var(--space-md); border-bottom: 1px solid var(--border); }
 .document-row > div { min-width: 0; overflow-wrap: anywhere; }
 .document-row p { font-size: var(--text-sm); color: var(--text-secondary); white-space: pre-wrap; }
@@ -20,5 +15,3 @@
 .document-preview img { display: block; max-width: 100%; max-height: var(--document-preview-height); margin: var(--space-md) auto; object-fit: contain; }
 .document-preview a { color: var(--accent); font-weight: 600; }
 @media (max-width: 600px) { .document-preview { padding: var(--space-md); } }
-
-.document-upload-form textarea:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 1px 0 0 var(--accent); }

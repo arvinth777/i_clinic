@@ -3,7 +3,6 @@ import { onlineManager, useIsMutating, useQuery, useQueryClient } from '@tanstac
 import { supabase } from '../lib/supabase'
 import { useClinicId } from '../lib/useClinicId'
 import { useOfflineQueue } from '../lib/useOfflineQueue'
-import { useIdleTimer } from '../lib/useIdleTimer'
 import { hasPin, setPin } from '../lib/pinLock'
 import { ClinicAlerts } from './ClinicAlerts'
 import type { AlertTarget } from '../lib/clinicAlerts'
@@ -14,18 +13,9 @@ import { OfflineQueueBanner } from './OfflineQueueBanner'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import './AppShell.css'
-import { startOfToday } from '../lib/date'
+import { startOfToday, clinicToday } from '../lib/date'
 import { RealtimeConnected, queuePollInterval, batchRealtimeEvents } from '../lib/realtimeStatus'
 
-// Per-station idle-lock timeout (docs/architecture-spec.md): the reception
-// desk is a walk-through space, unattended repeatedly through the day; the
-// doctor's console is a controlled consultation room where a short timer
-// would just get disabled by the person it's meant to protect. Derived
-// from role, not a physical station setting -- this is a login session,
-// not a kiosk. A doctor holding admin too (docs/STATUS.md's documented
-// roster) still gets the doctor's longer window.
-const DOCTOR_TIMEOUT_MS = 15 * 60 * 1000
-const OTHER_TIMEOUT_MS = 2 * 60 * 1000
 
 function PinForm({ onDone }: { onDone: () => void }) {
   const [pin, setPinDraft] = useState('')
@@ -68,19 +58,6 @@ function PinForm({ onDone }: { onDone: () => void }) {
   )
 }
 
-// The clinic can turn the automatic idle lock off in Settings. Until the flag is known (or if it cannot be read) the lock stays on.
-function useIdleLockEnabled(clinicId: string | null | undefined) {
-  const { data, isError } = useQuery({
-    queryKey: ['idle-lock', clinicId],
-    enabled: !!clinicId,
-    queryFn: async () => {
-      const { data, error } = await supabase.from('clinics').select('idle_lock_enabled').eq('id', clinicId).single()
-      if (error) throw error
-      return data.idle_lock_enabled as boolean
-    },
-  })
-  return data !== false || isError // a cached "off" is not trusted once a refresh fails
-}
 
 function useClinicName(clinicId: string | null | undefined) {
   return useQuery({
@@ -163,7 +140,7 @@ export function AppShell({
   useEffect(() => {
     if (!clinicId || !clinical) return
     function refreshQueue() {
-      for (const key of ['shell-queue', 'queue-events', 'doctor-queue', 'doctor-alert-visit', 'visits-today', 'visits-earlier', 'doctor-discount-requests', 'doctor-earlier-count', 'doctor-today-metrics', 'clinic-alerts']) {
+      for (const key of ['shell-queue', 'billing-ready-count', 'queue-events', 'doctor-queue', 'doctor-alert-visit', 'visits-today', 'visits-earlier', 'doctor-discount-requests', 'doctor-earlier-count', 'doctor-today-metrics', 'clinic-alerts']) {
         void queryClient.invalidateQueries({ queryKey: [key, clinicId] })
       }
     }
@@ -177,31 +154,44 @@ export function AppShell({
       })
     return () => { events.close(); supabase.removeChannel(channel) }
   }, [clinicId, clinical, queryClient])
-  const {data: latestEvent}=useQuery({queryKey:['queue-events',clinicId,userId],refetchInterval:queuePollInterval(connected),enabled:!!clinicId&&clinical,queryFn:async()=>{
-    const {data,error}=await supabase.from('queue_events').select('id:request_id,visit_id,action,created_at,visits(token_number)').eq('clinic_id',clinicId!).neq('actor_id',userId).gte('created_at',new Date(Date.now()-10000).toISOString()).in('action',['call','sent_in','finish','request_discount']).order('created_at',{ascending:false}).limit(1).maybeSingle()
+  const {data: recentEvents}=useQuery({queryKey:['queue-events',clinicId,userId],refetchInterval:queuePollInterval(connected),enabled:!!clinicId&&clinical,queryFn:async()=>{
+    const {data,error}=await supabase.from('queue_events').select('id:request_id,visit_id,action,created_at,visits(token_number)').eq('clinic_id',clinicId!).neq('actor_id',userId).gte('created_at',new Date(Date.now()-60000).toISOString()).in('action',['call','sent_in','finish','request_discount']).order('created_at',{ascending:false}).limit(20)
     if(error)throw error
-    return data as {id:string;visit_id:string;action:string;created_at:string;visits:{token_number:number}}|null
+    const rows=data as unknown as {id:string;visit_id:string;action:string;created_at:string;visits:{token_number:number}}[]
+    return { latest: rows[0] && Date.now()-Date.parse(rows[0].created_at)<10000 ? rows[0] : null, call: rows.find(event=>event.action==='call') }
   }})
-  const soundControl = useCallSound({ event: latestEvent, userId, clinicId: clinicId ?? '', locked, available: !isDoctor && clinical })
+  const latestEvent=recentEvents?.latest
+  const latestCall=recentEvents?.call
+  const { controls: soundControl, flash, enabled: chimeEnabled, permission: notificationPermission, enableNotifications } = useCallSound({ event: latestCall, tokenNumber: latestCall?.visits.token_number, userId, clinicId: clinicId ?? '', locked, available: !isDoctor && clinical })
   const [expiredEvent,setExpiredEvent]=useState<string|null>(null)
   const eventTime=latestEvent?.created_at
   const eventVisible=!!eventTime&&expiredEvent!==eventTime
   useEffect(()=>{if(!eventTime)return;const remaining=new Date(eventTime).getTime()+10000-Date.now();const timer=setTimeout(()=>setExpiredEvent(eventTime),Math.max(0,remaining));return()=>clearTimeout(timer)},[eventTime])
   const eventText=latestEvent && ({call:'Doctor called',sent_in:'Reception sent in',finish:'Ready to bill',request_discount:'Discount review requested'}[latestEvent.action])
   const current = queue?.find((visit) => ['called','with_doctor'].includes(visit.stage))
+  const { data: readyToBill = 0 } = useQuery({
+    queryKey: ['billing-ready-count', clinicId],
+    enabled: !!clinicId && clinical && !isDoctor,
+    refetchInterval: queuePollInterval(connected),
+    queryFn: async () => {
+      const { count, error } = await supabase.from('visits').select('id', { count: 'exact', head: true })
+        .eq('clinic_id', clinicId!).eq('stage', 'ready_to_bill').gte('arrived_at', new Date(`${clinicToday()}T00:00:00+05:30`).toISOString())
+      if (error) throw error
+      return count ?? 0
+    },
+  })
   const primary = ['reception', 'consultation', 'billing', 'pharmacy', 'patients', 'stock', 'reports'].flatMap(key => sections.filter(section => section.key === key))
   const more = sections.filter((section) => !primary.includes(section))
   const activeMore = more.find((section) => section.key === activeSection)
 
-  const idleLockOn = useIdleLockEnabled(clinicId)
-  useIdleTimer(!idleLockOn ? null : isDoctor ? DOCTOR_TIMEOUT_MS : OTHER_TIMEOUT_MS, onLock)
   useEffect(() => { const label = sections.find((s) => s.key === activeSection)?.label; document.title = label ? `${label} · iClinic` : 'iClinic' }, [sections, activeSection])
 
   function select(key: string) { onSelectSection(key); setMenuOpen(false) }
   function navItem(section: ShellSection) {
     return <a key={section.key} href={`#${section.key}`} className="shell-nav-item"
+      aria-label={section.key === 'billing' && readyToBill ? `Billing, ${readyToBill} patients waiting` : undefined}
       aria-current={section.key === activeSection || (section.key === 'more' && activeMore) ? 'page' : undefined}
-      onClick={(event) => { event.preventDefault(); select(section.key) }}>{section.label}</a>
+      onClick={(event) => { event.preventDefault(); select(section.key) }}>{section.label}{section.key === 'billing' && readyToBill > 0 && <span className="shell-billing-count" aria-hidden="true">{readyToBill}</span>}</a>
   }
   const navigation = [...primary, { key: 'more', label: 'More' }]
   const syncLabel = halted ? 'Save needs attention' : !online ? `Offline · ${pending.length} changes waiting` : pending.length ? `${pending.length} not saved yet` : saving ? 'Saving…' : 'All saved'
@@ -221,12 +211,13 @@ export function AppShell({
   </details>
   return (
     <RealtimeConnected value={connected}><div className="shell">
+      {flash && <><div key={flash.id} className="call-screen-flash" aria-hidden="true" /><div className="call-screen-banner" role="alert">Doctor called{flash.tokenNumber == null ? '' : ` #${flash.tokenNumber}`} · Send patient in</div></>}
       <header ref={header} className="shell-header">
         <a className="shell-clinic-name" href={isDoctor ? '#consultation' : '#reception'} onClick={e => { e.preventDefault(); select(isDoctor ? 'consultation' : sections[0]?.key ?? '') }}>{clinicName ?? ''}</a>
         <nav className="shell-nav no-scrollbar" aria-label="Main">{navigation.map(navItem)}</nav>
         <div className="shell-status">
           {eventVisible && eventText && <span className="shell-event" role="status">{eventText} #{latestEvent?.visits.token_number}</span>}
-          {clinical && <button className="shell-nav-item" onClick={() => setAlertsOpen(true)}>Alerts</button>}
+          {clinical && <button className="shell-nav-item" onClick={() => setAlertsOpen(true)} title="Open alerts and call notification controls">{isDoctor ? 'Alerts' : !chimeEnabled ? 'Alerts · chime off' : notificationPermission === 'default' ? 'Alerts · notifications off' : 'Alerts'}</button>}
           {queueLink}
           {sync}
           {account}
@@ -234,6 +225,7 @@ export function AppShell({
         </div>
         <button className="shell-nav-item shell-mobile-toggle" onClick={() => setMenuOpen(true)} aria-expanded={menuOpen}>Menu ▾</button>
       </header>
+      {!isDoctor && clinical && !locked && notificationPermission === 'default' && <div className="call-alert-setup" role="status">Get browser alerts when the doctor calls a patient. <button type="button" className="shell-nav-item" onClick={() => { setAlertsOpen(true); void enableNotifications() }}>Enable notifications</button></div>}
       {clinical && clinicId && <ClinicAlerts key={`${clinicId}:${userId}`} open={alertsOpen} onClose={() => setAlertsOpen(false)} onOpen={target => { if (sections.some(section => section.key === target.section)) onOpenAlert(target) }} clinicId={clinicId} userId={userId} isDoctor={isDoctor} online={online} connected={connected} locked={locked} soundControl={soundControl} />}
       <OfflineQueueBanner userId={userId} redact={locked || !clinical} />
       <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title="Menu" placement="top">

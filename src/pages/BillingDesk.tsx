@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { startOfToday } from '../lib/date'
-import { restorePagedCache } from '../lib/pagedCache'
 import { Billing } from '../components/Billing'
 import { LoadingRows, QueryError } from '../components/QueryState'
 
@@ -15,14 +14,15 @@ export function BillingDesk({ clinicId, readOnly = false, initialVisitId }: { cl
     return () => { supabase.removeChannel(channel) }
   }, [clinicId, client])
   const [selected, setSelected] = useState<string | null>(initialVisitId ?? null)
-  const { data: pages, isError, dataUpdatedAt, isPending, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({ queryKey: ['billing-desk', clinicId, 'pages-v2'], initialData: () => restorePagedCache(client.getQueryData<{ pages: Visit[][] }>(['billing-desk', clinicId, 'pages']), client.getQueryData<Visit[]>(['billing-desk', clinicId])), initialPageParam: 0, getNextPageParam: (last: Visit[], pages: Visit[][]) => last.length === 50 ? pages.length * 50 : undefined, queryFn: async ({ pageParam }) => {
+  const { data: pages, isError, dataUpdatedAt, isPending, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({ queryKey: ['billing-desk', clinicId, 'pages-v3'], initialPageParam: 0, getNextPageParam: (last: Visit[], pages: Visit[][]) => last.length === 50 ? pages.length * 50 : undefined, queryFn: async ({ pageParam }) => {
     const { data, error } = await supabase.from('visits').select('id, token_number, stage, patients(name)').eq('clinic_id', clinicId)
-      .in('stage', ['ready_to_bill', 'paid']).or(`stage.neq.paid,arrived_at.gte.${startOfToday()}`).order('arrived_at', { ascending: false }).order('id').range(pageParam, pageParam + 49)
+      .in('stage', ['ready_to_bill', 'paid']).or(`stage.neq.paid,arrived_at.gte.${startOfToday()}`).order('stage', { ascending: false }).order('arrived_at', { ascending: false }).order('id').range(pageParam, pageParam + 49)
     if (error) throw error
     return data as unknown as Visit[]
   } })
   const visits = pages?.pages.flat()
-  return <div className={`billing-desk${selected ? " has-selection" : ""}`}><aside className="record-sidebar"><p className="field-hint">To collect / recent receipts</p>
+  const waiting = visits?.some(v => v.stage === 'ready_to_bill')
+  return <div className={`billing-desk${selected ? " has-selection" : ""}`}><aside className="record-sidebar"><p className="field-hint">{waiting ? 'Ready to bill · choose a patient' : 'To collect / recent receipts'}</p>
     {isError && <QueryError retry={() => void refetch()} savedAt={dataUpdatedAt} />}
     {isPending && <LoadingRows label="Loading bills…" />}
     <div className={isError ? "stale-copy" : undefined}>

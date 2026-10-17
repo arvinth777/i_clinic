@@ -1,5 +1,5 @@
 // Render the actual production components with synthetic data for browser PDF checks.
-import { readFileSync, existsSync, writeFileSync, mkdirSync, cpSync, readdirSync } from 'node:fs'
+import { readFileSync, existsSync, writeFileSync, mkdirSync, cpSync, readdirSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import vm from 'node:vm'
@@ -16,9 +16,11 @@ function load(path) {
 const { PrintablePrescription, PrintableReceipt } = load(resolve('src/components/VisitPrintout.tsx'))
 const directory = process.env.PRINT_FIXTURE_DIR ?? '/private/tmp/clinic-print-layout'
 mkdirSync(directory, { recursive: true })
+rmSync(directory + '/assets', { recursive: true, force: true })
 cpSync('dist/assets', directory + '/assets', { recursive: true })
 cpSync('public/letterhead', directory + '/letterhead', { recursive: true })
-const css = readdirSync('dist/assets').find(f => f.endsWith('.css'))
+const css = readdirSync('dist/assets').find(f => /^index-.*\.css$/.test(f))
+if (!css) throw new Error('Built app stylesheet is missing; run npm run build first')
 const clinic = { name: 'Salem Pain & Palliative Care Clinic', doctor_name: 'Dr. G. P. Kirupakaran', doctor_registration_number: 'Synthetic print check', address: 'Synthetic layout check — not a patient document', phone: null }
 const visit = { id: 'synthetic', token_number: 12, arrived_at: '2026-10-10T10:00:00+05:30', complaint: 'Synthetic complaint for layout verification.', diagnosis: 'Synthetic diagnosis for layout verification.', advice: 'Synthetic advice: this document is for print alignment only.', follow_up_date: '2026-10-24', patients: { name: 'SYNTHETIC PRINT CHECK', age: 45, gender: 'Female' } }
 for (const [name, count] of [['short', 1], ['typical', 5], ['long', 30], ['receipt', 0], ['combined', 30]]) {

@@ -6,11 +6,9 @@ import { mergePrescriptionPrint, readPrescriptionPrint, savePrescriptionPrint, r
 import { PrintablePrescription, type PrintVisit, type ClinicPrintInfo, type DetailRow } from './VisitPrintout'
 import { LetterheadPreview } from './LetterheadPreview'
 import './PrescriptionForm.css'
-import { attemptOrQueue, setMedicineUnitPrice } from '../lib/offlineQueue'
+import { attemptOrQueue } from '../lib/offlineQueue'
 import { changeProposal, type PricingProposal } from '../lib/pricingProposal'
-import { parseRupeesToPaise } from '../lib/money'
 import { Button, buttonVariants } from './ui/button'
-import { ConfirmUnitRow } from './ConfirmUnitRow'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import {
@@ -20,16 +18,17 @@ import {
   itemIsValid,
   usualCombo,
   suggestedQuantity,
+  prescribedUnit,
   type DraftItem,
   type PastPrescription,
   type Template,
 } from '../lib/prescriptionDraft'
 
-const DRUG_TYPES = ['Tablet', 'Syrup', 'Capsule', 'Powder', 'Injection', 'Other'] as const
+const DRUG_TYPES = ['Tablet', 'Syrup', 'Capsule', 'Powder', 'Injection', 'Topical', 'Other'] as const
 const FOOD_OPTIONS = ['Before food', 'After food', 'Either'] as const
 const FREQUENCY_OPTIONS = ['1-0-1', '1-1-1', '0-0-1', '1-0-0', 'SOS'] as const
 
-type MedicineResult = { id: string; name: string; stock_unit?: string | null; unit_confirmed_at?: string | null; price_paise?: number | null }
+type MedicineResult = { id: string; name: string; molecule_name?: string | null; stock_unit?: string | null; unit_confirmed_at?: string | null; price_paise?: number | null }
 
 export function PrescriptionForm({
   clinicId,
@@ -78,8 +77,6 @@ export function PrescriptionForm({
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
-  const [newMedicineUnit, setNewMedicineUnit] = useState('')
-  const [newMedicinePrice, setNewMedicinePrice] = useState('')
 
   useEffect(() => {
     if (!printed || !followUp || printed.visit.follow_up_date === followUp.follow_up_date) return
@@ -92,7 +89,8 @@ export function PrescriptionForm({
     let active = true
     readPrescriptionDraft(userId, clinicId, visitId).then(draft => {
       if (!active) return
-      if (draft) { setDraftItems(draft.items); setDiagnosis(draft.diagnosis); setAdvice(draft.advice) }
+      // A draft saved before stockUnit existed has none: default it so nothing downstream calls .trim() on undefined.
+      if (draft) { setDraftItems(draft.items.map(item => ({ ...item, stockUnit: item.stockUnit ?? '' }))); setDiagnosis(draft.diagnosis); setAdvice(draft.advice) }
       setDraftLoaded(true)
     }).catch(() => { if (active) setDraftStorageError(true) })
     return () => { active = false }
@@ -138,40 +136,34 @@ export function PrescriptionForm({
     queryKey: ['medicine-search', clinicId, debouncedSearch],
     enabled: debouncedSearch.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('medicines')
-        .select('id, name, stock_unit, unit_confirmed_at, price_paise')
-        .eq('clinic_id', clinicId)
-        .ilike('name', `%${debouncedSearch}%`)
-        .order('name', { ascending: true })
-        .limit(20)
-      if (error) throw error
-      return data as MedicineResult[]
+      const base = () => supabase.from('medicines').select('id, name, molecule_name, stock_unit, unit_confirmed_at, price_paise').eq('clinic_id', clinicId).eq('is_active', true).order('name', { ascending: true }).limit(20)
+      const [byName, byMolecule] = await Promise.all([base().ilike('name', `%${debouncedSearch}%`), base().ilike('molecule_name', `%${debouncedSearch}%`)])
+      if (byName.error) throw byName.error
+      if (byMolecule.error) throw byMolecule.error
+      return [...new Map([...(byName.data ?? []), ...(byMolecule.data ?? [])].map(row => [row.id, row])).values()] as MedicineResult[]
     },
   })
 
   const { data: medicineUnits } = useQuery({
     queryKey: ['prescription-medicine-units', clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('medicines').select('id, stock_unit, price_paise, unit_confirmed_at').eq('clinic_id', clinicId)
+      const { data, error } = await supabase.from('medicines').select('id, stock_unit, price_paise, unit_confirmed_at, is_active').eq('clinic_id', clinicId)
       if (error) throw error
-      return data as { id: string; stock_unit: string | null; price_paise:number; unit_confirmed_at: string | null }[]
+      return data as { id: string; stock_unit: string | null; price_paise:number; unit_confirmed_at: string | null; is_active: boolean }[]
     },
   })
 
-  // Quick-add must not undo what search enforces: no drug twice (a double-click doubled the whole set,
-  // and billing), and no drug whose billing unit is unconfirmed (the server rejects it at Confirm).
+  // Quick-add excludes retired catalog rows and duplicates.
   const [skipNote, setSkipNote] = useState('')
   function addQuick(candidates: DraftItem[]) {
-    const unitOk = (id: string) => !medicineUnits || !!medicineUnits.find((m) => m.id === id)?.unit_confirmed_at
-    const unconfirmed = candidates.filter((i) => !unitOk(i.medicineId)).map((i) => i.medicineName)
+    const active = (id: string) => !medicineUnits || !!medicineUnits.find((m) => m.id === id && m.is_active)
     // Filter against `prev`, not the render's draftItems: two clicks before a re-render must not both add.
     setDraftItems((prev) => {
       const have = new Set(prev.map((i) => i.medicineId))
-      return [...prev, ...candidates.filter((i) => !have.has(i.medicineId) && unitOk(i.medicineId))]
+      return [...prev, ...candidates.filter((i) => !have.has(i.medicineId) && active(i.medicineId))]
     })
     const duplicates = candidates.filter((i) => draftItems.some((d) => d.medicineId === i.medicineId)).length
-    setSkipNote([duplicates && `${duplicates} already on this prescription`, unconfirmed.length && `${unconfirmed.join(', ')}: confirm the unit under Inventory first`].filter(Boolean).join(' · '))
+    setSkipNote(duplicates ? `${duplicates} already on this prescription` : '')
   }
 
   function applyTemplate(template: Template) {
@@ -189,30 +181,25 @@ export function PrescriptionForm({
   }
 
   function addFromSearch(medicine: MedicineResult) {
-    setDraftItems((prev) => [...prev, newDraftItem(medicine.id, medicine.name, medicine.stock_unit)])
+    setDraftItems((prev) => [...prev, newDraftItem(medicine.id, medicine.molecule_name || medicine.name, medicine.stock_unit)])
     setSearchQuery('')
     setDebouncedSearch('')
   }
 
   const addNewMedicine = useMutation({
     networkMode: 'always',
-    mutationFn: async (pricePaise: number) => {
-      if (!newMedicineUnit.trim()) throw new Error('Enter the billing and stock unit')
+    mutationFn: async () => {
       if (newMedicineIdentity.current?.name !== debouncedSearch) newMedicineIdentity.current = { id: crypto.randomUUID(), name: debouncedSearch }
-      const row = { ...newMedicineIdentity.current!, clinic_id: clinicId, price_paise: pricePaise }
+      const row = { ...newMedicineIdentity.current!, molecule_name: debouncedSearch, clinic_id: clinicId, price_paise: 0 }
       await attemptOrQueue({ clinicId,
         attempt: (token) => supabase.from('medicines').upsert(row, { onConflict: 'id', ignoreDuplicates: true }).setHeader('Authorization', `Bearer ${token}`),
         queueItem: () => ({ kind: 'insert', table: 'medicines', payload: row, description: 'Add medicine' }),
       })
-      const payload = { p_medicine_id: row.id, p_stock_unit: newMedicineUnit.trim(), p_price_paise: pricePaise }
-      await setMedicineUnitPrice(clinicId, payload, 'Confirm new medicine unit and price')
-      return { id: row.id, name: row.name, stock_unit: payload.p_stock_unit } as MedicineResult
+      return { id: row.id, name: row.name, molecule_name: row.molecule_name, stock_unit: null } as MedicineResult
     },
     onSuccess: (medicine) => {
       addFromSearch(medicine)
       newMedicineIdentity.current = null
-      setNewMedicinePrice('')
-      setNewMedicineUnit('')
       queryClient.invalidateQueries({ queryKey: ['medicine-search', clinicId] })
       queryClient.invalidateQueries({ queryKey: ['prescription-medicine-units', clinicId] })
     },
@@ -258,7 +245,7 @@ export function PrescriptionForm({
     networkMode: 'always',
     mutationFn: async () => {
       const prescriptionId = confirmationId.current ??= crypto.randomUUID()
-      const itemRows = draftItems.map((item) => ({ ...itemRow(item), id: item.key }))
+      const itemRows = draftItems.map((item) => ({ ...itemRow(item), stock_unit: item.drugType === 'Other' ? item.stockUnit.trim().toLowerCase() : prescribedUnit(item.drugType), id: item.key }))
       const previous = await readPrescriptionPrint(userId, clinicId, visitId)
       const existing = (pastPrescriptions ?? []).filter((prescription) => prescription.visit_id === visitId)
       const previousMedicines: DetailRow[] = previous?.medicines ?? existing.flatMap((prescription) => prescription.prescription_items.map((item) => ({
@@ -270,7 +257,7 @@ export function PrescriptionForm({
         ...itemRow(item), prescription_id: prescriptionId, kind: 'medicine', description: item.medicineName, unit_price_paise: 0,
       }))
       const snapshot = mergePrescriptionPrint({ visit, medicines: previousMedicines, prescriptionIds: previousIds }, {
-        visit: { ...visit, diagnosis, advice, follow_up_date: followUp?.follow_up_date }, clinic: clinic ?? previous?.clinic,
+        visit: { ...visit, prescribed_at: previous?.visit.prescribed_at ?? new Date().toISOString(), diagnosis, advice, follow_up_date: followUp?.follow_up_date }, clinic: clinic ?? previous?.clinic,
         medicines, prescriptionIds: [prescriptionId],
       })
       // Retain reviewed instructions before the network call, including a crash during save.
@@ -284,7 +271,7 @@ export function PrescriptionForm({
         applyOptimistic:()=>{
           queryClient.setQueryData<PricingProposal|null>(['pricing-proposal',visitId],old=>changeProposal(old,lines=>[...lines,...itemRows.map(item=>{
             const medicine=medicineUnits?.find(m=>m.id===item.medicine_id)
-            return {...item,kind:'medicine',prescription_item_id:item.id,quantity:item.quantity_dispensed,stock_unit:medicine?.stock_unit,unit_price_paise:medicine?.price_paise??NaN}
+            return {...item,kind:'medicine',prescription_item_id:item.id,quantity:item.quantity_dispensed,stock_unit:medicine?.stock_unit ?? item.stock_unit,unit_price_paise:medicine?.price_paise??0}
           })]))
           queryClient.setQueryData(['visit-pricing',visitId],(old:Record<string,unknown>|undefined)=>old?{...old,final_amount_set:false}:old)
         },
@@ -315,15 +302,12 @@ export function PrescriptionForm({
     return (
       <div className="rx-workspace"><div className="rx-editor">
         <h3 className="readout-heading">Review prescription</h3>
-        <p>{diagnosis ? `Diagnosis: ${diagnosis}` : 'Reminder: no diagnosis entered.'}</p>
-        {advice && <p>Advice: {advice}</p>}
-        {!followUp?.follow_up_date && <p className="field-hint">Reminder: no review date set.</p>}
         <ul className="review-list">
           {draftItems.map((item) => (
             <li key={item.key} className="review-item">
               <span className="review-item-name">{item.medicineName}</span>
               <p>
-                {[item.drugType, item.strength, item.beforeAfterFood, item.dosageFrequency, `${item.durationDays} days`, `×${item.quantityDispensed}`]
+                {[item.drugType, item.strength, item.beforeAfterFood, item.dosageFrequency, `For ${item.durationDays} days`, `×${item.quantityDispensed}`]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
@@ -331,6 +315,9 @@ export function PrescriptionForm({
             </li>
           ))}
         </ul>
+        {advice && <p>Advice: {advice}</p>}
+        {diagnosis ? <p>Diagnosis: {diagnosis}</p> : <p className="rx-reminder" role="status">Diagnosis is missing. You can still issue this prescription.</p>}
+        {!followUp?.follow_up_date && <p className="rx-reminder" role="status">Review date is missing. Set it under Long-term care if needed.</p>}
         <div className="action-row">
           <Button type="button" variant="secondary" disabled={confirm.isPending} onClick={() => setReviewOpen(false)}>
             Back to edit
@@ -358,10 +345,7 @@ export function PrescriptionForm({
       {draftStorageError && <p className="form-error" role="alert">Draft not saved on this device. Keep this page open and retry before leaving.</p>}
       {(draftItems.length > 0 || diagnosis || advice) && <p className="field-hint" role="status">Draft on this device · not issued yet</p>}
       <div className="rx-patient"><h2>{visit.patients?.name}</h2><p>{[visit.patients?.age != null ? `${visit.patients.age} years` : '', visit.patients?.gender, `Token #${visit.token_number}`].filter(Boolean).join(' · ')}</p></div>
-      <div className="rx-clinical-fields">
-        <div className="field"><span className="field-label">Complaints, from reception</span><p>{visit.complaint || 'No complaint recorded.'}</p></div>
-        <label className="field"><span className="field-label">Diagnosis</span><textarea value={diagnosis} onChange={e => setDiagnosis(e.target.value)} maxLength={10000} rows={2} placeholder="Working or final diagnosis" /></label>
-      </div>
+      <p className="field-hint rx-complaint">From reception · {visit.complaint || 'No complaint recorded'}</p>
       {printed && (
         <>
           <Button type="button" variant="secondary" disabled={print.isPending} onClick={() => print.mutate()}>Print prescription</Button>
@@ -379,7 +363,7 @@ export function PrescriptionForm({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Add a medicine or a saved set…"
-          onKeyDown={e => { if (e.key === 'Enter' && searchResults?.[0]?.unit_confirmed_at) { e.preventDefault(); addFromSearch(searchResults[0]) } }}
+          onKeyDown={e => { if (e.key === 'Enter' && searchResults?.[0]) { e.preventDefault(); addFromSearch(searchResults[0]) } }}
         />
       </div>
 
@@ -411,10 +395,9 @@ export function PrescriptionForm({
             <ul className="search-results">
               {searchResults.map((m) => (
                 <li key={m.id}>
-                  <button type="button" className="search-result-button" disabled={!m.unit_confirmed_at} onClick={() => addFromSearch(m)}>
-                    <span>{m.name} · {m.stock_unit ?? 'unit not confirmed'}</span>
+                  <button type="button" className="search-result-button" onClick={() => addFromSearch(m)}>
+                    <span>{m.molecule_name || m.name}{m.molecule_name && m.molecule_name !== m.name ? ` · ${m.name}` : ''}</span>
                   </button>
-                  {!m.unit_confirmed_at && <ConfirmUnitRow clinicId={clinicId} medicineId={m.id} name={m.name} pricePaise={m.price_paise} onDone={() => { queryClient.invalidateQueries({ queryKey: ['medicine-search', clinicId] }); queryClient.invalidateQueries({ queryKey: ['prescription-medicine-units', clinicId] }) }} />}
                 </li>
               ))}
             </ul>
@@ -422,31 +405,12 @@ export function PrescriptionForm({
         ) : (
           <div className="rx-new-medicine">
             <p>No drug named "{debouncedSearch}" in the list.</p>
-            <p className="field-hint">Existing medicines need unit confirmation under Stock before they can be supplied.</p>
-            <div className="field">
-              <label className="field-label" htmlFor="new-medicine-unit">Billing and stock unit</label>
-              <Input id="new-medicine-unit" value={newMedicineUnit} maxLength={24} onChange={(e) => setNewMedicineUnit(e.target.value)} placeholder="tablet, strip, bottle…" />
-            </div>
-            <div className="field">
-              <label className="field-label" htmlFor="new-medicine-price">
-                Price (₹)
-              </label>
-              <Input
-                id="new-medicine-price"
-                inputMode="decimal"
-                value={newMedicinePrice}
-                onChange={(e) => setNewMedicinePrice(e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
+            <p className="field-hint">Reception will choose a matching stocked product and set its billing price.</p>
             <Button
               type="button"
               variant="secondary"
-              disabled={addNewMedicine.isPending || !newMedicineUnit.trim() || parseRupeesToPaise(newMedicinePrice) === null}
-              onClick={() => {
-                const price = parseRupeesToPaise(newMedicinePrice)
-                if (price !== null) addNewMedicine.mutate(price)
-              }}
+              disabled={addNewMedicine.isPending}
+              onClick={() => addNewMedicine.mutate()}
             >
               {addNewMedicine.isPending ? 'Adding…' : `Add "${debouncedSearch}" as a new drug`}
             </Button>
@@ -463,7 +427,7 @@ export function PrescriptionForm({
             }}>
               <summary className="drug-row-head">
                 <span className="drug-row-name">{item.medicineName} <span className="field-hint">{item.strength}</span></span>
-                <span className="drug-row-summary">{item.dosageFrequency} · {item.durationDays || '—'} days</span>
+                <span className="drug-row-summary">{item.dosageFrequency} · For {item.durationDays || '—'} days</span>
                 <button type="button" className="drug-row-remove" onClick={e => { e.preventDefault(); removeDraft(item.key) }}>
                   Remove
                 </button>
@@ -488,6 +452,10 @@ export function PrescriptionForm({
                   <label className="field-label">Strength</label>
                   <Input aria-label={`Strength for ${item.medicineName}`} value={item.strength} onChange={(e) => updateDraft(item.key, { strength: e.target.value })} placeholder="500mg" />
                 </div>
+                {item.drugType === 'Other' && <div className="field">
+                  <label className="field-label">Supply unit</label>
+                  <Input aria-label={`Supply unit for ${item.medicineName}`} value={item.stockUnit} maxLength={24} onChange={(e) => updateDraft(item.key, { stockUnit: e.target.value })} placeholder="e.g. ampoule" />
+                </div>}
                 <div className="field">
                   <label className="field-label">Food</label>
                   <div className="text-toggles" role="group" aria-label={`Food for ${item.medicineName}`}>{FOOD_OPTIONS.map(food => <button key={food} type="button" aria-pressed={item.beforeAfterFood === food} onClick={() => updateDraft(item.key, { beforeAfterFood: food })}>{food}</button>)}</div>
@@ -510,7 +478,7 @@ export function PrescriptionForm({
                   />
                 </div>
                 <div className="field">
-                  <label className="field-label">Quantity supplied ({medicineUnits?.find((m) => m.id === item.medicineId)?.stock_unit ?? 'confirm unit under Stock'})</label>
+                  <label className="field-label">Quantity prescribed ({medicineUnits?.find((m) => m.id === item.medicineId)?.stock_unit ?? (item.drugType === 'Other' ? item.stockUnit || 'unit' : prescribedUnit(item.drugType))})</label>
                   <Input
                     type="number"
                     min="1"
@@ -519,7 +487,7 @@ export function PrescriptionForm({
                     value={item.quantityDispensed}
                     onChange={(e) => updateDraft(item.key, { quantityDispensed: e.target.value })}
                   />
-                  {suggestedQuantity(item, medicineUnits?.find(m => m.id === item.medicineId)?.stock_unit) != null && <Button type="button" variant="ghost" size="sm" onClick={() => updateDraft(item.key, { quantityDispensed: String(suggestedQuantity(item, medicineUnits?.find(m => m.id === item.medicineId)?.stock_unit)) })}>Use suggested {suggestedQuantity(item, medicineUnits?.find(m => m.id === item.medicineId)?.stock_unit)}</Button>}
+                  {suggestedQuantity(item, medicineUnits?.find(m => m.id === item.medicineId)?.stock_unit ?? prescribedUnit(item.drugType)) != null && <Button type="button" variant="ghost" size="sm" onClick={() => updateDraft(item.key, { quantityDispensed: String(suggestedQuantity(item, medicineUnits?.find(m => m.id === item.medicineId)?.stock_unit ?? prescribedUnit(item.drugType))) })}>Use suggested {suggestedQuantity(item, medicineUnits?.find(m => m.id === item.medicineId)?.stock_unit ?? prescribedUnit(item.drugType))}</Button>}
                 </div>
                 <div className="field drug-row-notes">
                   <label className="field-label">Note</label>
@@ -527,7 +495,7 @@ export function PrescriptionForm({
                 </div>
               </div>
               {!itemIsValid(item) && (
-                <span className="field-error">Type, food, frequency, and a whole-number duration and quantity dispensed are required.</span>
+                <span className="field-error">Type, strength, food, frequency, duration and whole-number prescribed quantity are required.</span>
               )}
             </details>
           ))}
@@ -535,7 +503,9 @@ export function PrescriptionForm({
       )}
 
       <datalist id="rx-frequencies">{FREQUENCY_OPTIONS.map(value => <option key={value} value={value} />)}</datalist>
-      <label className="field rx-advice"><span className="field-label">Advice / investigations</span><textarea value={advice} onChange={e => setAdvice(e.target.value)} maxLength={10000} rows={2} placeholder="Instructions, investigations and advice" /></label>
+      <label className="field rx-advice"><span className="field-label">Advice / investigations · English or Tamil</span><textarea value={advice} onChange={e => setAdvice(e.target.value)} maxLength={10000} rows={2} placeholder="Type advice in English or Tamil" /></label>
+      <label className="field rx-diagnosis"><span className="field-label">Diagnosis · English or Tamil</span><textarea value={diagnosis} onChange={e => setDiagnosis(e.target.value)} maxLength={10000} rows={2} placeholder="Working or final diagnosis" /></label>
+      {!diagnosis.trim() && <p className="rx-reminder" role="status">Diagnosis is missing. You can still issue this prescription.</p>}
       {draftItems.length > 0 && (
         <div className="action-row rx-actions">
           <Button type="button" disabled={!canReview} onClick={() => setReviewOpen(true)}>

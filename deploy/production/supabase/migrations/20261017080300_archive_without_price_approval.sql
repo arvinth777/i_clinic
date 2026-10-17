@@ -1,0 +1,1 @@
+../../../../supabase/migrations/20261017220100_archive_without_price_approval.sql

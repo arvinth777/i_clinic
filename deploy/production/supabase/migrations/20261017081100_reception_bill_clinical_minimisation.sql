@@ -1,0 +1,1 @@
+../../../../supabase/migrations/20261017220900_reception_bill_clinical_minimisation.sql

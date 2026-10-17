@@ -63,10 +63,11 @@ console.log('signed in as doctor.a, reception.a, admin.only\n')
   report('admin can edit a medicine', !updateErr, updateErr?.message)
 
   const { error: recErr, data: recData } = await receptionA.from('medicines').insert({ clinic_id: CLINIC_A_ID, name: `Reception Test Med ${stamp}`, price_paise: 100 }).select()
-  report('reception cannot add a medicine', !!recErr || (recData ?? []).length === 0, recErr?.message ?? JSON.stringify(recData))
+  report('reception can add a medicine (catalog control moved to reception)', !recErr && (recData ?? []).length === 1, recErr?.message ?? JSON.stringify(recData))
+  if (recData?.[0]) await adminOnly.rpc('retire_medicine', { p_medicine_id: recData[0].id })
 
-  const { error: delErr } = await adminOnly.from('medicines').delete().eq('id', med.id)
-  report('admin can remove an unused medicine', !delErr, delErr?.message)
+  const { error: retireErr } = await adminOnly.rpc('retire_medicine', { p_medicine_id: med.id })
+  report('admin can retire a medicine (history is kept; hard delete is replaced by retirement)', !retireErr, retireErr?.message)
 }
 
 // ================================================================

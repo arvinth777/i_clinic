@@ -1,0 +1,1 @@
+../../../../supabase/migrations/20261017221000_disable_legacy_bill_confirmation.sql

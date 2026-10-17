@@ -8,6 +8,7 @@ export type DraftItem = {
   medicineId: string
   medicineName: string
   drugType: string
+  stockUnit: string
   strength: string
   beforeAfterFood: string
   dosageFrequency: string
@@ -24,6 +25,8 @@ export type ExistingItem = {
   dosage_frequency: string | null
   duration_days: number
   quantity_dispensed?: number | null
+  stock_unit?: string | null
+  molecule_name?: string | null
   notes: string | null
   medicines: { name: string } | null
 }
@@ -66,7 +69,7 @@ export function usualCombo(pastPrescriptions: PastPrescription[]): ComboItem[] {
       if (existing) {
         existing.count += 1
       } else {
-        seen.set(item.medicine_id, { count: 1, item, medicineName: item.medicines?.name ?? '' })
+        seen.set(item.medicine_id, { count: 1, item, medicineName: item.molecule_name || item.medicines?.name || '' })
       }
     }
   }
@@ -80,14 +83,17 @@ export function usualCombo(pastPrescriptions: PastPrescription[]): ComboItem[] {
 // Drug type follows the confirmed stock unit; anything else is chosen by the
 // doctor. The dose is never prefilled: a default like 1-0-1 gets signed off
 // unread.
-const TYPE_BY_UNIT: Record<string, string> = { tablet: 'Tablet', capsule: 'Capsule', syrup: 'Syrup', powder: 'Powder', injection: 'Injection' }
+const TYPE_BY_UNIT: Record<string, string> = { tablet: 'Tablet', strip: 'Tablet', capsule: 'Capsule', syrup: 'Syrup', bottle: 'Syrup', powder: 'Powder', sachet: 'Powder', injection: 'Injection', vial: 'Injection', tube: 'Topical' }
+const UNIT_BY_TYPE: Record<string, string> = { Tablet: 'tablet', Capsule: 'capsule', Syrup: 'bottle', Powder: 'sachet', Injection: 'vial', Topical: 'tube', Other: 'unit' }
+export const prescribedUnit = (drugType: string): string => UNIT_BY_TYPE[drugType] ?? 'unit'
 
 export function newDraftItem(medicineId: string, medicineName: string, stockUnit?: string | null): DraftItem {
   return {
     key: crypto.randomUUID(),
     medicineId,
     medicineName,
-    drugType: TYPE_BY_UNIT[(stockUnit ?? '').trim().toLowerCase().replace(/s$/, '')] ?? 'Tablet',
+    drugType: stockUnit ? TYPE_BY_UNIT[stockUnit.trim().toLowerCase().replace(/s$/, '')] ?? 'Other' : 'Tablet',
+    stockUnit: stockUnit?.trim().toLowerCase() ?? '',
     strength: '',
     beforeAfterFood: 'After food',
     dosageFrequency: '',
@@ -102,8 +108,9 @@ export function draftFromExisting(item: ExistingItem): DraftItem | null {
   return {
     key: crypto.randomUUID(),
     medicineId: item.medicine_id,
-    medicineName: item.medicines?.name ?? '',
+    medicineName: item.molecule_name || item.medicines?.name || '',
     drugType: item.drug_type ?? 'Tablet',
+    stockUnit: item.stock_unit ?? '',
     strength: item.strength ?? '',
     beforeAfterFood: item.before_after_food ?? 'After food',
     dosageFrequency: item.dosage_frequency ?? '',
@@ -131,9 +138,10 @@ export function itemIsValid(item: DraftItem): boolean {
   const quantity = Number(item.quantityDispensed)
   return (
     !!item.drugType &&
+    (item.drugType !== 'Other' || (item.stockUnit.trim().length > 0 && item.stockUnit.trim().length <= 24)) &&
     !!item.beforeAfterFood &&
     !!item.dosageFrequency &&
-    (!/^(Tablet|Capsule)$/.test(item.drugType) || item.strength.trim() !== '') &&
+    item.strength.trim() !== '' &&
     item.durationDays.trim() !== '' &&
     Number.isInteger(days) &&
     days > 0 &&

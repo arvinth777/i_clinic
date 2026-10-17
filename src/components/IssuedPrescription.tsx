@@ -19,19 +19,19 @@ export function IssuedPrescription({ userId, clinicId, visitId }: { userId: stri
     queryKey: ['issued-prescription', userId, clinicId, visitId],
     enabled: local.isSuccess && !local.data,
     queryFn: async () => {
-      const [visitResult, clinicResult, approvalResult, clinicalResult] = await Promise.all([
+      const [visitResult, clinicResult, detailResult, clinicalResult] = await Promise.all([
         supabase.from('visits')
-          .select('id, token_number, stage, arrived_at, complaint, follow_up_date, patients(name, age, gender, height_cm, weight_kg)')
+          .select('id, token_number, stage, arrived_at, consultation_ended_at, complaint, follow_up_date, patients(name, age, gender, height_cm, weight_kg)')
           .eq('clinic_id', clinicId).eq('id', visitId).single(),
         supabase.from('clinics')
           .select('name, upi_vpa, doctor_name, doctor_registration_number, address, phone')
           .eq('id', clinicId).single(),
-        supabase.rpc('get_approved_bill', { p_visit_id: visitId }),
+        supabase.rpc('get_visit_billing_detail', { p_visit_id: visitId }),
         supabase.from('prescriptions').select('id, diagnosis, advice').eq('clinic_id', clinicId).eq('visit_id', visitId).order('created_at'),
       ])
-      for (const result of [visitResult, clinicResult, approvalResult, clinicalResult]) if (result.error) throw result.error
-      const detail = (approvalResult.data as { lines: DetailRow[] } | null)?.lines
-      if (!detail) throw new Error('The approved prescription copy is not available.')
+      for (const result of [visitResult, clinicResult, detailResult, clinicalResult]) if (result.error) throw result.error
+      const detail = detailResult.data as DetailRow[] | null
+      if (!detail?.some(row => row.kind === 'medicine')) throw new Error('The issued prescription copy is not available.')
       const clinical = clinicalResult.data ?? []
       const snapshot: PrescriptionPrintSnapshot = {
         visit: { ...visitResult.data as unknown as PrintVisit,

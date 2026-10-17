@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { useClinicId } from '../lib/useClinicId'
@@ -21,8 +21,6 @@ import { formatBody } from '../lib/patientBody'
 import '../components/Worklist.css'
 import './Consultation.css'
 import { useQueuePollInterval } from '../lib/realtimeStatus'
-import { restorePagedCache } from '../lib/pagedCache'
-import { useVisitProcedures } from '../lib/useVisitProcedures'
 
 // A wait past this is flagged in the overdue colour (danger), not just
 // shown as a plain elapsed time -- reserving colour for something that
@@ -50,6 +48,8 @@ type PastVisit = { id: string; arrived_at: string; complaint: string }
 
 type PrescriptionItem = {
   medicine_id: string
+  molecule_name: string | null
+  stock_unit: string | null
   drug_type: string | null
   strength: string | null
   before_after_food: string | null
@@ -77,7 +77,31 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
   const queryClient = useQueryClient()
   const { data: clinicId } = useClinicId(userId)
   const [visibleQueueCount, setVisibleQueueCount] = useState(7)
-  const [workspace, setWorkspace] = useState<'overview' | 'prescription' | 'billing'>('overview')
+  type Workspace = 'overview' | 'prescription' | 'billing'
+  const workspaceFromUrl = (): Workspace => {
+    const view = window.location.hash.split('/')[1]
+    return view === 'prescription' || view === 'billing' ? view : 'overview'
+  }
+  const [workspace, setWorkspaceState] = useState<Workspace>(workspaceFromUrl)
+  useEffect(() => {
+    const restore = () => setWorkspaceState(workspaceFromUrl())
+    window.addEventListener('popstate', restore)
+    return () => window.removeEventListener('popstate', restore)
+  }, [])
+  function setWorkspace(next: Workspace) {
+    if (typeof window === 'undefined') { setWorkspaceState(next); return }
+    const target = next === 'overview' ? '#consultation' : `#consultation/${next}`
+    if (window.location.hash !== target) window.history.pushState({ clinicWorkspace: true }, '', target)
+    setWorkspaceState(next)
+  }
+  function backToWorkspace() {
+    if (typeof window === 'undefined') { setWorkspaceState('overview'); return }
+    if (window.history.state?.clinicWorkspace && workspace !== 'overview') window.history.back()
+    else {
+      window.history.replaceState(null, '', '#consultation')
+      setWorkspaceState('overview')
+    }
+  }
   const [commentDrafts, setCommentDrafts] = useState<Record<string,string>>({})
   const [reviewVisitId,setReviewVisitId]=useState<string|null>(null)
   const [prescribingActive, setPrescribingActive] = useState(false)
@@ -113,20 +137,6 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
     },
   })
 
-  const discountRequests = useInfiniteQuery({
-    queryKey: ['doctor-discount-requests', clinicId, 'pages'], enabled: !!clinicId,
-    refetchInterval: interval, initialPageParam: 0,
-    initialData: () => restorePagedCache<DoctorVisit>(undefined, queryClient.getQueryData<DoctorVisit[]>(queueKey)?.filter(v => v.stage === 'ready_to_bill' && v.discount_requested_at)),
-    getNextPageParam: (last: DoctorVisit[], pages: DoctorVisit[][]) => last.length === 50 ? pages.length * 50 : undefined,
-    queryFn: async ({ pageParam }) => {
-      const { data, error } = await supabase.from('visits')
-        .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone, height_cm, weight_kg)')
-        .eq('clinic_id', clinicId!).eq('stage', 'ready_to_bill').not('discount_requested_at', 'is', null)
-        .order('discount_requested_at').order('id').range(pageParam, pageParam + 49)
-      if (error) throw error
-      return data as unknown as DoctorVisit[]
-    },
-  })
   const { data: earlierCount = 0 } = useQuery({
     queryKey: ['doctor-earlier-count', clinicId, today], enabled: !!clinicId, refetchInterval: interval,
     queryFn: async () => {
@@ -155,8 +165,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
   const todaysQueue = visits?.filter(v => v.arrived_at >= today) ?? []
   const queue = todaysQueue.filter(v => v.stage === 'waiting')
   const active = todaysQueue.find(v => ['called','with_doctor'].includes(v.stage))
-  const requests = discountRequests.data?.pages.flat() ?? []
-  const current = (requested.data?.id === reviewVisitId ? requested.data : null) ?? requests.find(v=>v.id===reviewVisitId) ?? visits?.find(v=>v.id===reviewVisitId) ?? active ?? todaysQueue.filter(v => v.stage === 'ready_to_bill').sort((a,b)=>(b.sent_in_at??b.arrived_at).localeCompare(a.sent_in_at??a.arrived_at))[0]
+  const current = (requested.data?.id === reviewVisitId ? requested.data : null) ?? visits?.find(v=>v.id===reviewVisitId) ?? active ?? todaysQueue.filter(v => v.stage === 'ready_to_bill').sort((a,b)=>(b.sent_in_at??b.arrived_at).localeCompare(a.sent_in_at??a.arrived_at))[0]
   const rows = todaysQueue.filter(v => ['waiting','not_here'].includes(v.stage))
   const sent = current?.stage === 'ready_to_bill' || current?.stage === 'paid'
   const commentBody=current ? commentDrafts[current.patient_id]??'' : ''
@@ -184,7 +193,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
       const { data, error } = await supabase
         .from('prescriptions')
         .select(
-          'id, visit_id, created_at, diagnosis, advice, visits!inner(patient_id), prescription_items(medicine_id, drug_type, strength, before_after_food, dosage_frequency, duration_days, quantity_dispensed, notes, medicines(name))',
+          'id, visit_id, created_at, diagnosis, advice, visits!inner(patient_id), prescription_items(medicine_id, molecule_name, stock_unit, drug_type, strength, before_after_food, dosage_frequency, duration_days, quantity_dispensed, notes, medicines(name))',
         )
         .eq('visits.patient_id', current!.patient_id)
         .order('created_at', { ascending: false })
@@ -211,9 +220,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
   const {data: localPrescription}=useQuery({queryKey:['prescription-print',userId,clinicId,current?.id],enabled:!!current&&!!clinicId,queryFn:async()=>await readPrescriptionPrint(userId,clinicId!,current!.id)??null})
   const issuedMedicines = prescriptions?.filter(p => p.visit_id === current?.id).flatMap(p => p.prescription_items) ?? []
   const reviewedMedicines=localPrescription?.medicines ?? issuedMedicines
-  const {data: visitProcedures}=useVisitProcedures(current?.id)
-  const hasProcedure=(visitProcedures?.length??0)>0
-  const issuedComplete = (reviewedMedicines.length > 0 || hasProcedure) && reviewedMedicines.every(item => !!item.dosage_frequency?.trim() && (item.duration_days ?? 0) > 0)
+  const issuedComplete = reviewedMedicines.length > 0 && reviewedMedicines.every(item => !!item.dosage_frequency?.trim() && (item.duration_days ?? 0) > 0)
 
   const addComment = useMutation({
     networkMode: 'always',
@@ -273,16 +280,13 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
             {rows.length > visibleQueueCount && <li><Button variant="secondary" onClick={() => setVisibleQueueCount(count => count + 50)}>Show more</Button></li>}
             <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />
           </ul>
-          {requests.filter(v=>v.discount_requested_at && v.stage==='ready_to_bill').map(v=><div className="doctor-earlier" key={v.id}><strong className="status-amber">Discount review · #{v.token_number}</strong><p>{v.patients?.name}</p><Button variant="secondary" disabled={prescribingActive} onClick={()=>{setReviewVisitId(v.id);setWorkspace('billing')}}>Review bill</Button></div>)}
           {reviewVisitId && <Button variant="secondary" onClick={()=>{setReviewVisitId(null);setWorkspace('overview')}}>Return to consultation</Button>}
-          {discountRequests.isError && <QueryError retry={() => void discountRequests.refetch()} savedAt={discountRequests.dataUpdatedAt} />}
-          {discountRequests.hasNextPage && <Button variant="secondary" disabled={discountRequests.isFetchingNextPage} onClick={() => void discountRequests.fetchNextPage()}>Show more discount requests</Button>}
           {earlierCount>0 && <div className="doctor-earlier"><p className="field-hint">Left open from earlier days · {earlierCount}</p><p>Not counted in today’s queue. Reception can review them under Earlier open visits.</p></div>}
           </div>
         </aside>
         <div className="consultation-stage">
           {!current ? <div className="doctor-idle"><h2>Ready for the next patient</h2><p className="readout-empty">Call next to begin a consultation.</p></div> : <>
-            {workspace !== 'overview' && <div className="rx-toolbar"><Button variant="ghost" onClick={() => setWorkspace('overview')}>← Workspace</Button><strong>{workspace === 'billing' ? 'Bill review' : 'Prescription'} · #{current.token_number} · {current.patients?.name}</strong></div>}
+            {workspace !== 'overview' && <div className="rx-toolbar"><Button variant="ghost" onClick={backToWorkspace}>← Back to workspace</Button><strong>{workspace === 'billing' ? 'Bill review' : 'Prescription'} · #{current.token_number} · {current.patients?.name}</strong></div>}
             <div className="doctor-overview" hidden={workspace !== 'overview'}>
               <section className="doctor-current">
                 <p className={current.stage==='called' ? 'status-amber' : 'status-blue'}>{current.stage==='called' ? 'Called · waiting for reception to send this patient in' : current.sent_in_at ? `Sent in by reception · ${new Date(current.sent_in_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` : 'With doctor'}</p>
@@ -295,13 +299,13 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
               </section>
               <div className="doctor-context">
                 <section><h3>Today, from reception</h3><p>{current.complaint || 'No complaint recorded.'}</p></section>
-                <section><h3>Last prescription</h3><p>{prescriptions?.find(p=>p.visit_id!==current.id)?.prescription_items.map(item => [item.medicines?.name, item.dosage_frequency, `${item.duration_days} days`].filter(Boolean).join(' ')).join(' · ') || 'No prescription on record.'}</p></section>
+                <section><h3>Last prescription</h3><p>{prescriptions?.find(p=>p.visit_id!==current.id)?.prescription_items.map(item => [item.molecule_name || item.medicines?.name, item.dosage_frequency, `${item.duration_days} days`].filter(Boolean).join(' ')).join(' · ') || 'No prescription on record.'}</p></section>
               </div>
               <section className="record-section"><div className="rail-head"><h3 className="readout-heading doctor-section-label">History</h3><Button variant="secondary" onClick={()=>onOpenPatient(current.patient_id)}>Full record →</Button></div>
                 {!pastVisits?.length ? <p className="readout-empty">No past visits.</p> : <ul className="past-visit-list">{pastVisits.slice(0,3).map(v => <li key={v.id} className="history-row">
                   <time>{formatDate(v.arrived_at)}</time><div><p>{v.complaint}</p>{prescriptions?.filter(p => p.visit_id === v.id).map(p => <div key={p.id}>
                     {p.diagnosis && <p>{p.diagnosis}</p>}
-                    <p className="field-hint">{p.prescription_items.map(item => [item.medicines?.name, item.dosage_frequency, `${item.duration_days} days`].filter(Boolean).join(' ')).join(' · ')}</p>
+                    <p className="field-hint">{p.prescription_items.map(item => [item.molecule_name || item.medicines?.name, item.dosage_frequency, `${item.duration_days} days`].filter(Boolean).join(' ')).join(' · ')}</p>
                     {p.advice && <p className="field-hint">{p.advice}</p>}
                   </div>)}</div>
                 </li>)}</ul>}
@@ -318,11 +322,11 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
             <div id="stage-prescription" hidden={workspace === 'overview'}>
               {sent && workspace === 'billing' ? <Billing clinicId={clinicId} visitId={current.id} readOnly onClose={()=>setWorkspace('overview')} /> : sent ? <IssuedPrescription key={current.id} userId={userId} clinicId={clinicId} visitId={current.id} /> : <PrescriptionForm userId={userId} visit={current} key={current.id} clinicId={clinicId} visitId={current.id} pastPrescriptions={prescriptions} onActiveChange={setPrescribingActive}>
                 <CarePanel clinicId={clinicId} key={`care-${current.id}`} visitId={current.id} patientId={current.patient_id} />
-                <details className="rx-support" open><summary>Procedures &amp; bill approval</summary><PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} /></details>
+                <details className="rx-support" open><summary>Procedures &amp; consultation charge</summary><PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} /></details>
                 <details className="rx-support"><summary>Documents</summary><DocumentsPanel key={`docs-${current.id}`} clinicId={clinicId} visitId={current.id} patientName={current.patients?.name ?? ''} patientAge={current.patients?.age ?? null} complaint={current.complaint} issuedBy={userId} /></details>
                 {!prescribingActive && <div className="action-row rx-actions"><Button variant="primary" disabled={prescribingActive || queueAction.isPending || !issuedComplete} onClick={() => void finish().catch(()=>{})}>{queueAction.isPending ? 'Saving…' : 'Finish consultation'}</Button></div>}
                 {prescribingActive && <p className="field-hint">Review and confirm the prescription before finishing.</p>}
-                {!prescribingActive && !issuedComplete && <p className="field-hint">Finish requires a medicine or a procedure; every prescribed medicine needs a dose or SOS and a duration.</p>}
+                {!prescribingActive && !issuedComplete && <p className="field-hint">Finish requires at least one medicine; each medicine needs a dose or SOS and a duration.</p>}
               </PrescriptionForm>}
             </div>
           </>}

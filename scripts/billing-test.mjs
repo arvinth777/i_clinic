@@ -1,5 +1,5 @@
 import { assertStaging } from './clinic-workflow-fixture.mjs'
-import { checked, sendToBilling, consultationOnlyFixture } from './clinic-workflow-fixture.mjs'
+import { checked, sendToBilling, payVisitResult } from './clinic-workflow-fixture.mjs'
 // TDD for the billing screen's backend (AGENTS.md Phase 3: money touches --
 // tests before UI). Same convention as isolation-test.mjs/pricing-test.mjs:
 // a plain script against live staging, signed in as the real roles, no
@@ -119,7 +119,7 @@ async function prescribeToVisit(doctorA, visitId, medicineId) {
   const { data: rx, error: rxErr } = await doctorA.from('prescriptions').insert({ clinic_id: CLINIC_A_ID, visit_id: visitId }).select('id').single()
   if (rxErr) throw new Error(`fixture: creating prescription failed: ${rxErr.message}`)
   const { error } = await doctorA.from('prescription_items').insert({
-    clinic_id: CLINIC_A_ID, prescription_id: rx.id, medicine_id: medicineId, duration_days: 5, quantity_dispensed: 1, dosage_frequency: 'SOS',
+    clinic_id: CLINIC_A_ID, prescription_id: rx.id, medicine_id: medicineId, duration_days: 5, strength:'500 mg',quantity_dispensed: 1, dosage_frequency: 'SOS',
   })
   if (error) throw new Error(`prescribing failed: ${error.message}`)
 }
@@ -218,8 +218,8 @@ async function main() {
   }
 
   {
-    const { data, error: rpcErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visit2, p_payment_method: 'cash' })
-    report('confirm_bill refuses a visit before doctor handoff', !!rpcErr && !data, rpcErr?.message)
+    const { data, error: rpcErr } = await receptionA.rpc('confirm_reception_bill', { p_visit_id: visit2, p_payment_method: 'cash', p_expected_total_paise: 0, p_items: [] })
+    report('confirm_reception_bill refuses a visit before doctor handoff', !!rpcErr && !data, rpcErr?.message)
   }
 
   {
@@ -233,30 +233,19 @@ async function main() {
     const ok = !error && kinds.join(',') === 'consultation,medicine,procedure'
     report('reception gets the full billing detail once the visit is ready_at_reception', ok, error ? error.message : JSON.stringify(data))
   }
-  // confirm_bill's own "waiting for the doctor" guard (final_amount_set is
-  // false) is no longer reachable from here to test: reaching packing above
-  // (via 20260906160000_ensure_final_amount_set_on_packing.sql) already
-  // guarantees final_amount_set is true by the time a visit reaches
-  // ready_at_reception -- proved directly, including confirm_bill
-  // succeeding on such a visit, in packing-final-amount-test.mjs. The guard
-  // itself is left in confirm_bill as defense in depth, not deleted; there's
-  // just no longer a client-reachable path left to exercise it against.
-
   // ================================================================
-  // Section 3 -- confirm_bill: the atomic snapshot + close + idempotency.
+  // Section 3 -- confirm_reception_bill: the atomic snapshot + close + idempotency (catalog prices; no doctor-set amount).
   // ================================================================
   let bill2Id
   {
-    const { error } = await doctorA.from('visit_pricing').update({ final_amount_paise: 30000 }).eq('visit_id', visit2)
-    if (error) throw new Error(`doctor setting final_amount on visit2 failed: ${error.message}`)
-    const { data, error: rpcErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visit2, p_payment_method: 'cash' })
+    const { data, error: rpcErr } = await payVisitResult(receptionA, visit2)
     bill2Id = data
-    report('confirm_bill succeeds once final_amount is set, returning a bill id', !rpcErr && !!bill2Id, rpcErr?.message)
+    report('confirm_reception_bill succeeds on a ready visit, returning a bill id', !rpcErr && !!bill2Id, rpcErr?.message)
   }
   {
     const { data: bill, error } = await receptionA.from('bills').select('final_amount_paise, pricing_revision_at_confirm, payment_method, needs_reconciliation').eq('id', bill2Id).single()
-    const ok = !error && bill.final_amount_paise === 30000 && bill.payment_method === 'cash' && bill.needs_reconciliation === false
-    report('the bill snapshots final_amount and payment_method, and needs_reconciliation is false when the snapshot matches', ok, JSON.stringify(bill))
+    const ok = !error && bill.final_amount_paise === 32000 && bill.payment_method === 'cash' && bill.needs_reconciliation === false
+    report('the bill snapshots the catalog total and payment_method, and needs_reconciliation is false', ok, JSON.stringify(bill))
   }
   {
     const { data: items, error } = await receptionA.from('bill_line_items').select('kind, description, unit_price_paise').eq('bill_id', bill2Id).order('kind')
@@ -270,31 +259,10 @@ async function main() {
     report('confirming payment closes the visit (stage=paid, closed_at set)', ok, JSON.stringify(visit))
   }
   {
-    const { data: secondCall, error: rpcErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visit2, p_payment_method: 'upi' })
+    const { data: secondCall, error: rpcErr } = await payVisitResult(receptionA, visit2, { method: 'upi' })
     const { data: allBills } = await receptionA.from('bills').select('id').eq('visit_id', visit2)
     const ok = !rpcErr && secondCall === bill2Id && (allBills ?? []).length === 1
-    report('confirm_bill is idempotent: a repeat call returns the same bill id and creates no second row', ok, `second call returned ${secondCall}, bills for visit: ${(allBills ?? []).length}`)
-  }
-
-  // ================================================================
-  // Section 4 -- needs_reconciliation is set once, at insert, comparing
-  // the snapshot revision against the row's live revision at that instant;
-  // never patched afterwards.
-  // ================================================================
-  const visit3 = await makeVisit(doctorA, 'billing reconciliation test fixture')
-  console.log(`fixture visit 3 (reconciliation): ${visit3}`)
-  {
-    const { error } = await doctorA.from('visit_pricing').update({ final_amount_paise: 10000 }).eq('visit_id', visit3)
-    if (error) throw new Error(`doctor setting final_amount on visit3 failed: ${error.message}`)
-    const p = await consultationOnlyFixture(doctorA, receptionA, CLINIC_A_ID, visit3, 10000)
-    await doctorA.from('visit_pricing').update({ final_amount_paise: 9000 }).eq('visit_id', visit3)
-    const { data: billId, error: billErr } = await receptionA.rpc('confirm_bill', {
-      p_visit_id: visit3, p_payment_method: 'cash',
-      p_snapshot_final_amount_paise: p.final_amount_paise,
-      p_snapshot_revision_number: p.revision_number,
-    })
-    const { data: bill } = await receptionA.from('bills').select('needs_reconciliation').eq('id', billId).single()
-    report('needs_reconciliation is true for an older approved snapshot', !billErr && bill?.needs_reconciliation === true)
+    report('confirm_reception_bill is idempotent: a repeat call returns the same bill id and creates no second row', ok, `second call returned ${secondCall}, bills for visit: ${(allBills ?? []).length}`)
   }
 
   console.log('\n== Summary ==')

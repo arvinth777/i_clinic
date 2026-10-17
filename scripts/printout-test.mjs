@@ -20,14 +20,15 @@ if (process.argv.includes('--before-fix')) {
   const old = execFileSync('git', ['show', '2986888:src/components/Billing.tsx'], { encoding: 'utf8' })
   source = "import { formatPaise } from '../lib/money'; import { formatDate } from '../lib/date';\n" + old.slice(old.indexOf('type Visit ='), old.indexOf('const PAYMENT_METHODS')) + old.slice(old.indexOf('type ClinicPrintInfo ='), old.indexOf('export function Billing')) + '\nexport { PrintableSlip };'
 }
-const { PrintableSlip, PrintableReceipt } = load(resolve('src/components/VisitPrintout.tsx'), source)
-const detail = [{ kind: 'medicine', description: 'Synthetic medicine', unit_price_paise: 900, duration_days: 5, dosage_frequency: '1-0-1', notes: null }]
+const { PrintableReceipt, PrintablePrescription } = load(resolve('src/components/VisitPrintout.tsx'), source)
+const prescriptionDate = renderToStaticMarkup(React.createElement(PrintablePrescription, { visit: { id: 'after-midnight', token_number: 2, stage: 'ready_to_bill', arrived_at: '2026-10-10T15:00:00Z', consultation_ended_at: '2026-10-10T19:00:00Z', patients: { name: 'Synthetic date check' } }, medicines: [{ kind: 'medicine', description: 'Synthetic tablet', strength: '500 mg', dosage_frequency: '1-0-1', duration_days: 3 }] }))
+assert.ok(prescriptionDate.includes('Oct 11, 2026'), 'issued prescription uses consultation completion date in IST, not arrival date')
 const bill = { id: 'synthetic', final_amount_paise: 25100, payment_method: 'cash', confirmed_at: '2026-10-10', bill_line_items: [{ kind: 'consultation', description: 'Consultation', quantity: 1, unit_price_paise: 25000, line_total_paise: 25000 }, { kind: 'medicine', description: 'Synthetic medicine', quantity: 1, unit_price_paise: 100, line_total_paise: 100 }] }
-const html = renderToStaticMarkup(React.createElement(PrintableSlip, { visit: { id: 'visit', token_number: 1, arrived_at: '2026-10-10', patients: { name: '<script>Synthetic</script>' } }, detail, amountPaise: 25100, discountPaise: 800, bill }))
+const html = renderToStaticMarkup(React.createElement(PrintableReceipt, { clinic: { name: 'Synthetic clinic' }, visit: { id: 'visit', token_number: 1, arrived_at: '2026-10-10', patients: { name: '<script>Synthetic</script>' } }, billable: bill.bill_line_items, amountPaise: 25100, discountPaise: 0, bill }))
 assert.ok(html.includes('₹1.00') && !html.includes('₹9.00'), 'receipt must show the saved price, not the changed catalog price')
 assert.ok(html.includes('₹0.00'), 'saved receipt discount must come from its frozen lines')
 assert.ok(!html.includes('<script>'), 'patient text must be escaped')
-const unknown = renderToStaticMarkup(React.createElement(PrintableSlip, { visit: { id: 'visit', token_number: 1, arrived_at: '2026-10-10', patients: { name: 'Synthetic' } }, detail: undefined, amountPaise: 25100, discountPaise: 0, bill }))
+const unknown = renderToStaticMarkup(React.createElement(PrintableReceipt, { clinic: { name: 'Synthetic clinic' }, visit: { id: 'visit', token_number: 1, arrived_at: '2026-10-10', patients: { name: 'Synthetic' } }, billable: bill.bill_line_items, amountPaise: 25100, discountPaise: 0, bill }))
 assert.ok(!unknown.includes('No medicines prescribed'), 'missing instructions must not be presented as an empty prescription')
 console.log('PASS: saved receipt prices, discount, escaped text, and unknown instructions')
 const { mergePrescriptionPrint } = load(resolve('src/lib/prescriptionPrint.ts'))
@@ -46,8 +47,8 @@ assert.ok(pharmacy.includes('not saved yet') && pharmacy.includes('&lt;customer&
 assert.ok(!pharmacy.includes('Token') && !pharmacy.includes('Consultation') && !pharmacy.includes('Prescription'))
 console.log('PASS: name-only pharmacy receipt shows quantity, unit, discount and pending state without clinical history')
 
-assert.ok(html.includes('<svg') && html.includes('SALEM PAIN &amp; PALLIATIVE CARE CLINIC'), 'clinic heading must be live SVG text')
-assert.ok(html.includes('நாள்பட்ட வலி நீக்கு சிகிச்சை நிபுணர்') && html.includes('TRIGEMINAL NEURALGIA ETC.'), 'Tamil header and footer copy must be retained')
-assert.ok(!html.includes('/letterhead-a4.png') && !html.includes('fonts.googleapis.com'), 'print must not depend on the full-page scan or remote fonts')
-assert.equal((html.match(/<image /g) ?? []).length, 2, 'only logo and watermark remain raster artwork')
+assert.ok(prescriptionDate.includes('<svg') && prescriptionDate.includes('SALEM PAIN &amp; PALLIATIVE CARE CLINIC'), 'clinic heading must be live SVG text')
+assert.ok(prescriptionDate.includes('நாள்பட்ட வலி நீக்கு சிகிச்சை நிபுணர்') && prescriptionDate.includes('TRIGEMINAL NEURALGIA ETC.'), 'Tamil header and footer copy must be retained')
+assert.ok(!prescriptionDate.includes('/letterhead-a4.png') && !prescriptionDate.includes('fonts.googleapis.com'), 'print must not depend on the full-page scan or remote fonts')
+assert.equal((prescriptionDate.match(/<image /g) ?? []).length, 2, 'only logo and watermark remain raster artwork')
 console.log('PASS: live English/Tamil letterhead, footer and two original artwork images')

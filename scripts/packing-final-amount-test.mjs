@@ -1,5 +1,5 @@
 import { assertStaging } from './clinic-workflow-fixture.mjs'
-import { consultationOnlyFixture } from './clinic-workflow-fixture.mjs'
+import { consultationOnlyFixture, payVisitResult } from './clinic-workflow-fixture.mjs'
 // Approval/handoff regression: the old packing backstop is superseded by explicit approval.
 // Historical context for the original stuck-visit bug:
 // finishing a consultation (reaching stage=packing) with visit_pricing.
@@ -91,12 +91,12 @@ for (const amount of [25000, 0]) {
   report('fresh visit has no approved final amount', before.final_amount_set === false)
   const bypass = await doctorA.from('visits').update({ stage: 'ready_to_bill' }).eq('id', visitId)
   report('direct stage write cannot bypass doctor approval', !!bypass.error)
-  const early = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' })
+  const early = await receptionA.rpc('confirm_reception_bill', { p_visit_id: visitId, p_payment_method: 'cash', p_expected_total_paise: 0, p_items: [] })
   report('unapproved visit cannot be billed', !!early.error)
-  const approved = await consultationOnlyFixture(doctorA, receptionA, CLINIC_A_ID, visitId, amount)
+  await consultationOnlyFixture(doctorA, receptionA, CLINIC_A_ID, visitId, amount)
   const after = await readPricing(doctorA, visitId)
   report('explicit approval preserves the doctor amount, including zero', after.final_amount_set && after.final_amount_paise === amount)
-  const paid = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash', p_snapshot_final_amount_paise: amount, p_snapshot_revision_number: approved.revision_number })
+  const paid = await payVisitResult(receptionA, visitId)
   report('approved finished consultation can be billed', !paid.error && !!paid.data, paid.error?.message)
 }
 const failed = results.filter(r => !r.pass)

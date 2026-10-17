@@ -26,7 +26,7 @@ function loadQueue() {
   return exports
 }
 const first = loadQueue()
-await first.enqueue({ kind: 'rpc', rpc: 'confirm_bill', clinicId: 'clinic-a', payload: { p_visit_id: 'visit-a' }, description: 'Synthetic payment' })
+await first.enqueue({ kind: 'rpc', rpc: 'confirm_reception_bill', clinicId: 'clinic-a', payload: { p_visit_id: 'visit-a' }, description: 'Synthetic payment' })
 userId = 'staff-b'
 const refreshed = loadQueue()
 await refreshed.drainQueue()
@@ -41,19 +41,28 @@ await refreshed.drainQueue()
 assert.deepEqual(confirmedBy, ['staff-a'], 'the original account must be recorded when its payment replays')
 assert.equal((await refreshed.getQueueSnapshot()).length, 0)
 console.log('PASS: original account resumes its own work after sign-in')
-rows.set('legacy', { id: 'legacy', seq: 1, kind: 'rpc', rpc: 'confirm_bill', description: 'Legacy synthetic payment' })
+rows.set('legacy', { id: 'legacy', seq: 1, kind: 'rpc', rpc: 'confirm_reception_bill', description: 'Legacy synthetic payment' })
 await refreshed.drainQueue()
 assert.equal(confirmedBy.length, 1, 'unowned legacy entries must never be assigned to the active account')
 assert.equal((await refreshed.getQueueSnapshot()).length, 1)
 assert.ok(refreshed.getHalted(), 'legacy work must show that it needs review')
 console.log('PASS: legacy work preserved and held for review')
+// The retired confirm_bill route is never sent: the person is told to take the payment again.
+rows.clear()
+userId = 'staff-a'
+await refreshed.enqueue({ kind: 'rpc', rpc: 'confirm_bill', clinicId: 'clinic-a', payload: { p_visit_id: 'visit-old' }, description: 'Payment queued by an older version' })
+const sentBefore = confirmedBy.length
+await refreshed.drainQueue()
+assert.equal(confirmedBy.length, sentBefore, 'a retired payment must not be sent')
+assert.match(refreshed.getHalted()?.error ?? '', /older version/, 'the halt explains what to do')
+console.log('PASS: a payment queued by an older version is held with instructions, never replayed')
 rows.clear()
 userId = 'staff-a'
 await assert.rejects(refreshed.attemptOrQueue({ clinicId: 'clinic-a', attempt: async (token) => {
   assert.equal(token, 'token-staff-a', 'online attempts use the captured account token')
   userId = 'staff-b'
   return { error: { code: '', status: 0, message: 'Failed to fetch' } }
-}, queueItem: () => ({ kind: 'rpc', rpc: 'confirm_bill', description: 'Synthetic login race' }) }), /account changed/)
+}, queueItem: () => ({ kind: 'rpc', rpc: 'confirm_reception_bill', description: 'Synthetic login race' }) }), /account changed/)
 assert.equal(rows.size, 0, 'an account switch during a failed request cannot reassign the queued write')
 console.log('PASS: login race cannot reattribute a failed save')
 
