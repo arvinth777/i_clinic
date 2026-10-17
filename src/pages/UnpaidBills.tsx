@@ -5,6 +5,7 @@ import { formatPaise } from '../lib/money'
 import { formatDate } from '../lib/date'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
+import { QueryError } from '../components/QueryState'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 
 type UnpaidBill = {
@@ -22,7 +23,7 @@ const SETTLE_METHODS = [
   { value: 'upi', label: 'UPI' },
 ] as const
 
-function SettleForm({ bill, onDone, onCancel }: { bill: UnpaidBill; onDone: () => void; onCancel: () => void }) {
+function SettleForm({ bill, onDone, onCancel, validating }: { bill: UnpaidBill; onDone: () => void; onCancel: () => void; validating: boolean }) {
   const [paymentMethod, setPaymentMethod] = useState<(typeof SETTLE_METHODS)[number]['value']>('cash')
   const [notes, setNotes] = useState('')
   const [formError, setFormError] = useState('')
@@ -40,7 +41,7 @@ function SettleForm({ bill, onDone, onCancel }: { bill: UnpaidBill; onDone: () =
     <form
       onSubmit={(e) => {
         e.preventDefault()
-        settle.mutate()
+        if (!validating) settle.mutate()
       }}
     >
       <p className="readout-empty">
@@ -65,7 +66,7 @@ function SettleForm({ bill, onDone, onCancel }: { bill: UnpaidBill; onDone: () =
       </div>
       {formError && <p className="form-error">{formError}</p>}
       <div className="action-row">
-        <Button type="submit" disabled={settle.isPending}>
+        <Button type="submit" disabled={settle.isPending || validating}>
           {settle.isPending ? 'Saving…' : 'Mark settled'}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>
@@ -76,7 +77,7 @@ function SettleForm({ bill, onDone, onCancel }: { bill: UnpaidBill; onDone: () =
   )
 }
 
-export function UnpaidBills({ clinicId }: { clinicId: string }) {
+export function UnpaidBills({ clinicId, initialBillId }: { clinicId: string; initialBillId?: string }) {
   const queryClient = useQueryClient()
   const queryKey = ['unpaid-bills', clinicId]
   const { data: bills } = useQuery({
@@ -92,27 +93,36 @@ export function UnpaidBills({ clinicId }: { clinicId: string }) {
     },
   })
 
-  const [settling, setSettling] = useState<UnpaidBill | null>(null)
+  const [openedAt] = useState(Date.now)
+  const [settlingId, setSettlingId] = useState<string | null>(initialBillId ?? null)
+  const target = useQuery({ queryKey: ['unpaid-bill-target', clinicId, settlingId], enabled: !!settlingId, staleTime: 0, refetchOnMount: 'always', queryFn: async () => {
+    const { data, error } = await supabase.from('unpaid_bills').select('bill_id,visit_id,final_amount_paise,confirmed_at,token_number,arrived_at,patient_name').eq('clinic_id', clinicId).eq('bill_id', settlingId!).maybeSingle()
+    if (error) throw error
+    return data as UnpaidBill | null
+  } })
+  const settling = target.dataUpdatedAt >= openedAt ? target.data ?? null : null
 
   function onSettled() {
     queryClient.invalidateQueries({ queryKey })
-    setSettling(null)
+    setSettlingId(null)
   }
 
   if (settling !== null) {
     return (
       <div className="admin-page">
-        <button type="button" className="back-to-queue" onClick={() => setSettling(null)}>
+        <button type="button" className="back-to-queue" onClick={() => setSettlingId(null)}>
           ← Back to unpaid bills
         </button>
         <h2 className="readout-heading">Settle bill</h2>
-        <SettleForm bill={settling} onDone={onSettled} onCancel={() => setSettling(null)} />
+        {target.isError && <QueryError retry={() => void target.refetch()} savedAt={target.dataUpdatedAt} />}
+        <SettleForm bill={settling} validating={target.isFetching || target.isError} onDone={onSettled} onCancel={() => setSettlingId(null)} />
       </div>
     )
   }
 
   return (
     <div className="admin-page">
+      {target.isError && <QueryError retry={() => void target.refetch()} />}
       <div className="admin-toolbar">
         <h2 className="readout-heading">Unpaid</h2>
       </div>
@@ -137,7 +147,7 @@ export function UnpaidBills({ clinicId }: { clinicId: string }) {
                 <TableCell className="worklist-wait-cell">{formatDate(b.confirmed_at)}</TableCell>
                 <TableCell className="worklist-wait-cell">{formatPaise(b.final_amount_paise)}</TableCell>
                 <TableCell>
-                  <Button type="button" variant="secondary" onClick={() => setSettling(b)}>
+                  <Button type="button" variant="secondary" onClick={() => setSettlingId(b.bill_id)}>
                     Settle
                   </Button>
                 </TableCell>

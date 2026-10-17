@@ -1,5 +1,22 @@
 # Status
 
+## Doctor acceptance follow-up — 2026-10-17
+
+- Doctor offline reminder settings survive reload and replay once on reconnect; backend values checked before/after. Restored defaults: call5 minutes, no-show30 minutes, close16:00 IST.
+- Doctor archive history and private prescription download passed. All6 synthetic prescriptions and11 receipts are ready in Drive. Downloaded A4 PDF visually inspected; affected layout uses Hanken without page overflow at1440/390. Reception/offline receipt checks remain passing from the preceding entry.
+- Restored staging permitted preview origin and verified OPTIONS204/allowed-origin. No production or merge. Existing completed-consultation “View prescription” routes to billing/receipt in the tested fixture; prescription print from that route is not verified. Fresh physical printer/Safari remain open, alongside the documented oversized-row archive limitation.
+- PR35/36/37 ready for user review in that order; hosted Actions blocked by account billing. No uncommitted source; generated output/ evidence remains local. Next: review/merge authorization, resolve the recorded prescription navigation issue, then human release acceptance.
+
+
+## Alert settings and closing checklist — 2026-10-17
+
+- Implemented configurable called-patient/no-show reminders and IST closing time through an atomic doctor/admin RPC. Defaults remain 5 minutes, 30 minutes and 16:00 IST. Mute silences sound only; alerts remain visible. Added individual unpaid-bill links and a closing checklist, with current-state validation before opening settlement.
+- Staging-only migration `20261016204344_clinic_alert_settings` applied. Backend tests verify doctor persistence/retry, reception reads, invalid values and role/clinic/anonymous denial. Alert timing/checklist and unpaid-target regression tests pass, including keeping the payment form mounted during background validation.
+- Fresh tsc/build pass, lint is the 8-warning baseline, schema smoke passes 88 queries. Doctor browser checked at measured 1440/390 px: Hanken, no page overflow, settings persist and defaults restored. Standards/Spec review blockers fixed and re-reviewed. Security advisor: no errors, existing warnings retained; not a full-system certification.
+- Implementation committed in draft PR #36 on `codex/alert-settings`. Reception browser navigation, sound toggle and generic offline write/reload checks now pass: correct unpaid bill, UPI/notes retained through successful refetches, mute preserves alerts, and one synthetic offline check-in survived reload and synced once. Doctor-specific offline reminder settings still await doctor sign-in. Production untouched; no merge authorized.
+- Next: complete those browser checks, then ask for merge of the reviewed PR. Archive implementation is now draft PR #37 in the managed archive worktree; live synthetic Drive upload/retry/download checks passed there, while full app/offline/printer acceptance remains open. GitHub Actions currently cannot start because the GitHub account is locked due to a billing issue; local checks are distinct evidence. Drive archive implementation is isolated in its own managed worktree.
+
+
 ## Test baseline restored — 2026-10-17 (pending review/PR)
 
 - Branch `codex/test-baseline`, based on `origin/main` `1eeaa92`.

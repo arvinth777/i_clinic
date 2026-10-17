@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:alerts": "node scripts/clinic-alerts-test.mjs && node scripts/alert-settings-test.mjs && node scripts/unpaid-bill-target-test.mjs",
     "test:unit": "node scripts/run-unit-tests.mjs"
   },
   "dependencies": {
