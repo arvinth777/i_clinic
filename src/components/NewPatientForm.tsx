@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { bodyOk, HEIGHT_RANGE, WEIGHT_RANGE } from '../lib/patientBody'
 import { buttonVariants } from './ui/button'
 import { Input } from './ui/input'
+import { useFrontDeskSuggestions } from '../lib/useFrontDeskSuggestions'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 
 export type NewPatientInput = {
@@ -41,6 +42,7 @@ export function NewPatientForm({
   submitting: boolean
 }) {
   const [form, setForm] = useState<NewPatientInput>({ ...emptyForm, name: initialName })
+  const suggestions = useFrontDeskSuggestions(clinicId)
   const [errors, setErrors] = useState<Partial<Record<keyof NewPatientInput, string>>>({})
 
   const { data: fieldDefs } = useQuery({
@@ -176,7 +178,8 @@ export function NewPatientForm({
         <label className="field-label" htmlFor="new-address">
           Address / Village
         </label>
-        <Input id="new-address" value={form.address} onChange={(e) => set('address', e.target.value)} />
+        <Input id="new-address" list="new-address-suggestions" value={form.address} onChange={(e) => set('address', e.target.value)} />
+        <datalist id="new-address-suggestions">{suggestions.addresses.map(value => <option key={value} value={value} />)}</datalist>
       </div>
 
       <div className="field">
@@ -195,7 +198,8 @@ export function NewPatientForm({
         <label className="field-label" htmlFor="new-complaint">
           Complaint
         </label>
-        <Input id="new-complaint" value={form.complaint} onChange={(e) => set('complaint', e.target.value)} />
+        <Input id="new-complaint" list="new-complaint-suggestions" value={form.complaint} onChange={(e) => set('complaint', e.target.value)} />
+        <datalist id="new-complaint-suggestions">{suggestions.complaints.map(value => <option key={value} value={value} />)}</datalist>
         {errors.complaint && (
           <span className="field-error" role="alert">
             {errors.complaint}

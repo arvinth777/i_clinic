@@ -11,6 +11,8 @@ import { changeProposal, type PricingProposal } from '../lib/pricingProposal'
 import { Button, buttonVariants } from './ui/button'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { useClinicLearning } from '../lib/useClinicLearning'
+import { adviceSuggestions, applyDefaults, matchingDiagnoses, medicinesForDiagnosis, sortByPopularity, topMedicines } from '../lib/clinicLearning'
 import {
   newDraftItem,
   draftFromExisting,
@@ -175,13 +177,21 @@ export function PrescriptionForm({
   // each render: cheap (at most 5 prescriptions' worth of items), no
   // memoisation needed.
   const combo = usualCombo(pastPrescriptions ?? [])
+  const learning = useClinicLearning(clinicId)
 
   function applyCombo() {
     addQuick(combo.map((c) => draftFromExisting(c.item)).filter((i): i is DraftItem => i !== null))
   }
 
+  // Added with what this clinic usually prescribes for the medicine (dose, duration, food, strength), so most rows need no typing.
+  function smartItem(id: string, name: string, stockUnit?: string | null) {
+    const item = applyDefaults(newDraftItem(id, name, stockUnit), learning.defaults.get(id))
+    const quantity = item.quantityDispensed ? null : suggestedQuantity(item, stockUnit ?? prescribedUnit(item.drugType))
+    return quantity != null ? { ...item, quantityDispensed: String(quantity) } : item
+  }
+
   function addFromSearch(medicine: MedicineResult) {
-    setDraftItems((prev) => [...prev, newDraftItem(medicine.id, medicine.molecule_name || medicine.name, medicine.stock_unit)])
+    setDraftItems((prev) => [...prev, smartItem(medicine.id, medicine.molecule_name || medicine.name, medicine.stock_unit)])
     setSearchQuery('')
     setDebouncedSearch('')
   }
@@ -363,7 +373,7 @@ export function PrescriptionForm({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Add a medicine or a saved set…"
-          onKeyDown={e => { if (e.key === 'Enter' && searchResults?.[0]) { e.preventDefault(); addFromSearch(searchResults[0]) } }}
+          onKeyDown={e => { if (e.key === 'Enter' && searchResults?.[0]) { e.preventDefault(); addFromSearch(sortByPopularity(searchResults, learning)[0]) } }}
         />
       </div>
 
@@ -383,6 +393,13 @@ export function PrescriptionForm({
         </div>
       )}
       {skipNote && <p className="form-error" role="status">{skipNote}</p>}
+      {!debouncedSearch && topMedicines(learning, new Set(draftItems.map(i => i.medicineId))).length > 0 && (
+        <div className="rx-quick-add">
+          <span className="rx-quick-add-label">Often prescribed:</span>
+          {topMedicines(learning, new Set(draftItems.map(i => i.medicineId))).map(m => <button key={m.id} type="button" className="rx-chip" onClick={() => addFromSearch({ id: m.id, name: m.name, molecule_name: m.name, stock_unit: medicineUnits?.find(u => u.id === m.id)?.stock_unit ?? null })}>{m.name}</button>)}
+        </div>
+      )}
+
       {combo.length > 0 && (
         <p className="rx-quick-add-note">
           Usual combo is based on drugs common across this patient's last 5 visits, not just the most recent one.
@@ -393,7 +410,7 @@ export function PrescriptionForm({
         (searchResults && searchResults.length > 0 ? (
           <div className="search-results-anchor">
             <ul className="search-results">
-              {searchResults.map((m) => (
+              {sortByPopularity(searchResults, learning).map((m) => (
                 <li key={m.id}>
                   <button type="button" className="search-result-button" onClick={() => addFromSearch(m)}>
                     <span>{m.molecule_name || m.name}{m.molecule_name && m.molecule_name !== m.name ? ` · ${m.name}` : ''}</span>
@@ -505,6 +522,25 @@ export function PrescriptionForm({
       <datalist id="rx-frequencies">{FREQUENCY_OPTIONS.map(value => <option key={value} value={value} />)}</datalist>
       <label className="field rx-advice"><span className="field-label">Advice / investigations · English or Tamil</span><textarea value={advice} onChange={e => setAdvice(e.target.value)} maxLength={10000} rows={2} placeholder="Type advice in English or Tamil" /></label>
       <label className="field rx-diagnosis"><span className="field-label">Diagnosis · English or Tamil</span><textarea value={diagnosis} onChange={e => setDiagnosis(e.target.value)} maxLength={10000} rows={2} placeholder="Working or final diagnosis" /></label>
+      {matchingDiagnoses(learning, diagnosis).length > 0 && (
+        <div className="rx-quick-add"><span className="rx-quick-add-label">{diagnosis.trim() ? 'Did you mean:' : 'Often:'}</span>
+          {matchingDiagnoses(learning, diagnosis).map(text => <button key={text} type="button" className="rx-chip" onClick={() => setDiagnosis(text)}>{text}</button>)}
+        </div>
+      )}
+      {(() => {
+        const usual = medicinesForDiagnosis(learning, diagnosis).filter(m => !draftItems.some(i => i.medicineId === m.id))
+        return usual.length > 0 && (
+          <div className="rx-quick-add"><span className="rx-quick-add-label">Usually for this:</span>
+            {usual.map(m => <button key={m.id} type="button" className="rx-chip" onClick={() => addFromSearch({ id: m.id, name: m.name, molecule_name: m.name, stock_unit: medicineUnits?.find(u => u.id === m.id)?.stock_unit ?? null })}>{m.name}</button>)}
+            {usual.length > 1 && <button type="button" className="rx-chip rx-chip-suggested" onClick={() => usual.forEach(m => addFromSearch({ id: m.id, name: m.name, molecule_name: m.name, stock_unit: medicineUnits?.find(u => u.id === m.id)?.stock_unit ?? null }))}>Add all {usual.length}</button>}
+          </div>
+        )
+      })()}
+      {adviceSuggestions(learning, advice).length > 0 && (
+        <div className="rx-quick-add"><span className="rx-quick-add-label">Advice you often give:</span>
+          {adviceSuggestions(learning, advice).map(text => <button key={text} type="button" className="rx-chip" onClick={() => setAdvice(current => current.trim() ? `${current.trim()}\n${text}` : text)}>{text}</button>)}
+        </div>
+      )}
       {!diagnosis.trim() && <p className="rx-reminder" role="status">Diagnosis is missing. You can still issue this prescription.</p>}
       {draftItems.length > 0 && (
         <div className="action-row rx-actions">
