@@ -1,0 +1,1 @@
+../../../../supabase/migrations/20261016204344_clinic_alert_settings.sql

@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test:archives": "node scripts/document-archive-handler-test.mjs && node scripts/document-archive-worker-test.mjs && node scripts/document-archive-download-test.mjs && node scripts/patient-documents-test.mjs"
+    "test:archives": "node scripts/document-archive-handler-test.mjs && node scripts/document-archive-worker-test.mjs && node scripts/document-archive-download-test.mjs && node scripts/patient-documents-test.mjs",
+    "test:alerts": "node scripts/clinic-alerts-test.mjs && node scripts/alert-settings-test.mjs && node scripts/unpaid-bill-target-test.mjs",
+    "test:unit": "node scripts/run-unit-tests.mjs"
   },
   "dependencies": {
     "@fontsource/hanken-grotesk": "^5.3.0",

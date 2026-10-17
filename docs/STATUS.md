@@ -15,6 +15,48 @@
 - Implementation committed in managed `codex/drive-pdf-archive` worktree and draft PR #37 into main. Generated synthetic PDF evidence remains local under `output/pdf/`. No merge/production action. Reception application browser now passes at1440/390, including pending archive offline reload/reconnect and receipt download; all11 synthetic receipt jobs ready while5 prescription jobs remain doctor-only pending. Offline browser print PDF is one unclipped A4 page. Remaining: doctor archive-history UI, phone/Safari, fresh physical printer acceptance. Single rows taller than a page remain pending with an explicit error rather than clipping; other jobs continue. Initial app JS remains about145kB gzip; PDF renderer is a separate241kB gzip lazy chunk, PWA precache about2MiB.
 - Next: user signs in to finish browser acceptance; review/merge PR35 first to activate CI feature-script hooks. GitHub account billing lock currently prevents hosted Actions from starting. Backups/R2 and production remain outside this change.
 
+## Doctor acceptance follow-up — 2026-10-17
+
+- Doctor offline reminder settings survive reload and replay once on reconnect; backend values checked before/after. Restored defaults: call5 minutes, no-show30 minutes, close16:00 IST.
+- Doctor archive history and private prescription download passed. All6 synthetic prescriptions and11 receipts are ready in Drive. Downloaded A4 PDF visually inspected; affected layout uses Hanken without page overflow at1440/390. Reception/offline receipt checks remain passing from the preceding entry.
+- Restored staging permitted preview origin and verified OPTIONS204/allowed-origin. No production or merge. Existing completed-consultation “View prescription” routes to billing/receipt in the tested fixture; prescription print from that route is not verified. Fresh physical printer/Safari remain open, alongside the documented oversized-row archive limitation.
+- PR35/36/37 ready for user review in that order; hosted Actions blocked by account billing. No uncommitted source; generated output/ evidence remains local. Next: review/merge authorization, resolve the recorded prescription navigation issue, then human release acceptance.
+
+
+## Alert settings and closing checklist — 2026-10-17
+
+- Implemented configurable called-patient/no-show reminders and IST closing time through an atomic doctor/admin RPC. Defaults remain 5 minutes, 30 minutes and 16:00 IST. Mute silences sound only; alerts remain visible. Added individual unpaid-bill links and a closing checklist, with current-state validation before opening settlement.
+- Staging-only migration `20261016204344_clinic_alert_settings` applied. Backend tests verify doctor persistence/retry, reception reads, invalid values and role/clinic/anonymous denial. Alert timing/checklist and unpaid-target regression tests pass, including keeping the payment form mounted during background validation.
+- Fresh tsc/build pass, lint is the 8-warning baseline, schema smoke passes 88 queries. Doctor browser checked at measured 1440/390 px: Hanken, no page overflow, settings persist and defaults restored. Standards/Spec review blockers fixed and re-reviewed. Security advisor: no errors, existing warnings retained; not a full-system certification.
+- Implementation committed in draft PR #36 on `codex/alert-settings`. Reception browser navigation, sound toggle and generic offline write/reload checks now pass: correct unpaid bill, UPI/notes retained through successful refetches, mute preserves alerts, and one synthetic offline check-in survived reload and synced once. Doctor-specific offline reminder settings still await doctor sign-in. Production untouched; no merge authorized.
+- Next: complete those browser checks, then ask for merge of the reviewed PR. Archive implementation is now draft PR #37 in the managed archive worktree; live synthetic Drive upload/retry/download checks passed there, while full app/offline/printer acceptance remains open. GitHub Actions currently cannot start because the GitHub account is locked due to a billing issue; local checks are distinct evidence. Drive archive implementation is isolated in its own managed worktree.
+
+
+## Test baseline restored — 2026-10-17 (pending review/PR)
+
+- Branch `codex/test-baseline`, based on `origin/main` `1eeaa92`.
+  Updated seven legacy suites for explicit doctor approval, queue actions,
+  confirmed medicine units/quantities, supply caps, immutable arrivals,
+  idempotent corrections and blocked direct bill insertion. No app or SQL change.
+- Fresh staging results: billing 16/16, pricing 15/15, approval/handoff 10/10,
+  stock 25/25, offline payment 21/21, phase-g 21/21, isolation 21/21.
+  The former negative-dispensing case now verifies rejection without stock
+  change; negative stock from adjustment remains covered.
+- Added credential-free CI: Node 24, typecheck, max eight lint warnings,
+  build and seven local unit suites. Node 24 is needed for existing direct TS
+  imports. All seven pass after a fresh build. Removed an unused test login;
+  lint is at eight warnings. Schema smoke passes for all 86 table queries.
+- Staging preparation: two old synthetic with-doctor visits finished through
+  approved queue actions (zero-price sample medicine where no prescription
+  existed). No bill/payment was confirmed for those preparation visits.
+  Test scripts created synthetic fixtures; no production data copied or touched.
+- User signed into the internal browser themselves. No browser credentials
+  entered by Codex. Physical printer, real Safari and real Drive remain unverified.
+- Uncommitted: this test/CI/doc change. Next: finish review and PR into main,
+  then separate alert-settings and Drive PDF archive changes. Never merge #7;
+  all merges require user instruction; production commands remain user-only.
+
+
 ## Populated doctor visual check — 2026-10-12
 
 - Used the current staging preview (PR #11 build) with three owned synthetic
@@ -2449,3 +2491,7 @@ independently before step 4 introduces the dark button variant.
 - Doctor archive history and private prescription download passed. All6 synthetic prescriptions and11 receipts are ready in Drive. Downloaded A4 PDF visually inspected; affected layout uses Hanken without page overflow at1440/390. Reception/offline receipt checks remain passing from the preceding entry.
 - Restored staging permitted preview origin and verified OPTIONS204/allowed-origin. No production or merge. Existing completed-consultation “View prescription” routes to billing/receipt in the tested fixture; prescription print from that route is not verified. Fresh physical printer/Safari remain open, alongside the documented oversized-row archive limitation.
 - PR35/36/37 ready for user review in that order; hosted Actions blocked by account billing. No uncommitted source; generated output/ evidence remains local. Next: review/merge authorization, resolve the recorded prescription navigation issue, then human release acceptance.
+
+## Optional issued-view CI regression — 2026-10-17
+
+PR35's unit runner now includes the issued prescription navigation test when present after that feature merges. Local tests pass, no source logic changed; GitHub billing still prevents hosted runs. No production/merge; returning to the navigation branch after this push. Only local output/ remains untracked.

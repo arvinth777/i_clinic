@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+export function assertStaging(url) { assert.equal(new URL(url).hostname, 'cofnrcgsolluyhghutah.supabase.co', 'Live tests must target staging') }
 export function checked(result){assert.ifError(result.error);return result.data}
 // Drive synthetic fixtures through the same queue/approval boundary as both screens.
 export async function sendToBilling(doctor,reception,clinicId,visitId,amount){

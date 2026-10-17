@@ -1,8 +1,8 @@
-export type AlertTarget = { section: string; visitId?: string; patientId?: string; medicineId?: string; patientTab?: 'visits' | 'documents' }
+export type AlertTarget = { section: string; billId?: string; visitId?: string; patientId?: string; medicineId?: string; patientTab?: 'visits' | 'documents' }
 export type ClinicAlert = AlertTarget & { id: string; title: string; detail: string; severity: 'blue' | 'amber' | 'red'; informational?: boolean }
 export type AlertVisit = { id: string; patient_id: string; token_number: number; stage: string; arrived_at: string; called_at: string | null; not_here_at: string | null; discount_requested_at: string | null }
 export type AlertMedicine = { id: string; name: string; low_stock_threshold: number | null; expiry_date: string | null }
-export type AlertSource = { visits: AlertVisit[]; medicines: AlertMedicine[]; stock: { medicine_id: string; quantity: number }[]; noShowMinutes: number; shortfalls: { bill_id: string; shortfall: number; bills: { visit_id: string; visits: { patient_id: string; token_number: number } } }[] }
+export type AlertSource = { calledReminderMinutes?: number; closingMinute?: number; unpaidBills?: { bill_id: string; visit_id: string; token_number: number; final_amount_paise: number }[]; visits: AlertVisit[]; medicines: AlertMedicine[]; stock: { medicine_id: string; quantity: number }[]; noShowMinutes: number; shortfalls: { bill_id: string; shortfall: number; bills: { visit_id: string; visits: { patient_id: string; token_number: number } } }[] }
 export type RecentAlert = ClinicAlert & { read: boolean; dismissed: boolean; firstSeen: string; resolvedAt: string | null }
 
 export function buildClinicAlerts(source: AlertSource, isDoctor: boolean, now: number, today: string): ClinicAlert[] {
@@ -11,7 +11,7 @@ export function buildClinicAlerts(source: AlertSource, isDoctor: boolean, now: n
   for (const visit of [...source.visits].sort((a,b) => (a.stage === 'called' ? 0 : a.stage === 'with_doctor' ? 1 : 2) - (b.stage === 'called' ? 0 : b.stage === 'with_doctor' ? 1 : 2) || b.arrived_at.localeCompare(a.arrived_at))) {
     if (visit.stage === 'called') {
       add(visit, 'called', 'Called · waiting for reception', 'Reception needs to mark Sent in.', 'reception')
-      if (visit.called_at && now - Date.parse(visit.called_at) >= 5 * 60_000) add(visit, 'sent-reminder', 'Still waiting to be sent in', 'Called at least five minutes ago. Check presence before acting.', 'reception')
+      if (visit.called_at && now - Date.parse(visit.called_at) >= (source.calledReminderMinutes ?? 5) * 60_000) add(visit, 'sent-reminder', 'Still waiting to be sent in', `Called at least ${source.calledReminderMinutes ?? 5} minutes ago. Check presence before acting.`, 'reception')
     }
     if (isDoctor && visit.stage === 'with_doctor') add(visit, 'sent', 'Reception sent this patient in', 'Open the doctor workspace.', 'consultation')
     if (!isDoctor && visit.stage === 'ready_to_bill') add(visit, 'bill', 'Ready to bill', 'Review supplied quantities and collect payment.', 'billing')
@@ -40,8 +40,13 @@ export function buildClinicAlerts(source: AlertSource, isDoctor: boolean, now: n
     for (const row of source.shortfalls) bills.set(row.bill_id, [...(bills.get(row.bill_id) ?? []), row])
     for (const [id, rows] of bills) alerts.push({ id: `shortfall:${id}`, title: `#${rows[0].bills.visits.token_number} · Partial medicine supply`, detail: `${rows.reduce((sum, row) => sum + row.shortfall, 0)} prescribed units were not supplied. See visit history.`, severity: 'amber', section: 'patients', patientId: rows[0].bills.visits.patient_id, visitId: rows[0].bills.visit_id, informational: true })
   }
-  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', hourCycle: 'h23' }).format(new Date(now))
-  if (Number(parts) >= 16 && source.visits.length) alerts.push({ id: `closing:${today}`, title: 'End-of-day review', detail: `${source.visits.filter(v => v.stage === 'ready_to_bill').length} unpaid visits · ${source.visits.filter(v => v.stage !== 'ready_to_bill').length} unresolved visits. Check pending saves and uploads too.`, section: 'reception', severity: 'amber' })
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(now))
+  const hour = Number(parts.find(part => part.type === 'hour')?.value)
+  const minute = Number(parts.find(part => part.type === 'minute')?.value)
+  if (hour * 60 + minute >= (source.closingMinute ?? 960)) {
+    if (source.visits.length || source.unpaidBills?.length) alerts.push({ id: `closing:${today}`, title: 'End-of-day review', detail: `${source.visits.filter(v => v.stage === 'ready_to_bill').length} visits awaiting billing · ${source.visits.filter(v => v.stage !== 'ready_to_bill').length} unresolved visits. Open the closing checklist in Alerts to check local saves and uploads.`, section: 'reception', severity: 'amber' })
+    if (!isDoctor) for (const bill of source.unpaidBills ?? []) alerts.push({ id: `unpaid:${bill.bill_id}`, title: `#${bill.token_number} · Payment outstanding`, detail: 'Review this unpaid bill before closing the clinic.', section: 'unpaid', visitId: bill.visit_id, billId: bill.bill_id, severity: 'amber' })
+  }
   return alerts
 }
 

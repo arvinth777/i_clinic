@@ -113,7 +113,7 @@ function App() {
         {activeSection === 'reception' && <Reception highlightVisitId={alertTarget?.section === 'reception' ? alertTarget.visitId : undefined} userId={session.user.id} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'patients' && clinicId && <Patients key={`${recordPatientId}:${alertNavigation}`} initialTab={alertTarget?.patientTab} highlightVisitId={alertTarget?.section === 'patients' ? alertTarget.visitId : undefined} locked={locked} initialPatientId={recordPatientId} clinicId={clinicId} isDoctor={!!roles?.some(r => r.role === 'doctor')} canBill={!!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'billing' && clinicId && <BillingDesk key={alertNavigation} initialVisitId={alertTarget?.section === 'billing' ? alertTarget.visitId : undefined} clinicId={clinicId} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
-        {activeSection === 'unpaid' && clinicId && <UnpaidBills clinicId={clinicId} />}
+        {activeSection === 'unpaid' && clinicId && <UnpaidBills key={alertNavigation} clinicId={clinicId} initialBillId={alertTarget?.section === 'unpaid' ? alertTarget.billId : undefined} />}
         {activeSection === 'consultation' && <Consultation alertNavigation={alertNavigation} requestedVisitId={alertTarget?.section === 'consultation' ? alertTarget.visitId : undefined} userId={session.user.id} onOpenPatient={id=>{setRecordPatientId(id);setManualSection('patients')}} />}
         {activeSection === 'pharmacy' && clinicId && <PharmacyBills clinicId={clinicId} isDoctor={roles?.some((r) => r.role === 'doctor') ?? false} />}
         {activeSection === 'suppliers' && clinicId && <Suppliers clinicId={clinicId} />}

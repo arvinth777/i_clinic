@@ -6,12 +6,14 @@
 
 **Current Codex delta (2026-10-17):** main/production verified at `1eeaa92`. Open, unmerged PR35 repairs tests/CI; draft PR36 adds reminder settings; draft PR37 adds Drive PDF archives and continuation/receipt fixes; PR38 fixes issued-prescription viewing and offline printing. Doctor/reception browser and offline replay checks passed. Physical printer/Safari acceptance and hosted CI (account billing block) remain. Production untouched; merge only when the user instructs. The table below is historical; see newest section9 entries.
 
+**Current Codex delta (2026-10-17):** main/production remain `1eeaa92`. Unmerged PR35 repairs baseline tests/CI; draft PR36 implements alert settings; draft PR37 implements Drive PDF archives. Doctor/reception app checks and offline replay passed; all17 synthetic archive jobs ready. Fresh physical print/Safari acceptance and completed-consultation prescription navigation remain open. GitHub Actions cannot start due to billing lock. Production untouched; merge only on user instruction. See newest section9 entries.
+
 **Verify first:** `git fetch origin && git log --oneline -3 origin/main origin/production && gh pr list` and `cat supabase/.temp/project-ref` (root must say `cofnrcgsolluyhghutah`, staging).
 
 | Thing | State at hand-off |
 |---|---|
-| `main` (staging branch) | `40dfb42` (Timeline merged, PR #32), plus this note's PR if merged |
-| `production` (release branch, Vercel Production) | `5920ce8`: has everything **except the unified patient timeline** (PR #32). A `main` -> `production` release PR for it is the next release step (no migration needed) |
+| `main` (staging branch) | `1eeaa92` (synced with production after PR #34; verified 2026-10-17) |
+| `production` (release branch, Vercel Production) | `1eeaa92`: unified patient timeline released by PR #34; no timeline release pending |
 | Production database `rmuhpgpvgvwchovlgxae` | all 9 migrations applied, last `20261017020000` (duplicates). Nothing pending. Contains **one test patient** "ZZ TEST height-weight release check (delete)" (token #1, state `called`); no other data |
 | Staging database `cofnrcgsolluyhghutah` | same migrations; full of synthetic/test clutter (many `BODY<tag>`, `Ramesh Kumar <tag>`, audit fixtures). Free to change |
 | Open PRs | only **#7** (Codex, draft, backups): **do not merge**; its real delta is 4 files, re-apply on a fresh branch from `main` when R2 is ready |
@@ -19,7 +21,7 @@
 | Claude Code worktree | `/Users/arvinthcinmayankirupakaran/Desktop/i_clinic/.claude/worktrees/initial-setup-7b40e6` (own branch per task). The user's main folder `/Users/arvinthcinmayankirupakaran/Desktop/i_clinic` tracks `main`; the user pulls it themself. `deploy/production/` is linked to the **production** Supabase project, root `supabase/` to **staging**: never run `db push` from the root toward production |
 | Not committed | `CHANGE-REPORT.md` (historical report of the first fix PR, root of the worktree, intentionally untracked). The backlog audit is now `docs/backlog-audit.md` |
 
-**Delivered since the first hand-off (all on production unless noted):** flow-audit fixes (queue identity, search, IST reports, offline, PIN lock), in-app confirm dialog, lock-screen/scroll hotfixes, production bootstrap + Drive code released, height/weight at registration (PRs #25/#26), possible-duplicate detection on the doctor's Merge screen (#28/#29), unified patient timeline (#32, **main only**). Details per item are in section 9, newest at the bottom.
+**Delivered since the first hand-off (all on production unless noted):** flow-audit fixes (queue identity, search, IST reports, offline, PIN lock), in-app confirm dialog, lock-screen/scroll hotfixes, production bootstrap + Drive code released, height/weight at registration (PRs #25/#26), possible-duplicate detection on the doctor's Merge screen (#28/#29), unified patient timeline (#32/#34, released). Details per item are in section 9, newest at the bottom.
 
 **The loop that has worked for every feature** (follow `AGENTS.md`; this is how it was applied):
 1. Branch from `origin/main`. Write the failing test first (plain Node script in `scripts/`, against live staging with the test roles; pure logic scripts transpile the TS file in-process, see `scripts/patient-timeline-test.mjs`).
@@ -34,7 +36,7 @@
 **User preferences and rules:** staging may be changed freely, **production never unless the user asks**; the user signs in everywhere (never type or request passwords); the user runs every production command; no `Co-Authored-By` trailer on commits (their global CLAUDE.md); ponytail style (smallest working change, native before libraries); new colour/size/spacing values must be tokens in `docs/design.md` + `src/index.css`; money is integer paise; never copy patient data into staging or logs.
 
 **Open work, in the order the user cares about** (details and status table: `docs/backlog-audit.md`):
-1. **Release the timeline** (PR for `main` -> `production`; no migration).
+1. **Timeline released** (PR #34, `1eeaa92`); no release action needed.
 2. **Backups**: waiting on the user to say R2 is ready (PR #7 plan above).
 3. **Drive PDF auto-archive** of prescriptions and receipts (largest item; offline-safe retries, narrowly authorised receipt path).
 4. Decisions needed from the user before building: configurable called-patient reminder delay, closing time / end-of-day checklist, notification mute.
@@ -363,6 +365,43 @@ Browser found stale batch counts and missing list-loading feedback; fixed with p
 
 Staging app URL restored to `https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app`, verified OPTIONS204/ACAO; no OAuth credentials or production changed. Doctor archive-history UI/doctor offline settings, Safari and physical-printer acceptance remain pending; user asked to switch accounts themselves. No merge authorized.
 
+### 2026-10-17: test baseline PR #35; alert settings branch
+- `codex/test-baseline` pushed, PR #35 into main opened; not merged. Fresh staging suites pass (billing 16, pricing 15, handoff 10, stock 25, offline 21, phase-g 21, isolation 21), local CI suites 7/7; typecheck/build, lint at eight warnings and 86 query-schema checks pass. Standards/spec review complete.
+- Started `codex/alert-settings` from `origin/main` `1eeaa92`, independently of unmerged #35. User approved notification sound mute with all alerts still visible. Defaults remain five-minute called reminder and 16:00 IST close; make timing configurable and add a closing checklist with individual unpaid-bill links.
+- Root remains staging. No production commands or merges. User signs in themselves in the internal browser.
+
+### 2026-10-17: alert-settings migration applied to staging
+- CLI target checked as `cofnrcgsolluyhghutah`; dry run listed only `20261016204344_clinic_alert_settings.sql`, then applied that immutable migration to staging. CLI-generated timestamp sorts before the latest existing files, so `--include-all` was necessary and the dry run was inspected. No production command.
+- New settings: called delay 5 minutes, closing 960 minutes (16:00 IST), doctor/admin-only atomic setter; no client UPDATE policy added. Pure timing test was red before implementation; backend test was red on missing columns. Post-migration checks in progress.
+
+### 2026-10-17 — Alert implementation review/checkpoint
+
+Atomic alert settings, closing checklist and unpaid-bill targets implemented. Fresh backend/pure regression checks pass; tsc/build pass, lint8, schema smoke88. Standards/Spec re-review clear after retaining UPI/notes across background target refresh and disabling confirmation until validation finishes. Doctor browser1440/390 checked; reception and offline reload browser checks pending user sign-in. Production untouched. Preparing draft PR into main; no merge authorized.
+
+### 2026-10-17 — Alert draft PR #36
+
+Pushed `codex/alert-settings` and opened draft PR #36 into main, commit `9ef2ea1`. No merge. Remaining reception/offline browser acceptance is explicit in the PR. Production untouched. Separate Drive archive migration and endpoint are now on staging in an isolated worktree; no archive code is in this PR.
+
+### 2026-10-17 — Release packaging ordering correction (local only)
+
+Renamed the alert production-chain symlink to `20261017030000_clinic_alert_settings.sql`, preserving its exact immutable staging SQL target. It now sorts after production's existing `20261017020000` without forbidden production `--include-all`. Archive will use the next alias `20261017040000`. No production command or database change; pending reviewer/user release gate remains. Added `test:alerts` for the baseline CI optional feature check.
+
+### 2026-10-17 — Backlog draft review checkpoint
+
+PR35 baseline CI repaired (feature hooks added), draft PR36 alert settings and draft PR37 Drive PDF archives are all unmerged. Archive worktree has staging-only migration20261016205705 and JWT-verified endpoint deployed; actual synthetic issued prescription and name-only receipt Drive upload/retry/byte-exact download pass. Application browser/offline/printer acceptance remains pending; internal doctor session idle-locked and user was asked to sign in as reception. Production and main remain `1eeaa92`; no production commands. Both worktrees have only generated local evidence untracked; no credentials committed. Primary checkout returned to `codex/alert-settings`. Shared docs/package edits may need reconciliation when reviewed PRs merge in35,36,37 order.
+
+### 2026-10-17 — Reception browser verification resumed
+
+User signed in themselves as staging reception in the internal localhost5173 browser. Confirmed mute leaves all alerts visible; closing checklist opens token256's actual settlement form; UPI and notes survive two successful unpaid-bill background fetches. Layout has no page overflow at1440/390. Cancelled without settlement. Built PWA offline registration/reload retained2 queued changes and synced automatically after restoring connectivity; read-only staging verification confirms one synthetic patient/visit, token3062.
+
+Temporarily setting staging-only `CLINIC_APP_URL` to localhost5173 for integrated archive browser checks; original permitted origin was `https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app` (OPTIONS header). Restore that value after checks. No OAuth credentials or production secrets changed. All remaining source is committed; local proof screenshots remain untracked.
+
+### 2026-10-17 — Reception acceptance and origin restoration
+
+Reception mute/checklist navigation/background refetch and1440/390 layout checks pass. Offline PWA check-in/reload/sync produced exactly one patient/visit (synthetic token3062); no settlement was issued. On the separate archive build, pending PDFs survived offline reload and resumed on reconnect; all11 synthetic receipts are ready while5 doctor-only prescription jobs remain pending. Receipt Download PDF worked from reception and a real browser print PDF generated while offline was one unclipped A4 page. Source follow-up in PR37 adds immediate per-upload pending counts and existing LoadingRows; tests/review pass.
+
+Restored staging `CLINIC_APP_URL` to the original permitted preview origin; OPTIONS204/ACAO verified. No production or OAuth credential change. Pending doctor sign-in requested only for doctor archive history and doctor reminder settings offline. Physical printer/Safari checks and merge permission remain open. Local screenshots/PDF under output/playwright; browser network/latency overrides restored.
+
 ### 2026-10-17 — Doctor acceptance and staging origin restored
 
 User signed in as staging doctor. Reminder settings changed offline to 35-minute no-show, 7-minute call and 16:15 close; one queued write survived PWA reload. Read-only backend verification stayed at 30/5/960 offline, then became 35/7/975 on reconnect. Doctor restored 30/5/16:00; backend confirmed 30/5/960.
@@ -376,3 +415,30 @@ Restored staging CLINIC_APP_URL to https://iclinic-1jplfzbwe-arvinth777s-project
 User requested remaining fixes. PR37 follow-up fragments oversized text rows at measured word/grapheme boundaries with markup, labels, patient/header/footer retained; browser character-for-character tests include English/Tamil/unbrokenemoji and medicine/receipt columns. Stress prescription17pages15.98MB, oversized receipt5pages, normal long prescription5pages and longreceipt3pages. Short/typical/receipt assert1page. Ordinary receipt regression was caught (2pages); fixed min-heightA4 contaminating intrinsic-content capacity measurement. No financial calculation, schema, permissions or endpoint change. Fresh local checks/reviews pass. Clinic-printer packet in output/pdf; actual printer/Safari sign-off remains open.
 
 Navigation fix pushed separately in PR38; baselinePR35 optional unit hook pushed, combined local8/8 suites verified. Alert PR36 unchanged. No merges, no production commands. Staging origin remains restored to its original preview URL; no further secret writes in this turn.
+
+### 2026-10-17: Codex resumes approved backlog — branch `codex/test-baseline`
+- User approved Drive PDF auto-archive, alert settings and test/validation gaps. Branch created from `origin/main` `1eeaa92`; `origin/production` is the same commit. Timeline release PR #34 is already merged; older START HERE timeline-pending statements are stale.
+- Root CLI target confirmed staging (`cofnrcgsolluyhghutah`). No production commands, merge or database changes. Begin by reproducing the seven reported failing legacy suites, then separate feature PRs into main. Merges require user instruction.
+- User confirmed notification mute silences sounds while all alerts remain visible. Existing 16:00 IST closing and five-minute called-patient reminder retained as defaults.
+
+### 2026-10-17: test-baseline staging run
+- Reproduced seven failures; corrected legacy fixtures/assertions to current public APIs, not backend weakening. Fresh results: billing 16, pricing 15, approval/handoff 10, stock 25, offline 21, phase-g 21, isolation 21 all pass; CI seven local suites pass after a fresh build.
+- Two existing synthetic with-doctor fixtures were finished with explicit approval and valid synthetic prescriptions to unblock the shared staging queue. The attempted Not here action was rejected for with-doctor as expected. No production commands or merges.
+- Added pull-request CI with no database credentials; lint enforces at most eight warnings. Browser sign-in performed by the user in the internal browser. Physical/Safari/Drive checks are not claimed.
+- Standards/spec review findings fixed: stock rejection proves no bill, paid retry proves the same ID, midnight regression retains older ready-to-bill/paid cases. Source re-review has no remaining blockers. No merge authorized.
+
+### 2026-10-17 — PR #35 CI feature hooks
+
+Temporarily checked out `codex/test-baseline` from the alert branch to add optional `test:alerts` and `test:archives` CI steps. Their scripts are introduced by the independent feature PRs and run once those features are present. Existing baseline unit suites remain mandatory. No merge or staging/production mutation; GitHub account billing lock still prevents hosted jobs from starting. Returning to `codex/alert-settings` after push.
+
+### 2026-10-17 — Baseline CI feature regression hook
+
+Returned temporarily to codex/test-baseline for PR35: its unit runner includes the issued-prescription-view regression when that feature file is present. The baseline still runs independently before the feature merges. Local unit suite verified; hosted Actions remain blocked by GitHub account billing. New navigation PR is separate; main/production unchanged, no merge.
+
+### 2026-10-17 — Authorized merge35 and alert integration
+
+User instructed merge. PR35 merged into main at3804ce6. Verified Vercel production branch is production; production remains1eeaa92. Integrated origin/main into codex/alert-settings for PR36; resolved additive docs and package-script conflicts retaining both test:unit and test:alerts. No app behavior changed during conflict resolution. Local checks precede PR36 merge. No production command.
+
+### 2026-10-17 — Authorized merge36 and archive integration
+
+PR36 merged into main at8724301 after integrating PR35 and passing tsc/lint8/build/unit/alert checks. Integrated origin/main into PR37's archive worktree; source App merged additively, preserving both alert navigation and ArchiveWorker. Retained all test scripts and both feature requirement/runbook records in document conflicts. Running combined checks before archive merge; no database/secret or production command. PR7 remains untouched.
