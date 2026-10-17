@@ -119,7 +119,7 @@ export function TokenList({ clinicId, onSelectVisit, highlightVisitId }: { clini
   return <div className="queue-worklist">
     {viewError && <QueryError retry={() => void reload()} savedAt={savedAt} />}
     <div className="queue-tools">
-      <div className="queue-filters" aria-label="Queue filter">{(['active', 'done', 'all', 'earlier'] as const).map(value => <button key={value} className="shell-nav-item" aria-pressed={filter === value} onClick={() => { setFilter(value); setVisibleCount(50) }}>{value === 'done' ? 'Done today' : value === 'active' ? 'Active' : value === 'earlier' ? 'Earlier open visits' : 'All today'}</button>)}</div>
+      <div className="queue-filters" role="group" aria-label="Queue filter">{(['active', 'done', 'all', 'earlier'] as const).map(value => <button key={value} className="shell-nav-item" aria-pressed={filter === value} onClick={() => { setFilter(value); setVisibleCount(50) }}>{value === 'done' ? 'Done today' : value === 'active' ? 'Active' : value === 'earlier' ? 'Earlier open visits' : 'All today'}</button>)}</div>
       <details className="queue-sort"><summary>Sort</summary>{(['token', 'name', 'stage', 'wait'] as const).map(key => <button key={key} className="shell-nav-item" onClick={() => setSort(nextSortState(sort, key))}>{key}{sort?.key === key ? sort.direction === 'asc' ? ' ↑' : ' ↓' : ''}</button>)}</details>
     </div>
     {onSelectVisit && <Input aria-label="Optional queue move reason" placeholder="Move reason (optional)" value={reason} onChange={e=>setReason(e.target.value)} maxLength={500} />}

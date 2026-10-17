@@ -486,16 +486,16 @@ export function PrescriptionForm({
                 </div>
                 <div className="field">
                   <label className="field-label">Food</label>
-                  <div className="text-toggles" aria-label={`Food for ${item.medicineName}`}>{FOOD_OPTIONS.map(food => <button key={food} type="button" aria-pressed={item.beforeAfterFood === food} onClick={() => updateDraft(item.key, { beforeAfterFood: food })}>{food}</button>)}</div>
+                  <div className="text-toggles" role="group" aria-label={`Food for ${item.medicineName}`}>{FOOD_OPTIONS.map(food => <button key={food} type="button" aria-pressed={item.beforeAfterFood === food} onClick={() => updateDraft(item.key, { beforeAfterFood: food })}>{food}</button>)}</div>
                 </div>
                 <div className="field">
                   <label className="field-label">Frequency</label>
-                  <div className="text-toggles" aria-label={`Dose presets for ${item.medicineName}`}>{['1-0-0', '1-0-1', '1-1-1', 'SOS'].map(dose => <button key={dose} type="button" aria-pressed={item.dosageFrequency === dose} onClick={() => updateDraft(item.key, { dosageFrequency: dose })}>{dose}</button>)}</div>
+                  <div className="text-toggles" role="group" aria-label={`Dose presets for ${item.medicineName}`}>{['1-0-0', '1-0-1', '1-1-1', 'SOS'].map(dose => <button key={dose} type="button" aria-pressed={item.dosageFrequency === dose} onClick={() => updateDraft(item.key, { dosageFrequency: dose })}>{dose}</button>)}</div>
                   <Input aria-label={`Frequency for ${item.medicineName}`} list="rx-frequencies" value={item.dosageFrequency} maxLength={200} onChange={e => updateDraft(item.key, { dosageFrequency: e.target.value })} placeholder="1-0-1, SOS, or type instructions" />
                 </div>
                 <div className="field">
                   <label className="field-label">Duration (days)</label>
-                  <div className="text-toggles" aria-label={`Duration presets for ${item.medicineName}`}>{['3', '5', '7', '14', '30'].map(days => <button key={days} type="button" aria-pressed={item.durationDays === days} onClick={() => updateDraft(item.key, { durationDays: days })}>{days}</button>)}</div>
+                  <div className="text-toggles" role="group" aria-label={`Duration presets for ${item.medicineName}`}>{['3', '5', '7', '14', '30'].map(days => <button key={days} type="button" aria-pressed={item.durationDays === days} onClick={() => updateDraft(item.key, { durationDays: days })}>{days}</button>)}</div>
                   <Input
                     type="number"
                     min="1"

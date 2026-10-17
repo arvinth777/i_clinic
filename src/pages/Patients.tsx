@@ -61,7 +61,7 @@ export function Patients({ clinicId, isDoctor, canBill, initialPatientId, locked
     },
   })
   const { data: notes, error: noteError } = useQuery({
-    queryKey: ['patient-comments', patient?.id], enabled: !!patient && isDoctor,
+    queryKey: ['patient-comments', patient?.id, 'newest-first'], enabled: !!patient && isDoctor,
     queryFn: async () => {
       const { data, error } = await supabase.from('patient_comments').select('id, body, created_at').eq('clinic_id', clinicId).eq('patient_id', patient!.id).order('created_at', { ascending: false })
       if (error) throw error

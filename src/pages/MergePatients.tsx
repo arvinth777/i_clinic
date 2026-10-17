@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/date'
@@ -21,6 +21,7 @@ const brief = (c: Candidate) => [c.name, c.age ? `${c.age}y` : '', c.phone ?? ''
 // function needed for this.
 function PatientSearch({ label, clinicId, selected, onSelect }: { label: string; clinicId: string; selected: Candidate | null; onSelect: (c: Candidate | null) => void }) {
   const [query, setQuery] = useState('')
+  const inputId = useId()
   const { data: results } = useQuery({
     queryKey: ['merge-search', clinicId, query],
     enabled: query.trim().length > 0,
@@ -33,7 +34,7 @@ function PatientSearch({ label, clinicId, selected, onSelect }: { label: string;
 
   return (
     <div className="field search-results-anchor">
-      <label className="field-label">{label}</label>
+      <label className="field-label" htmlFor={inputId}>{label}</label>
       {selected ? (
         <div className="search-result-button merge-selected">
           <span>
@@ -49,7 +50,7 @@ function PatientSearch({ label, clinicId, selected, onSelect }: { label: string;
         </div>
       ) : (
         <>
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or phone" />
+          <Input id={inputId} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or phone" />
           {query.trim() && (results?.length ?? 0) > 0 && (
             <ul className="search-results">
               {results!.map((c) => (

@@ -56,6 +56,7 @@ export function LockScreen({ locked, onUnlock }: { locked: boolean; onUnlock: ()
             <input
               type="password"
               inputMode="numeric"
+              aria-label="PIN"
               autoFocus
               value={pin}
               onChange={(e) => setPin(e.target.value)}
