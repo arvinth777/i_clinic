@@ -144,6 +144,27 @@ export function getHalted(): HaltedMutation | null {
   return halted
 }
 
+// A halted change stays at the front of the queue until a person decides.
+// Retry: clear the halt and try the same change again (e.g. after the cause was fixed).
+export async function retryHalted(): Promise<void> {
+  halted = null
+  notify()
+  await drainQueue()
+}
+
+// Discard: drop that one change (it was never saved) so the changes queued behind it can sync.
+// Only the account that queued it may discard it; the caller confirms with the person first.
+export async function discardHalted(): Promise<void> {
+  const current = halted
+  if (!current) return
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session || current.mutation.ownerId !== session.user.id) return
+  await dequeue(current.mutation.id)
+  halted = null
+  notify()
+  await drainQueue()
+}
+
 // Serial, oldest-first, stop on the first genuine failure -- requirement 3.
 // A visit_pricing revision replayed out of order breaks the monotonic
 // revision_number; skipping ahead past a failed write would silently

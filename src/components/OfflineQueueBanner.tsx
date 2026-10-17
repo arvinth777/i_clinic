@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { onlineManager, useQueryClient } from '@tanstack/react-query'
-import { drainQueue } from '../lib/offlineQueue'
+import { discardHalted, drainQueue, retryHalted } from '../lib/offlineQueue'
+import { useConfirm } from '../lib/confirm'
 import { useOfflineQueue } from '../lib/useOfflineQueue'
 import './OfflineQueueBanner.css'
 
@@ -16,7 +17,14 @@ export function OfflineQueueBanner({ redact, userId }: { redact: boolean; userId
   const { pending, halted } = useOfflineQueue()
   const online = useSyncExternalStore(onlineManager.subscribe, () => onlineManager.isOnline())
   const client = useQueryClient()
+  const confirm = useConfirm()
   function retry() { void drainQueue(); void client.invalidateQueries() }
+  async function discard() {
+    if (!halted) return
+    if (!(await confirm({ title: 'Discard this change?', body: `"${halted.mutation.description}" was never saved and will be lost. Changes queued after it will then sync.`, confirmLabel: 'Discard' }))) return
+    await discardHalted()
+    void client.invalidateQueries()
+  }
 
   useEffect(() => {
     function handler(e: BeforeUnloadEvent) {
@@ -42,8 +50,10 @@ export function OfflineQueueBanner({ redact, userId }: { redact: boolean; userId
           <>A queued save could not go through. Its original account must review it. Do not close this device.</>
         ) : (
           <>
-            A queued save could not go through ({halted.error}) — {halted.mutation.description}. It needs a person to look
-            at it before anything queued after it can sync. Do not close this device.
+            A queued save could not go through ({halted.error}) — {halted.mutation.description}. Nothing queued after it
+            can sync until you retry it or discard it. Do not close this device.
+            <button className="ui-button ui-button-neutral" onClick={() => void retryHalted()}>Retry</button>
+            <button className="ui-button ui-button-neutral" onClick={() => void discard()}>Discard this change</button>
           </>
         )}
       </div>
