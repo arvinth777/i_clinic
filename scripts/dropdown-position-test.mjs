@@ -177,7 +177,9 @@ report('Procedures dropdown: a real coordinate click actually lands on it', proc
 
 // ---- MergePatients (standalone page, not inside a fixed drawer -- the audit's "unconfirmed" instance) ----
 await page.locator('.drawer-close').click()
-await page.getByRole('button', { name: 'Merge patients' }).click()
+await page.getByRole('link', { name: 'Patients', exact: true }).first().click()
+await page.getByRole('link', { name: 'Possible duplicates' }).click()
+await page.getByText('Merge two patients yourself').click()
 await page.waitForTimeout(500)
 await page.locator('input[placeholder="Search by name or phone"]').first().fill('Dropdown Position Test')
 await page.waitForTimeout(700)

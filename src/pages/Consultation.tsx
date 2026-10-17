@@ -12,7 +12,8 @@ import { RepQueueRows } from '../components/RepQueueRows'
 import { type TodayVisit } from '../components/TodayFlow'
 import { ConsultationClock } from '../components/ConsultationClock'
 import { Button } from '../components/ui/button'
-import { useQueueAction } from '../lib/queueActions'
+import { useQueueAction, CANCEL_VISIT_DIALOG } from '../lib/queueActions'
+import { useAskReason } from '../lib/confirm'
 import { LoadingRows, QueryError } from '../components/QueryState'
 import { readPrescriptionPrint } from '../lib/prescriptionPrint'
 import { Billing } from '../components/Billing'
@@ -116,6 +117,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
   }, [alertNavigation, requestedVisitId, prescribingActive, reviewVisitId])
   const requested = useQuery({ queryKey: ['doctor-alert-visit', clinicId, requestedVisitId], refetchInterval: useQueuePollInterval(), enabled: !!clinicId && !!requestedVisitId, queryFn: async () => { const {data,error}=await supabase.from('visits').select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone, height_cm, weight_kg)').eq('clinic_id',clinicId!).eq('id',requestedVisitId!).maybeSingle(); if(error) throw error; return data as unknown as DoctorVisit | null } })
   const queueAction = useQueueAction(clinicId)
+  const askReason = useAskReason()
 
   const interval = useQueuePollInterval()
   const today = startOfToday()
@@ -281,7 +283,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
             <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />
           </ul>
           {reviewVisitId && <Button variant="secondary" onClick={()=>{setReviewVisitId(null);setWorkspace('overview')}}>Return to consultation</Button>}
-          {earlierCount>0 && <div className="doctor-earlier"><p className="field-hint">Left open from earlier days · {earlierCount}</p><p>Not counted in today’s queue. Reception can review them under Earlier open visits.</p></div>}
+          {earlierCount>0 && <div className="doctor-earlier"><p className="field-hint">Still open from earlier days · {earlierCount}</p><p>Not counted in today’s queue. Reception can close them under Earlier days.</p></div>}
           </div>
         </aside>
         <div className="consultation-stage">
@@ -295,6 +297,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
                   <h2>{current.patients?.name}</h2>
                   <p>{formatAgeSex(current.patients?.age ?? null, current.patients?.gender ?? null)}{formatBody(current.patients?.height_cm, current.patients?.weight_kg) ? ` · ${formatBody(current.patients?.height_cm, current.patients?.weight_kg)}` : ''}{current.patients?.phone ? ` · ${current.patients.phone}` : ''}</p>
                   {current.patients?.address && <p className="field-hint">{current.patients.address}</p>}
+                  {current.stage !== 'paid' && <Button variant="ghost" disabled={queueAction.isPending} onClick={() => void askReason({ ...CANCEL_VISIT_DIALOG, body: `#${current.token_number} ${current.patients?.name ?? ''}. ${CANCEL_VISIT_DIALOG.body}` }).then(why => { if (why) queueAction.mutate({ visitId: current.id, action: 'cancel', reason: why }) })}>Cancel visit</Button>}
                 </div>{sent ? <div className="doctor-sent"><strong className="status-green">Prescription sent to billing</strong><Button variant="secondary" onClick={()=>setWorkspace('prescription')}>View prescription</Button></div> : <Button disabled={current.stage==='called'} onClick={() => setWorkspace('prescription')}>{prescribingActive ? 'Continue prescription →' : 'Start prescription →'}</Button>}</div>
               </section>
               <div className="doctor-context">

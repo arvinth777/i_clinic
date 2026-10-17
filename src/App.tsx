@@ -14,7 +14,6 @@ import { Consultation } from './pages/Consultation'
 const Admin = lazy(() => import('./pages/Admin').then(module => ({ default: module.Admin })))
 const PharmacyBills = lazy(() => import('./pages/PharmacyBills').then(module => ({ default: module.PharmacyBills })))
 const Stock = lazy(() => import('./pages/Stock').then(module => ({ default: module.Stock })))
-const Suppliers = lazy(() => import('./components/stock/Suppliers').then(module => ({ default: module.Suppliers })))
 const MergePatients = lazy(() => import('./pages/MergePatients').then(module => ({ default: module.MergePatients })))
 const UnpaidBills = lazy(() => import('./pages/UnpaidBills').then(module => ({ default: module.UnpaidBills })))
 const LongTermRegister = lazy(() => import('./pages/LongTermRegister').then(module => ({ default: module.LongTermRegister })))
@@ -56,30 +55,29 @@ function App() {
   const [recordPatientId, setRecordPatientId] = useState<string | null>(null)
   const [locked, setLocked] = useState(isScreenLocked)
 
+  // One short bar per login. Related tools sit inside their page as tabs (group); Settings lives in the profile menu.
+  const isDoctor = !!roles?.some(r => r.role === 'doctor'), isReception = !!roles?.some(r => r.role === 'receptionist')
+  const isAdmin = !!roles?.some(r => r.role === 'admin')
+  const staff = isDoctor || isReception
   const sections: ShellSection[] = []
-  if (roles?.some((r) => r.role === 'receptionist' || r.role === 'doctor')) sections.push({ key: 'reception', label: 'Reception' })
-  if (roles?.some((r) => r.role === 'receptionist')) sections.push({ key: 'unpaid', label: 'Unpaid bills' })
-  if (roles?.some((r) => r.role === 'receptionist' || r.role === 'doctor')) sections.push({ key: 'billing', label: 'Billing' })
-  if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'consultation', label: 'Doctor' })
-  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'patients', label: 'Patients' })
-  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'stock', label: 'Inventory' })
-  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'pharmacy', label: 'Refills' })
-  if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'merge', label: 'Merge patients' })
-  // Renamed from "Long-term register" -- the user asked directly what
-  // it even meant; "register" (a records-office word) was the jargon,
-  // not the underlying feature (patients flagged for periodic review).
-  if (roles?.some((r) => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'register', label: 'Long-term care' })
-  if (roles?.some((r) => r.role === 'doctor')) sections.push({ key: 'reconciliation', label: 'Needs reconciliation' })
-  if (roles?.some((r) => r.role === 'admin' || r.role === 'doctor')) sections.push({ key: 'reports', label: 'Reports' })
-  if (roles?.some((r) => r.role === 'admin' || r.role === 'doctor')) sections.push({ key: 'admin', label: 'Settings' })
-
-  if (roles?.some(r => r.role === 'doctor' || r.role === 'receptionist')) sections.push({ key: 'suppliers', label: 'Suppliers' })
+  if (isReception) sections.push({ key: 'reception', label: 'Queue' })
+  if (isDoctor) sections.push({ key: 'consultation', label: 'Consultation' })
+  if (staff) sections.push({ key: 'billing', label: 'Billing', tab: 'To collect' })
+  if (staff) sections.push({ key: 'pharmacy', label: 'Medicine sale', group: 'billing' })
+  if (isReception) sections.push({ key: 'unpaid', label: 'Unpaid bills', group: 'billing' })
+  if (staff) sections.push({ key: 'patients', label: 'Patients', tab: 'Everyone' })
+  if (staff) sections.push({ key: 'register', label: 'Long-term care', group: 'patients' })
+  if (isDoctor) sections.push({ key: 'merge', label: 'Possible duplicates', group: 'patients' })
+  if (staff) sections.push({ key: 'stock', label: 'Stock' })
+  if (isAdmin || isDoctor) sections.push({ key: 'reports', label: 'Reports', tab: 'Summary' })
+  if (isDoctor) sections.push({ key: 'reconciliation', label: 'Needs review', group: 'reports' })
+  if (isAdmin || isDoctor) sections.push({ key: 'admin', label: 'Settings', account: true })
 
   const clinicId = roles?.[0]?.clinic_id
 
   // Default to the first section this account can see; a manual click
   // overrides that default without needing to sync it into state.
-  const activeSection = manualSection && (manualSection === 'more' || sections.some(s => s.key === manualSection)) ? manualSection : roles?.some(r => r.role === 'doctor') ? 'consultation' : sections[0]?.key ?? ''
+  const activeSection = manualSection && sections.some(s => s.key === manualSection) ? manualSection : isDoctor ? 'consultation' : sections[0]?.key ?? ''
 
   if (loading || rolesLoading) return null
   if (!session) {
@@ -125,8 +123,7 @@ function App() {
         {activeSection === 'unpaid' && clinicId && <UnpaidBills key={alertNavigation} clinicId={clinicId} initialBillId={alertTarget?.section === 'unpaid' ? alertTarget.billId : undefined} />}
         {activeSection === 'consultation' && <Consultation alertNavigation={alertNavigation} requestedVisitId={alertTarget?.section === 'consultation' ? alertTarget.visitId : undefined} userId={session.user.id} onOpenPatient={id=>{setRecordPatientId(id);openSection('patients')}} />}
         {activeSection === 'pharmacy' && clinicId && <PharmacyBills clinicId={clinicId} isDoctor={roles?.some((r) => r.role === 'doctor') ?? false} />}
-        {activeSection === 'suppliers' && clinicId && <Suppliers clinicId={clinicId} />}
-        {activeSection === 'stock' && clinicId && <Stock key={alertNavigation} highlightMedicineId={alertTarget?.section === 'stock' ? alertTarget.medicineId : undefined} clinicId={clinicId} />}
+                {activeSection === 'stock' && clinicId && <Stock key={alertNavigation} highlightMedicineId={alertTarget?.section === 'stock' ? alertTarget.medicineId : undefined} clinicId={clinicId} />}
         {activeSection === 'merge' && clinicId && <MergePatients clinicId={clinicId} />}
         {activeSection === 'register' && clinicId && <LongTermRegister clinicId={clinicId} />}
         {activeSection === 'reconciliation' && clinicId && <Reconciliation clinicId={clinicId} />}

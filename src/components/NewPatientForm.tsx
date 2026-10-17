@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { bodyOk, HEIGHT_RANGE, WEIGHT_RANGE } from '../lib/patientBody'
@@ -23,6 +23,7 @@ export type NewPatientInput = {
 }
 
 type FieldDef = { key: string; label: string; field_type: string }
+export type ExistingPatient = { id: string; name: string; age: number | null; gender: string | null; phone: string | null; address: string | null }
 
 const emptyForm: NewPatientInput = { name: '', age: '', height: '', weight: '', gender: '', address: '', phone: '', complaint: '', customFields: {} }
 
@@ -30,11 +31,13 @@ export function NewPatientForm({
   clinicId,
   initialName,
   onSubmit,
+  onUseExisting,
   submitting,
 }: {
   clinicId: string
   initialName: string
   onSubmit: (input: NewPatientInput) => void
+  onUseExisting: (patient: ExistingPatient) => void
   submitting: boolean
 }) {
   const [form, setForm] = useState<NewPatientInput>({ ...emptyForm, name: initialName })
@@ -50,6 +53,21 @@ export function NewPatientForm({
         .order('display_order')
       if (error) throw error
       return data as FieldDef[]
+    },
+  })
+
+  // Catch a repeat registration while it is being typed: the same 10-digit phone, or a name of 3+ letters.
+  const typedPhone = form.phone.replace(/[\s-]/g, '').replace(/^(\+91|91|0)(?=\d{10}$)/, '')
+  const lookup = /^\d{10}$/.test(typedPhone) ? typedPhone : form.name.trim().length >= 3 ? form.name.trim() : ''
+  const [debouncedLookup, setDebouncedLookup] = useState('')
+  useEffect(() => { const t = setTimeout(() => setDebouncedLookup(lookup), 400); return () => clearTimeout(t) }, [lookup])
+  const { data: similar } = useQuery({
+    queryKey: ['new-patient-similar', clinicId, debouncedLookup],
+    enabled: debouncedLookup.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('search_patients', { p_clinic_id: clinicId, p_query: debouncedLookup })
+      if (error) throw error
+      return (data as ExistingPatient[]).slice(0, 3)
     },
   })
 
@@ -95,6 +113,12 @@ export function NewPatientForm({
           </span>
         )}
       </div>
+      {debouncedLookup === lookup && (similar?.length ?? 0) > 0 && (
+        <div className="similar-patients" role="status">
+          <p className="field-hint">Already registered? Use the existing record instead of making a second one.</p>
+          <ul>{similar!.map(p => <li key={p.id}><span>{p.name}<span className="search-result-meta">{p.age ? ` · ${p.age}y` : ''}{p.phone ? ` · ${p.phone}` : ''}</span></span><button type="button" className="shell-nav-item" onClick={() => onUseExisting(p)}>Use this patient</button></li>)}</ul>
+        </div>
+      )}
 
       <div className="field">
         <label className="field-label" htmlFor="new-age">

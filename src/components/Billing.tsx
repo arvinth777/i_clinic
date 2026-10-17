@@ -167,10 +167,10 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
     if (!row.medicine_id) {
       const item = plan?.medicines.find(m => m.prescription_item_id === row.prescription_item_id)
       return item && choicesFor(item).length === 0
-        ? `${row.description}: no stocked product matches this molecule, strength and unit. Add that product (with its unit and price confirmed) under Inventory, then refresh this bill.`
+        ? `${row.description}: no stocked product matches this molecule, strength and unit. Add that product (with its unit and price confirmed) under Stock, then refresh this bill.`
         : `${row.description}: choose the stocked product that matches the doctor's molecule and strength.`
     }
-    if (row.quantity > Math.max(0, row.available_quantity??0)) return `${row.description}: only ${Math.max(0, row.available_quantity??0)} in Counter stock. Reduce the supplied units (0 if none can be supplied) or receive stock under Inventory.`
+    if (row.quantity > Math.max(0, row.available_quantity??0)) return `${row.description}: only ${Math.max(0, row.available_quantity??0)} in Counter stock. Reduce the supplied units (0 if none can be supplied) or receive stock under Stock.`
     return null
   }).find(Boolean)
   const payable = subtotal

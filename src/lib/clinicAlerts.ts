@@ -19,7 +19,7 @@ export function buildClinicAlerts(source: AlertSource, isDoctor: boolean, now: n
   }
   if (!isDoctor) {
     const groups = new Map<string, AlertVisit[]>()
-    for (const visit of source.visits.filter(v => v.arrived_at >= today && !['paid', 'no_show'].includes(v.stage))) groups.set(visit.patient_id, [...(groups.get(visit.patient_id) ?? []), visit])
+    for (const visit of source.visits.filter(v => v.arrived_at >= today && !['paid', 'no_show', 'cancelled'].includes(v.stage))) groups.set(visit.patient_id, [...(groups.get(visit.patient_id) ?? []), visit])
     for (const rows of groups.values()) if (rows.length > 1) add(rows[0], 'duplicate', 'Possible duplicate check-in', `Open tokens: ${rows.map(v => `#${v.token_number}`).join(', ')}. Review before issuing another token.`, 'reception')
   }
   const quantities = new Map<string, number>()

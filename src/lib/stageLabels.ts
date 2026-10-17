@@ -5,6 +5,7 @@ export const STAGES: Record<string, { label: string; color: string }> = {
   ready_to_bill: { label: 'Ready to bill', color: 'var(--amber)' },
   not_here: { label: 'Not here', color: 'var(--muted)' },
   no_show: { label: 'No-show', color: 'var(--muted)' },
+  cancelled: { label: 'Cancelled', color: 'var(--muted)' },
   paid: { label: 'Paid', color: 'var(--stage-paid)' },
 }
 
