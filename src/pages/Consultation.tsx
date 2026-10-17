@@ -16,6 +16,7 @@ import { useQueueAction } from '../lib/queueActions'
 import { LoadingRows, QueryError } from '../components/QueryState'
 import { readPrescriptionPrint } from '../lib/prescriptionPrint'
 import { Billing } from '../components/Billing'
+import { IssuedPrescription } from '../components/IssuedPrescription'
 import { formatBody } from '../lib/patientBody'
 import '../components/Worklist.css'
 import './Consultation.css'
@@ -76,7 +77,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
   const queryClient = useQueryClient()
   const { data: clinicId } = useClinicId(userId)
   const [visibleQueueCount, setVisibleQueueCount] = useState(7)
-  const [workspace, setWorkspace] = useState<'overview' | 'prescription'>('overview')
+  const [workspace, setWorkspace] = useState<'overview' | 'prescription' | 'billing'>('overview')
   const [commentDrafts, setCommentDrafts] = useState<Record<string,string>>({})
   const [reviewVisitId,setReviewVisitId]=useState<string|null>(null)
   const [prescribingActive, setPrescribingActive] = useState(false)
@@ -157,7 +158,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
   const requests = discountRequests.data?.pages.flat() ?? []
   const current = (requested.data?.id === reviewVisitId ? requested.data : null) ?? requests.find(v=>v.id===reviewVisitId) ?? visits?.find(v=>v.id===reviewVisitId) ?? active ?? todaysQueue.filter(v => v.stage === 'ready_to_bill').sort((a,b)=>(b.sent_in_at??b.arrived_at).localeCompare(a.sent_in_at??a.arrived_at))[0]
   const rows = todaysQueue.filter(v => ['waiting','not_here'].includes(v.stage))
-  const sent = current?.stage === 'ready_to_bill'
+  const sent = current?.stage === 'ready_to_bill' || current?.stage === 'paid'
   const commentBody=current ? commentDrafts[current.patient_id]??'' : ''
   function setCommentBody(body:string) {if(current)setCommentDrafts(old=>({...old,[current.patient_id]:body}))}
 
@@ -249,7 +250,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
   if (!clinicId) return null
 
   return (
-    <div className={`consultation-page ${workspace === 'prescription' && current ? 'consultation-prescribing' : ''}`}>
+    <div className={`consultation-page ${workspace !== 'overview' && current ? 'consultation-prescribing' : ''}`}>
       {queueAction.isError && <p className="form-error" role="alert">{queueAction.error.message}</p>}
       {queueError && <QueryError retry={() => void reloadQueue()} savedAt={queueSavedAt} />}
       {queueLoading && <LoadingRows label="Loading doctor workspace…" />}
@@ -272,7 +273,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
             {rows.length > visibleQueueCount && <li><Button variant="secondary" onClick={() => setVisibleQueueCount(count => count + 50)}>Show more</Button></li>}
             <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />
           </ul>
-          {requests.filter(v=>v.discount_requested_at && v.stage==='ready_to_bill').map(v=><div className="doctor-earlier" key={v.id}><strong className="status-amber">Discount review · #{v.token_number}</strong><p>{v.patients?.name}</p><Button variant="secondary" disabled={prescribingActive} onClick={()=>{setReviewVisitId(v.id);setWorkspace('prescription')}}>Review bill</Button></div>)}
+          {requests.filter(v=>v.discount_requested_at && v.stage==='ready_to_bill').map(v=><div className="doctor-earlier" key={v.id}><strong className="status-amber">Discount review · #{v.token_number}</strong><p>{v.patients?.name}</p><Button variant="secondary" disabled={prescribingActive} onClick={()=>{setReviewVisitId(v.id);setWorkspace('billing')}}>Review bill</Button></div>)}
           {reviewVisitId && <Button variant="secondary" onClick={()=>{setReviewVisitId(null);setWorkspace('overview')}}>Return to consultation</Button>}
           {discountRequests.isError && <QueryError retry={() => void discountRequests.refetch()} savedAt={discountRequests.dataUpdatedAt} />}
           {discountRequests.hasNextPage && <Button variant="secondary" disabled={discountRequests.isFetchingNextPage} onClick={() => void discountRequests.fetchNextPage()}>Show more discount requests</Button>}
@@ -281,7 +282,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
         </aside>
         <div className="consultation-stage">
           {!current ? <div className="doctor-idle"><h2>Ready for the next patient</h2><p className="readout-empty">Call next to begin a consultation.</p></div> : <>
-            {workspace === 'prescription' && <div className="rx-toolbar"><Button variant="ghost" onClick={() => setWorkspace('overview')}>← Workspace</Button><strong>Prescription · #{current.token_number} · {current.patients?.name}</strong></div>}
+            {workspace !== 'overview' && <div className="rx-toolbar"><Button variant="ghost" onClick={() => setWorkspace('overview')}>← Workspace</Button><strong>{workspace === 'billing' ? 'Bill review' : 'Prescription'} · #{current.token_number} · {current.patients?.name}</strong></div>}
             <div className="doctor-overview" hidden={workspace !== 'overview'}>
               <section className="doctor-current">
                 <p className={current.stage==='called' ? 'status-amber' : 'status-blue'}>{current.stage==='called' ? `Called · waiting for reception to send #${current.token_number} in` : current.sent_in_at ? `Reception sent #${current.token_number} in · ${new Date(current.sent_in_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` : `#${current.token_number} · With doctor`}</p>
@@ -314,8 +315,8 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
                 {current.patients?.address && <p className="field-hint">Address: {current.patients.address}</p>}
               </section>
             </div>
-            <div id="stage-prescription" hidden={workspace !== 'prescription'}>
-              {sent ? <Billing clinicId={clinicId} visitId={current.id} readOnly onClose={()=>setWorkspace('overview')} /> : <PrescriptionForm userId={userId} visit={current} key={current.id} clinicId={clinicId} visitId={current.id} pastPrescriptions={prescriptions} onActiveChange={setPrescribingActive}>
+            <div id="stage-prescription" hidden={workspace === 'overview'}>
+              {sent && workspace === 'billing' ? <Billing clinicId={clinicId} visitId={current.id} readOnly onClose={()=>setWorkspace('overview')} /> : sent ? <IssuedPrescription key={current.id} userId={userId} clinicId={clinicId} visitId={current.id} /> : <PrescriptionForm userId={userId} visit={current} key={current.id} clinicId={clinicId} visitId={current.id} pastPrescriptions={prescriptions} onActiveChange={setPrescribingActive}>
                 <CarePanel clinicId={clinicId} key={`care-${current.id}`} visitId={current.id} patientId={current.patient_id} />
                 <details className="rx-support" open><summary>Procedures &amp; bill approval</summary><PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} /></details>
                 <details className="rx-support"><summary>Documents</summary><DocumentsPanel key={`docs-${current.id}`} clinicId={clinicId} visitId={current.id} patientName={current.patients?.name ?? ''} patientAge={current.patients?.age ?? null} complaint={current.complaint} issuedBy={userId} /></details>

@@ -1,5 +1,13 @@
 # Status
 
+## Issued prescription navigation — 2026-10-17
+
+- Fixed completed-consultation View prescription opening Billing. It now opens a read-only A4 prescription with Print; Review bill keeps its own billing workspace. Paid visits also remain read-only.
+- Existing owner/clinic/visit IndexedDB issued snapshots take precedence and are never replaced by later catalog edits. Uncached visits use immutable approved medicine lines plus saved diagnosis/advice independently of medicine items; procedure-only clinical fields are preserved. No database, billing/stock mutation, auth or RLS change.
+- Regression was red before the fix; routing, discount-review routing, offline print snapshot and procedure-only cases now pass. Fresh tsc/build/lint8 and 89-query staging schema smoke pass. Standards/spec review findings fixed and re-reviewed clear. Staging security advisor returned no errors; existing advisories remain.
+- Browser doctor check: measured1440/390 with Hanken and no page overflow; offline PWA reload retained the print copy after the updated service worker activated. Browser PDF printed at zero connectivity: one unclipped A4 prescription. Evidence under local output/playwright/issued-prescription-*; actual printer and Safari still require human acceptance. Production untouched and no merge authorized.
+- Branch codex/issued-prescription-view from origin/main1eeaa92. Next: open separate PR into main; PR35/36/37 remain unmerged. Archive oversized-row follow-up stays in PR37's worktree. Only generated output/ remains untracked after this commit.
+
 ## Populated doctor visual check — 2026-10-12
 
 - Used the current staging preview (PR #11 build) with three owned synthetic
