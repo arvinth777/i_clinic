@@ -236,10 +236,14 @@ export function PrescriptionForm({
         .select('id')
         .single()
       if (templateErr) throw templateErr
+      // A template stores what to prescribe, not how many to supply: prescription_template_items has no quantity column.
       const { error: itemsErr } = await supabase
         .from('prescription_template_items')
-        .insert(draftItems.map((item) => ({ ...itemRow(item), clinic_id: clinicId, template_id: template.id })))
-      if (itemsErr) throw itemsErr
+        .insert(draftItems.map((item) => { const { quantity_dispensed: _quantity, ...row } = itemRow(item); return { ...row, clinic_id: clinicId, template_id: template.id } }))
+      if (itemsErr) {
+        await supabase.from('prescription_templates').delete().eq('id', template.id) // never leave an empty template behind
+        throw itemsErr
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: templatesKey })
