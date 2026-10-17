@@ -4,6 +4,10 @@ Captured from the user's explanation on 2026-10-10. This records the
 intended product and open questions; it is not an implementation spec or
 authorization to delete existing features or records.
 
+## 2026-10-17 user revision (implementation in progress)
+
+The doctor prescribes the molecule, strength and instructions; reception selects the matching stocked manufacturer/product following the doctor's verbal direction, confirms actual stock and bills the catalog rate. A different strength or stock unit requires a new doctor prescription. The doctor does not approve each medicine price. Consultation defaults are ₹250 for a first visit and ₹200 for a returning consultation, with a doctor-entered override. The staging-only implementation of this revised workflow is on `codex/prescription-print-workflow`; it has not been merged or released. The name-only refill exception remains. This revision removes automatic idle locking and manual patient-file uploads. Bills use 9.5 × 11 inch continuous paper with English and Tamil medication warnings. Issued prescriptions and paid bills archive automatically to Drive; historical uploads stay readable. Later decisions in this paragraph supersede older fixed-fee, discount and approval statements below.
+
 ## Purpose
 
 New UI direction: see `docs/ui-handoff-plan.md` and the preserved
@@ -47,7 +51,8 @@ not assume the old phase checklist proves the product is useful.
 6. Reception bills consultation and supplied medicines, records Cash
    or UPI, and prints an itemised receipt. Payment confirmation deducts
    the actual supplied quantity from stock exactly once.
-   A consultation visit includes the 25000-paise (₹250) fee; a refill-only
+   A first consultation defaults to 25000 paise (₹250), a return visit to
+   20000 paise (₹200), and the doctor may change that consultation charge; a refill-only
    sale skips the doctor's queue and has no consultation fee. Each
    medicine line charges quantity supplied × saved unit price.
 7. Inventory shows stock counts, low-stock alerts, and approaching
@@ -56,17 +61,18 @@ not assume the old phase checklist proves the product is useful.
 8. Recorded payments support a simple revenue view, including Cash/UPI
    totals and the link back to the patient and visit.
 
-The existing integer-money, doctor-approved consultation pricing, immutable
+The existing integer-money, doctor-entered consultation charge, immutable
 paid bills, transactional/idempotent stock deduction, RLS, offline
 printing, and durable queued-write requirements remain in force.
 The only agreed consultation-fee exception is a refill-only sale.
-Reception may confirm a refill total at saved unit prices without doctor
-approval, entering supplied quantities at saved catalog prices. Both doctor
-and receptionist can set catalog unit prices; reception cannot override a
-bill line price or give discounts. Only the doctor can discount a refill.
-The addendum allows reception to reduce supplied quantities without new approval,
-using approval-time prices and the fixed doctor discount capped at subtotal.
-Record shortfalls; only the doctor can approve quantities above the approved cap.
+Reception confirms consultation or refill medicine lines at saved catalog unit
+prices and supplies no more than the doctor's prescribed quantity and available
+stock. Both doctor and receptionist can set catalog unit prices; reception cannot
+override a bill line price. The consultation charge is doctor-owned; no new
+consultation discount is entered in this workflow. New bills snapshot catalog
+prices at payment, while historical approved/paid bills retain their original
+frozen prices. Record shortfalls; a larger quantity requires a revised doctor
+prescription.
 Prompt cross-device sync requires connectivity; queued offline work
 must be visibly pending rather than appearing delivered to the other
 station.

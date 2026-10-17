@@ -1,6 +1,6 @@
 import { type PricingProposal, changeProposal } from '../lib/pricingProposal'
 import { LoadingRows } from './QueryState'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../lib/money'
@@ -54,9 +54,11 @@ function LegacyQuantities({ clinicId, visitId }: { clinicId: string; visitId: st
   </div>
 }
 
-export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { clinicId: string; visitId: string; reviewRequested?: boolean }) {
+export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId: string; reviewRequested?: boolean }) {
   const queryClient = useQueryClient()
   const [procedureSearch, setProcedureSearch] = useState('')
+  const [newProcedurePrice, setNewProcedurePrice] = useState('')
+  const newProcedureIdentity = useRef<{ id: string; name: string } | null>(null)
 
   const proceduresKey = ['procedures', clinicId]
   const { data: procedures } = useQuery({
@@ -75,7 +77,7 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
   const { data: visitProcedures } = useVisitProcedures(visitId)
 
   const pricingKey = ['visit-pricing', visitId]
-  const { data: pricing } = useQuery({
+  useQuery({
     queryKey: pricingKey,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -89,13 +91,11 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
   })
 
   const proposalKey = ['pricing-proposal',visitId]
-  const proposalQuery = useQuery({queryKey:proposalKey,queryFn:async()=>{const pending=await listQueue();const {data:{session}}=await supabase.auth.getSession();const cached=queryClient.getQueryData<PricingProposal>(proposalKey);if(cached&&pending.some(m=>{
+  useQuery({queryKey:proposalKey,queryFn:async()=>{const pending=await listQueue();const {data:{session}}=await supabase.auth.getSession();const cached=queryClient.getQueryData<PricingProposal>(proposalKey);if(cached&&pending.some(m=>{
       if(m.clinicId!==clinicId||m.ownerId!==session?.user.id)return false
       const payload=m.payload as {p_visit_id?:string;visit_id?:string}|undefined
       return payload?.p_visit_id===visitId||payload?.visit_id===visitId||(m.table==='visit_procedures'&&!!visitProcedures?.some(p=>p.id===m.match?.id))
     }))return cached;const {data,error}=await supabase.rpc('get_pricing_proposal',{p_visit_id:visitId});if(error)throw error;return data as PricingProposal}})
-  const proposal = proposalQuery.data
-  const displayedTotal = proposal?.total_paise ?? pricing?.calculated_total_paise
 
   // calculated_total_paise and final_amount_paise both change server-side as
   // a side effect of triggers this component didn't itself fire (a
@@ -160,6 +160,28 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
     setProcedureSearch('')
   }
 
+  const createProcedure = useMutation({
+    networkMode: 'always',
+    mutationFn: async (price: number) => {
+      const name = procedureSearch.trim()
+      if (!name) throw new Error('Enter a procedure name.')
+      if (newProcedureIdentity.current?.name !== name) newProcedureIdentity.current = { id: crypto.randomUUID(), name }
+      const procedure = { ...newProcedureIdentity.current, default_price_paise: price }
+      const row = { ...procedure, clinic_id: clinicId }
+      await attemptOrQueue({ clinicId,
+        attempt: token => supabase.from('procedures').upsert(row, { onConflict: 'id', ignoreDuplicates: true }).setHeader('Authorization', `Bearer ${token}`),
+        queueItem: () => ({ kind: 'insert', table: 'procedures', payload: row, description: `Add procedure "${name}"` }),
+      })
+      return procedure
+    },
+    onSuccess: procedure => {
+      queryClient.invalidateQueries({ queryKey: proceduresKey })
+      addProcedureFromSearch(procedure)
+      newProcedureIdentity.current = null
+      setNewProcedurePrice('')
+    },
+  })
+
   const filteredProcedures = procedureSearch.trim()
     ? (procedures ?? []).filter((p) => p.name.toLowerCase().includes(procedureSearch.trim().toLowerCase()))
     : []
@@ -198,54 +220,40 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
     onSuccess: invalidateAll,
   })
 
-  const [finalAmountDraft, setFinalAmountDraft] = useState('')
-  const [finalAmountDirty, setFinalAmountDirty] = useState(false)
-  const [finalAmountError, setFinalAmountError] = useState('')
-  useEffect(() => {
-    if (pricing) {
-      if(finalAmountDirty) return
-      setFinalAmountDraft(formatPaiseForInput(pricing.final_amount_set ? pricing.final_amount_paise : displayedTotal ?? pricing.final_amount_paise))
-      setFinalAmountDirty(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pricing?.final_amount_paise, displayedTotal, pricing?.final_amount_set])
+  const chargeKey = ['visit-consultation-charge', visitId]
+  const { data: charge } = useQuery({ queryKey: chargeKey, queryFn: async () => {
+    const { data, error } = await supabase.from('visits').select('consultation_charge_paise').eq('id', visitId).single()
+    if (error) throw error
+    return data.consultation_charge_paise as number
+  } })
+  const [chargeDraft, setChargeDraft] = useState('')
+  const [chargeDirty, setChargeDirty] = useState(false)
+  const [chargeError, setChargeError] = useState('')
+  useEffect(() => { if (charge !== undefined && !chargeDirty) setChargeDraft(formatPaiseForInput(charge)) }, [charge, chargeDirty])
 
-  const updateFinalAmount = useMutation({
+  const updateCharge = useMutation({
     networkMode: 'always',
     mutationFn: async (value: number) => {
-      if(!proposal) throw new Error('Load the current prices before approving.')
-      const args = {p_visit_id:visitId,p_final_amount_paise:value,p_expected_total_paise:proposal.total_paise,p_expected_revision_number:proposal.revision_number,p_request_id:crypto.randomUUID(),p_expected_lines:proposal.lines}
+      const args = {p_visit_id:visitId,p_fee_paise:value}
       await attemptOrQueue({
         clinicId,
-        attempt: (accessToken) => supabase.rpc('approve_visit_pricing', args).setHeader('Authorization', `Bearer ${accessToken}`),
-        queueItem: () => ({ kind: 'rpc', rpc: 'approve_visit_pricing', payload: args, description: 'Approve bill prices and discount' }),
-        applyOptimistic: () =>
-          queryClient.setQueryData<Pricing>(pricingKey, (old) => (old ? { ...old, final_amount_paise: value, final_amount_set: true } : old)),
+        attempt: (accessToken) => supabase.rpc('set_consultation_charge', args).setHeader('Authorization', `Bearer ${accessToken}`),
+        queueItem: () => ({ kind: 'rpc', rpc: 'set_consultation_charge', payload: args, description: 'Set consultation charge' }),
+        applyOptimistic: () => queryClient.setQueryData(chargeKey, value),
       })
     },
-    onSuccess: () => { for(const key of [pricingKey,['pricing-proposal',visitId],['approved-bill',visitId],['billing-pricing',visitId],['billing-visit',visitId],['doctor-queue',clinicId]]) void queryClient.invalidateQueries({queryKey:key}) },
+    onSuccess: () => { setChargeDirty(false); void queryClient.invalidateQueries({ queryKey: chargeKey }); void queryClient.invalidateQueries({ queryKey: ['reception-bill-plan', visitId] }) },
   })
 
-  // Reception's billing screen blocks payment until final_amount_set is
-  // true, so a doctor who's happy with the default (no discount) still has
-  // to actively confirm it -- but an incidental tab-through of an
-  // already-set field must not silently re-fire a write. Send when the
-  // field was genuinely edited (dirty), or when it hasn't been set yet at
-  // all (the one case where even an unchanged value is a real confirm).
-  function commitFinalAmount() {
-    if (!pricing) return
-    const value = parseRupeesToPaise(finalAmountDraft)
+  function commitCharge() {
+    if (!chargeDirty) return
+    const value = parseRupeesToPaise(chargeDraft)
     if (value === null) {
-      setFinalAmountError("Final amount can't be less than 0")
+      setChargeError('Enter a non-negative consultation charge in rupees.')
       return
     }
-    if (value > (displayedTotal ?? pricing.calculated_total_paise)) {
-      setFinalAmountError("Final amount can't be more than the calculated total")
-      return
-    }
-    setFinalAmountError('')
-    setFinalAmountDirty(false)
-    updateFinalAmount.mutate(value)
+    setChargeError('')
+    updateCharge.mutate(value)
   }
 
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({})
@@ -288,6 +296,9 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
             ) : (
               <div className="no-match">
                 <p>No procedure named "{procedureSearch}" in the list.</p>
+                <label className="field"><span className="field-label">Default price (₹)</span><Input inputMode="decimal" value={newProcedurePrice} onChange={e => setNewProcedurePrice(e.target.value)} placeholder="0.00" /></label>
+                <Button type="button" variant="secondary" disabled={createProcedure.isPending || parseRupeesToPaise(newProcedurePrice) === null} onClick={() => { const price = parseRupeesToPaise(newProcedurePrice); if (price !== null) createProcedure.mutate(price) }}>{createProcedure.isPending ? 'Adding…' : 'Add procedure and use it'}</Button>
+                {createProcedure.isError && <p className="form-error" role="alert">Could not add the procedure. Check the name and price, then retry.</p>}
               </div>
             ))}
         </div>
@@ -319,45 +330,36 @@ export function PricingPanel({ clinicId, visitId, reviewRequested = false }: { c
       </section>
 
       <section className="record-section">
-        <h3 className="readout-heading">Pricing</h3>
-        {!pricing ? (
+        <h3 className="readout-heading">Consultation charge</h3>
+        {charge === undefined ? (
           <LoadingRows label="Loading…" />
         ) : (
           <div className="pricing-block">
-            <div className="pricing-row">
-              <span>Calculated total</span>
-              <span className="pricing-value">{formatPaise(displayedTotal ?? pricing.calculated_total_paise)}</span>
-            </div>
             <div className="field">
-              <label className="field-label" htmlFor="final-amount">
-                Final amount (₹)
+              <label className="field-label" htmlFor="consultation-charge">
+                Consultation charge (₹)
               </label>
               <Input
-                id="final-amount"
+                id="consultation-charge"
                 inputMode="decimal"
-                value={finalAmountDraft}
+                value={chargeDraft}
                 onChange={(e) => {
-                  setFinalAmountDraft(e.target.value)
-                  setFinalAmountDirty(true)
+                  setChargeDraft(e.target.value)
+                  setChargeDirty(true)
                 }}
-                onKeyDown={(e) => e.key === 'Enter' && commitFinalAmount()}
+                onKeyDown={(e) => e.key === 'Enter' && commitCharge()}
               />
-              {finalAmountError && (
+              {chargeError && (
                 <span className="field-error" role="alert">
-                  {finalAmountError}
+                  {chargeError}
                 </span>
               )}
             </div>
-            <div className="pricing-row">
-              <span>Discount</span>
-              <span className="pricing-value">{formatPaise(pricing.discount_paise)}</span>
-            </div>
           </div>
         )}
-        <Button variant="dark" disabled={updateFinalAmount.isPending || !proposal || (!reviewRequested && !finalAmountDirty && pricing?.final_amount_set)} onClick={commitFinalAmount}>{!reviewRequested && pricing?.final_amount_set && !finalAmountDirty ? 'Bill approved' : 'Approve bill'}</Button>
-        <p className="field-hint">Approval freezes these unit prices and the fixed discount. Catalog changes afterwards apply to new bills.</p>
-        {proposalQuery.isError && <p className="form-error">Couldn’t load current prices. Try again when connected.</p>}
-        {updateFinalAmount.isError && <p className="form-error">{updateFinalAmount.error.message}</p>}
+        <Button variant="dark" disabled={updateCharge.isPending || !chargeDirty} onClick={commitCharge}>Save charge</Button>
+        <p className="field-hint">Reception chooses the stocked product and bills its current catalog price. The charge defaults to ₹250 for a first visit and ₹200 for a returning patient.</p>
+        {updateCharge.isError && <p className="form-error">{updateCharge.error.message}</p>}
       </section>
     </>
   )

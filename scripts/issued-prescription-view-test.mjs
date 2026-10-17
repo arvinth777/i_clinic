@@ -27,16 +27,6 @@ let tree=render();const button=tree.find(node=>node.props?.children==='View pres
 tree=render();assert.ok(tree.some(node=>node.type?.displayName==='IssuedPrescription'),'View prescription must mount the read-only issued prescription, not Billing')
 assert.ok(!tree.some(node=>node.type?.displayName==='Billing'),'Prescription view must not mount payment UI')
 console.log('PASS: completed consultation opens issued prescription rather than billing')
-// The existing discount-review action retains billing instead of being redirected to Rx.
-state=[];index=0
-// Drive the actual component with a discount request through the same query hook.
-const baseRequire=context.require
-context.require=path=>path==='@tanstack/react-query'?{...dependency(path),useInfiniteQuery:()=>({data:{pages:[[visit]]}})}:baseRequire(path)
-const billContext={...context,exports:{}};vm.runInNewContext(code,billContext);context.exports=billContext.exports
-tree=render();tree.find(node=>node.props?.children==='Review bill').props.onClick();tree=render()
-assert.ok(tree.some(node=>node.type?.displayName==='Billing'),'discount review must still open billing')
-console.log('PASS: discount review keeps the billing path')
-
 // Exercise the actual viewer query: online snapshot is saved under owner/clinic/visit,
 // and offline rendering uses that persisted snapshot without a network dependency.
 let queries=[],saved
@@ -45,8 +35,8 @@ const viewerContext={exports:{},Set,require(path){
  if(path==='@tanstack/react-query')return{useQuery:options=>{queries.push(options);return options.queryKey[0]==='prescription-print'?{data:snapshot,isSuccess:true}:{}}}
  if(path.endsWith('prescriptionPrint'))return{readPrescriptionPrint:async()=>snapshot,savePrescriptionPrint:async(...args)=>{saved=args}}
  if(path.endsWith('usePrintDocument'))return{usePrintDocument:()=>({mutate(){}})}
- if(path.endsWith('supabase'))return{supabase:{from:table=>({select:()=>({eq(){return this},single:async()=>({data:table==='visits'?visit:snapshot.clinic}),order:async()=>({data:[{id:'rx',diagnosis:'SYNTHETIC diagnosis',advice:'SYNTHETIC advice'}]})})}),rpc:async()=>({data:{lines:snapshot.medicines}})}}
- return baseRequire(path)
+ if(path.endsWith('supabase'))return{supabase:{from:table=>({select:()=>({eq(){return this},single:async()=>({data:table==='visits'?visit:snapshot.clinic}),order:async()=>({data:[{id:'rx',diagnosis:'SYNTHETIC diagnosis',advice:'SYNTHETIC advice'}]})})}),rpc:async()=>({data:snapshot.medicines})}}
+ return dependency(path)
 }}
 const viewerCode=ts.transpileModule(readFileSync('src/components/IssuedPrescription.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText
 vm.runInNewContext(viewerCode,viewerContext)
@@ -58,4 +48,4 @@ const loaded=await queries[1].queryFn();assert.equal(loaded.visit.diagnosis,'SYN
 assert.equal(saved[0],'owner');assert.equal(saved[1],'clinic');assert.equal(saved[2].visit.id,'visit');assert.equal(saved[2].medicines.length,1)
 console.log('PASS: persisted offline print and online clinical fields, scoped to owner/clinic/visit')
 
-snapshot.medicines=[];const procedureOnly=await queries[1].queryFn();assert.equal(procedureOnly.visit.diagnosis,'SYNTHETIC diagnosis');assert.equal(procedureOnly.visit.advice,'SYNTHETIC advice');assert.equal(procedureOnly.medicines.length,0);console.log('PASS: procedure-only clinical fields survive reconstruction')
+snapshot.medicines=[];await assert.rejects(queries[1].queryFn(),/issued prescription copy is not available/);console.log('PASS: missing medicine lines cannot be mistaken for an issued prescription')

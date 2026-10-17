@@ -15,7 +15,6 @@ export function buildClinicAlerts(source: AlertSource, isDoctor: boolean, now: n
     }
     if (isDoctor && visit.stage === 'with_doctor') add(visit, 'sent', 'Reception sent this patient in', 'Open the doctor workspace.', 'consultation')
     if (!isDoctor && visit.stage === 'ready_to_bill') add(visit, 'bill', 'Ready to bill', 'Review supplied quantities and collect payment.', 'billing')
-    if (isDoctor && visit.stage === 'ready_to_bill' && visit.discount_requested_at) add(visit, 'discount', 'Discount review requested', 'Reception is waiting for your review.', 'consultation')
     if (!isDoctor && visit.stage === 'not_here' && visit.not_here_at && now - Date.parse(visit.not_here_at) >= source.noShowMinutes * 60_000) add(visit, 'no-show', 'Please review absence', 'The no-show time has passed. Nothing is removed automatically.', 'reception')
   }
   if (!isDoctor) {

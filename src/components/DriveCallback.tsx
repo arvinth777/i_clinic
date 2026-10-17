@@ -33,7 +33,7 @@ export function DriveCallback() {
   useEffect(() => {
     let mounted = true
     completion ??= finish()
-    completion.then(() => { if (mounted) { setStatus('You can now upload scans and reports to patient records.'); setDone(true) } }, error => { if (mounted) { setStatus(error instanceof Error ? error.message : 'Could not connect Google Drive.'); setFailed(true); setDone(true) } })
+    completion.then(() => { if (mounted) { setStatus('Issued prescriptions and paid bills will archive automatically.'); setDone(true) } }, error => { if (mounted) { setStatus(error instanceof Error ? error.message : 'Could not connect Google Drive.'); setFailed(true); setDone(true) } })
     return () => { mounted = false }
   }, [])
   return <DriveConnectionResult status={status} done={done} failed={failed} />

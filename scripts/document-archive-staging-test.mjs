@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import {createClient} from '@supabase/supabase-js'
 import ws from 'ws'
-import {checked,consultationOnlyFixture} from './clinic-workflow-fixture.mjs'
+import {checked,consultationOnlyFixture,payVisit} from './clinic-workflow-fixture.mjs'
 const env=p=>Object.fromEntries(readFileSync(p,'utf8').split('\n').filter(l=>l.trim()&&!l.startsWith('#')&&l.includes('=')).map(l=>{const i=l.indexOf('=');return[l.slice(0,i).trim(),l.slice(i+1).trim()]}))
 const app=env('.env.local'),pw=env('.env.test-users.local'),clinic='23e03361-9d6c-49f5-83b7-ad57f4a0c5ce',clients=[]
 assert.equal(new URL(app.VITE_SUPABASE_URL).hostname,'cofnrcgsolluyhghutah.supabase.co')
@@ -15,7 +15,7 @@ try{
  const rx=checked(await doctor.from('document_archives').select('id,kind,snapshot,source_id,source_version').eq('visit_id',id).eq('kind','prescription').single())
  assert.equal(rx.source_id,id);assert.equal(rx.snapshot.kind,'prescription');assert.ok(rx.snapshot.medicines.length)
  assert.equal(checked(await reception.from('document_archives').select('id').eq('id',rx.id)).length,0,'reception never reads clinical archive snapshots')
- const billId=checked(await reception.rpc('confirm_bill',{p_visit_id:id,p_payment_method:'cash'}));assert.equal(checked(await reception.rpc('confirm_bill',{p_visit_id:id,p_payment_method:'cash'})),billId)
+ const billId=await payVisit(reception,id);assert.equal(await payVisit(reception,id),billId)
  const receipt=checked(await reception.from('document_archives').select('id,snapshot').eq('bill_id',billId).single());assert.equal(receipt.snapshot.amountPaise,25000)
  assert.ok(!JSON.stringify(receipt.snapshot).includes('dosage_frequency'),'receipt snapshot excludes clinical instructions')
  assert.equal(checked(await reception.from('document_archives').select('id').eq('bill_id',billId)).length,1)
@@ -23,7 +23,7 @@ try{
  checked(await doctor.from('visit_pricing').update({final_amount_paise:20000}).eq('visit_id',id))
  const correction=checked(await doctor.rpc('correct_bill',{p_bill_id:billId}));const corrected=checked(await reception.from('document_archives').select('id,snapshot').eq('bill_id',correction).single());assert.notEqual(corrected.id,receipt.id);assert.equal(corrected.snapshot.correctsBillId,billId)
  assert.equal(checked(await reception.from('document_archives').select('snapshot').eq('id',receipt.id).single()).snapshot.amountPaise,25000,'original archive stays immutable')
- const credit=await visit();await consultationOnlyFixture(doctor,reception,clinic,credit,25000);const creditBill=checked(await reception.rpc('confirm_bill',{p_visit_id:credit,p_payment_method:'pay_later'}));assert.equal(checked(await reception.from('document_archives').select('id').eq('bill_id',creditBill)).length,0,'no paid receipt before settlement')
+ const credit=await visit();await consultationOnlyFixture(doctor,reception,clinic,credit,25000);const creditBill=await payVisit(reception,credit,{method:'pay_later'});assert.equal(checked(await reception.from('document_archives').select('id').eq('bill_id',creditBill)).length,0,'no paid receipt before settlement')
  checked(await reception.rpc('settle_bill',{p_bill_id:creditBill,p_payment_method:'upi',p_notes:null}));assert.equal(checked(await reception.from('document_archives').select('snapshot').eq('bill_id',creditBill).single()).snapshot.bill.payment_method,'upi')
  const med=checked(await doctor.from('medicines').insert({clinic_id:clinic,name:'SYNTHETIC pharmacy archive '+crypto.randomUUID(),price_paise:1000}).select('id').single())
  checked(await reception.rpc('set_medicine_unit_price',{p_medicine_id:med.id,p_stock_unit:'tablet',p_price_paise:1000}))

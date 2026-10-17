@@ -12,7 +12,7 @@ export async function renderArchivePdf(snapshot: ArchiveSnapshot): Promise<Blob>
   const frame = document.createElement('iframe')
   frame.title = 'Preparing archived PDF'
   frame.setAttribute('aria-hidden', 'true')
-  Object.assign(frame.style, { position: 'fixed', left: '0', zIndex: '-1', pointerEvents: 'none', top: '0', width: 'var(--paper-width)', height: 'var(--paper-height)', border: '0' })
+  Object.assign(frame.style, { position: 'fixed', left: '0', zIndex: '-1', pointerEvents: 'none', top: '0', width: snapshot.kind === 'receipt' ? 'var(--receipt-paper-width)' : 'var(--paper-width)', height: snapshot.kind === 'receipt' ? 'var(--receipt-paper-height)' : 'var(--paper-height)', border: '0' })
   document.body.append(frame)
   const doc = frame.contentDocument!
   const rootElement = doc.createElement('div'); rootElement.className = 'print-area'; rootElement.style.setProperty('display','block','important'); doc.body.append(rootElement)
@@ -47,7 +47,8 @@ export async function renderArchivePdf(snapshot: ArchiveSnapshot): Promise<Blob>
     }))
     for(const svg of doc.querySelectorAll('svg')){const fonts=doc.createElementNS('http://www.w3.org/2000/svg','style');fonts.textContent=embeddedFonts.join('\n');svg.prepend(fonts)}
     const original = rootElement.querySelector<HTMLElement>('section')!
-    const width = frame.contentWindow!.innerWidth, height = width * 297 / 210
+    const width = frame.contentWindow!.innerWidth
+    const height = snapshot.kind === 'receipt' ? width * 11 / 9.5 : width * 297 / 210
     const pdf = await PDFDocument.create()
     const pages: HTMLElement[] = []
     if (snapshot.kind === 'prescription') {
@@ -69,7 +70,7 @@ export async function renderArchivePdf(snapshot: ArchiveSnapshot): Promise<Blob>
       }
       finish()
     } else {
-      // Measure intrinsic receipt content, not its A4 minimum height.
+      // Measure intrinsic receipt content, not its paper-height minimum.
       original.style.minHeight = '0'
       // Receipts repeat clinic/customer context, and retain totals/payment only on the last page.
       const rows = [...original.querySelectorAll<HTMLTableRowElement>('tbody tr')]
@@ -81,7 +82,7 @@ export async function renderArchivePdf(snapshot: ArchiveSnapshot): Promise<Blob>
       const groups = [...rows.slice(0,-2).flatMap((row,i)=>rowHeight[i] > capacity ? splitArchiveRow(row,capacity).map(part=>({rows:[part.row],height:part.height})) : [{rows:[row],height:rowHeight[i]}]),{rows:rows.slice(-2),height:rowHeight.slice(-2).reduce((a,b)=>a+b,0)}]
       for (const group of groups) {
         if (group.height > capacity) throw new Error('A receipt line is longer than one page.')
-        if (used + group.height > capacity) { page.querySelector('section > p:last-child')?.remove(); pages.push(page); page = original.cloneNode(true) as HTMLElement; target=page.querySelector('tbody')!; target.replaceChildren(); used=0 }
+        if (used + group.height > capacity) { page.querySelector('.receipt-end')?.remove(); pages.push(page); page = original.cloneNode(true) as HTMLElement; target=page.querySelector('tbody')!; target.replaceChildren(); used=0 }
         target.append(...group.rows.map(row=>row.cloneNode(true))); used+=group.height
       }
       pages.push(page)
@@ -100,7 +101,7 @@ export async function renderArchivePdf(snapshot: ArchiveSnapshot): Promise<Blob>
       let ink=0;for(let pixel=0;pixel<pixels.length;pixel+=64)if(Math.min(pixels[pixel],pixels[pixel+1],pixels[pixel+2])<200)ink++
       if(ink<100)throw new Error('The PDF page rendered blank. The issued record is safe; retry after reloading the app.')
       const jpeg=await pdf.embedJpg(canvas.toDataURL('image/jpeg',0.95))
-      const outputPage=pdf.addPage(PageSizes.A4)
+      const outputPage=pdf.addPage(snapshot.kind === 'receipt' ? [9.5 * 72, 11 * 72] : PageSizes.A4)
       outputPage.drawImage(jpeg,{x:0,y:0,width:outputPage.getWidth(),height:outputPage.getHeight()})
       page.remove()
     }

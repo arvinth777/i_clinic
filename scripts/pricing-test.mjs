@@ -191,7 +191,7 @@ async function main() {
   let itemB
   {
     const { error } = await doctorA.from('prescription_items').insert({
-      clinic_id: CLINIC_A_ID, prescription_id: prescription.id, medicine_id: medA.id, duration_days: 5, quantity_dispensed: 1,
+      clinic_id: CLINIC_A_ID, prescription_id: prescription.id, medicine_id: medA.id, duration_days: 5, strength:'500 mg',quantity_dispensed: 1,
     })
     if (error) throw new Error(`step D insert failed: ${error.message}`)
     const p = await readPricing(doctorA, visitId)
@@ -199,7 +199,7 @@ async function main() {
   }
   {
     const { data, error } = await doctorA.from('prescription_items').insert({
-      clinic_id: CLINIC_A_ID, prescription_id: prescription.id, medicine_id: medB.id, duration_days: 3, quantity_dispensed: 1,
+      clinic_id: CLINIC_A_ID, prescription_id: prescription.id, medicine_id: medB.id, duration_days: 3, strength:'500 mg',quantity_dispensed: 1,
     }).select('id').single()
     if (error) throw new Error(`step E insert failed: ${error.message}`)
     itemB = data

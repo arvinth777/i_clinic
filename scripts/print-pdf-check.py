@@ -20,12 +20,15 @@ for name, medicine_count, receipt in [
         words = page.findall("p:word", ns)
         text = " ".join(word.text or "" for word in words)
         all_text.append(text)
-        assert abs(float(page.attrib["width"]) - 595.28) < 1, "Paper must be A4"
-        assert abs(float(page.attrib["height"]) - 841.89) < 1, "Paper must be A4"
         if receipt and index == len(pages) - 1:
+            assert abs(float(page.attrib["width"]) - 684) < 1, "Receipt must be 9.5 inches wide"
+            assert abs(float(page.attrib["height"]) - 792) < 1, "Receipt must be 11 inches high"
             assert "Receipt" in text and re.search(r"₹\s*270\.00", text), "Receipt must retain its frozen total"
+            assert "குறிப்பிட்ட நோய்நிலைக்கும்" in text, "Receipt must retain the Tamil safety notice"
             assert "Synthetic medicine" not in text, "Prescription must not spill onto receipt"
             continue
+        assert abs(float(page.attrib["width"]) - 595.28) < 1, "Prescription paper must be A4"
+        assert abs(float(page.attrib["height"]) - 841.89) < 1, "Prescription paper must be A4"
         assert "CURING CENTRE" in text and "SALEM PAIN" in text, "Every Rx page needs its letterhead"
         assert "#12" in text, "Continuation pages must repeat the patient reference"
         artwork = {(int(row[3]), int(row[4])) for row in images if int(row[0]) == index + 1}
@@ -34,10 +37,12 @@ for name, medicine_count, receipt in [
             if word.text == "Synthetic" and words[position + 1].text == "medicine":
                 assert 205 <= float(word.attrib["yMin"]) < 740, "Medicine overlaps header/footer"
     text = " ".join(all_text)
+    if medicine_count:
+        assert text.count("Diagnosis: Synthetic diagnosis") == 1, "Diagnosis must print once"
     for number in range(1, medicine_count + 1):
         assert len(re.findall(rf"Synthetic medicine {number}(?!\d)", text)) == 1, f"Medicine {number} lost or duplicated"
     if medicine_count > 5:
         assert len(pages) > 1 + int(receipt), "Long Rx must continue onto another page"
     else:
         assert len(pages) == 1, "Short documents must not add blank pages"
-    print(f"PASS: {name}, {len(pages)} A4 page(s), all medicines and writing areas intact")
+    print(f"PASS: {name}, {len(pages)} page(s), all medicines and writing areas intact")

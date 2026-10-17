@@ -1,6 +1,6 @@
 import { ArchiveWorker } from './components/DocumentArchives'
 import './Workspace.css'
-import { Component, Suspense, lazy, useState, type ReactNode } from 'react'
+import { Component, Suspense, lazy, useEffect, useState, type ReactNode } from 'react'
 import { LoadingRows } from './components/QueryState'
 import { StagingBanner } from './components/StagingBanner'
 import { OfflineQueueBanner } from './components/OfflineQueueBanner'
@@ -36,7 +36,16 @@ class PageLoadBoundary extends Component<{ children: ReactNode }, { failed: bool
 function App() {
   const { session, loading } = useSession()
   const { data: roles, isLoading: rolesLoading } = useUserRoles(session?.user.id)
-  const [manualSection, setManualSection] = useState<string | null>(null)
+  const [manualSection, setManualSection] = useState<string | null>(() => window.location.hash.slice(1).split('/')[0] || null)
+  useEffect(() => {
+    const restoreSection = () => setManualSection(window.location.hash.slice(1).split('/')[0] || null)
+    window.addEventListener('popstate', restoreSection)
+    return () => window.removeEventListener('popstate', restoreSection)
+  }, [])
+  function openSection(section: string) {
+    if (window.location.hash !== `#${section}`) window.history.pushState(null, '', `#${section}`)
+    setManualSection(section)
+  }
   // Owned here, not inside AppShell: OfflineQueueBanner is a sibling of
   // AppShell, not a child, and it needs this same fact to redact a
   // patient's name from a halted-queue message while the screen is
@@ -106,15 +115,15 @@ function App() {
         onUnlock={() => setLocked(false)}
         sections={sections}
         activeSection={activeSection}
-        onSelectSection={setManualSection}
-        onOpenAlert={target => { setAlertNavigation(value => value + 1); setAlertTarget(target); if (target.section === 'patients') setRecordPatientId(target.patientId ?? null); setManualSection(target.section) }}
+        onSelectSection={openSection}
+        onOpenAlert={target => { setAlertNavigation(value => value + 1); setAlertTarget(target); if (target.section === 'patients') setRecordPatientId(target.patientId ?? null); openSection(target.section) }}
       >
         <PageLoadBoundary key={activeSection}><Suspense fallback={<LoadingRows label="Opening screen…" />}>
         {activeSection === 'reception' && <Reception highlightVisitId={alertTarget?.section === 'reception' ? alertTarget.visitId : undefined} userId={session.user.id} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'patients' && clinicId && <Patients key={`${recordPatientId}:${alertNavigation}`} initialTab={alertTarget?.patientTab} highlightVisitId={alertTarget?.section === 'patients' ? alertTarget.visitId : undefined} locked={locked} initialPatientId={recordPatientId} clinicId={clinicId} isDoctor={!!roles?.some(r => r.role === 'doctor')} canBill={!!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'billing' && clinicId && <BillingDesk key={alertNavigation} initialVisitId={alertTarget?.section === 'billing' ? alertTarget.visitId : undefined} clinicId={clinicId} readOnly={!roles?.some(r => r.role === 'receptionist')} />}
         {activeSection === 'unpaid' && clinicId && <UnpaidBills key={alertNavigation} clinicId={clinicId} initialBillId={alertTarget?.section === 'unpaid' ? alertTarget.billId : undefined} />}
-        {activeSection === 'consultation' && <Consultation alertNavigation={alertNavigation} requestedVisitId={alertTarget?.section === 'consultation' ? alertTarget.visitId : undefined} userId={session.user.id} onOpenPatient={id=>{setRecordPatientId(id);setManualSection('patients')}} />}
+        {activeSection === 'consultation' && <Consultation alertNavigation={alertNavigation} requestedVisitId={alertTarget?.section === 'consultation' ? alertTarget.visitId : undefined} userId={session.user.id} onOpenPatient={id=>{setRecordPatientId(id);openSection('patients')}} />}
         {activeSection === 'pharmacy' && clinicId && <PharmacyBills clinicId={clinicId} isDoctor={roles?.some((r) => r.role === 'doctor') ?? false} />}
         {activeSection === 'suppliers' && clinicId && <Suppliers clinicId={clinicId} />}
         {activeSection === 'stock' && clinicId && <Stock key={alertNavigation} highlightMedicineId={alertTarget?.section === 'stock' ? alertTarget.medicineId : undefined} clinicId={clinicId} />}

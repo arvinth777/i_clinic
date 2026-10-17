@@ -20,6 +20,24 @@ export async function consultationOnlyFixture(doctor,reception,clinicId,visitId,
  checked(await doctor.rpc('set_medicine_unit_price',{p_medicine_id:medicine.id,p_stock_unit:'tablet',p_price_paise:0}))
  const counter=checked(await reception.from('stock_points').select('id').eq('clinic_id',clinicId).eq('name','Counter').single()).id
  checked(await reception.rpc('adjust_stock',{p_clinic_id:clinicId,p_medicine_id:medicine.id,p_stock_point_id:counter,p_quantity_delta:1,p_reason:'Synthetic regression fixture stock'}))
- checked(await doctor.rpc('save_prescription',{p_prescription_id:crypto.randomUUID(),p_visit_id:visitId,p_items:[{id:crypto.randomUUID(),medicine_id:medicine.id,quantity_dispensed:1,dosage_frequency:'SOS',duration_days:1}]}))
+ checked(await doctor.rpc('save_prescription',{p_prescription_id:crypto.randomUUID(),p_visit_id:visitId,p_items:[{id:crypto.randomUUID(),medicine_id:medicine.id,strength:'500 mg',quantity_dispensed:1,dosage_frequency:'SOS',duration_days:1}]}))
  return sendToBilling(doctor,reception,clinicId,visitId,amount)
 }
+
+// Take payment through the reception billing route (confirm_reception_bill). The retired confirm_bill route is closed.
+// Supplies each prescribed medicine from the catalog product the doctor prescribed (same id), `quantity` of it
+// (a number, or a function of the plan line; default: the full prescribed quantity). Returns the raw rpc result.
+export async function payVisitResult(reception,visitId,{method='cash',quantity}={}){
+ const plan=checked(await reception.rpc('get_reception_bill',{p_visit_id:visitId}))
+ const detail=checked(await reception.rpc('get_visit_billing_detail',{p_visit_id:visitId}))
+ let total=plan.consultation_charge_paise+detail.filter(row=>row.kind==='procedure').reduce((sum,row)=>sum+row.unit_price_paise,0)
+ const items=[]
+ for(const line of plan.medicines){
+  const medicine=checked(await reception.from('medicines').select('id,price_paise,stock_unit').eq('id',line.medicine_id).single())
+  const qty=typeof quantity==='function'?quantity(line):quantity??line.quantity
+  items.push({prescription_item_id:line.prescription_item_id,medicine_id:medicine.id,quantity:qty,unit_price_paise:medicine.price_paise,stock_unit:medicine.stock_unit})
+  total+=qty*medicine.price_paise
+ }
+ return reception.rpc('confirm_reception_bill',{p_visit_id:visitId,p_payment_method:method,p_expected_total_paise:total,p_items:items})
+}
+export async function payVisit(reception,visitId,options){return checked(await payVisitResult(reception,visitId,options))}

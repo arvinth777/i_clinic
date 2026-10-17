@@ -33,7 +33,7 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
   const { data: medicines, error: medicineError } = useQuery({
     queryKey: ['pharmacy-medicines', clinicId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('medicines').select('id, name, stock_unit, price_paise').eq('clinic_id', clinicId).not('unit_confirmed_at', 'is', null).order('name')
+      const { data, error } = await supabase.from('medicines').select('id, name, stock_unit, price_paise').eq('clinic_id', clinicId).eq('is_active', true).not('unit_confirmed_at', 'is', null).order('name')
       if (error) throw error
       return data as Medicine[]
     },

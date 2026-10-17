@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { setMedicineUnitPrice } from '../../lib/offlineQueue'
+import { attemptOrQueue, setMedicineUnitPrice } from '../../lib/offlineQueue'
 import { supabase } from '../../lib/supabase'
 import { formatPaise, formatPaiseForInput, parseRupeesToPaise } from '../../lib/money'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
@@ -12,6 +12,7 @@ import { useConfirm } from '../../lib/confirm'
 type Medicine = {
   id: string
   name: string
+  molecule_name: string | null
   price_paise: number
   drug_type: string | null
   strength_options: string[] | null
@@ -29,6 +30,7 @@ const DRUG_TYPE_UNSET = '__unset__'
 
 type Draft = {
   name: string
+  molecule_name: string
   price: string
   drug_type: string
   strength_options: string
@@ -37,11 +39,12 @@ type Draft = {
   stock_unit: string
 }
 
-const emptyDraft: Draft = { name: '', price: '', drug_type: '', strength_options: '', low_stock_threshold: '', expiry_date: '', stock_unit: '' }
+const emptyDraft: Draft = { name: '', molecule_name: '', price: '', drug_type: '', strength_options: '', low_stock_threshold: '', expiry_date: '', stock_unit: '' }
 
 function toDraft(m: Medicine): Draft {
   return {
     name: m.name,
+    molecule_name: m.molecule_name ?? '',
     price: formatPaiseForInput(m.price_paise),
     drug_type: m.drug_type ?? '',
     strength_options: (m.strength_options ?? []).join(', '),
@@ -51,21 +54,26 @@ function toDraft(m: Medicine): Draft {
   }
 }
 
-// Removal is a real DELETE, not a soft-delete flag -- medicines referenced
-// by a prescription or a bill are protected by a NO ACTION foreign key and
-// the database itself refuses the delete (caught below, shown plainly).
+// Retirement hides a medicine from new work without erasing clinical or stock history.
 export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; pricesOnly?: boolean }) {
   const queryClient = useQueryClient()
   const confirm = useConfirm()
+  const newMedicineId = useRef<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [limit, setLimit] = useState(50)
   const queryKey = ['admin-medicines', clinicId]
   const { data: medicines } = useQuery({
-    queryKey,
+    queryKey: [...queryKey, search, limit],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('medicines')
-        .select('id, name, price_paise, drug_type, strength_options, low_stock_threshold, expiry_date, stock_unit, unit_confirmed_at')
+        .select('id, name, molecule_name, price_paise, drug_type, strength_options, low_stock_threshold, expiry_date, stock_unit, unit_confirmed_at')
         .eq('clinic_id', clinicId)
+        .eq('is_active', true)
         .order('name')
+        .limit(limit + 1)
+      if (search.trim()) query = query.ilike('name', `%${search.trim()}%`)
+      const { data, error } = await query
       if (error) throw error
       return data as Medicine[]
     },
@@ -87,6 +95,7 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
   })
 
   function openNew() {
+    newMedicineId.current = null
     setDraft(emptyDraft)
     setFormError('')
     setEditing('new')
@@ -104,8 +113,24 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
       const price = parseRupeesToPaise(draft.price)
       if (price === null) throw new Error("Enter a valid price")
       if (pricesOnly) {
-        if (editing === null || editing === 'new') throw new Error('Choose a medicine')
+        if (editing === 'new') {
+          if (!draft.name.trim() || !draft.molecule_name.trim() || !draft.strength_options.trim() || !draft.stock_unit.trim()) throw new Error('Enter product name, molecule, strength and billing unit')
+          const id = newMedicineId.current ??= crypto.randomUUID()
+          const row = { id, clinic_id: clinicId, name: draft.name.trim(), molecule_name: draft.molecule_name.trim(), strength_options: draft.strength_options.split(',').map(s => s.trim()).filter(Boolean), drug_type: draft.drug_type || null, low_stock_threshold: draft.low_stock_threshold.trim() ? Number(draft.low_stock_threshold) : null, expiry_date: draft.expiry_date || null, price_paise: 0 }
+          await attemptOrQueue({ clinicId,
+            attempt: token => supabase.from('medicines').upsert(row, { onConflict: 'id', ignoreDuplicates: true }).setHeader('Authorization', `Bearer ${token}`),
+            queueItem: () => ({ kind: 'insert', table: 'medicines', payload: row, description: `Add medicine "${row.name}"` }),
+          })
+          await setMedicineUnitPrice(clinicId, { p_medicine_id: id, p_stock_unit: draft.stock_unit.trim(), p_price_paise: price }, 'Confirm new medicine unit and price')
+          return
+        }
+        if (editing === null) throw new Error('Choose a medicine')
         if (!editing.unit_confirmed_at && (!counts || !countsConfirmed)) throw new Error('Confirm the existing stock counts and unit price first')
+        const metadata = { name: draft.name.trim(), molecule_name: draft.molecule_name.trim() || null, strength_options: draft.strength_options.trim() ? draft.strength_options.split(',').map(s => s.trim()).filter(Boolean) : null, drug_type: draft.drug_type || null, low_stock_threshold: draft.low_stock_threshold.trim() ? Number(draft.low_stock_threshold) : null, expiry_date: draft.expiry_date || null }
+        await attemptOrQueue({ clinicId,
+          attempt: token => supabase.from('medicines').update(metadata).eq('id', editing.id).setHeader('Authorization', `Bearer ${token}`),
+          queueItem: () => ({ kind: 'update', table: 'medicines', match: { id: editing.id }, payload: metadata, description: 'Update medicine catalog details' }),
+        })
         const payload = { p_medicine_id: editing.id, p_stock_unit: draft.stock_unit.trim(), p_price_paise: price }
         await setMedicineUnitPrice(clinicId, payload, 'Set medicine unit and price')
         return
@@ -113,6 +138,7 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
       const row = {
         clinic_id: clinicId,
         name: draft.name.trim(),
+        molecule_name: draft.molecule_name.trim() || null,
         price_paise: price,
         drug_type: draft.drug_type || null,
         strength_options: draft.strength_options.trim()
@@ -128,21 +154,26 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
     },
     onSuccess: () => {
       queryClient.invalidateQueries()
+      newMedicineId.current = null
       setEditing(null)
     },
     onError: (e: Error) => setFormError(e.message),
   })
 
   const remove = useMutation({
+    networkMode: 'always',
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('medicines').delete().eq('id', id)
-      if (error) throw error
+      const args = { p_medicine_id: id }
+      await attemptOrQueue({ clinicId,
+        attempt: token => supabase.rpc('retire_medicine', args).setHeader('Authorization', `Bearer ${token}`),
+        queueItem: () => ({ kind: 'rpc', rpc: 'retire_medicine', payload: args, description: 'Retire medicine' }),
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey })
       setRemoveError('')
     },
-    onError: () => setRemoveError("Couldn't remove — it's already used in a prescription, bill, or stock record."),
+    onError: () => setRemoveError("Couldn't remove this medicine. Check your connection and try again."),
   })
 
   if (editing !== null) {
@@ -158,13 +189,13 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
             save.mutate()
           }}
         >
-          {!pricesOnly && <>
           <div className="field">
             <label className="field-label" htmlFor="drug-name">
               Name
             </label>
             <Input id="drug-name" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} required autoFocus />
           </div>
+          <label className="field"><span className="field-label">Molecule / generic name</span><Input value={draft.molecule_name} onChange={e => setDraft(d => ({ ...d, molecule_name: e.target.value }))} placeholder="e.g. Paracetamol" required={editing === 'new' && pricesOnly} /></label>
           <div className="field">
             <label className="field-label" htmlFor="drug-type">
               Type
@@ -197,7 +228,6 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
               placeholder="250mg, 500mg"
             />
           </div>
-          </>}
           {pricesOnly && <>
             <div className="field">
               <label className="field-label" htmlFor="drug-unit">Billing and stock unit</label>
@@ -214,7 +244,7 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
             </label>
             <Input id="drug-price" inputMode="decimal" value={draft.price} onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))} required />
           </div>
-          {!pricesOnly && <>
+          <>
           <div className="field">
             <label className="field-label" htmlFor="drug-threshold">
               Low-stock threshold
@@ -233,7 +263,7 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
             </label>
             <Input id="drug-expiry" type="date" value={draft.expiry_date} onChange={(e) => setDraft((d) => ({ ...d, expiry_date: e.target.value }))} />
           </div>
-          </>}
+          </>
           {formError && <p className="form-error">{formError}</p>}
           <div className="action-row">
             <Button type="submit" disabled={save.isPending}>
@@ -252,10 +282,9 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
     <div>
       <div className="admin-toolbar">
         <h2 className="readout-heading">{pricesOnly ? 'Medicine units and prices' : 'Drugs'}</h2>
-        {!pricesOnly && <Button type="button" onClick={openNew}>
-          + Add drug
-        </Button>}
+        <Button type="button" variant="secondary" onClick={openNew}>Add drug</Button>
       </div>
+      <Input aria-label="Find medicine" placeholder="Find a medicine to edit or remove" value={search} onChange={e => { setSearch(e.target.value); setLimit(50) }} />
       {removeError && <p className="form-error">{removeError}</p>}
       <Table>
         <TableHeader>
@@ -269,7 +298,7 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
           </TableRow>
         </TableHeader>
         <TableBody>
-          {(medicines ?? []).map((m) => (
+          {(medicines ?? []).slice(0, limit).map((m) => (
             <TableRow key={m.id} className="worklist-row-clickable" onClick={() => openEdit(m)}>
               <TableCell className="worklist-name-cell">{m.name}</TableCell>
               <TableCell>{m.drug_type ?? '—'}</TableCell>
@@ -277,21 +306,22 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
               <TableCell className="worklist-wait-cell">{m.low_stock_threshold ?? '—'}</TableCell>
               <TableCell>{m.expiry_date ?? '—'}</TableCell>
               <TableCell>
-                {pricesOnly ? <Button type="button" variant="secondary" onClick={() => openEdit(m)}>{m.unit_confirmed_at ? 'Edit price' : 'Confirm unit'}</Button> : <button
+                {pricesOnly && <Button type="button" variant="secondary" onClick={(e) => { e.stopPropagation(); openEdit(m) }}>{m.unit_confirmed_at ? 'Edit price' : 'Confirm unit'}</Button>} <button
                   type="button"
                   className="drug-row-remove"
                   onClick={async (e) => {
                     e.stopPropagation()
-                    if (await confirm({ title: `Remove ${m.name}?`, confirmLabel: 'Remove' })) remove.mutate(m.id)
+                    if (await confirm({ title: `Remove ${m.name}?`, body: 'It will no longer be available for new prescriptions or sales. Past bills and stock records remain.', confirmLabel: 'Remove' })) remove.mutate(m.id)
                   }}
                 >
                   Remove
-                </button>}
+                </button>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+      {(medicines?.length ?? 0) > limit && <Button type="button" variant="secondary" onClick={() => setLimit(value => value + 50)}>Show more</Button>}
     </div>
   )
 }

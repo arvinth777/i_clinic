@@ -17,7 +17,7 @@ try{
  const price=p=>reception.rpc('set_medicine_unit_price',{p_medicine_id:medicine.id,p_stock_unit:'tablet',p_price_paise:p})
  value(await price(1000))
  const itemId=crypto.randomUUID()
- value(await doctor.rpc('save_prescription',{p_prescription_id:crypto.randomUUID(),p_visit_id:visit.id,p_items:[{id:itemId,medicine_id:medicine.id,dosage_frequency:'1-0-1',duration_days:5,quantity_dispensed:10}]}))
+ value(await doctor.rpc('save_prescription',{p_prescription_id:crypto.randomUUID(),p_visit_id:visit.id,p_items:[{id:itemId,medicine_id:medicine.id,dosage_frequency:'1-0-1',duration_days:5,strength:'500 mg',quantity_dispensed:10}]}))
  value(await price(1250))
  const proposal=value(await doctor.rpc('get_pricing_proposal',{p_visit_id:visit.id}))
  assert.equal(proposal.total_paise,37500,'approval uses ₹12.50 × 10 plus ₹250, not earlier prescription price')

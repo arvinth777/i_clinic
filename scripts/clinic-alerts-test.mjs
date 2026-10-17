@@ -11,7 +11,7 @@ const source={visits:[visit('call','called',{called_at:new Date(now-5*60000).toI
 const ids=rows=>Array.from(rows,a=>a.id)
 const reception=buildClinicAlerts(source,false,now,today),doctor=buildClinicAlerts(source,true,now,today)
 for(const id of ['called:call','sent-reminder:call','no-show:absent','bill:bill','duplicate:duplicate-a','stock:m','closing:'+today])assert.ok(ids(reception).includes(id),id)
-assert.ok(!ids(reception).includes('discount:bill'));assert.ok(!ids(reception).includes('shortfall:b'));assert.ok(ids(doctor).includes('discount:bill'));assert.ok(ids(doctor).includes('shortfall:b'));assert.ok(ids(doctor).includes('sent:sent'))
+assert.ok(!ids(reception).includes('discount:bill'));assert.ok(!ids(reception).includes('shortfall:b'));assert.ok(!ids(doctor).includes('discount:bill'));assert.ok(ids(doctor).includes('shortfall:b'));assert.ok(ids(doctor).includes('sent:sent'))
 assert.equal(reception.filter(a=>a.id==='stock:m').length,1,'Stock warnings grouped per medicine')
 assert.ok(!ids(buildClinicAlerts(source,false,now-1,today)).includes('closing:'+today),'4 PM boundary in IST')
 assert.ok(!ids(buildClinicAlerts({...source,visits:[visit('new','called',{called_at:new Date(now-299999).toISOString()})]},false,now,today)).includes('sent-reminder:new'))
@@ -21,7 +21,25 @@ const resolved=reconcileAlerts(recent,[],new Date(now+2).toISOString());assert.o
 const reopened=reconcileAlerts(resolved,reception,new Date(now+3).toISOString());assert.equal(reopened[0].read,false);assert.equal(reopened[0].dismissed,false)
 assert.equal(reconcileAlerts([],Array.from({length:1005},(_,i)=>({...reception[0],id:'large:'+i})),new Date(now).toISOString()).length,1005,'Active alerts are never dropped by history retention')
 const {freshCall,consumeCall}=load('src/lib/callSound.ts');const event={id:'one',action:'call',created_at:new Date(now-100).toISOString()}
-assert.ok(freshCall(event,now-200,now));assert.equal(freshCall(event,now,now),false);assert.equal(freshCall({...event,action:'finish'},now-200,now),false);assert.equal(freshCall(event,0,now+10000),false)
+assert.ok(freshCall(event,now-200,now));assert.equal(freshCall(event,now,now),false);assert.equal(freshCall({...event,action:'finish'},now-200,now),false);assert.ok(freshCall(event,now-200,now+10000));assert.equal(freshCall(event,0,now+60000),false)
 assert.deepEqual(await Promise.all([consumeCall('clinic-a:user-a','one'),consumeCall('clinic-a:user-a','one')]),[true,false]);assert.equal(await consumeCall('clinic-b:user-a','one'),true)
 assert.equal(await load('src/lib/callSound.ts').consumeCall('clinic-a:user-a','one'),false,'Reload cannot replay the same call')
-console.log('PASS: role-aware alerts, five-minute/4 PM IST boundaries, no-show, duplicates, stock grouping, shortfalls, resolution history and atomic reload-safe chime deduplication')
+let notice = null
+class BrowserNotification { static permission = 'granted'; constructor(title, options) { notice = { title, options } } }
+let registration = null
+const notificationModule = () => { const exports = {}; vm.runInNewContext(ts.transpileModule(readFileSync('src/lib/callSound.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,Notification:BrowserNotification,navigator:{serviceWorker:{getRegistration:async()=>registration}},require:()=>({update:async()=>{}})}); return exports }
+const {showCallNotification,playCall} = notificationModule()
+assert.equal(await showCallNotification(12,'event-one'),true)
+assert.equal(notice.title,'Doctor called next patient')
+assert.equal(notice.options.body,'Token #12 · Please send in')
+assert.equal(notice.options.silent,true)
+registration={showNotification:async(title,options)=>{notice={title,options}}};notice=null
+assert.equal(await showCallNotification(14,'event-three'),true)
+assert.equal(notice.options.body,'Token #14 · Please send in')
+BrowserNotification.permission='denied'; notice=null
+assert.equal(await showCallNotification(13,'event-two'),false)
+assert.equal(notice,null,'No OS notification without consent')
+const tones=[]
+playCall({currentTime:10,destination:{},createOscillator:()=>{const tone={frequency:{value:0},connect(){},disconnect(){},start(t){this.startAt=t},stop(t){this.stopAt=t;tones.push(this)}};return tone},createGain:()=>({gain:{setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},disconnect(){}})})
+assert.deepEqual(tones.map(tone=>tone.frequency.value),[660,880],'Call chime has two notes')
+console.log('PASS: role-aware alerts, five-minute/4 PM IST boundaries, no-show, duplicates, stock grouping, shortfalls, notification permission and atomic reload-safe call deduplication')
