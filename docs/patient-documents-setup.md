@@ -160,3 +160,15 @@ final configured deployment. The fresh staging security advisor is recorded
 in `docs/security-review.md` (zero errors, existing warnings remain). None of those
 external checks is replaced by the local test doubles. The native PDF check is
 Chrome desktop; mobile Safari and actual phone file selection need checking.
+
+## Issued PDF archive step — 2026-10-17 (draft acceptance)
+
+New finalised prescriptions and confirmed-payment receipts create immutable archive jobs. The unlocked app generates the same print layout and uploads to the existing private clinic folder. Patient Documents lists issued PDFs; Billing and Pharmacy receipts expose only that receipt. Reception gains receipt-only processing/download, not clinical attachments, prescriptions or connection settings. Corrections use separate source bill IDs; pay-later receipts wait for settlement; name-only sales stay name-only. No historical backfill.
+
+Staging migration `20261016205705_document_pdf_archives` and JWT-verified `patient-documents` endpoint are deployed to staging only. Live synthetic issued prescription and name-only receipt upload/retry/download tests passed against the saved staging Drive connection: canonical bytes and Drive ID remain stable, and reception prescription/connection requests are rejected. No Google consent or production secret change occurred.
+
+Run local handler/worker/download checks with Node24: `npm run test:archives`. Run authenticated backend fixtures with `node scripts/document-archive-staging-test.mjs`. For exact-source live Drive testing, `node scripts/document-archive-drive-test.mjs prepare prescription` writes a synthetic snapshot locally, then open `/scripts/fixtures/archive-pdf-check.html` on the dev server and select Staging issued snapshot. Verify its downloaded PDF using `node scripts/document-archive-drive-test.mjs verify /absolute/path/to/file.pdf`; repeat prepare receipt. The generated root `archive-staging-fixture.json` is temporary synthetic data, never credentials, and must not be committed.
+
+PDF samples short/typical/45-medicine continuation and receipts have been generated and visually inspected. Full application browser checks, offline reload with pending PDFs, phone/Safari and fresh clinic-printer sign-off remain pending. A single paragraph taller than one page remains explicitly pending rather than clipping; other jobs continue. Production remains untouched and user-run release commands remain gated.
+
+Reception browser follow-up: integrated archive pending/reload/reconnect, private receipt download and1440/390 layouts pass. Offline actual-browser print output inspected as one A4 page. Staging origin was temporarily localhost for this test and restored to the original configured preview URL. Doctor UI, Safari and physical-printer sign-off remain open.

@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Archive row regression</title><body><h1>Archive row regression</h1><button>Run row checks</button><p id="result"></p><script type="module">
+import '/src/index.css';import {splitArchiveRow} from '/src/lib/splitArchiveRow.ts';
+document.querySelector('button').onclick=()=>{const result=document.querySelector('#result');let table;try{
+ table=document.createElement('table');table.className='print-table';table.style.width='var(--paper-width)';const body=table.createTBody();document.body.append(table);
+ for(const values of [ ['Unbroken: '+('👨‍👩‍👧‍👦தமிழ்'.repeat(500))], ['Diagnosis: '+Array.from({length:2000},(_,i)=>`word${i} தமிழ் வலி`).join(' ')], ['Medicine: '+Array.from({length:2000},(_,i)=>`instruction${i}`).join(' '),'SOS · 5 days'], ['Receipt: '+Array.from({length:2000},(_,i)=>`item${i}`).join(' '),'₹30.00'] ]){
+  const row=body.insertRow();for(const value of values){const cell=row.insertCell();const strong=document.createElement('strong');strong.textContent=value.slice(0,value.indexOf(':')+1);cell.append(strong,document.createTextNode(value.slice(strong.textContent.length)))}
+  const pieces=splitArchiveRow(row,200);if(pieces.length<2)throw Error('oversized text was not split');
+  values.forEach((text,i)=>{const label=row.cells[i].firstElementChild.textContent;const restored=pieces.map(piece=>piece.row.cells[i].textContent).join('').replaceAll(label+' (continued) ','');if(restored!==text)throw Error('text lost, duplicated or reordered in column '+i)});
+  if(pieces.some(piece=>piece.height>200))throw Error('row overflow');row.remove();
+ }
+ result.textContent='PASS: oversized notes, Tamil text, two-column medicine and receipt preserve every character and fit continuation pages';
+}catch(error){result.textContent='FAIL: '+error.message;throw error}finally{table?.remove()}};
+</script></body></html>
