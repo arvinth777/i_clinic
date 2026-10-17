@@ -6,6 +6,7 @@ const code=ts.transpileModule(readFileSync('src/components/DocumentArchives.tsx'
 let layout,clicked=0,resolveSession,sessionCalls=0,pauseFinal=false
 const version={current:0},session={user:{id:'owner'}},job={id:'receipt',kind:'receipt',status:'ready',created_at:'2026-10-17'}
 const context={exports:{},URL:{createObjectURL:()=> 'blob:synthetic',revokeObjectURL:()=>{}},document:{createElement:()=>({click:()=>clicked++})},setTimeout:()=>{},console,require(name){
+ if(name==='./QueryState')return{LoadingRows:()=>null}
  if(name.endsWith('.css'))return{}
  if(name==='react')return{useState:initial=>[initial,()=>{}],useRef:()=>version,useEffect:()=>{},useLayoutEffect:fn=>{layout=fn}}
  if(name==='react/jsx-runtime')return{jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})}

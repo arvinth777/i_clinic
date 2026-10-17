@@ -352,3 +352,11 @@ Local release alias `20261017040000_document_pdf_archives.sql` links the exact a
 ### 2026-10-17 — Archive draft PR #37
 
 Pushed `codex/drive-pdf-archive`, commit `901178a`, and opened draft PR #37 into main. No merge. Source checks pass; local generated synthetic PDFs/PNGs are retained under worktree `output/pdf/`, not committed or shipped. Temporary exported synthetic snapshot and CLI-history alert copy removed. Remaining application reception/offline/mobile/Safari and physical-printer acceptance are explicit. Production untouched; main/production remain `1eeaa92`. Review order35,36,37; reconcile shared docs/package edits after earlier PRs merge.
+
+### 2026-10-17 — Reception archive PWA acceptance
+
+Using the user-signed-in reception session, temporarily set staging CLINIC_APP_URL to localhost5173 and served the archive production build at the same local origin. Verified pending archive banner across real offline PWA reload, automatic resumed uploads (HTTP200), all11 receipt jobs ready, doctor prescription jobs still pending, private receipt download, and no page overflow at1440/390. Offline Page.printToPDF produced one unclipped A4 receipt from the actual print DOM. Browser screenshot default clipped emulated desktop; full CDP screenshot with zoom-adjusted1584x1100 clip correctly captured the measured1440px layout. Local proof lives in primary output/playwright.
+
+Browser found stale batch counts and missing list-loading feedback; fixed with per-success local completed IDs and existing LoadingRows. Stateful regression covers count2->1 and clearing; Standards/Spec follow-up found no blocker. Fresh archive unit suites, tsc, lint8 and build pass. No financial transaction or schema/endpoint change in this follow-up.
+
+Staging app URL restored to `https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app`, verified OPTIONS204/ACAO; no OAuth credentials or production changed. Doctor archive-history UI/doctor offline settings, Safari and physical-printer acceptance remain pending; user asked to switch accounts themselves. No merge authorized.

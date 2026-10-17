@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { documentRequest } from '../lib/patientDocuments'
 import { formatDate } from '../lib/date'
 import { isScreenLocked } from '../lib/pinLock'
+import { LoadingRows } from './QueryState'
 import './PatientDocuments.css'
 import './OfflineQueueBanner.css'
 import type { ArchiveSnapshot } from '../lib/documentArchivePdf'
@@ -15,6 +16,7 @@ let working = false
 
 export function ArchiveWorker({clinicId,ownerId,locked}:{clinicId:string;ownerId:string;locked:boolean}) {
   const client=useQueryClient(), [error,setError]=useState('')
+  const [completed,setCompleted]=useState<string[]>([])
   const query=useQuery({queryKey:['pending-archives',clinicId,ownerId],enabled:!locked,refetchInterval:30_000,queryFn:async()=>{
     const jobs:Archive[]=[]
     for(let offset=0;;offset+=50){
@@ -50,6 +52,7 @@ export function ArchiveWorker({clinicId,ownerId,locked}:{clinicId:string;ownerId
             const form=new FormData();form.set('metadata',JSON.stringify({id:job.id,clinic_id:clinicId}));form.set('file',blob,'archive.pdf')
             await documentRequest('archive-upload',form,session.access_token)
             await del(key,store);uploaded=true
+            if(active)setCompleted(ids=>[...ids,job.id])
             if(!await current())return
             void client.invalidateQueries({queryKey:['document-archives']})
           }catch(failure){if(active)setError(failure instanceof Error ? `${job.kind} ${job.id}: ${failure.message}` : 'PDF archive pending. Retry when connected.')}
@@ -61,8 +64,9 @@ export function ArchiveWorker({clinicId,ownerId,locked}:{clinicId:string;ownerId
   },[clinicId,ownerId,locked,query.data,query.dataUpdatedAt,client])
   if(locked)return null
   if(query.isError)return <div className="offline-queue-banner offline-queue-banner-halted" role="alert">Could not check PDF archive status. Issued records and printing still work. <button className="ui-button ui-button-neutral" type="button" onClick={()=>void query.refetch()}>Try again</button></div>
-  if(!query.data?.length)return null
-  return <div className="offline-queue-banner offline-queue-banner-pending" role="status"><span>{query.data.length} PDFs pending in Google Drive. Prescriptions, payments and printing still work.{error && ` ${error}`}</span><button className="ui-button ui-button-neutral" type="button" onClick={()=>void query.refetch()}>Try again</button></div>
+  const remaining=query.data?.filter(job=>!completed.includes(job.id)).length??0
+  if(!remaining)return null
+  return <div className="offline-queue-banner offline-queue-banner-pending" role="status"><span>{remaining} PDFs pending in Google Drive. Prescriptions, payments and printing still work.{error && ` ${error}`}</span><button className="ui-button ui-button-neutral" type="button" onClick={()=>void query.refetch()}>Try again</button></div>
 }
 
 export function DocumentArchives({clinicId,patientId,billId,locked=false}:{clinicId:string;patientId?:string;billId?:string;locked?:boolean}){
@@ -90,6 +94,7 @@ export function DocumentArchives({clinicId,patientId,billId,locked=false}:{clini
   }
   if(locked)return null
   return <section><h3>Issued PDFs · Google Drive</h3><p className="field-hint">Issued copies stay linked to their original prescription or bill. Structured history remains the clinical record.</p>
+    {query.isPending && <LoadingRows label="Loading issued PDFs…" />}
     {query.isError && <p role="alert" className="form-error">Could not load archived PDFs. <button className="ui-button ui-button-neutral" type="button" onClick={()=>void query.refetch()}>Try again</button></p>}
     {error && <p role="alert" className="form-error">{error}</p>}
     {query.data?.length===0 && <p className="field-hint">No issued PDFs archived yet.</p>}

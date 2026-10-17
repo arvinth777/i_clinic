@@ -3,13 +3,14 @@ import {readFileSync} from 'node:fs'
 import vm from 'node:vm'
 import ts from 'typescript'
 const code=ts.transpileModule(readFileSync('src/components/DocumentArchives.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText
-let effect,dependencies,invalidated=[],attempted=[],fail=true,done
+let effect,dependencies,invalidated=[],attempted=[],fail=true,done,stateIndex=0,states=[]
 const completed=()=>new Promise(resolve=>{done=resolve})
 const jobs=[{id:'bad',kind:'prescription'},{id:'good',kind:'receipt'}],blob=new Blob(['%PDF-1.4'])
 const context={exports:{},navigator:{onLine:true},FormData,Blob,Error,console,setTimeout,URL,require(name){
+ if(name==='./QueryState')return{LoadingRows:()=>null}
  if(name.endsWith('.css'))return{}
- if(name==='react')return{useEffect:(fn,deps)=>{effect=fn;dependencies=deps},useState:()=>['',()=>{}],useRef:()=>({current:0}),useLayoutEffect:()=>{}}
- if(name==='react/jsx-runtime')return{jsx:()=>null,jsxs:()=>null}
+ if(name==='react')return{useEffect:(fn,deps)=>{effect=fn;dependencies=deps},useState:initial=>{const index=stateIndex++;if(!(index in states))states[index]=initial;return[states[index],value=>{states[index]=typeof value==='function'?value(states[index]):value}]},useRef:()=>({current:0}),useLayoutEffect:()=>{}}
+ if(name==='react/jsx-runtime')return{jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})}
  if(name==='@tanstack/react-query')return{useQuery:()=>({data:jobs,dataUpdatedAt:2,isError:false}),useQueryClient:()=>({invalidateQueries:({queryKey})=>{invalidated.push(queryKey);if(queryKey[0]==='pending-archives')done?.();return Promise.resolve()}})}
  if(name==='idb-keyval')return{createStore:()=>({}),get:async()=>blob,set:async()=>{},del:async()=>{}}
  if(name==='../lib/supabase')return{supabase:{auth:{getSession:async()=>({data:{session:{user:{id:'owner'},access_token:'synthetic'}}})}}}
@@ -23,8 +24,10 @@ context.exports.ArchiveWorker({clinicId:'clinic',ownerId:'owner',locked:false})
 assert.ok(dependencies.includes(2),'unchanged job rows still retry on a successful query refresh')
 let promise=completed();let cleanup=effect();await promise;cleanup()
 assert.deepEqual(attempted,['bad','good'],'one bad job cannot block unrelated valid receipt')
+stateIndex=0;const pendingView=context.exports.ArchiveWorker({clinicId:'clinic',ownerId:'owner',locked:false});assert.equal(pendingView.props.children[0].props.children[0],1,'successful jobs leave the visible pending count immediately')
 fail=false;attempted=[];invalidated=[]
 promise=completed();cleanup=effect();await promise;cleanup()
 assert.deepEqual(attempted,['bad','good'],'same pending list retries after Drive is restored')
 assert.ok(invalidated.some(key=>key[0]==='pending-archives'))
+stateIndex=0;assert.equal(context.exports.ArchiveWorker({clinicId:'clinic',ownerId:'owner',locked:false}),null,'banner clears after all local jobs complete')
 console.log('PASS: poison job isolation, unchanged-data refresh retry and successful queue invalidation')
