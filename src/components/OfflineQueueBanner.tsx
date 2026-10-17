@@ -21,8 +21,9 @@ export function OfflineQueueBanner({ redact, userId }: { redact: boolean; userId
   function retry() { void drainQueue(); void client.invalidateQueries() }
   async function discard() {
     if (!halted) return
+    const id = halted.mutation.id
     if (!(await confirm({ title: 'Discard this change?', body: `"${halted.mutation.description}" was never saved and will be lost. Changes queued after it will then sync.`, confirmLabel: 'Discard' }))) return
-    await discardHalted()
+    await discardHalted(id)
     void client.invalidateQueries()
   }
 

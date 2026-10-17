@@ -90,6 +90,8 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
   // The ids for one new-patient submission. Kept across a failed attempt so a retry updates the same patient
   // instead of registering a second one when only the visit insert was rejected.
   const newPatientIds = useRef<{ patientId: string; visitId: string } | null>(null)
+  // Picking an existing patient abandons the new-patient submission, so its ids must not leak into a later one.
+  useEffect(() => { if (selected !== 'new') newPatientIds.current = null }, [selected])
   const checkInNew = useMutation({
     networkMode: 'always',
     mutationFn: async (input: NewPatientInput) => {
