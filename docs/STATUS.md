@@ -1,5 +1,13 @@
 # Status
 
+## Merged clinic backlog features — 2026-10-17
+
+- User-authorized PR35/36/37/38 merged into main, application mergee2cc288. Includes repaired tests/CI, configurable alerts, Drive PDF archive and corrected read-only/offline prescription viewing. Shared document/script conflicts resolved while preserving each feature. This newest checkpoint supersedes historical pending-merge statements below.
+- Fresh combined checks: tsc/build pass, lint8 existing warnings, unit8/8, alert/archive regression suites pass and95 staging table queries match schema. Hosted CI remains blocked by GitHub billing; it is not reported as passing.
+- Production stays1eeaa92; Vercel production branch confirmed production. No production deploy/promotion/migration/secret change. PR7 backup draft untouched. Already-applied staging migrations were not reapplied.
+- Remaining release gates: fresh physical clinic-printer samples and Safari acceptance, plus hosted CI once billing is resolved. No merge authorization remains outstanding for these four PRs; production release still requires explicit user instruction and user-run production commands.
+- This documentation-only checkpoint follows the verified application merge. No uncommitted source; generated output/ evidence remains local. Next: human release acceptance and a separately authorized production promotion; return checkout to main after the checkpoint.
+
 ## Issued prescription navigation — 2026-10-17
 
 - Fixed completed-consultation View prescription opening Billing. It now opens a read-only A4 prescription with Print; Review bill keeps its own billing workspace. Paid visits also remain read-only.
