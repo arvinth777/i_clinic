@@ -145,7 +145,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   const bill = confirmedBill?.pending ? savedBill ?? confirmedBill : confirmedBill ?? savedBill ?? null
 
   const plan = planQuery.data
-  const choicesFor = (item: PrescribedItem) => (catalogQuery.data ?? []).filter(m => m.unit_confirmed_at && m.stock_unit === item.stock_unit && normal(m.molecule_name || m.name) === normal(item.molecule_name) && (m.id === item.medicine_id && !m.strength_options?.length || !!item.strength && m.strength_options?.some(s => normal(s) === normal(item.strength))))
+  const choicesFor = (item: PrescribedItem) => (catalogQuery.data ?? []).filter(m => m.unit_confirmed_at && normal(m.stock_unit) === normal(item.stock_unit) && normal(m.molecule_name || m.name) === normal(item.molecule_name) && (m.id === item.medicine_id && !m.strength_options?.length || !!item.strength && m.strength_options?.some(s => normal(s) === normal(item.strength))))
   const stockByMedicine = new Map((stockQuery.data ?? []).map(row => [row.medicine_id, row.quantity]))
   const chosenFor = (item: PrescribedItem) => choicesFor(item).find(m => m.id === selectedBrands[item.prescription_item_id])
   const supplyLines: SupplyLine[] | undefined = plan && detail ? [
@@ -164,7 +164,12 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
     if (row.kind !== 'medicine') return null
     if (!Number.isInteger(row.quantity) || row.quantity < 0) return `${row.description}: enter a whole number of units.`
     if (row.quantity > (row.approved_quantity ?? 0)) return `${row.description}: more than the ${row.approved_quantity ?? 0} the doctor approved.`
-    if (!row.medicine_id) return `${row.description}: choose the stocked product that matches the doctor's molecule and strength.`
+    if (!row.medicine_id) {
+      const item = plan?.medicines.find(m => m.prescription_item_id === row.prescription_item_id)
+      return item && choicesFor(item).length === 0
+        ? `${row.description}: no stocked product matches this molecule, strength and unit. Add that product (with its unit and price confirmed) under Inventory, then refresh this bill.`
+        : `${row.description}: choose the stocked product that matches the doctor's molecule and strength.`
+    }
     if (row.quantity > Math.max(0, row.available_quantity??0)) return `${row.description}: only ${Math.max(0, row.available_quantity??0)} in Counter stock. Reduce the supplied units (0 if none can be supplied) or receive stock under Inventory.`
     return null
   }).find(Boolean)

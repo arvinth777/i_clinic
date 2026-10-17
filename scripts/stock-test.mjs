@@ -1,5 +1,5 @@
 import { assertStaging } from './clinic-workflow-fixture.mjs'
-import { checked, sendToBilling } from './clinic-workflow-fixture.mjs'
+import { checked, sendToBilling, payVisitResult } from './clinic-workflow-fixture.mjs'
 // TDD for Phase B (docs/build-plan.md): stock. "Tests first" is this
 // phase's own explicit instruction (AGENTS.md tdd checkpoint -- this
 // touches money and quantities). Same convention as every other script:
@@ -68,7 +68,7 @@ async function prescribe(client, visitId, medicineId, quantityDispensed) {
   if (rxErr) throw new Error(`fixture: creating prescription failed: ${rxErr.message}`)
   const { data: item, error } = await client
     .from('prescription_items')
-    .insert({ clinic_id: CLINIC_A_ID, prescription_id: rx.id, medicine_id: medicineId, duration_days: 5, dosage_frequency: 'SOS', quantity_dispensed: quantityDispensed })
+    .insert({ clinic_id: CLINIC_A_ID, prescription_id: rx.id, medicine_id: medicineId, duration_days: 5, dosage_frequency: 'SOS', strength:'500 mg',quantity_dispensed: quantityDispensed })
     .select('id')
     .single()
   if (error) throw new Error(`prescribing failed: ${error.message}`)
@@ -180,8 +180,8 @@ let medA, counterPointId
   const beforeB = await stockQuantity(doctorA, medB, 'Counter')
   const beforeC = await stockQuantity(doctorA, medC, 'Counter')
 
-  const { data: billId, error: billErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' })
-  report('confirm_bill still succeeds with stock deduction wired in', !billErr && !!billId, billErr?.message)
+  const { data: billId, error: billErr } = await payVisitResult(receptionA, visitId)
+  report('confirm_reception_bill still succeeds with stock deduction wired in', !billErr && !!billId, billErr?.message)
 
   const { data: lineItems } = await receptionA.from('bill_line_items').select('description').eq('bill_id', billId)
   const billedMedC = (lineItems ?? []).some((r) => r.description?.includes('Med C'))
@@ -204,8 +204,8 @@ let medA, counterPointId
   await prescribe(doctorA, visitId, medD, 3)
   await sendToBilling(doctorA, receptionA, CLINIC_A_ID, visitId)
 
-  const { error: billErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' })
-  report('confirm_bill blocks supplying more than available stock', /stock/i.test(billErr?.message ?? ''), billErr?.message)
+  const { error: billErr } = await payVisitResult(receptionA, visitId)
+  report('confirm_reception_bill blocks supplying more than available stock', /stock/i.test(billErr?.message ?? ''), billErr?.message)
   report('stock rejection creates no bill', checked(await doctorA.from('bills').select('id').eq('visit_id', visitId)).length === 0)
 
   const after = await stockQuantity(doctorA, medD, 'Counter')
@@ -295,13 +295,13 @@ let medA, counterPointId
   await sendToBilling(doctorA, receptionA, CLINIC_A_ID, visitId)
 
   const beforeFirstBill = await stockQuantity(doctorA, medG, 'Counter')
-  const firstBillId = checked(await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' }))
+  const firstBillId = checked(await payVisitResult(receptionA, visitId))
   const afterFirstBill = await stockQuantity(doctorA, medG, 'Counter')
   report('first confirm deducts once', afterFirstBill.quantity === beforeFirstBill.quantity - 5, JSON.stringify(afterFirstBill))
 
   const forbidden = await doctorA.from('visits').update({ stage: 'ready_to_bill' }).eq('id', visitId)
   report('paid visit cannot be reopened by a direct stage write', !!forbidden.error && checked(await doctorA.from('visits').select('stage').eq('id', visitId).single()).stage === 'paid')
-  const { data: retryId, error: rebillErr } = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' })
+  const { data: retryId, error: rebillErr } = await payVisitResult(receptionA, visitId)
   report('payment retry returns the same immutable bill', !rebillErr && retryId === firstBillId, rebillErr?.message)
   const afterRebill = await stockQuantity(doctorA, medG, 'Counter')
   report('payment retry does not deduct stock a second time', afterRebill.quantity === afterFirstBill.quantity, `after first bill ${afterFirstBill.quantity}, after rebill ${afterRebill.quantity}`)

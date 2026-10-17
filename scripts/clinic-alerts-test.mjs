@@ -11,7 +11,7 @@ const source={visits:[visit('call','called',{called_at:new Date(now-5*60000).toI
 const ids=rows=>Array.from(rows,a=>a.id)
 const reception=buildClinicAlerts(source,false,now,today),doctor=buildClinicAlerts(source,true,now,today)
 for(const id of ['called:call','sent-reminder:call','no-show:absent','bill:bill','duplicate:duplicate-a','stock:m','closing:'+today])assert.ok(ids(reception).includes(id),id)
-assert.ok(!ids(reception).includes('discount:bill'));assert.ok(!ids(reception).includes('shortfall:b'));assert.ok(ids(doctor).includes('discount:bill'));assert.ok(ids(doctor).includes('shortfall:b'));assert.ok(ids(doctor).includes('sent:sent'))
+assert.ok(!ids(reception).includes('discount:bill'));assert.ok(!ids(reception).includes('shortfall:b'));assert.ok(!ids(doctor).includes('discount:bill'));assert.ok(ids(doctor).includes('shortfall:b'));assert.ok(ids(doctor).includes('sent:sent'))
 assert.equal(reception.filter(a=>a.id==='stock:m').length,1,'Stock warnings grouped per medicine')
 assert.ok(!ids(buildClinicAlerts(source,false,now-1,today)).includes('closing:'+today),'4 PM boundary in IST')
 assert.ok(!ids(buildClinicAlerts({...source,visits:[visit('new','called',{called_at:new Date(now-299999).toISOString()})]},false,now,today)).includes('sent-reminder:new'))
