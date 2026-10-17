@@ -26,10 +26,16 @@
 .shell-menu > summary::-webkit-details-marker { display: none; }
 .shell-menu-items { position: absolute; top: 100%; right: 0; min-width: max-content; display: flex; flex-direction: column; padding: var(--space-6); background: var(--bg); border-radius: var(--r-md); box-shadow: var(--shadow-pop); z-index: 40; }
 .shell-user-email { font-size: var(--text-xs); padding: var(--space-xs) var(--space-sm); color: var(--muted); }
-.shell-content { flex: 1; min-width: 0; background: var(--bg); padding: var(--page-top) var(--page-padding); }
-.shell-content > * { max-width: var(--content-width); margin-inline: auto; }
-.shell-content:has(> .reception-page, > .consultation-page, > .billing-desk, > .support-layout, > .settings-page, > .refill-workspace, > .patients-workspace) { padding: 0; }
-.shell-content > :is(.reception-page, .consultation-page, .billing-desk, .support-layout, .settings-page, .refill-workspace, .patients-workspace) { max-width: none; }
+.shell-content { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+/* Plain pages get the page padding and a centred column; workspace pages fill the width and the full height (their grey side columns run top to bottom). */
+.shell-content > :not(.shell-subnav, .reception-page, .consultation-page, .billing-desk, .support-layout, .settings-page, .refill-workspace, .patients-workspace) { width: 100%; max-width: calc(var(--content-width) + 2 * var(--page-padding)); margin-inline: auto; padding: var(--page-top) var(--page-padding); }
+.shell-content > :is(.reception-page, .consultation-page, .billing-desk, .support-layout, .settings-page, .refill-workspace, .patients-workspace) { flex: 1; max-width: none; }
+.shell-subnav { display: flex; gap: var(--space-2xs); padding: var(--space-sm) var(--page-padding) 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.shell-subnav .shell-nav-item { border-radius: var(--r-sm) var(--r-sm) 0 0; }
+.shell-subnav .shell-nav-item[aria-current='page'] { background: transparent; box-shadow: inset 0 -2px 0 var(--blue); }
+.shell-avatar { display: grid; place-items: center; width: var(--control-height); height: var(--control-height); border-radius: var(--radius-pill); background: var(--blue-tint); color: var(--blue-ink); font-size: var(--text-sm); font-weight: 700; cursor: pointer; list-style: none; }
+.shell-avatar:hover { background: var(--blue-row); }
+.shell-sync:empty { display: none; }
 .shell-mobile-toggle { display: none; }
 .shell-mobile-links { display: flex; flex-direction: column; margin-block: var(--space-lg); }
 .shell-mobile-links .shell-nav-item { min-height: var(--space-48); }
@@ -43,15 +49,16 @@
  .shell-nav, .shell-status > :not(.shell-queue) { display: none; }
  .shell-mobile-toggle { display: inline-flex; }
  .shell-status { flex: 1; }
- .shell-content { padding: var(--space-lg) var(--space-md); }
+ .shell-content > :not(.shell-subnav, .reception-page, .consultation-page, .billing-desk, .support-layout, .settings-page, .refill-workspace, .patients-workspace) { padding: var(--space-lg) var(--space-md); }
+ .shell-subnav { padding-inline: var(--space-md); }
 }
-.billing-desk { display: grid; grid-template-columns: var(--record-rail-width) minmax(0, 1fr); min-height: 100%; }
+.billing-desk { display: grid; grid-template-columns: var(--record-rail-width) minmax(0, 1fr); }
 .record-sidebar { min-width: 0; padding: var(--page-top) var(--space-lg); background: var(--surface-2); }
 .record-sidebar > .field-hint { margin-bottom: var(--space-sm); }
 .record-selector { display: block; width: 100%; border: 0; background: transparent; color: var(--text); font: inherit; font-size: var(--text-sm); text-align: left; padding: var(--space-sm); border-radius: 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; cursor: pointer; }
 .record-selector small { display: block; color: var(--text-tertiary); font-size: var(--text-xs); }
 .record-selector[aria-pressed='true'], .record-selector:hover { background: var(--surface); }
-.support-layout { display: grid; grid-template-columns: var(--record-rail-width) minmax(0, 1fr); min-height: 100%; }
+.support-layout { display: grid; grid-template-columns: var(--record-rail-width) minmax(0, 1fr); }
 .support-layout .record-sidebar { display: flex; flex-direction: column; gap: var(--space-xs); }
 .support-layout .shell-nav-item[aria-current='page'] { background: var(--surface); }
 .support-content { padding: var(--page-top) var(--page-padding); min-width: 0; }

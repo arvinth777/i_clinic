@@ -281,7 +281,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
             <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />
           </ul>
           {reviewVisitId && <Button variant="secondary" onClick={()=>{setReviewVisitId(null);setWorkspace('overview')}}>Return to consultation</Button>}
-          {earlierCount>0 && <div className="doctor-earlier"><p className="field-hint">Left open from earlier days · {earlierCount}</p><p>Not counted in today’s queue. Reception can review them under Earlier open visits.</p></div>}
+          {earlierCount>0 && <div className="doctor-earlier"><p className="field-hint">Still open from earlier days · {earlierCount}</p><p>Not counted in today’s queue. Reception can close them under Earlier days.</p></div>}
           </div>
         </aside>
         <div className="consultation-stage">

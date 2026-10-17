@@ -1,5 +1,5 @@
-.consultation-page { min-height: 100%; }
-.consultation-shell { display: flex; align-items: stretch; min-height: 100%; }
+.consultation-page { display: flex; flex-direction: column; }
+.consultation-shell { display: flex; align-items: stretch; flex: 1; }
 .consultation-rail { order: 2; flex: 0 0 var(--doctor-side-width); min-width: 0; background: var(--surface-2); padding: var(--page-top) var(--page-padding); }
 .consultation-stage { flex: 1; min-width: 0; padding: var(--space-xl) var(--page-padding); }
 .consultation-stage > * { max-width: var(--editor-width); margin-inline: auto; }

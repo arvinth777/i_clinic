@@ -56,11 +56,11 @@ export function Reconciliation({ clinicId }: { clinicId: string }) {
   return (
     <div className="admin-page">
       <div className="admin-toolbar">
-        <h2 className="readout-heading">Needs reconciliation</h2>
+        <h2 className="readout-heading">Needs review</h2>
       </div>
       <p className="readout-empty">
-        A bill confirmed while offline, against a price that changed before it synced. Correcting writes a new bill
-        using the supplied quantities and the doctor’s current discount. The original receipt stays unchanged.
+        Bills saved while offline, at a price that changed before they synced. Correct issues a corrected bill
+        using the supplied quantities and the doctor’s current discount. The original receipt stays as it was.
       </p>
       {error && <QueryError retry={()=>void refetch()} />}
       {isPending ? <LoadingRows label="Loading corrections…" /> : (flagged ?? []).length === 0 ? (

@@ -230,7 +230,7 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
               <button type="button" className="back-to-queue" onClick={reset}>
                 ← Back to queue
               </button>
-              <NewPatientForm clinicId={clinicId} initialName={debouncedQuery} onSubmit={(input: NewPatientInput) => checkInNew.mutate(input)} submitting={checkInNew.isPending} />
+              <NewPatientForm clinicId={clinicId} initialName={debouncedQuery} onSubmit={(input: NewPatientInput) => checkInNew.mutate(input)} onUseExisting={patient => setSelected(patient)} submitting={checkInNew.isPending} />
               {checkInNew.isError && <p className="form-error" role="alert">{checkInNew.error.message}</p>}
               <div className="action-row">
                 <Button type="button" variant="secondary" onClick={reset}>
