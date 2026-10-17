@@ -3,15 +3,15 @@
 ## START HERE (written 2026-10-17 for the switch to Codex; this block is the current state, the rest is history)
 
 
-**Current Codex delta (2026-10-17):** PR35–39 are merged into main. User requested production promotion; draft release PR40 is prepared. User confirmed fresh clinic-printer and Safari acceptance approved. Production is still1eeaa92: user-run migration history/dry run, aliases0300/0400, patient-documents deploy and PR40 merge remain. Before10:00/after15:00 IST mutation window applies unless explicitly overridden; preparation occurred10:59 IST. CI account billing remains blocked. PR7 untouched. See newest section9 entries; older pending-acceptance notes are historical.
+**Current Codex delta (2026-10-17):** production release complete. PR40 merged at98305fb; Vercel production READY and canonical alias assigned. Production has11 migrations through0300/0400; patient-documentsv2 ACTIVE with JWT verification. User approved printer/Safari, agent execution, this release-window override and saved-credential sign-in for this verification. Live doctor settings and Drive-connected archive UI verified without changing clinical/financial data. Main fast-forward reconciled to production; this documentation checkpoint follows. CI billing and backup/R2 remain unresolved; PR7 untouched. Earlier pending-release/manual-only notes below are historical for this release; exceptions do not authorize unrelated future production or credential actions.
 
 **Verify first:** `git fetch origin && git log --oneline -3 origin/main origin/production && gh pr list` and `cat supabase/.temp/project-ref` (root must say `cofnrcgsolluyhghutah`, staging).
 
 | Thing | State at hand-off |
 |---|---|
-| `main` (staging branch) | `1eeaa92` (synced with production after PR #34; verified 2026-10-17) |
-| `production` (release branch, Vercel Production) | `1eeaa92`: unified patient timeline released by PR #34; no timeline release pending |
-| Production database `rmuhpgpvgvwchovlgxae` | all 9 migrations applied, last `20261017020000` (duplicates). Nothing pending. Contains **one test patient** "ZZ TEST height-weight release check (delete)" (token #1, state `called`); no other data |
+| `main` (staging branch) | reconciled to production98305fb; post-release documentation may be ahead |
+| `production` (release branch, Vercel Production) | 98305fb, release PR40; Vercel READY |
+| Production database `rmuhpgpvgvwchovlgxae` | 11 dedicated migrations applied through20261017040000; no pending release migrations. Patient data not inventoried during this release |
 | Staging database `cofnrcgsolluyhghutah` | same migrations; full of synthetic/test clutter (many `BODY<tag>`, `Ramesh Kumar <tag>`, audit fixtures). Free to change |
 | Open PRs | only **#7** (Codex, draft, backups): **do not merge**; its real delta is 4 files, re-apply on a fresh branch from `main` when R2 is ready |
 | Branches to ignore | `origin/codex/*` (old, superseded), merged feature branches |
@@ -467,3 +467,21 @@ Vercel API confirmed production branch production before merges; no production c
 ### 2026-10-17 — Production release PR40 and human sign-off
 
 User asked to merge to production, then confirmed fresh short/typical/continuation prescription and receipt clinic-printer checks plus Safari key flows approved. Opened draft PR40 main->production. Fresh staging CLI migration list confirms20261016204344/20261016205705 applied; static production chain diff has only reviewed aliases20261017030000/20261017040000. JWT-verified patient-documents handler must be deployed after migrations and before frontend promotion. No production command or mutation performed; user-run production-command preference remains. Current time10:59 IST is inside clinic hours; production mutations stay after15:00 unless user explicitly overrides. Hosted CI billing remains unresolved; local application checks passed. Status/runbook updated with concrete release steps; PR7 untouched.
+
+### 2026-10-17 — Explicit execution and release-window override
+
+User explicitly permitted agent-run production commands and then selected “Deploy now—override the release window.” This supersedes the manual-command-only preference and quiet window for this specific release. Production history/dry run showed exactly aliases20261017030000 and20261017040000 pending; both now applied successfully via dedicated production CLI chain with --yes. No history repair/include-all. Root target remains staging. Next: JWT-verified patient-documents deployment, then pinned PR40 merge and live verification.
+
+### 2026-10-17 — Production backend release verified
+
+Production CLI history now matches all11 dedicated migrations including0300/0400. Deployed updated patient-documents; function metadata confirms JWT verification enabled. Existing Google secrets/grant retained; no secret changes. User explicitly authorized execution and release-window override. Ready to merge pinned PR40 main6016748 into production and wait for Vercel.
+
+### 2026-10-17 — Release PR40 merged
+
+After production migrations and JWT-verified function deploy succeeded, merged pinned PR40 (main6016748) into production at98305fb. Vercel production branch was freshly verified as production. Deployment status/live authenticated verification are in progress; production login opened in the internal browser and user asked to sign in themselves. No credentials typed by the agent; no patient/billing test data created on production. Main reconciliation follows confirmed Vercel readiness.
+
+### 2026-10-17 — Production release verified and main reconciled
+
+PR40 at98305fb deployed asdpl_4p5Kn8dJWwUs41w4zJ9GqkTnHdYZ, READY,targetproduction, exactGitSHA and canonicaliclinic-theta.vercel.app alias verified via Vercel API. Production11/11 migrations and JWT-verified patient-documentsv2 were confirmed before merge. Main fast-forwarded to origin/production; source histories reconciled.
+
+User additionally authorized agent to fill existing saved production login from private files. Used the doctor account without displaying/logging credentials; no credential creation, change or save. After PWA reload, live Queue settings read30/5/16:00; existing synthetic record's Issued PDFs list loads and manual document status confirms private clinic Drive connected. No console errors observed; no real patient records inspected and no production clinical/financial data, archive/upload test files or stock writes created. Settings/Drive screenshots are local output/playwright/production-release-*.png. This is an authenticated read-only smoke check, not a new production transaction test. Physical printer/Safari checks were approved by user; CI billing and PR7 remain unresolved/untouched.

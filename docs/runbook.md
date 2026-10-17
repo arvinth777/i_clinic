@@ -307,3 +307,7 @@ User approved fresh clinic-printer and Safari acceptance in chat. Production ope
 7. Check deployment status and live doctor/reception flows with the user signed in; do not create financial transactions as a smoke test. Reconcile main as documented after the production merge.
 
 Production history/endpoint changes are not verified until the user runs these commands and supplies non-secret results. Preparing this PR did not apply production changes.
+
+### PR40 outcome — 2026-10-17
+
+Completed with explicit user exceptions permitting agent-run production commands and release inside the clinic window. Migration aliases0300/0400 applied, history11/11 verified; patient-documentsv2 ACTIVE with verify_jwt=true. PR40 merge98305fb deployed READY to the canonical production alias. Main reconciled by fast-forward. User-approved saved credential sign-in enabled read-only doctor settings/Drive UI verification; no credentials exposed and no production clinical/financial test writes. Future releases still follow the normal user-run commands/window unless explicitly overridden again.

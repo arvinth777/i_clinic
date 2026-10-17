@@ -1,5 +1,13 @@
 # Status
 
+## Production release completed — 2026-10-17
+
+- User explicitly authorized agent-run production commands, overriding the quiet release window for this release, and approved fresh printer/Safari acceptance. Applied dedicated production aliases20261017030000 and20261017040000; production migration history now11/11 matches. Deployed patient-documents version2, ACTIVE, verify_jwt=true. No secrets changed.
+- Merged release PR40 at98305fb. Vercel deploymentdpl_4p5Kn8dJWwUs41w4zJ9GqkTnHdYZ is READY,targetproduction, exactSHA98305fb and canonical alias https://iclinic-theta.vercel.app assigned. Reconciled main to production by fast-forward; later documentation changes remain descendants.
+- User explicitly permitted filling sign-in from the saved private production credentials for this check. Doctor sign-in succeeded; after reload, new settings read30-minute no-show,5-minute call and16:00 close. Existing synthetic patient archive UI reads successfully and Google Drive reports the clinic account connected. No browser errors observed. No production patient/prescription/bill/stock test records or changes were made; no transfer test or payment was performed on production.
+- Combined application checks passed before release (tsc/build/lint8, unit8/8, alerts/archives,95 staging queries). Hosted Actions billing remains blocked; backup/R2 work and draft PR7 remain untouched. Physical printer/Safari gates are user-approved, not newly awaiting approval.
+- This post-release documentation checkpoint records the completed actions. No source edits pending; generated output/ remains local. Next: normal clinic use and the separately deferred backlog. Production commands/password entry remain user-controlled outside the specific exceptions explicitly authorized for this release.
+
 ## Production release prepared — 2026-10-17
 
 - User requested production promotion and explicitly confirmed fresh clinic-printer samples plus Safari checks are approved. Those human acceptance gates are now satisfied; older pending-sign-off statements below are historical.
