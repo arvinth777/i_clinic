@@ -7,7 +7,8 @@ are in `docs/references/clinic-app-handoff/`; `Minimal.dc.html` corresponds to
 `Prescription.png`. Requirements here are acceptance criteria, not claims that
 all screens have passed them. Product behaviour follows `ui-handoff-decisions.md`
 and `rework-brief.md`: Finish and Call next remain separate, no Skip/draft workflow,
-no invented allergies, ₹250 consultation, existing name-only refill exception.
+no invented allergies, doctor-entered consultation charge (₹250 first visit,
+₹200 return default), existing name-only refill exception.
 
 ## Stylesheet loading
 
@@ -46,6 +47,7 @@ these tokens so all current screens use one palette.
 | scroll-thumb / scroll-hover / toast-undo | #D5DAE1 / #B4BBC6 / #9DBBF5 (explicit exceptions from scrollbar/toast spec) |
 | r-sm / md / lg / xl | 8 / 10 / 14 / 16px |
 | dialog-width | 420px (the shared confirmation dialog, `ConfirmDialog.tsx`; uses the Dialogs rule below: r-xl, space-28, scrim, shadow-modal) |
+| nav-count-size | 20px for the reception Billing waiting-count circle |
 | shadow-pop | 0 12px 36px rgba(20,28,43,.14), 0 0 0 1px var(--line) |
 | shadow-modal / scrim | 0 24px 64px rgba(20,28,43,.20) / rgba(20,28,43,.32) |
 | shadow-paper | 0 1px 2px rgba(20,28,43,.06), 0 10px 30px rgba(20,28,43,.08) |
@@ -168,10 +170,11 @@ Respect reduced motion.
 
 One canonical component renders preview and print. A4 210×297mm, supplied artwork
 aspect 1055/1491, white with paper shadow on panel grey. Print hides chrome/panel
-background/shadows. Screen typography scales with sheet width; print body/reference/
-caption/dose/Rx sizes retain 1.9/1.85/1.55/1.65/4% of paper width. Header 64mm,
+background/shadows. Screen typography scales with sheet width. Header 64mm,
 reference 10mm, patient-gap 4mm, footer 24mm reserve the letterhead's writing areas.
-Paper text uses named 1.9/1.85/1.55/1.65/4cqw tokens within the sheet container, with the physical A4 calculations as fallback. The preview scales that same document rather than independently reflowing print.
+For the revised prescription, body/reference/caption/dose sizes are 2.2/2.1/1.8/1.95cqw (with equivalent physical A4 fallbacks); Rx remains 4cqw. The preview scales that same document rather than independently reflowing print. Clinical Tamil uses the locally hosted Noto Sans Tamil fallback. The letterhead's printed dotted date label is removed; the actual date is aligned in the reference row below the header.
+
+Medicine receipts use the clinic's 9.5 × 11 inch continuous stationery on the TVS MSP 250 Star. The receipt/Drive PDF page size is 684 × 792pt, with quarter-inch content padding, sparse rules and bilingual English/Tamil medication warning. The actual printer's alignment and glyph output still require a new physical check before release.
 
 The user's rebuilt HTML letterhead (2026-10-10) is preserved in
 `docs/references/clinic-letterhead/rebuilt-letterhead.html`. Its header/footer
@@ -182,9 +185,10 @@ Arimo, Noto Serif and Noto Sans/Serif Tamil are self-hosted under
 `public/letterhead` with OFL licenses and cached by the service worker.
 Clinical body text stays Hanken. Print-only colour tokens `letterhead-ink`
 (#000000), `letterhead-brand` (#0050BE), and `letterhead-rule` (#0060D4)
-preserve the supplied artwork. `letterhead-unit` is paper width / 1055;
-reference x/y = 122/361 and date x/y = 858/352 in those units. Preview and
-print share these positions. These tokens do not change the app palette.
+preserve the supplied artwork. `letterhead-unit` is paper width / 1055.
+The reference row below the header uses flex alignment for the reference at
+left and the undotted issue date at right; preview and print share that row.
+These tokens do not change the app palette.
 
 Compare every reference at 1440px; at 390px no page overflow. Check font/size,
 underline fields, text choices, one primary, no cards/sidebar/status pills or

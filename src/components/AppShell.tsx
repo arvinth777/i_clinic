@@ -3,7 +3,6 @@ import { onlineManager, useIsMutating, useQuery, useQueryClient } from '@tanstac
 import { supabase } from '../lib/supabase'
 import { useClinicId } from '../lib/useClinicId'
 import { useOfflineQueue } from '../lib/useOfflineQueue'
-import { useIdleTimer } from '../lib/useIdleTimer'
 import { hasPin, setPin } from '../lib/pinLock'
 import { ClinicAlerts } from './ClinicAlerts'
 import type { AlertTarget } from '../lib/clinicAlerts'
@@ -14,18 +13,9 @@ import { OfflineQueueBanner } from './OfflineQueueBanner'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import './AppShell.css'
-import { startOfToday } from '../lib/date'
+import { startOfToday, clinicToday } from '../lib/date'
 import { RealtimeConnected, queuePollInterval, batchRealtimeEvents } from '../lib/realtimeStatus'
 
-// Per-station idle-lock timeout (docs/architecture-spec.md): the reception
-// desk is a walk-through space, unattended repeatedly through the day; the
-// doctor's console is a controlled consultation room where a short timer
-// would just get disabled by the person it's meant to protect. Derived
-// from role, not a physical station setting -- this is a login session,
-// not a kiosk. A doctor holding admin too (docs/STATUS.md's documented
-// roster) still gets the doctor's longer window.
-const DOCTOR_TIMEOUT_MS = 15 * 60 * 1000
-const OTHER_TIMEOUT_MS = 2 * 60 * 1000
 
 function PinForm({ onDone }: { onDone: () => void }) {
   const [pin, setPinDraft] = useState('')
@@ -68,19 +58,6 @@ function PinForm({ onDone }: { onDone: () => void }) {
   )
 }
 
-// The clinic can turn the automatic idle lock off in Settings. Until the flag is known (or if it cannot be read) the lock stays on.
-function useIdleLockEnabled(clinicId: string | null | undefined) {
-  const { data, isError } = useQuery({
-    queryKey: ['idle-lock', clinicId],
-    enabled: !!clinicId,
-    queryFn: async () => {
-      const { data, error } = await supabase.from('clinics').select('idle_lock_enabled').eq('id', clinicId).single()
-      if (error) throw error
-      return data.idle_lock_enabled as boolean
-    },
-  })
-  return data !== false || isError // a cached "off" is not trusted once a refresh fails
-}
 
 function useClinicName(clinicId: string | null | undefined) {
   return useQuery({
@@ -163,7 +140,7 @@ export function AppShell({
   useEffect(() => {
     if (!clinicId || !clinical) return
     function refreshQueue() {
-      for (const key of ['shell-queue', 'queue-events', 'doctor-queue', 'doctor-alert-visit', 'visits-today', 'visits-earlier', 'doctor-discount-requests', 'doctor-earlier-count', 'doctor-today-metrics', 'clinic-alerts']) {
+      for (const key of ['shell-queue', 'billing-ready-count', 'queue-events', 'doctor-queue', 'doctor-alert-visit', 'visits-today', 'visits-earlier', 'doctor-discount-requests', 'doctor-earlier-count', 'doctor-today-metrics', 'clinic-alerts']) {
         void queryClient.invalidateQueries({ queryKey: [key, clinicId] })
       }
     }
@@ -189,19 +166,29 @@ export function AppShell({
   useEffect(()=>{if(!eventTime)return;const remaining=new Date(eventTime).getTime()+10000-Date.now();const timer=setTimeout(()=>setExpiredEvent(eventTime),Math.max(0,remaining));return()=>clearTimeout(timer)},[eventTime])
   const eventText=latestEvent && ({call:'Doctor called',sent_in:'Reception sent in',finish:'Ready to bill',request_discount:'Discount review requested'}[latestEvent.action])
   const current = queue?.find((visit) => ['called','with_doctor'].includes(visit.stage))
+  const { data: readyToBill = 0 } = useQuery({
+    queryKey: ['billing-ready-count', clinicId],
+    enabled: !!clinicId && clinical && !isDoctor,
+    refetchInterval: queuePollInterval(connected),
+    queryFn: async () => {
+      const { count, error } = await supabase.from('visits').select('id', { count: 'exact', head: true })
+        .eq('clinic_id', clinicId!).eq('stage', 'ready_to_bill').gte('arrived_at', new Date(`${clinicToday()}T00:00:00+05:30`).toISOString())
+      if (error) throw error
+      return count ?? 0
+    },
+  })
   const primary = ['reception', 'consultation', 'billing', 'pharmacy', 'patients', 'stock', 'reports'].flatMap(key => sections.filter(section => section.key === key))
   const more = sections.filter((section) => !primary.includes(section))
   const activeMore = more.find((section) => section.key === activeSection)
 
-  const idleLockOn = useIdleLockEnabled(clinicId)
-  useIdleTimer(!idleLockOn ? null : isDoctor ? DOCTOR_TIMEOUT_MS : OTHER_TIMEOUT_MS, onLock)
   useEffect(() => { const label = sections.find((s) => s.key === activeSection)?.label; document.title = label ? `${label} · iClinic` : 'iClinic' }, [sections, activeSection])
 
   function select(key: string) { onSelectSection(key); setMenuOpen(false) }
   function navItem(section: ShellSection) {
     return <a key={section.key} href={`#${section.key}`} className="shell-nav-item"
+      aria-label={section.key === 'billing' && readyToBill ? `Billing, ${readyToBill} patients waiting` : undefined}
       aria-current={section.key === activeSection || (section.key === 'more' && activeMore) ? 'page' : undefined}
-      onClick={(event) => { event.preventDefault(); select(section.key) }}>{section.label}</a>
+      onClick={(event) => { event.preventDefault(); select(section.key) }}>{section.label}{section.key === 'billing' && readyToBill > 0 && <span className="shell-billing-count" aria-hidden="true">{readyToBill}</span>}</a>
   }
   const navigation = [...primary, { key: 'more', label: 'More' }]
   const syncLabel = halted ? 'Save needs attention' : !online ? `Offline · ${pending.length} changes waiting` : pending.length ? `${pending.length} not saved yet` : saving ? 'Saving…' : 'All saved'

@@ -1,5 +1,31 @@
 # Technical decisions
 
+## Reception brand billing and prescription issue date — staging revision, 2026-10-17
+
+On `codex/prescription-print-workflow`, the doctor saves a molecule, strength,
+dose and duration without selecting a manufacturer's price or confirming stock.
+The clinical molecule is snapshotted on each prescription item so later catalog
+renames cannot change issued instructions. Reception chooses an active catalog
+product with the same molecule, strength and stock unit, confirms stock and
+charges quantity supplied × current catalog unit price. The doctor controls a
+separate consultation charge (₹250 first consultation / ₹200 after a completed
+consultation by default, even when that earlier bill is still unpaid).
+`confirm_reception_bill` validates the selection, stock, integer paise total and
+role, then writes the immutable bill and stock movement transactionally; retries
+return the same bill. Realtime still only invalidates queries. The new RPCs and
+migrations are on staging only, pending review and release.
+
+The doctor may enter an unpriced molecule with an explicit supply unit for an
+unfamiliar form; familiar forms derive tablet, capsule, bottle, sachet, vial or
+tube. Reception's billing RPC exposes only molecule, strength, quantity, unit and
+amounts. Clinical dose, diagnosis and advice stay with the doctor's prescription
+read and archive. This keeps billing access narrower than clinical access.
+
+Browser prescription printing uses the saved IndexedDB prescribed time before
+the consultation is finished and `consultation_ended_at` afterward; the server
+Drive archive snapshots the finish time. Arrival time is retained only as a
+fallback for older records. A clinical save and print remain available offline.
+
 Moved from AGENTS.md on 2026-10-10; existing decisions are preserved.
 Read the relevant section before changing search, schema, realtime, offline,
 or messaging. WhatsApp remains deferred under `docs/rework-brief.md`; the

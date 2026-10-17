@@ -1,0 +1,1 @@
+../../../../supabase/migrations/20261017213000_reception_catalog_control.sql

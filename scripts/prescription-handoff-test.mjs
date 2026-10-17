@@ -34,9 +34,9 @@ try {
   const reception = await signIn('reception', passwords.TEST_RECEPTION_A_PASSWORD)
   const patient = value(await doctor.from('patients').insert({ clinic_id: clinicId, name: `Handoff synthetic ${crypto.randomUUID()}`, age: 40 }).select('id').single())
   const visit = value(await doctor.from('visits').insert({ clinic_id: clinicId, patient_id: patient.id, arrived_at: new Date().toISOString(), complaint: 'Synthetic UI verification' }).select('id').single())
-  const medicine = value(await doctor.from('medicines').insert({ clinic_id: clinicId, name: `Handoff medicine ${crypto.randomUUID()}`, price_paise: 1000 }).select('id').single())
+  const medicine = value(await doctor.from('medicines').insert({ clinic_id: clinicId, name: `Handoff medicine ${crypto.randomUUID()}`, price_paise: 1000, strength_options: ['500 mg'] }).select('id').single())
   value(await doctor.rpc('set_medicine_unit_price', { p_medicine_id: medicine.id, p_stock_unit: 'tablet', p_price_paise: 1000 }))
-  const args = { p_prescription_id: crypto.randomUUID(), p_visit_id: visit.id, p_items: [{ id: crypto.randomUUID(), medicine_id: medicine.id, drug_type: 'Tablet', before_after_food: 'After food', dosage_frequency: '0.5-0-0.5', duration_days: 5, quantity_dispensed: 5 }], p_diagnosis: 'Synthetic saved diagnosis', p_advice: 'Synthetic saved advice <not HTML>' }
+  const args = { p_prescription_id: crypto.randomUUID(), p_visit_id: visit.id, p_items: [{ id: crypto.randomUUID(), medicine_id: medicine.id, drug_type: 'Tablet', strength: '500 mg', before_after_food: 'After food', dosage_frequency: '0.5-0-0.5', duration_days: 5, quantity_dispensed: 5 }], p_diagnosis: 'Synthetic saved diagnosis', p_advice: 'Synthetic saved advice <not HTML>' }
   assert.ok((await reception.rpc('save_prescription', args)).error, 'reception cannot issue clinical instructions')
   value(await doctor.rpc('save_prescription', args))
   value(await doctor.rpc('save_prescription', args))
@@ -61,14 +61,16 @@ try {
   await sendToBilling(doctor,reception,clinicId,visit.id)
   const printable = value(await reception.rpc('get_visit_billing_detail', { p_visit_id: visit.id }))
   const printedMedicine = printable.find(row => row.kind === 'medicine')
-  assert.equal(printedMedicine.diagnosis, args.p_diagnosis, 'reception print data must include saved diagnosis')
-  assert.equal(printedMedicine.advice, args.p_advice, 'reception print data must include saved advice')
+  assert.ok(printedMedicine, 'reception receives medicine billing detail after handoff')
+  assert.equal(printedMedicine.diagnosis, null, 'reception billing read masks diagnosis')
+  assert.equal(printedMedicine.advice, null, 'reception billing read masks advice')
+  assert.equal(printedMedicine.dosage_frequency, null, 'reception billing read masks dose')
   assert.deepEqual(value(await reception.from('prescriptions').select('id').eq('id', args.p_prescription_id)), [], 'printing must not grant reception unrestricted clinical history')
   for (const [role, client] of [['other clinic', otherDoctor], ['admin', admin], ['anonymous', anonymous]]) {
     const result = await client.rpc('get_visit_billing_detail', { p_visit_id: visit.id })
-    assert.ok(result.error || result.data.length === 0, role + ' must not read the printable clinical fields')
+    assert.ok(result.error || result.data.length === 0, role + ' must not read the billing detail')
   }
-  console.log('PASS: reception print fields survive handoff through the authorized billing read, with role/clinic isolation')
+  console.log('PASS: reception receives only billing fields after handoff, with role/clinic isolation')
 } finally {
   await Promise.all(clients.map(client => client.auth.signOut({scope:'local'})))
 }

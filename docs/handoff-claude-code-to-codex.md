@@ -535,3 +535,58 @@ User additionally authorized agent to fill existing saved production login from 
 - **For Codex, first steps:** (1) run the "Verify first" commands; (2) confirm the production deploy is READY and check the live app; (3) pick from Open work (the idle-lock Playwright test fix is the smallest; the audit items in `docs/codebase-audit.md` are next). **Not yet done / owner's:** delete the old exposed R2 credentials in Cloudflare, `rm scripts/backup-secrets-wizard.sh`, optional backup extras (item 1).
 - The user manual: rebuild with `python3 docs/user-manual/tools/render.py`; the PDF is not in git (the owner has it). Screens were taken on staging; if screens change, re-capture is needed (the capture helper is described in the manual entry above; it was a temporary html2canvas script and is not in the repo's `public/`).
 - Untracked in the Claude Code worktree and intentionally not committed: `BACKLOG-AUDIT.md`, `CHANGE-REPORT.md`, `scripts/backup-secrets-wizard.sh`.
+
+### 2026-10-17 — Codex branch for prescription, receipt and navigation revision
+
+Fetched and fast-forwarded local `main` to `origin/main` `5d496cb`, then branched `codex/prescription-print-workflow`. No merge or production action. Current uncommitted work revises A4 prescription typography/date/order, 9.5 × 11 inch receipt and bilingual warning, removes the manual upload form while retaining historical files, disables automatic lock, adds in-app back history and ready-to-bill navigation count, and speeds medicine/procedure entry. Synthetic PDF and Node 24 local suites pass as recorded in `docs/STATUS.md`; physical print and signed-in role checks remain open. The later user billing decision (reception selects stocked brand/price, doctor sets consultation fee with ₹250 first/₹200 return defaults) is recorded in `docs/rework-brief.md` but has no backend migration yet. Staging and production databases remain unchanged. Do not promote this branch or assume earlier printer sign-off covers the new layout.
+
+### 2026-10-17 — Staging catalog migration applied
+
+The user confirmed reception should control medicine creation/price/removal and match dispensed brands by molecule plus strength. A public-boundary staging test first failed on receptionist `medicines` INSERT RLS (42501). Added immutable migration `20261017213000_reception_catalog_control.sql`: receptionist INSERT policy, `is_active` retirement column, restricted `retire_medicine` RPC. `supabase/.temp/project-ref` confirmed `cofnrcgsolluyhghutah`; staging dry run listed only that migration, `supabase db push` applied it, and the Node 24 role/audit test passed. Production was not touched. Added future production alias symlink `20261017080000_reception_catalog_control.sql` but did not run any production command. The UI now omits retired drugs from new prescription/refill pickers while historical rows remain. Deeper molecule/strength brand substitution and consultation fee changes are still unimplemented. Do not assume this migration authorizes a release.
+
+### 2026-10-17 — Staging retired-catalog guard and review correction
+
+The independent Standards/Spec review found first-price audit, offline retirement, admin-only retirement, retired-item bypass, stale billing count and mixed-paper print-job defects. Corrected the frontend and added immutable `20261017213100_retired_catalog_guard.sql`, with production alias `20261017080100_retired_catalog_guard.sql`. Root project ref was reconfirmed as staging `cofnrcgsolluyhghutah`; a one-file dry run preceded `supabase db push` to staging. The catalog public-boundary test failed before the migration on admin-only retirement and passed afterward, including rejection of a retired medicine in a new pharmacy sale. The consultation receipt now prints separately from the doctor's A4 prescription. No production command, merge or release occurred. The new molecule/strength brand selection and doctor-entered consultation charge are still outstanding.
+
+### 2026-10-17 — Staging reception brand-billing migration
+
+A public-boundary test for `get_reception_bill` failed before implementation because the RPC did not exist. Added immutable `20261017220000_reception_brand_billing.sql` and confirmed root project `cofnrcgsolluyhghutah`. The CLI dry run listed that one file; `supabase db push` applied it to staging only. It adds doctor-controlled consultation charge (₹250 first paid consultation / ₹200 returning default), molecule tagging, scoped billing preview, and a reception-confirmation transaction with same-molecule/strength checks, catalog price snapshot, stock deduction and idempotent bill return. It removes the obsolete full-bill-approval gate from queue Finish. The public-boundary test, frontend integration, review and printer checks must follow; this migration alone is not a release. Production remains untouched.
+
+### 2026-10-17 — Staging prescription archive correction
+
+The first new billing seam run reached doctor Finish but failed because `enqueue_prescription_archive()` still required a doctor-approved price snapshot. Wrote immutable `20261017220100_archive_without_price_approval.sql` to snapshot issued medicine instructions directly from the saved prescription, with molecule text and no price. Verified root staging ref and a single-file CLI dry run, then applied it to staging only. The payment test must be rerun; frontend work and production remain untouched.
+
+### 2026-10-17 — Staging billing RPC variable-scope repair
+
+The public-boundary test exposed an ambiguous `pi` PL/pgSQL record/table alias inside `confirm_reception_bill`. Because the previous staging migration is immutable, added `20261017220200_billing_variable_scope.sql` replacing that function with explicit `#variable_conflict use_column`. Root remained linked to staging; the CLI dry run listed only this repair before applying it to staging. Test rerun still required. No production action.
+# 2026-10-17 staging handoff correction
+
+- A catalog-rename regression was red: an older issued prescription's molecule changed when the catalog was edited. Applied immutable staging migration `20261017220400_prescribed_molecule_snapshot.sql` after a single-file dry run. Initial application rejected older unconfirmed quantities; the failed transaction rolled back, and the unapplied file was corrected to backfill under a table lock without firing historical pricing recalculation. The second application succeeded. New items snapshot molecule on insert; reception matching, printed detail and archive use that snapshot. No production action.
+- On `codex/prescription-print-workflow`, applied immutable staging migration `20261017220300_reception_bill_read_and_unit.sql` to linked ref `cofnrcgsolluyhghutah` after a dry run listed only that file. The new reception billing regression was red first: printed detail still showed the old ₹250 clinic fee after a doctor set ₹300. The migration updates the printable detail, allows doctor read of the reception plan, and enforces the prescribed stock unit at confirmation. Production remains untouched.
+
+### 2026-10-17 — Staging generic-molecule entry
+
+On `codex/prescription-print-workflow`, applied immutable `20261017220500_doctor_molecule_without_catalog_unit.sql` to linked staging ref `cofnrcgsolluyhghutah` after a one-file CLI dry run. The public-boundary regression was red beforehand because a doctor could not save a new unpriced, unconfirmed molecule. The migration derives the stock unit from drug type for that clinical entry and requires a nonblank strength; reception still confirms catalog brand, unit and price before billing. Production remains untouched. Post-migration regression and UI checks are pending.
+
+### 2026-10-17 — Staging prescription issue date
+
+Applied immutable `20261017220600_prescription_issue_date_snapshot.sql` to linked staging ref `cofnrcgsolluyhghutah` after a one-file CLI dry run. It adds `consultation_ended_at` to the server archive visit snapshot so an overnight prescription PDF uses the issue date. The local print snapshot now records a prescribed time, and the print renderer prefers the finished consultation time when available. The print regression was red on the old arrival date and green after the renderer change. Production remains untouched.
+
+Prepared local production migration aliases `20261017080200` through `20261017080800` for the seven staging-only `220000`–`220600` migrations. These are repository symlinks for a future reviewed release; no production CLI command or deployment ran.
+
+### 2026-10-17 — Staging returning-consultation default
+
+The billing boundary test was red when a patient's first consultation had finished but reception had not yet taken payment: the next visit incorrectly defaulted to ₹250. After a one-file dry run, applied immutable `20261017220700_return_visit_before_payment.sql` to linked staging ref `cofnrcgsolluyhghutah`. A prior `ready_to_bill` or `paid` consultation now makes the next visit a ₹200 return; no-show alone does not. Production remains untouched; rerun the billing boundary test before release.
+
+### 2026-10-17 — Staging uncommon medicine units
+
+The public-boundary test was red when a doctor saved an unpriced `Other` medicine in tubes: the old save RPC discarded its explicit unit and the trigger stored `unit`. Following a one-file dry run, applied immutable `20261017220800_prescription_supply_unit.sql` to staging `cofnrcgsolluyhghutah`. The save RPC now passes the supplied unit to the trigger, which validates it for unfamiliar forms; known forms derive tablet/capsule/bottle/sachet/vial/tube. Production remains untouched. Rerun role and bill tests before release.
+
+### 2026-10-17 — Staging reception bill privacy
+
+The role test was red because reception's bill plan/detail RPCs still revealed dosage and diagnosis after handoff, inherited from the old reception-printing flow. After a one-file dry run, applied immutable `20261017220900_reception_bill_clinical_minimisation.sql` to staging `cofnrcgsolluyhghutah`. Reception receives molecule, strength, quantity, unit and receipt amounts; the doctor still receives full clinical instructions for the issued prescription. Production remains untouched. Rerun the role regression before release.
+
+### 2026-10-17 — Final local review and staging regression
+
+Prepared local, unapplied production migration aliases `20261017080900` through `081100` for the three last staging migrations. No production CLI command, deployment or branch merge was run. Updated the older prescription-handoff regression to use a strength and to assert receptionist clinical fields are masked; it now passes on staging. Catalog and brand-billing boundary tests, 99-query schema smoke, print DOM checks, Node 24 unit/archives/alerts/prescription-view suites, typecheck, lint (seven warnings, within baseline), build and diff check pass. The browser synthetic doctor-to-reception partial-sale and offline prescription-print checks are recorded in `docs/STATUS.md`. Fresh physical printer alignment, hosted Drive acceptance and hosted CI remain open; prior release sign-off does not cover this revision.
+The post-migration staging security advisor has zero errors and the existing warning categories (2 anonymous definer, 37 authenticated definer, leaked-password protection). The old `scripts/billing-test.mjs` stops on its missing-strength fixture and still asserts the superseded doctor approval flow; the new reception-billing suite is green. Treat that old-suite update as an open validation gap rather than claiming every historical suite passes.

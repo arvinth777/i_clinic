@@ -71,6 +71,10 @@ const fiveNewestFirst = [
 const combo5 = usualCombo(fiveNewestFirst)
 check('majority of 5 -- only the majority drug included', combo5.map((c) => c.medicineId), ['m1'])
 check('most-recent occurrence wins the fields, not an older one', combo5[0].item.strength, '250mg')
+check('usual medicine keeps its issued molecule after catalog rename', usualCombo([
+  prescription('02', [{ ...item('m1', 'New brand name', '500mg'), molecule_name: 'Original molecule' }]),
+  prescription('01', [item('m1', 'Old brand name', '500mg')]),
+])[0].medicineName, 'Original molecule')
 
 // 4. A 6th, older prescription is outside the last-5 window and must not
 // count toward the majority.
@@ -95,11 +99,14 @@ check('strip has no inferred quantity', suggestedQuantity(draft, 'strip'), null)
 check('non-whole supply needs explicit quantity', suggestedQuantity({ ...draft, dosageFrequency: '0.5-0-0', durationDays: '1' }, 'tablet'), null)
 check('typed instructions have no inferred quantity', suggestedQuantity({ ...draft, dosageFrequency: 'every other day' }, 'tablet'), null)
 
-// New-item defaults: no prefilled dose, type follows the stock unit, strength required for tablets/capsules.
+// New-item defaults: no prefilled dose, type follows the stock unit, strength required for every medicine.
 check('dose is never prefilled', newDraftItem('m1', 'X').dosageFrequency, '')
 check('stock unit picks the drug type', [newDraftItem('m', 'X', 'Capsules').drugType, newDraftItem('m', 'X', 'syrup').drugType, newDraftItem('m', 'X', 'strip').drugType], ['Capsule', 'Syrup', 'Tablet'])
+check('packaging units print the right form', ['bottle', 'sachet', 'vial', 'tube'].map(unit => newDraftItem('m', 'X', unit).drugType), ['Syrup', 'Powder', 'Injection', 'Topical'])
+check('unfamiliar confirmed unit stays editable', [newDraftItem('m', 'X', 'ampoule').drugType, newDraftItem('m', 'X', 'ampoule').stockUnit], ['Other', 'ampoule'])
 const ready = { ...draft, strength: '500mg', quantityDispensed: '10' }
 check('complete tablet is valid', itemIsValid(ready), true)
 check('tablet without strength is invalid', itemIsValid({ ...ready, strength: ' ' }), false)
-check('syrup without strength is valid', itemIsValid({ ...ready, drugType: 'Syrup', strength: '' }), true)
+check('syrup without strength is invalid', itemIsValid({ ...ready, drugType: 'Syrup', strength: '' }), false)
+check('other form needs explicit supply unit', itemIsValid({ ...ready, drugType: 'Other', stockUnit: '' }), false)
 check('empty dose is invalid', itemIsValid({ ...ready, dosageFrequency: '' }), false)

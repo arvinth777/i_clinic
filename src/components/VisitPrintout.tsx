@@ -10,13 +10,14 @@ export type PrintVisit = {
   token_number: number
   stage: string
   arrived_at: string
+  prescribed_at?: string | null
+  consultation_ended_at?: string | null
   complaint?: string
   diagnosis?: string | null
   advice?: string | null
   follow_up_date?: string | null
   patients: { name: string; age?: number | null; gender?: string | null; height_cm?: number | null; weight_kg?: number | null } | null
 }
-
 export type DetailRow = {
   prescription_item_id?: string
   approved_quantity?: number
@@ -52,16 +53,7 @@ export type ClinicPrintInfo = {
   phone: string | null
 }
 
-// Two different documents, not one -- a prescription (the doctor's
-// document: drugs and dosage, nothing about money) and a bill/receipt
-// (the receptionist's document: amounts and payment method, nothing
-// about the doctor). User: "is this a prescription or a bill? i think
-// you are confusing the both" -- they were right, the two used to be
-// stacked on one letterhead-branded page. Now they're two <section>s in
-// the same print job (one window.print() still hands over both physical
-// pages together, matching the PRD's "prints the receipt with the
-// prescription" flow) with a forced page-break between them, each styled
-// for what it actually is.
+// The doctor prints the A4 prescription and reception prints the receipt separately.
 export function PrintablePrescription({ clinic, visit, medicines }: { clinic: ClinicPrintInfo | undefined; visit: PrintVisit; medicines: DetailRow[] }) {
   return (
     <section className="print-page prescription-sheet">
@@ -69,21 +61,20 @@ export function PrintablePrescription({ clinic, visit, medicines }: { clinic: Cl
       <table className="prescription-paper-content">
         <thead><tr><td colSpan={2}>
           <div className="prescription-header-space" />
-          <div className="prescription-reference"><span>#{visit.token_number}</span><span>{formatDate(visit.arrived_at)}</span></div>
+          <div className="prescription-reference"><span>Ref. #{visit.token_number}</span><span>Date: {formatDate(visit.consultation_ended_at ?? visit.prescribed_at ?? visit.arrived_at)}</span></div>
         </td></tr></thead>
         <tbody>
           <tr><td colSpan={2}><div className="prescription-patient"><strong>Patient: {visit.patients?.name}</strong><span>{[visit.patients?.age != null ? `${visit.patients.age} years` : '', visit.patients?.gender, formatBody(visit.patients?.height_cm, visit.patients?.weight_kg)].filter(Boolean).join(' · ')}</span></div></td></tr>
-          {visit.complaint && <tr><td colSpan={2} className="prescription-note"><strong>Complaints: </strong>{visit.complaint}</td></tr>}
-          {visit.diagnosis && <tr><td colSpan={2} className="prescription-note"><strong>Diagnosis: </strong>{visit.diagnosis}</td></tr>}
           <tr><td colSpan={2} className="prescription-rx">℞</td></tr>
-          <tr className="prescription-column-labels"><td>Medicine / strength</td><td>Dosage &amp; duration</td></tr>
+          <tr className="prescription-column-labels"><td>Medicine / strength</td><td>Dosage · duration</td></tr>
           {medicines.length === 0 ? <tr><td colSpan={2}>No medicines added.</td></tr> : medicines.map((m, i) => (
             <tr className="prescription-medicine" key={i}>
               <td><strong>{i + 1}. {m.description} {m.strength}</strong>{m.drug_type && <span> · {m.drug_type}</span>}{m.notes && <p>{m.notes}</p>}</td>
-              <td><strong>{m.dosage_frequency}</strong><p>{[m.before_after_food, m.duration_days ? `${m.duration_days} days` : ''].filter(Boolean).join(' · ')}</p></td>
+              <td><strong>{m.dosage_frequency}</strong><p>{[m.before_after_food, m.duration_days ? `For ${m.duration_days} days` : ''].filter(Boolean).join(' · ')}</p></td>
             </tr>
           ))}
           {visit.advice && <tr><td colSpan={2} className="prescription-note"><strong>Advice / investigations: </strong>{visit.advice}</td></tr>}
+          {visit.diagnosis && <tr><td colSpan={2} className="prescription-note"><strong>Diagnosis: </strong>{visit.diagnosis}</td></tr>}
           <tr className="prescription-fill"><td colSpan={2} /></tr>
         </tbody>
         <tfoot><tr><td colSpan={2}><div className="prescription-signature"><span>Review: {visit.follow_up_date ? formatDateOnly(visit.follow_up_date) : '—'}</span><span>{clinic?.doctor_name}<br />Signature / {clinic?.doctor_registration_number || 'Registration No.'}</span></div></td></tr><tr><td colSpan={2}><div className="prescription-footer-space" /></td></tr></tfoot>
@@ -141,39 +132,12 @@ export function PrintableReceipt({
           </tr>
         </tbody>
       </table>
-      {!bill && <p>Not paid yet</p>}
-      {bill?.pending && <p>Payment recorded on this device—not saved yet.</p>}
-      {bill && (
-        <p>
-          Paid via {bill.payment_method} on {formatDate(bill.confirmed_at)}
-        </p>
-      )}
+      <div className="receipt-end">
+        {!bill && <p>Not paid yet</p>}
+        {bill?.pending && <p>Payment recorded on this device—not saved yet.</p>}
+        {bill && <p>Paid via {bill.payment_method} on {formatDate(bill.confirmed_at)}</p>}
+        <p className="receipt-medicine-notice">Prescribed drugs are for the specified condition and period only; do not self-medicate.<br /><span lang="ta">குறிப்பிட்ட நோய்நிலைக்கும் காலத்திற்கும் மட்டுமே இந்த மருந்துகள் பரிந்துரைக்கப்பட்டுள்ளன. மருத்துவரின் ஆலோசனையின்றி மருந்துகளை உட்கொள்ள வேண்டாம்.</span></p>
+      </div>
     </section>
-  )
-}
-
-export function PrintableSlip({
-  clinic,
-  visit,
-  detail,
-  amountPaise,
-  discountPaise,
-  bill,
-}: {
-  clinic: ClinicPrintInfo | undefined
-  visit: PrintVisit
-  detail: DetailRow[] | undefined
-  amountPaise: number
-  discountPaise: number
-  bill: Bill | null
-}) {
-  const medicines = detail?.filter((r) => r.kind === 'medicine')
-  const billable = bill?.bill_line_items ?? detail ?? []
-  const savedDiscount = bill?.bill_line_items ? bill.bill_line_items.reduce((total, line) => total + line.line_total_paise, 0) - bill.final_amount_paise : discountPaise
-  return (
-    <div className="print-area">
-      {medicines ? <PrintablePrescription clinic={clinic} visit={visit} medicines={medicines} /> : <p>Prescription instructions are not available on this device. Print from the doctor’s screen.</p>}
-      <PrintableReceipt clinic={clinic} visit={visit} billable={billable} amountPaise={amountPaise} discountPaise={savedDiscount} bill={bill} />
-    </div>
   )
 }
