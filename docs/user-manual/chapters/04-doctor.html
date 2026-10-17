@@ -1,0 +1,86 @@
+<h1 id="ch4"><span class="num">Chapter 4</span>Doctor: seeing patients and writing prescriptions</h1>
+<p class="lead">The Doctor page is the doctor's workspace. It shows the patient in front of you on the left and the waiting list on the right. When you finish, the prescription and bill go straight to reception.</p>
+
+<h2 id="s4-1">The workspace</h2>
+{{fig:doctor-workspace|The doctor's workspace: the current patient (left), the waiting list (right).}}
+<ul>
+<li><b>Left side:</b> the patient's name, age, sex, height, weight, phone and address; today's complaint from reception; the last prescription; past visits (<span class="ui">Full record →</span> opens the whole history); and <b>Personal notes</b> that only the doctor sees.</li>
+<li><b>Right side:</b> <b>Waiting</b> with the number waiting and how many were seen today, the black <span class="btn dark">Call #…</span> button for the next token, and each waiting patient's complaint.</li>
+<li>The note <i>Left open from earlier days</i> counts visits from previous days that were never finished. They are not in today's queue; reception can review them.</li>
+</ul>
+
+<h2 id="s4-2">Calling the next patient</h2>
+<ol class="steps">
+<li>Press the black <span class="btn dark">Call #…</span> button. It calls the next token in the waiting list.</li>
+<li>The workspace shows <b>Called · waiting for reception to send this patient in</b>.</li>
+<li>When reception presses <span class="btn dark">Sent in</span>, the patient's details open and <span class="btn primary">Start prescription →</span> appears.</li>
+</ol>
+{{fig:doctor-called-waiting|After pressing Call, the doctor waits for reception to send the patient in.}}
+<div class="callout note"><b>Personal notes</b><p>Under the patient's history is a private notes box. Press <span class="ui">Add note</span> to write something for yourself, such as "prefers morning appointments". Notes are for the doctor only and also show on the patient's record (Chapter 7).</p></div>
+
+<h2 id="s4-3">Writing the prescription</h2>
+<p>Press <span class="btn primary">Start prescription →</span>. The editor opens. On a large screen the <b>A4 preview</b> of the printed prescription is shown on the right and updates as you type; on a phone the editor takes the whole screen.</p>
+{{fig:doctor-prescription-empty|The prescription editor, ready to type.|half}}
+<h3>Step 1: Diagnosis</h3>
+<p>Type the diagnosis in the <b>Diagnosis</b> box. The patient's complaint from reception is already shown above it.</p>
+<h3>Step 2: Add medicines</h3>
+<p>Start typing a medicine's name in the search box and click it in the list.</p>
+{{fig:doctor-medicine-search|Search the medicine list by name.|half}}
+<p>The medicine is added as a row. Fill in how it is to be taken:</p>
+{{fig:doctor-medicine-row|One medicine row.|half}}
+<div class="keys">
+<b>Type</b><span>Tablet, capsule, syrup, injection and so on.</span>
+<b>Strength</b><span>For example 500 mg.</span>
+<b>Food</b><span>Before food, after food, with food.</span>
+<b>Frequency</b><span>How many times a day, such as 1-0-1, or SOS (only when needed).</span>
+<b>Duration</b><span>How many days.</span>
+<b>Quantity</b><span>How many the patient should be supplied with, so that Billing knows what to hand over.</span>
+<b>Note</b><span>Anything special for this medicine.</span>
+</div>
+{{fig:doctor-prescription-filled|Diagnosis filled in and the first medicine added. The Review prescription button stays at the bottom.|half}}
+<h3>Quick add with templates</h3>
+<p>If you often prescribe the same set of medicines, use a <b>template</b>. Pick a template under <span class="ui">Quick add</span> and all its medicines are added in one go. You can still change anything afterwards.</p>
+{{fig:doctor-template-added|A template adds its medicines in one click.|half}}
+<p>To make a new template, put the medicines you want on the prescription, press <span class="ui">Save as template</span>, give it a name, and save. Templates remember what to prescribe, not how many to supply.</p>
+{{fig:doctor-save-template|Saving the current medicines as a template.|half}}
+<h3>Step 3: Advice</h3>
+<p>Type advice and investigations (exercises, rest, tests to do). It prints on the prescription.</p>
+<h3>Step 4: Review: follow-up and long-term care</h3>
+<p>In the <b>Review</b> part, choose the <b>Follow-up date</b> and press <span class="ui">Save follow-up date</span>. Reception will see the patient in <i>Follow-ups due today</i> on that day. If the patient needs regular care, tick <b>Long-term patient</b> and type the <b>Review interval (days)</b>, which is how often they should come back (see Chapter 10).</p>
+{{fig:doctor-review-care|Follow-up date and long-term care settings.}}
+
+<h2 id="s4-4">Procedures and the bill amount</h2>
+<p>If the doctor did a procedure (for example an injection or nerve block), add it in <b>Procedures &amp; bill approval</b>. Search for the procedure, add it, and iClinic calculates the <b>Calculated total</b> from the clinic's price list. You then set the amount the patient will be charged:</p>
+<ul>
+<li><b>Final amount</b>: the amount to collect. You may change it.</li>
+<li><b>Discount</b>: if the final amount is lower than the calculated total, the difference is shown as a discount.</li>
+<li>Press <span class="btn primary">Approve bill</span>. It then says <b>Bill approved</b>.</li>
+</ul>
+{{fig:doctor-procedures-pricing|Procedures, calculated total and final amount.}}
+<div class="callout warn"><b>Only the doctor sets the amount</b><p>Reception cannot change the amount at the billing desk. This keeps the money side simple and honest: the doctor decides, billing collects.</p></div>
+{{fig:doctor-bill-approved|The bill approved, ready for billing.}}
+
+<h2 id="s4-5">Certificates, sick leave and referrals</h2>
+<p>Open the <b>Documents</b> section to issue a <b>Certificate</b>, <b>Sick leave</b> letter or <b>Referral</b>. Choose the type, type the <b>Purpose</b> (what it is for) and press <span class="btn primary">Issue &amp; print</span>. A PDF copy is also filed in the clinic's Google Drive.</p>
+{{fig:doctor-documents-panel|Issuing a certificate, sick leave or referral.}}
+
+<h2 id="s4-6">Review, confirm and finish</h2>
+<ol class="steps">
+<li>Press <span class="btn">Review prescription</span> to read the whole prescription once more, exactly as it will print.</li>
+<li>Press <span class="btn primary">Confirm prescription</span>. After this the prescription is issued and shown read-only.</li>
+<li>Press <span class="btn primary">Finish consultation</span>.</li>
+<li>iClinic says <b>Prescription sent to billing</b>. You can open <span class="btn">View prescription</span> or <span class="btn">Print prescription</span> from here.</li>
+</ol>
+<div class="pair">
+<figure><img src="img/doctor-review-step.png" alt=""><figcaption>Review the full prescription before confirming.</figcaption></figure>
+<figure><img src="img/doctor-prescription-confirmed.png" alt=""><figcaption>Prescription confirmed, ready to finish.</figcaption></figure>
+</div>
+<div class="pair">
+<figure><img src="img/doctor-finish-area.png" alt=""><figcaption>The Finish consultation area.</figcaption></figure>
+<figure><img src="img/doctor-sent-to-billing.png" alt=""><figcaption>After finishing: sent to billing.</figcaption></figure>
+</div>
+<p>The prescription is shown in <b>read-only</b> form afterwards, with the printable A4 view. Confirmed prescriptions are not edited casually, so check carefully before you confirm.</p>
+{{fig:doctor-issued-view|An issued prescription is read-only. Use Print prescription to print it again.|half}}
+{{fig:a4-prescription|The printed A4 prescription on the clinic's letterhead.|narrow}}
+<div class="callout tip"><b>Tip: nothing is lost if the page closes</b><p>While you type, iClinic keeps a draft on this computer. If the browser closes or the internet drops, come back to the same patient and your draft is still there.</p></div>
+{{fig:doctor-workspace-sent|Back in the workspace, ready to call the next patient.}}

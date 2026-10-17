@@ -1,0 +1,65 @@
+<h1 id="ch1"><span class="num">Chapter 1</span>Getting started</h1>
+<p class="lead">iClinic runs the whole day of the clinic in one place: who has arrived, who the doctor sees next, what was prescribed, what was paid and what is left in the medicine cupboard. This chapter shows how to sign in and find your way around.</p>
+
+<h2 id="s1-1">What iClinic does</h2>
+<p>Think of one patient visit as a short relay. Each person does their own part, and the next person sees it straight away on their screen.</p>
+<div class="flow">
+<div><b>Reception</b>Registers the patient and gives a token number</div>
+<div><b>Doctor</b>Calls the patient, writes the prescription</div>
+<div><b>Reception</b>Sees the prescription arrive in Billing</div>
+<div><b>Billing</b>Collects payment, hands over medicines</div>
+</div>
+<p>You never have to carry paper from one desk to the next. When the doctor presses <span class="btn">Finish consultation</span>, the bill appears at the reception desk.</p>
+
+<h2 id="s1-2">Signing in</h2>
+<ol class="steps">
+<li>Open the clinic's iClinic web address in your browser (on the computer at your desk, or on a phone).</li>
+<li>Type your <b>email</b> and <b>password</b>, then press <span class="btn primary">Sign in</span>.</li>
+<li>You land on the first page you need: Reception for the front desk, Doctor for the doctor.</li>
+</ol>
+{{fig:signin|The sign-in page.|half}}
+<div class="callout note"><b>Who gives me a login?</b><p>The clinic owner or an administrator creates logins in <span class="ui">Settings → Staff &amp; access</span> (see Chapter 11). If your password does not work, ask them to reset it. Please never share a login: every action is recorded under the name of the person who did it.</p></div>
+
+<h2 id="s1-3">What you will see: your role decides</h2>
+<p>iClinic shows each person only the pages that belong to their job. A receptionist does not see the doctor's prescription page, and the doctor's reports are hidden from reception.</p>
+<table>
+<tr><th>Page</th><th>What it is for</th><th>Reception</th><th>Doctor</th></tr>
+<tr><td>Reception</td><td>Register, check in, run the queue</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+<tr><td>Doctor</td><td>Call patients, write prescriptions</td><td class="n">–</td><td class="y">Yes</td></tr>
+<tr><td>Billing</td><td>Take payment, print receipts</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+<tr><td>Refills</td><td>Medicine-only sales without seeing the doctor</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+<tr><td>Patients</td><td>Find a patient, see their whole history</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+<tr><td>Inventory</td><td>Stock, purchases, counts</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+<tr><td>Reports</td><td>Daily, monthly and GST reports</td><td class="n">–</td><td class="y">Yes</td></tr>
+<tr><td>More</td><td>Unpaid bills, long-term care, suppliers; doctors also get Merge patients, Needs reconciliation and Settings</td><td class="y">Some</td><td class="y">All</td></tr>
+</table>
+
+<h2 id="s1-4">Finding your way around</h2>
+<p>The top bar is on every page. The page you are on is highlighted. The same bar shows live information on the right.</p>
+{{fig:reception-home|The Reception page. The top bar has the pages on the left and clinic status on the right.}}
+<div class="keys">
+<b>Page names</b><span>Click a name to open that page. Less-used pages are inside <span class="ui">More</span>.</span>
+<b>Now / waiting</b><span>Shows the token the doctor is seeing now and how many are waiting.</span>
+<b>All saved</b><span>Turns into a warning when something has not been saved yet (see Chapter 12).</span>
+<b>Alerts</b><span>Opens the list of things that need attention (see below).</span>
+<b>Your name ▾</b><span>Your account menu: lock PIN and Sign out.</span>
+<b>Lock</b><span>Hides patient details at once when you step away.</span>
+</div>
+
+<h2 id="s1-5">Using a phone</h2>
+<p>iClinic also works on a phone. The page names fold into a <span class="ui">Menu</span> button, and each page stacks into one column. Everything in this manual works the same way on a phone.</p>
+{{phones:mobile-menu|The Menu on a phone.;;mobile-reception-queue|The queue on a phone.;;mobile-register|Registering on a phone.}}
+
+<h2 id="s1-6">Locking the screen</h2>
+<p>Patient names are private. iClinic locks itself if nobody touches it for a while (<b>2 minutes</b> on a reception login, <b>15 minutes</b> on a doctor login). You can also lock it yourself with <span class="btn">Lock</span> in the top bar.</p>
+<p>The doctor or administrator can turn the automatic lock off for the whole clinic (<span class="ui">Settings → Queue → Screen lock</span>, Chapter 11). The <span class="btn">Lock</span> button always works.</p>
+<p>To unlock, type your PIN. To set it up the first time, open your name menu and choose <span class="ui">Set a lock PIN</span>, then type a PIN of 4 to 6 digits.</p>
+<div class="pair w60">
+<figure><img src="img/account-menu.png" alt=""><figcaption>Your account menu: set a lock PIN, or sign out.</figcaption></figure>
+<figure><img src="img/lock-screen.png" alt=""><figcaption>The lock screen. Patient names are hidden until the PIN is typed.</figcaption></figure>
+</div>
+<div class="callout tip"><b>Tip</b><p>Anything you were typing stays exactly as it was. Locking does not lose your work.</p></div>
+
+<h2 id="s1-7">Alerts</h2>
+<p>Press <span class="ui">Alerts</span> to see what needs attention: for example a patient who was called but not sent in, or an end-of-day checklist. Each alert has <span class="btn">Open</span> (takes you there) and <span class="btn">Dismiss</span> (hides it). You can also turn on a notification sound for new alerts.</p>
+{{fig:alerts-drawer|The Alerts drawer.|half}}

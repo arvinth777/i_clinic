@@ -1,0 +1,41 @@
+<h1 id="ch8"><span class="num">Chapter 8</span>Inventory: medicine stock</h1>
+<p class="lead">Inventory keeps count of every medicine. Stock goes down by itself when a bill or refill is paid, so you only touch it when something arrives, moves, breaks or is counted.</p>
+<h2 id="s8-1">The Stock tab</h2>
+{{fig:inventory-stock-all|The stock list with its counters at the top.}}
+<p>At the top right are three totals: <b>Medicines</b> in the list, <b>Low stock</b> and <b>Expiry alerts</b>. Each medicine shows its unit price and how many are at the <b>Counter</b> (the dispensing desk) and in the <b>Storeroom</b>, plus the <b>Total stock</b> and <b>Expiry</b>.</p>
+<ul>
+<li>Type in <b>Search medicines…</b> to find one.</li>
+<li>Use the filters <b>All medicines</b>, <b>Low stock</b> and <b>Expiry alerts</b> to see only what needs attention.</li>
+<li>A negative number means more was supplied than was recorded: a sign to do a count (see below).</li>
+</ul>
+{{pair:inventory-low-stock|The Low stock filter.;;inventory-stock|Stock for the counter and storeroom.}}
+
+<h2 id="s8-2">Recording a purchase</h2>
+<p>When a delivery arrives from a supplier press <span class="btn primary">+ Record purchase</span>.</p>
+<ol class="steps">
+<li>Choose the <b>Supplier</b> and type the <b>Invoice number</b>; check the <b>Date</b>.</li>
+<li>Choose the <b>Stock point</b> where the boxes go (for example the Counter or the Storeroom).</li>
+<li>Under <b>Drugs received</b> pick each drug, type the <b>Qty</b> (quantity) and the <b>Cost price (₹)</b>. Press <span class="btn">+ Add another drug</span> if the delivery has several medicines.</li>
+<li>Save the purchase. The stock numbers rise straight away.</li>
+</ol>
+{{fig:inventory-record-purchase|Recording a purchase.|half}}
+
+<h2 id="s8-3">Moving stock from storeroom to counter</h2>
+<p>Press <span class="ui">Transfer</span>. Choose the <b>Drug</b>, say <b>From</b> and <b>To</b> where it moves, type the <b>Quantity</b> and an optional note, and press <span class="btn primary">Transfer</span>. The total does not change; only the place does.</p>
+{{fig:inventory-transfer|Transferring stock between stock points.|half}}
+
+<h2 id="s8-4">Adjusting stock (damage, loss, correction)</h2>
+<p>Press <span class="ui">Adjust</span>. Choose the <b>Drug</b> and <b>Stock point</b>, and type the <b>Change</b>: use a minus sign to remove stock (for example <b>-2</b>). Type a <b>Reason</b> (for example "damaged in transit") and press <span class="btn primary">Adjust</span>. The reason is saved in the history.</p>
+{{fig:inventory-adjust|Adjusting stock with a reason.|half}}
+
+<h2 id="s8-5">Monthly count</h2>
+<p>Once a month, count what is really on the shelf. Press <span class="ui">Monthly count</span>, choose the <b>Stock point</b>, you will see a table with <b>Expected</b> (what iClinic thinks you have), <b>Counted</b> (type what you actually count) and <b>Gap</b> (the difference). Fill in the counted numbers and press <span class="btn primary">Confirm count</span>. iClinic corrects the numbers and records the differences.</p>
+{{fig:inventory-monthly-count|Starting a monthly count.}}
+
+<h2 id="s8-6">Medicine units and prices</h2>
+<p>This tab lists each medicine with its <b>unit</b>, <b>unit price</b>, the <b>Low stock at</b> number that triggers a warning, and its expiry. A medicine marked <i>unit not confirmed</i> still needs checking: type how it is sold (tablet, strip, bottle…) and press <span class="btn">Confirm unit</span>. Press <span class="btn">Edit price</span> to change a price. Billing will ask the doctor to review quantities if the unit is not yet confirmed.</p>
+{{fig:inventory-units-prices|Units and prices.}}
+
+<h2 id="s8-7">Suppliers</h2>
+<p>The <b>Suppliers</b> tab is the list of companies you buy from. Add a supplier before you record a purchase from them.</p>
+{{fig:inventory-suppliers|The supplier list.}}

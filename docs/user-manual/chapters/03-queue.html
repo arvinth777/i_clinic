@@ -1,0 +1,36 @@
+<h1 id="ch3"><span class="num">Chapter 3</span>Reception: running the queue</h1>
+<p class="lead">Once patients are checked in, the doctor calls them one by one and reception sends them in. This chapter explains that hand-off and the small actions for when a patient steps out.</p>
+
+<h2 id="s3-1">How a patient reaches the doctor</h2>
+<ol class="steps">
+<li>The <b>doctor</b> presses <span class="btn dark">Call #…</span> on the Doctor page. On the reception screen that patient's row changes to <b>Called · waiting for reception</b>.</li>
+<li>Reception asks the patient to go in, and presses <span class="btn dark">Sent in</span> when they walk into the consultation room.</li>
+<li>The row now says <b>With doctor</b>. The doctor can press <span class="btn primary">Start prescription</span>.</li>
+</ol>
+{{fig:reception-called-send-in|Token #3067 has been called. Reception presses Sent in when the patient goes inside.}}
+<div class="callout note"><b>Why "Sent in"?</b><p>It is a safety step. The doctor can call a token, but the visit only starts once reception confirms the patient is really there. If a called patient is not sent in for several minutes, an alert reminds the desk (you can change that time in Settings → Queue).</p></div>
+
+<h2 id="s3-2">If someone is not at the desk</h2>
+<p>Press <span class="btn">Not here</span> on a patient's row if they have stepped out (for tea, for a phone call, to move their car). The row moves to a <b>Not here</b> state and the doctor moves on to the next person. You can then choose:</p>
+<table>
+<tr><th>Button</th><th>What it does</th></tr>
+<tr><td><span class="btn">Return to position</span></td><td>The patient is back; they go to the place they had in the queue.</td></tr>
+<tr><td><span class="btn">Return at end</span></td><td>The patient is back, but goes to the end of the line.</td></tr>
+<tr><td><span class="btn">Mark no-show</span></td><td>The patient has gone home. The visit is closed.</td></tr>
+</table>
+<p>After a while iClinic gently reminds you about someone who has been marked <b>Not here</b> for too long (the default is set in Settings → Queue, <i>No-show reminder (minutes)</i>).</p>
+
+<h2 id="s3-3">Changing the order</h2>
+<p>For a waiting patient you can press <span class="btn">Move up</span> or <span class="btn">Move down</span> to change their place, for example for an elderly patient or an emergency. The box <b>Move reason (optional)</b> above the list lets you type a short reason; it is saved so that anyone can see later why the order changed (you will see "moved up by reception" under the patient's name).</p>
+<div class="callout tip"><b>Tip</b><p>The doctor still chooses who to call. Moving someone up changes where they sit in the waiting list the doctor sees.</p></div>
+
+<h2 id="s3-4">Old visits left open</h2>
+<p>If a patient was checked in on an earlier day and the visit was never finished, it is not counted in today's queue. Open the tab <b>Earlier open visits</b> to see them. Open the visit and finish it (or mark it no-show) so that the numbers in the reports stay honest. The doctor's workspace shows the number as <i>Left open from earlier days</i>.</p>
+
+<h2 id="s3-5">What reception does at the end of the day</h2>
+<ul>
+<li>Open <span class="ui">Alerts</span> and look at the <b>Closing checklist</b>.</li>
+<li>Clear <b>Ready to bill</b> rows by billing them (Chapter 5).</li>
+<li>Look at <b>Earlier open visits</b> and close what is finished.</li>
+<li>Lock the screen, or sign out if the computer is shared (Chapter 1).</li>
+</ul>

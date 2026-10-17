@@ -5,15 +5,18 @@ const ACTIVITY_EVENTS = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'scr
 // Per-station idle-lock timeout (docs/architecture-spec.md): fires onIdle
 // after timeoutMs with no activity, resetting on any of the events above.
 // Armed even without a PIN: LockScreen then asks to sign in again.
-export function useIdleTimer(timeoutMs: number, onIdle: () => void) {
+// timeoutMs null = the clinic turned the automatic lock off.
+export function useIdleTimer(timeoutMs: number | null, onIdle: () => void) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const onIdleRef = useRef(onIdle)
   onIdleRef.current = onIdle
 
   useEffect(() => {
+    if (timeoutMs === null) return
+    const ms = timeoutMs
     function reset() {
       if (timerRef.current) clearTimeout(timerRef.current)
-      timerRef.current = setTimeout(() => onIdleRef.current(), timeoutMs)
+      timerRef.current = setTimeout(() => onIdleRef.current(), ms)
     }
 
     reset()

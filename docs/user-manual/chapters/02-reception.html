@@ -1,0 +1,54 @@
+<h1 id="ch2"><span class="num">Chapter 2</span>Reception: registering and checking in</h1>
+<p class="lead">The Reception page is the front desk's home. The big list on the left is <b>Today's queue</b>. The panel on the right is where you check people in.</p>
+
+<h2 id="s2-1">The Reception page</h2>
+<p>Every patient who comes in today gets a <b>token number</b> (for example <b>#3067</b>). The queue shows the tokens in the order the patients will be seen, with the patient's name, age, a short complaint, how long they have waited, and what stage they are at.</p>
+{{fig:reception-home|Today's queue (left) and the Check in panel (right).}}
+<p>The row on the right of each patient shows the stage and what you can do next:</p>
+<table>
+<tr><th>Stage you see</th><th>What it means</th><th>Buttons</th></tr>
+<tr><td>Waiting</td><td>Checked in, waiting to be called</td><td><span class="btn">Move up</span> <span class="btn">Move down</span> <span class="btn">Not here</span></td></tr>
+<tr><td>Called · waiting for reception</td><td>The doctor has called this token; the patient must now walk in</td><td><span class="btn dark">Sent in</span> <span class="btn">Not here</span></td></tr>
+<tr><td>With doctor</td><td>The patient is in the consultation room</td><td>–</td></tr>
+<tr><td>Ready to bill</td><td>The doctor has finished; the bill is ready</td><td><span class="btn">Bill</span></td></tr>
+</table>
+<p>The tabs above the list let you choose what to look at: <b>Active</b> (everyone still to be seen or billed), <b>Done today</b>, <b>All today</b>, and <b>Earlier open visits</b> (visits from earlier days that were never closed). <span class="ui">Sort</span> reorders the list by token, name, stage or waiting time.</p>
+
+<h2 id="s2-2">A new patient: register and check in</h2>
+<p>Use this the very first time a person visits the clinic.</p>
+<ol class="steps">
+<li>In the right panel press <span class="btn dark">Register new patient</span>.</li>
+<li>Fill in the form (the table below says which fields are needed).</li>
+<li>Press <span class="btn primary">Check in</span>. The patient gets the next token number and appears at the bottom of the queue.</li>
+</ol>
+<div class="pair w60">
+<figure><img src="img/reception-register-form.png" alt=""><figcaption>The new patient form.</figcaption></figure>
+<figure><img src="img/reception-queue-after-checkin.png" alt=""><figcaption>After checking in, the new token joins the queue as <b>Waiting</b>.</figcaption></figure>
+</div>
+<table>
+<tr><th>Field</th><th>Notes</th></tr>
+<tr><td>Name, Age, Gender</td><td>Needed. Type the name the way the patient says it, so it is easy to search for later.</td></tr>
+<tr><td>Height (cm), Weight (kg)</td><td>Optional, but useful: they print on the prescription. iClinic checks the numbers are sensible (for example it will not accept a height of 17 cm).</td></tr>
+<tr><td>Address / Village, Phone</td><td>Phone is how you find the patient next time, so please enter it carefully.</td></tr>
+<tr><td>Complaint</td><td>One short line in the patient's own words. The doctor sees it first.</td></tr>
+<tr><td>Pain Score 0–10</td><td>A clinic-specific field. The administrator can add or change fields like this (Chapter 11).</td></tr>
+</table>
+
+<h2 id="s2-3">A returning patient: search and check in</h2>
+<ol class="steps">
+<li>Click the search box in the Check in panel and type part of the <b>name</b>, the <b>phone number</b> or the <b>token</b>.</li>
+<li>Click the right person in the results.</li>
+<li>Type today's <b>Complaint</b> and press <span class="btn primary">Check in</span>.</li>
+</ol>
+{{fig:reception-search-results|Search finds patients by name, phone or token.|narrow}}
+<div class="callout warn"><b>"Already in today's queue"</b><p>If the person is already in today's queue, iClinic tells you so, for example <i>Already in today's queue as #3063 (With doctor). Check in only if this is a new visit.</i> Press <span class="btn">Cancel</span> unless the patient really is coming for a second, separate visit today. This stops people being given two tokens by accident.</p></div>
+{{fig:reception-existing-checkin|The warning for a patient who is already checked in.|narrow}}
+<div class="callout tip"><b>Tip: don't create the patient twice</b><p>Always search first. If the same person ends up registered twice, the doctor can join the two records later (see <a>Merge patients</a> in Chapter 10), but it is much easier to avoid it.</p></div>
+
+<h2 id="s2-4">Pharma representatives</h2>
+<p>Medical representatives who come to see the doctor can be put in the queue too, so that they do not walk in ahead of patients. Press <span class="btn">Check in pharma rep</span>, type the <b>Rep name</b> and <b>Company</b>, and press <span class="btn primary">Check in</span>. They get a token like anyone else and are called in turn.</p>
+{{fig:reception-pharma-rep|Checking in a pharma representative.|narrow}}
+
+<h2 id="s2-5">Follow-ups due today</h2>
+<p>When a doctor sets a follow-up date, the patient shows up here on that day. Press <span class="ui">Follow-ups due today</span> to see the list of people who should come back. Press <span class="btn">Done</span> next to a name once you have dealt with it (called them, or they arrived).</p>
+{{fig:reception-followups|The follow-up list. Press Done when handled.|narrow}}

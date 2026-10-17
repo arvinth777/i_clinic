@@ -68,6 +68,20 @@ function PinForm({ onDone }: { onDone: () => void }) {
   )
 }
 
+// The clinic can turn the automatic idle lock off in Settings. Until the flag is known (or if it cannot be read) the lock stays on.
+function useIdleLockEnabled(clinicId: string | null | undefined) {
+  const { data, isError } = useQuery({
+    queryKey: ['idle-lock', clinicId],
+    enabled: !!clinicId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clinics').select('idle_lock_enabled').eq('id', clinicId).single()
+      if (error) throw error
+      return data.idle_lock_enabled as boolean
+    },
+  })
+  return data !== false || isError // a cached "off" is not trusted once a refresh fails
+}
+
 function useClinicName(clinicId: string | null | undefined) {
   return useQuery({
     queryKey: ['clinic-name', clinicId],
@@ -179,7 +193,8 @@ export function AppShell({
   const more = sections.filter((section) => !primary.includes(section))
   const activeMore = more.find((section) => section.key === activeSection)
 
-  useIdleTimer(isDoctor ? DOCTOR_TIMEOUT_MS : OTHER_TIMEOUT_MS, onLock)
+  const idleLockOn = useIdleLockEnabled(clinicId)
+  useIdleTimer(!idleLockOn ? null : isDoctor ? DOCTOR_TIMEOUT_MS : OTHER_TIMEOUT_MS, onLock)
   useEffect(() => { const label = sections.find((s) => s.key === activeSection)?.label; document.title = label ? `${label} · iClinic` : 'iClinic' }, [sections, activeSection])
 
   function select(key: string) { onSelectSection(key); setMenuOpen(false) }

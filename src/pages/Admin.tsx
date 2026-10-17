@@ -6,6 +6,7 @@ import { CustomFieldList } from '../components/admin/CustomFieldList'
 import { LoginsPanel } from '../components/admin/LoginsPanel'
 import { ClinicSettings } from '../components/admin/ClinicSettings'
 import { QueueSettings } from '../components/admin/QueueSettings'
+import { IdleLockSetting } from '../components/admin/IdleLockSetting'
 
 const TABS = [
   { key: 'queue', label: 'Queue' },
@@ -38,7 +39,7 @@ export function Admin({ clinicId, isAdmin = true }: { clinicId: string; isAdmin?
         ))}
       </nav>
       <div className="admin-panel">
-        {tab === 'queue' && <QueueSettings clinicId={clinicId} />}
+        {tab === 'queue' && <><QueueSettings clinicId={clinicId} /><IdleLockSetting clinicId={clinicId} /></>}
         {tab === 'drugs' && <DrugList clinicId={clinicId} />}
         {tab === 'procedures' && <ProcedureList clinicId={clinicId} />}
         {tab === 'templates' && <TemplateList clinicId={clinicId} />}

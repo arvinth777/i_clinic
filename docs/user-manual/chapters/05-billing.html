@@ -1,0 +1,45 @@
+<h1 id="ch5"><span class="num">Chapter 5</span>Billing: collecting payment</h1>
+<p class="lead">When the doctor finishes, the visit appears on the Billing page as <b>To collect</b>. Billing shows exactly what to charge and which medicines to hand over, and prints the receipt.</p>
+
+<h2 id="s5-1">The Billing page</h2>
+{{fig:billing-list|Billing lists bills to collect and recent receipts.}}
+<p>You can reach a bill in two ways: press <span class="btn">Bill</span> on the patient's row on Reception, or open <span class="ui">Billing</span> and click the patient in the <b>To collect</b> list. The same list also shows <b>recent receipts</b>.</p>
+
+<h2 id="s5-2">Taking a payment</h2>
+<ol class="steps">
+<li>Open the bill. It lists every item (consultation, procedures, medicines) with the price and amount, then the <b>Calculated total</b>, any <b>Discount set by the doctor</b>, and the <b>Amount to collect</b>.</li>
+<li>For each medicine, check the <b>Supplied</b> number against what you are handing over. The small grey text (for example <i>10 approved</i>) is what the doctor prescribed. Lower the number if you give fewer; stock goes down by the number you enter.</li>
+<li>Under <b>Payment method</b> choose <b>Cash</b>, <b>UPI</b> or <b>Pay later / Credit</b>.</li>
+<li>Press <span class="btn primary">Mark paid · ₹…</span>.</li>
+</ol>
+{{pair:billing-bill-detail|A bill: items, supplied quantities and totals.;;billing-receipt|The saved receipt after payment.}}
+<div class="callout warn"><b>You cannot change the amount here</b><p>The amount is the doctor's decision. If it is wrong, press <span class="ui">Ask doctor to change discount</span> or tell the doctor, who can change it from their screen. The bill updates by itself.</p></div>
+
+<h3>Paying by UPI</h3>
+<p>Choose <b>UPI</b>. A QR code for the clinic's UPI ID appears with the exact amount filled in. The patient scans it and pays on their phone. When you can see the money has arrived, press <span class="btn primary">Mark paid</span>.</p>
+<h3>Pay later (credit)</h3>
+<p>If the patient cannot pay today, choose <b>Pay later / Credit</b> and press the same button. The bill is kept as unpaid and shows under <span class="ui">More → Unpaid bills</span> until it is settled (Chapter 10).</p>
+{{pair:billing-upi|Choosing UPI shows a QR code.;;billing-pay-later|Pay later keeps the bill open as unpaid.}}
+
+<h2 id="s5-3">After payment</h2>
+<ul>
+<li>The printing window opens by itself so the prescription and receipt can be printed. If you need them again later, open the same bill from <b>recent receipts</b> and press <span class="btn dark">Print again</span>.</li>
+<li>The page now says <b>Paid via cash</b> (or UPI) and shows the <b>Issued PDFs · Google Drive</b> list for that visit.</li>
+<li>Stock for the supplied medicines goes down automatically, once, even if the internet blinks and the button is pressed twice.</li>
+</ul>
+<div class="callout note"><b>"Pending upload"</b><p>Copies of receipts and prescriptions are also filed in the clinic's Google Drive. A line saying <i>Pending upload</i> just means the copy is still on its way. If a bar at the top later says PDFs are still pending, tell the clinic owner.</p></div>
+<h3>Corrections</h3>
+<p>A paid bill is never edited or deleted. If a mistake was made, the doctor or administrator adds a correcting entry that points back to the original bill, so the history stays complete (see "Needs reconciliation" in Chapter 10).</p>
+
+<h1 id="ch6"><span class="num">Chapter 6</span>Refills: medicine-only sales</h1>
+<p class="lead">Sometimes a patient only wants to buy their regular medicine and does not need to see the doctor. The Refills page handles that, so these people do not join the doctor's queue.</p>
+{{fig:refills-home|The Refills page.}}
+<ol class="steps">
+<li>Open <span class="ui">Refills</span>.</li>
+<li>Type the <b>customer name</b>.</li>
+<li>Tick <b>I visually verified the prescription</b>. Please look at the patient's earlier prescription before you tick this. It is the clinic's safeguard.</li>
+<li>Pick the <b>medicine</b> and enter the <b>quantity supplied</b>. Press <span class="btn">Add medicine</span> for each additional one.</li>
+<li>Press <span class="btn primary">Prepare bill</span>. The bill then goes to Billing, where it is paid like any other (Chapter 5).</li>
+</ol>
+{{fig:refills-form|A refill with the prescription check ticked and a medicine added.}}
+<div class="callout note"><b>Note</b><p>Refills only supplies medicines that already exist in Inventory. If a medicine is not on the list, ask the doctor or administrator to add it in Settings → Medicines &amp; prices.</p></div>
