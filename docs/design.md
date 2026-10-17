@@ -48,6 +48,7 @@ these tokens so all current screens use one palette.
 | r-sm / md / lg / xl | 8 / 10 / 14 / 16px |
 | dialog-width | 420px (the shared confirmation dialog, `ConfirmDialog.tsx`; uses the Dialogs rule below: r-xl, space-28, scrim, shadow-modal) |
 | nav-count-size | 20px for the reception Billing waiting-count circle |
+| call-flash-duration / opacity / layer | 600ms × three pulses / .22 / 60, with a persistent alert banner during the pulses; reduced-motion users see the banner and a steady tint |
 | shadow-pop | 0 12px 36px rgba(20,28,43,.14), 0 0 0 1px var(--line) |
 | shadow-modal / scrim | 0 24px 64px rgba(20,28,43,.20) / rgba(20,28,43,.32) |
 | shadow-paper | 0 1px 2px rgba(20,28,43,.06), 0 10px 30px rgba(20,28,43,.08) |

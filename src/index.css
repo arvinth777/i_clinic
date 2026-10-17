@@ -36,6 +36,7 @@
   --space-6: 6px; --space-20: 20px; --space-28: 28px; --space-48: 48px;
   --primary-height: 44px; --search-height: 48px; --dropdown-height: 360px; --drawer-width: 420px;
   --nav-count-size: 20px;
+  --call-flash-duration: 600ms; --call-flash-opacity: .22; --call-flash-layer: 60;
   --table-min-width: 760px; --header-current-height: 56px;
   --text-xxs: 0.75rem;
   --text-input: 1.0625rem;

@@ -120,10 +120,20 @@ state, with all current alerts retained and resolved history capped at 500.
 Failed/offline reads preserve unresolved history.
 
 Reception enables Web Audio through an explicit gesture each session. Only
-call events newer than enablement and less than 10 seconds old qualify; an
+call events newer than the open app session and less than 60 seconds old qualify; an
 atomic IndexedDB event ledger prevents refetch/reload/cross-tab duplicates.
 Sound is supplemental: browser audio restrictions and client clock skew may
 suppress it, and the real queue remains authoritative.
+
+Reception call alerts while the app is open now add three red screen pulses and
+an accessible token banner to each fresh, deduplicated doctor call. The existing
+sound control plays a two-note chime after reception enables it with a click;
+muting affects sound only. Reception may separately grant browser notification
+permission with an explicit click. Notifications use the active service worker
+where available and otherwise the desktop Notifications API; they contain only
+the token, never a patient name or clinical detail. This is not server Web Push:
+no new alert is delivered after the clinic app is closed. Realtime still only
+invalidates and refetches scoped database state; the queue remains authoritative.
 
 Drive status verifies the saved Google refresh grant server-side. Alert checks
 run only for doctors while Alerts is open, every five minutes; revoked grants

@@ -154,12 +154,15 @@ export function AppShell({
       })
     return () => { events.close(); supabase.removeChannel(channel) }
   }, [clinicId, clinical, queryClient])
-  const {data: latestEvent}=useQuery({queryKey:['queue-events',clinicId,userId],refetchInterval:queuePollInterval(connected),enabled:!!clinicId&&clinical,queryFn:async()=>{
-    const {data,error}=await supabase.from('queue_events').select('id:request_id,visit_id,action,created_at,visits(token_number)').eq('clinic_id',clinicId!).neq('actor_id',userId).gte('created_at',new Date(Date.now()-10000).toISOString()).in('action',['call','sent_in','finish','request_discount']).order('created_at',{ascending:false}).limit(1).maybeSingle()
+  const {data: recentEvents}=useQuery({queryKey:['queue-events',clinicId,userId],refetchInterval:queuePollInterval(connected),enabled:!!clinicId&&clinical,queryFn:async()=>{
+    const {data,error}=await supabase.from('queue_events').select('id:request_id,visit_id,action,created_at,visits(token_number)').eq('clinic_id',clinicId!).neq('actor_id',userId).gte('created_at',new Date(Date.now()-60000).toISOString()).in('action',['call','sent_in','finish','request_discount']).order('created_at',{ascending:false}).limit(20)
     if(error)throw error
-    return data as {id:string;visit_id:string;action:string;created_at:string;visits:{token_number:number}}|null
+    const rows=data as unknown as {id:string;visit_id:string;action:string;created_at:string;visits:{token_number:number}}[]
+    return { latest: rows[0] && Date.now()-Date.parse(rows[0].created_at)<10000 ? rows[0] : null, call: rows.find(event=>event.action==='call') }
   }})
-  const soundControl = useCallSound({ event: latestEvent, userId, clinicId: clinicId ?? '', locked, available: !isDoctor && clinical })
+  const latestEvent=recentEvents?.latest
+  const latestCall=recentEvents?.call
+  const { controls: soundControl, flash, enabled: chimeEnabled, permission: notificationPermission } = useCallSound({ event: latestCall, tokenNumber: latestCall?.visits.token_number, userId, clinicId: clinicId ?? '', locked, available: !isDoctor && clinical })
   const [expiredEvent,setExpiredEvent]=useState<string|null>(null)
   const eventTime=latestEvent?.created_at
   const eventVisible=!!eventTime&&expiredEvent!==eventTime
@@ -208,12 +211,13 @@ export function AppShell({
   </details>
   return (
     <RealtimeConnected value={connected}><div className="shell">
+      {flash && <><div key={flash.id} className="call-screen-flash" aria-hidden="true" /><div className="call-screen-banner" role="alert">Doctor called{flash.tokenNumber == null ? '' : ` #${flash.tokenNumber}`} · Send patient in</div></>}
       <header ref={header} className="shell-header">
         <a className="shell-clinic-name" href={isDoctor ? '#consultation' : '#reception'} onClick={e => { e.preventDefault(); select(isDoctor ? 'consultation' : sections[0]?.key ?? '') }}>{clinicName ?? ''}</a>
         <nav className="shell-nav no-scrollbar" aria-label="Main">{navigation.map(navItem)}</nav>
         <div className="shell-status">
           {eventVisible && eventText && <span className="shell-event" role="status">{eventText} #{latestEvent?.visits.token_number}</span>}
-          {clinical && <button className="shell-nav-item" onClick={() => setAlertsOpen(true)}>Alerts</button>}
+          {clinical && <button className="shell-nav-item" onClick={() => setAlertsOpen(true)} title="Open alerts and call notification controls">{isDoctor ? 'Alerts' : !chimeEnabled ? 'Alerts · chime off' : notificationPermission === 'default' ? 'Alerts · notifications off' : 'Alerts'}</button>}
           {queueLink}
           {sync}
           {account}

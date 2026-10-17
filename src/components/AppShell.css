@@ -1,4 +1,9 @@
 .shell { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.call-screen-flash { position: fixed; inset: 0; z-index: var(--call-flash-layer); pointer-events: none; background: var(--red); opacity: 0; animation: call-screen-pulse var(--call-flash-duration) ease-in-out 3; }
+.call-screen-banner { position: fixed; z-index: calc(var(--call-flash-layer) + 1); top: calc(var(--header-current-height) + var(--space-sm)); left: 50%; transform: translateX(-50%); max-width: calc(100vw - var(--space-md) - var(--space-md)); padding: var(--space-sm) var(--space-md); border-radius: var(--r-lg); background: var(--red-bg); color: var(--red); font-weight: 600; text-align: center; pointer-events: none; }
+.call-alert-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); }
+@keyframes call-screen-pulse { 0%, 100% { opacity: 0; } 50% { opacity: var(--call-flash-opacity); } }
+@media (prefers-reduced-motion: reduce) { .call-screen-flash { animation: none; opacity: var(--call-flash-opacity); } }
 .shell-header { position: sticky; top: 0; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 20px; min-height: var(--header-height); padding: 8px 28px; border-bottom: 1px solid var(--line); background: var(--bg); }
 .shell-clinic-name { font-size: var(--text-base); font-weight: 700; color: var(--ink); text-decoration: none; }
 .shell-nav, .shell-status { display: flex; align-items: center; }
