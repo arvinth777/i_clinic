@@ -197,6 +197,8 @@ The weekly `pg_dump` **is** the primary backup, not a supplement to Supabase's o
 6. Re-apply anything from "Applying a migration" that was written after this particular backup's timestamp, in order, if restoring into a project that started from this snapshot.
 7. **Sanity-check before trusting it**: row counts on `patients`/`visits`/`bills` roughly match expectations for the backup's date; a known patient/visit from around that time is actually present; `bills_needing_reconciliation` and stock levels look plausible, not zeroed out.
 
+**Every new public table needs a read policy for the backup role**, in the same migration that creates it: `create policy backup_reader_read on public.<table> for select to backup_reader using (true);`. `backup_reader` has no BYPASSRLS (a hosted project cannot grant it), so without the policy the table dumps empty; `scripts/backup.sh` checks this first and fails the run naming the table. The policies were added by migration `20261017060000`.
+
 **One restore drill should happen before this is trusted with real patients** (docs/architecture-spec.md: "an untested backup is a hope, not a backup") -- steps 1-4 above have been dry-run against staging with a synthetic payload during this build (encryption round-trip verified byte-for-byte), but the actual `backup_reader` credential path, the real R2 upload, and a real `psql` restore have **not** been exercised end-to-end yet, because they need real credentials that don't exist until the pending setup steps below are done. Do that drill as the very first real run of this pipeline, not the first time it's actually needed.
 
 ## Monitoring: what's live vs. what's pending
