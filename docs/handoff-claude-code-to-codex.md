@@ -348,3 +348,15 @@ Renamed the alert production-chain symlink to `20261017030000_clinic_alert_setti
 ### 2026-10-17 — Backlog draft review checkpoint
 
 PR35 baseline CI repaired (feature hooks added), draft PR36 alert settings and draft PR37 Drive PDF archives are all unmerged. Archive worktree has staging-only migration20261016205705 and JWT-verified endpoint deployed; actual synthetic issued prescription and name-only receipt Drive upload/retry/byte-exact download pass. Application browser/offline/printer acceptance remains pending; internal doctor session idle-locked and user was asked to sign in as reception. Production and main remain `1eeaa92`; no production commands. Both worktrees have only generated local evidence untracked; no credentials committed. Primary checkout returned to `codex/alert-settings`. Shared docs/package edits may need reconciliation when reviewed PRs merge in35,36,37 order.
+
+### 2026-10-17 — Reception browser verification resumed
+
+User signed in themselves as staging reception in the internal localhost5173 browser. Confirmed mute leaves all alerts visible; closing checklist opens token256's actual settlement form; UPI and notes survive two successful unpaid-bill background fetches. Layout has no page overflow at1440/390. Cancelled without settlement. Built PWA offline registration/reload retained2 queued changes and synced automatically after restoring connectivity; read-only staging verification confirms one synthetic patient/visit, token3062.
+
+Temporarily setting staging-only `CLINIC_APP_URL` to localhost5173 for integrated archive browser checks; original permitted origin was `https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app` (OPTIONS header). Restore that value after checks. No OAuth credentials or production secrets changed. All remaining source is committed; local proof screenshots remain untracked.
+
+### 2026-10-17 — Reception acceptance and origin restoration
+
+Reception mute/checklist navigation/background refetch and1440/390 layout checks pass. Offline PWA check-in/reload/sync produced exactly one patient/visit (synthetic token3062); no settlement was issued. On the separate archive build, pending PDFs survived offline reload and resumed on reconnect; all11 synthetic receipts are ready while5 doctor-only prescription jobs remain pending. Receipt Download PDF worked from reception and a real browser print PDF generated while offline was one unclipped A4 page. Source follow-up in PR37 adds immediate per-upload pending counts and existing LoadingRows; tests/review pass.
+
+Restored staging `CLINIC_APP_URL` to the original permitted preview origin; OPTIONS204/ACAO verified. No production or OAuth credential change. Pending doctor sign-in requested only for doctor archive history and doctor reminder settings offline. Physical printer/Safari checks and merge permission remain open. Local screenshots/PDF under output/playwright; browser network/latency overrides restored.
