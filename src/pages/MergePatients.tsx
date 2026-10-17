@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/date'
@@ -21,6 +21,7 @@ const brief = (c: Candidate) => [c.name, c.age ? `${c.age}y` : '', c.phone ?? ''
 // function needed for this.
 function PatientSearch({ label, clinicId, selected, onSelect }: { label: string; clinicId: string; selected: Candidate | null; onSelect: (c: Candidate | null) => void }) {
   const [query, setQuery] = useState('')
+  const inputId = useId()
   const { data: results } = useQuery({
     queryKey: ['merge-search', clinicId, query],
     enabled: query.trim().length > 0,
@@ -33,7 +34,7 @@ function PatientSearch({ label, clinicId, selected, onSelect }: { label: string;
 
   return (
     <div className="field search-results-anchor">
-      <label className="field-label">{label}</label>
+      <label className="field-label" htmlFor={inputId}>{label}</label>
       {selected ? (
         <div className="search-result-button merge-selected">
           <span>
@@ -49,7 +50,7 @@ function PatientSearch({ label, clinicId, selected, onSelect }: { label: string;
         </div>
       ) : (
         <>
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or phone" />
+          <Input id={inputId} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or phone" />
           {query.trim() && (results?.length ?? 0) > 0 && (
             <ul className="search-results">
               {results!.map((c) => (
@@ -105,6 +106,17 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
     onError: (e: Error) => setResult(e.message),
   })
 
+  const dismiss = useMutation({
+    mutationFn: async (pair: DuplicatePair) => {
+      const [patient_a, patient_b] = pair.a.id < pair.b.id ? [pair.a.id, pair.b.id] : [pair.b.id, pair.a.id]
+      const { error } = await supabase.from('duplicate_dismissals').insert({ clinic_id: clinicId, patient_a, patient_b })
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['possible-duplicates'] }),
+    // 23505: this pair was already dismissed (double click, another tab): the end state is what the doctor wanted.
+    onError: (e: Error & { code?: string }) => { if (e.code === '23505') void queryClient.invalidateQueries({ queryKey: ['possible-duplicates'] }); else setResult(e.message) },
+  })
+
   const bothSelected = !!a && !!b
   const samePatient = bothSelected && a!.id === b!.id
 
@@ -142,9 +154,14 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
                   {brief(s.a)} <span className="search-result-meta">and</span> {brief(s.b)}
                   <span className="search-result-meta"> — {s.reason}</span>
                 </span>
-                <button type="button" className="merge-suggestion-review" onClick={() => { setA(s.a); setB(s.b); setResult(''); window.scrollTo({ top: 0, behavior: 'instant' }) }}>
-                  Review
-                </button>
+                <span className="merge-suggestion-actions">
+                  <button type="button" className="merge-suggestion-review" onClick={() => { setA(s.a); setB(s.b); setResult(''); window.scrollTo({ top: 0, behavior: 'instant' }) }}>
+                    Review
+                  </button>
+                  <button type="button" className="merge-suggestion-dismiss" disabled={dismiss.isPending && dismiss.variables === s} onClick={async () => { if (await confirm({ title: 'Not a duplicate?', body: `"${s.a.name}" and "${s.b.name}" will no longer be suggested as a pair.`, confirmLabel: 'Not a duplicate' })) dismiss.mutate(s) }}>
+                    Not a duplicate
+                  </button>
+                </span>
               </li>
             ))}
           </ul>

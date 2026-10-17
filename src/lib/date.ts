@@ -43,6 +43,11 @@ export function formatDateOnly(dateOnly: string): string {
 // converts to UTC first, which rolls the calendar date back a day for
 // part of the day in any timezone ahead of UTC (IST is UTC+5:30, so
 // midnight-5:30am IST would report yesterday's date).
+// Today's calendar date (YYYY-MM-DD) in clinic time, for comparing against date-only columns.
+export function clinicToday(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+}
+
 export function localDateStr(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')

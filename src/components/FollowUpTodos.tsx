@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { startOfToday, formatDateOnly } from '../lib/date'
+import { clinicToday, formatDateOnly } from '../lib/date'
 import { Button } from './ui/button'
 
 type Todo = { id: string; follow_up_date: string; patients: { name: string } | null }
@@ -12,7 +12,7 @@ type Todo = { id: string; follow_up_date: string; patients: { name: string } | n
 export function FollowUpTodos({ clinicId }: { clinicId: string }) {
   const queryClient = useQueryClient()
   const queryKey = ['follow-up-todos', clinicId]
-  const today = startOfToday().slice(0, 10)
+  const today = clinicToday()
 
   const { data: todos } = useQuery({
     queryKey,

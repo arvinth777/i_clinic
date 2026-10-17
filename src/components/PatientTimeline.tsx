@@ -12,10 +12,11 @@ type Prescription = TimelineInput['prescriptions'][number]
 type PatientFileRow = TimelineInput['files'][number]
 const KIND_LABEL = { visit: 'Visit', prescription: 'Prescription', payment: 'Payment', upload: 'Document' }
 
-// Doctor only: prescriptions and documents are doctor-readable, so the combined view is too.
-export function PatientTimeline({ clinicId, patientId, visits, prescriptions, onReceipt, onDocuments }: { clinicId: string; patientId: string; visits: Visit[] | undefined; prescriptions: Prescription[] | undefined; onReceipt: (visitId: string) => void; onDocuments: () => void }) {
+// Prescriptions and documents are doctor-readable only, so reception's timeline is visits and payments (no complaint text).
+export function PatientTimeline({ clinicId, patientId, isDoctor, visits, prescriptions, onReceipt, onDocuments }: { clinicId: string; patientId: string; isDoctor: boolean; visits: Visit[] | undefined; prescriptions: Prescription[] | undefined; onReceipt: (visitId: string) => void; onDocuments: () => void }) {
   const bills = useQuery({
     queryKey: ['patient-timeline-bills', clinicId, patientId],
+    staleTime: 0, // opening the tab always shows the latest bills and settlements
     queryFn: async () => {
       const { data, error } = await supabase.from('bills').select('id, visit_id, final_amount_paise, payment_method, confirmed_at, corrects_bill_id, bill_settlements(payment_method, settled_at), visits!inner(patient_id)').eq('clinic_id', clinicId).eq('visits.patient_id', patientId)
       if (error) throw error
@@ -24,13 +25,15 @@ export function PatientTimeline({ clinicId, patientId, visits, prescriptions, on
   })
   const files = useQuery({
     queryKey: ['patient-files', clinicId, patientId, 'timeline'], // under the prefix a finished upload already invalidates
+    enabled: isDoctor,
+    staleTime: 0,
     queryFn: async () => {
       const { data, error } = await supabase.from('patient_files').select('id, title, category, examination_date, created_at, status').eq('clinic_id', clinicId).eq('patient_id', patientId)
       if (error) throw error
       return data as PatientFileRow[]
     },
   })
-  const events = useMemo(() => (visits && prescriptions && bills.data && files.data ? buildTimeline({ visits, prescriptions, bills: bills.data, files: files.data }) : null), [visits, prescriptions, bills.data, files.data])
+  const events = useMemo(() => (visits && (prescriptions || !isDoctor) && bills.data && (files.data || !isDoctor) ? buildTimeline({ visits, prescriptions: prescriptions ?? [], bills: bills.data, files: files.data ?? [] }) : null), [isDoctor, visits, prescriptions, bills.data, files.data])
   const failed = bills.isError || files.isError
   if (!events) return failed ? <QueryError retry={() => { void bills.refetch(); void files.refetch() }} /> : <LoadingRows label="Loading timeline…" />
   return <div className="patient-history patient-timeline">

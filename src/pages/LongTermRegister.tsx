@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { startOfToday, formatDate, formatDateOnly } from '../lib/date'
+import { clinicToday, formatDate, formatDateOnly } from '../lib/date'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 
 type RegisterRow = { patient_id: string; name: string; last_visit_at: string | null; next_review_due: string }
@@ -19,7 +19,7 @@ export function LongTermRegister({ clinicId }: { clinicId: string }) {
     },
   })
 
-  const today = startOfToday().slice(0, 10)
+  const today = clinicToday()
 
   return (
     <div className="admin-page">

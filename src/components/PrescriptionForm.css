@@ -1,6 +1,8 @@
 .rx-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, var(--preview-width)); align-items: start; min-height: 100%; }
 .rx-editor { min-width: 0; padding: var(--page-top) var(--page-padding); }
 .rx-editor > * { max-width: var(--editor-width); margin-inline: auto; }
+/* These carry their own margin shorthand elsewhere and would otherwise hang outside the centred column. */
+.rx-editor > .rx-quick-add, .rx-editor > .field-hint, .rx-editor > .rx-quick-add-note { margin-inline: auto; }
 .rx-patient { margin-bottom: var(--space-xl); }
 .rx-patient h2 { font-size: var(--text-page); line-height: var(--line-title); letter-spacing: var(--tracking-title); font-weight: 700; margin: 0 0 var(--space-2xs); }
 .rx-patient p { font-size: var(--text-sm); color: var(--text-secondary); margin: 0; }

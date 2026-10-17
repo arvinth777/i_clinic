@@ -205,3 +205,35 @@ Verdict: Fix the payment trust boundary and direct bill writes first, then print
 Lean: -1 direct dependency declaration line, -1 dependency possible, plus regenerated lock-file entries; no justified bulk feature deletion.
 
 Not checked: live database grants/exploit tests, a complete two-browser clinic visit, physical A4 alignment, backup restoration, every report/correction/merge branch, and expired-token offline recovery. Findings 1–8 remain unfixed; passing build and draft tests do not make the app ready for clinical use.
+
+## 2026-10-17 audit by Claude Code (frontend, backend/security, doctor UI)
+
+Read-only audits by two agents plus a manual UI pass of the doctor screens at 1440 and 390 px on staging. Findings were verified by reading code unless marked suspected. **Fixed** items went into PR "gaps + UI polish" (branch `feat/patient-gaps`); everything else is **open and needs a decision or its own change**.
+
+### Backend and security (staging read-only; production not touched)
+Open, most severe first:
+1. **Admin can mint a doctor login** (verified): `user_roles` insert/update/delete policies only need `admin`, and `admin-create-login` accepts any role. That lets an admin become a doctor and read patient data, against `docs/security-review.md` ("admin cannot read patients"). Decision needed: should admin be able to create doctor logins at all? Fix: drop the client write policies and grant roles only through the function, refusing `doctor` unless the caller is a doctor.
+2. **Backups cannot work** (verified): `backup_reader` has no RLS bypass and no policies, `scripts/backup.sh` does not pass `--enable-row-security`; fits the runbook note that backup runs failed. Needs the R2 work already waiting on the user, plus a real restore drill.
+3. Receptionist can edit `visits.patient_id`, `complaint`, `consultation_ended_at`, `with_doctor_at`, `closed_at` on non-paid visits (`guard_queue_write` does not cover them).
+4. Reception can read diagnosis/advice/medicines of every paid visit through `get_visit_billing_detail` / `get_approved_bill` (no date limit).
+5. The archive PDF is whatever the first uploader sends (`patient-documents/handler.ts` checks type, signature and size, not the snapshot).
+6. `confirm_bill` accepts any historical doctor approval revision; 7. `queue_visit_action` trusts a client `p_occurred_at` for the no-show grace; 8. `stock_movements` direct INSERT open to doctor and receptionist; 9. no upper CHECK on money columns (fail-closed DoS); 10. `NOT VALID` age/height/weight checks (staging has violating rows; production is empty so validate there); 11. no unique original bill per visit; 12. over-broad grants (`anon` DML/TRUNCATE on ~30 tables, held back only by RLS); 13. `merge_patients(x,x)` not rejected; 14. unauthenticated `backup-freshness`/`health` hit R2/DB per request; 15. `rls_auto_enable` executable by everyone, leaked-password protection off, `admin-create-login` has no CORS/OPTIONS or rate limit; 16. missing indexes (`queue_events`, `bills(clinic_id, confirmed_at)`, ~50 unindexed FKs).
+Suspected, not executed: daily report may double count correction discounts; `settle_bill` may settle a superseded original; `prescription_items` edits on a paid visit have no stage check.
+Checked clean: RLS on all 41 public tables, no `true` policies, `search_path=''` on definer functions, paid-bill immutability, no browser-supplied amounts in `confirm_bill`, `patient-documents` JWT/CORS/SSRF/path traversal.
+
+### Frontend code
+Fixed in the PR: UTC-date bug in follow-up to-dos and the long-term register (now `clinicToday()` in IST); an emptied "supplied" box in Billing counted as 0 supplied (now invalid); two `['patient-comments', id]` queries with different sort orders sharing a key; unnamed PIN field; `aria-label` on `div`s without a role; unlabelled merge search inputs.
+Open:
+1. **No way to resolve a halted offline-queue item** (`OfflineQueueBanner` has no Retry/Discard): one permanently rejected write blocks every later write on that device. Needs Retry plus a confirmed Discard.
+2. `isNetworkFailure` reads `e.status`, which postgrest-js does not set on `error`, so an HTML 502/503 halts replay.
+3. Check-in creates patient and visit ids inside `mutationFn` (`Reception.tsx`): a failed visit insert followed by a retry creates a duplicate patient. Needs ids kept per submission and an idempotent patient insert.
+4. Two tabs can both drain the queue (`draining` is per tab; use `navigator.locks`); `drainQueue` never invalidates queries after replay; direct writes bypass the queue (rep check-in, follow-up to-dos, `settle_bill`, stock and admin forms) and hang offline.
+5. Online `update`/`delete` attempts do not check affected rows (PricingPanel, and now fixed in PatientBodyEdit) so an RLS-filtered write looks saved.
+6. Stock RPCs `record_purchase`, `create_stock_transfer`, `record_stock_count` carry no request id (a retry after a lost response double-books stock); `correct_bill` and `set_pharmacy_sale_amount` send none (check whether the server dedupes).
+7. Catalog reads hit the 1000-row PostgREST cap (`medicine_stock`, `medicines`, `unpaid_bills`...): totals and low-stock flags can be silently wrong; reuse the `pages()` helper in `ClinicAlerts.tsx`.
+8. `PricingPanel.commitPrice` silently ignores an unparseable price; Enter in Reception/prescription search can pick a result from the previous query during the debounce; `price_paise ?? NaN` in the optimistic proposal.
+9. Lock screen is `aria-modal` but the app behind stays tabbable (use `inert`); drawer focuses Close instead of `autoFocus`; unlabelled inputs in the purchase/count forms; cache-key lists in `AppShell.tsx` and `queueActions.ts` have drifted; blanket `invalidateQueries()` in three places.
+10. Maintainability: `.setHeader('Authorization'...)` boilerplate x21, the clinic select repeated in 5 places, 1,000-character JSX lines in `Patients.tsx`/`Billing.tsx` hide that 500-line rule, `34px` repeated instead of the toggle-height token, six live-DB scripts without the staging-host assert.
+
+### Doctor UI (fixed)
+Consultation clock separator, status line without the repeated token, address beside the patient identity, complaint emphasised, even spacing on mobile; prescription editor "Quick add" row and footer hint aligned to the content column; headings inside "Procedures & bill approval" smaller than their disclosure title; text buttons flush with the text above; merge screen targets 36 px; daily report note spacing, correction note reworded, stock warnings capped at 10 with "Show all". No overflow, off-token colour, uppercase label, non-Hanken font or card found at 1440/390 px on the audited screens.

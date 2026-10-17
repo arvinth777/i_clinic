@@ -285,11 +285,12 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
             {workspace !== 'overview' && <div className="rx-toolbar"><Button variant="ghost" onClick={() => setWorkspace('overview')}>← Workspace</Button><strong>{workspace === 'billing' ? 'Bill review' : 'Prescription'} · #{current.token_number} · {current.patients?.name}</strong></div>}
             <div className="doctor-overview" hidden={workspace !== 'overview'}>
               <section className="doctor-current">
-                <p className={current.stage==='called' ? 'status-amber' : 'status-blue'}>{current.stage==='called' ? `Called · waiting for reception to send #${current.token_number} in` : current.sent_in_at ? `Reception sent #${current.token_number} in · ${new Date(current.sent_in_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` : `#${current.token_number} · With doctor`}</p>
+                <p className={current.stage==='called' ? 'status-amber' : 'status-blue'}>{current.stage==='called' ? 'Called · waiting for reception to send this patient in' : current.sent_in_at ? `Sent in by reception · ${new Date(current.sent_in_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` : 'With doctor'}</p>
                 <div className="doctor-patient-summary"><div>
                   <p className="doctor-queue-meta">#{current.token_number} · {pastVisits ? pastVisits.length ? `Follow-up · ${pastVisits.length+1} visits` : 'New patient' : 'Loading visits…'}{current.stage === 'with_doctor' && current.with_doctor_at && <ConsultationClock startedAt={current.with_doctor_at} />}</p>
                   <h2>{current.patients?.name}</h2>
                   <p>{formatAgeSex(current.patients?.age ?? null, current.patients?.gender ?? null)}{formatBody(current.patients?.height_cm, current.patients?.weight_kg) ? ` · ${formatBody(current.patients?.height_cm, current.patients?.weight_kg)}` : ''}{current.patients?.phone ? ` · ${current.patients.phone}` : ''}</p>
+                  {current.patients?.address && <p className="field-hint">{current.patients.address}</p>}
                 </div>{sent ? <div className="doctor-sent"><strong className="status-green">Prescription sent to billing</strong><Button variant="secondary" onClick={()=>setWorkspace('prescription')}>View prescription</Button></div> : <Button disabled={current.stage==='called'} onClick={() => setWorkspace('prescription')}>{prescribingActive ? 'Continue prescription →' : 'Start prescription →'}</Button>}</div>
               </section>
               <div className="doctor-context">
@@ -312,7 +313,6 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
                   <Button type="submit" variant="secondary" disabled={addComment.isPending || !commentBody.trim()}>{addComment.isPending ? 'Adding…' : 'Add note'}</Button>
                 </form>
                 {addComment.isError && <p className="form-error">Couldn't save the note — try again.</p>}
-                {current.patients?.address && <p className="field-hint">Address: {current.patients.address}</p>}
               </section>
             </div>
             <div id="stage-prescription" hidden={workspace === 'overview'}>

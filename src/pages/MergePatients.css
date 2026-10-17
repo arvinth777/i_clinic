@@ -24,13 +24,24 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.merge-suggestion-review {
+.merge-suggestion-actions {
+  display: flex;
+  gap: var(--space-md);
+  flex: none;
+}
+
+.merge-suggestion-review,
+.merge-suggestion-dismiss {
   font: inherit;
   font-weight: 600;
   font-size: var(--text-sm);
   color: var(--accent);
   background: none;
   border: none;
+  min-height: var(--control-height);
   cursor: pointer;
-  flex: none;
+}
+
+.merge-suggestion-dismiss {
+  color: var(--muted);
 }

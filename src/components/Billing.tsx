@@ -167,7 +167,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   const bill = confirmedBill?.pending ? savedBill ?? confirmedBill : confirmedBill ?? savedBill ?? null
 
   const supplyLines = approval?.lines.map(row => {
-    const quantity = row.prescription_item_id && supplied[row.prescription_item_id] !== undefined ? Number(supplied[row.prescription_item_id]) : row.quantity ?? 1
+    const quantity = row.prescription_item_id && supplied[row.prescription_item_id] !== undefined ? (supplied[row.prescription_item_id].trim() === '' ? NaN : Number(supplied[row.prescription_item_id])) : row.quantity ?? 1
     return {...row,quantity,approved_quantity:row.kind==='medicine'?row.quantity:undefined,shortfall:row.kind==='medicine'?(row.quantity??0)-quantity:0,line_total_paise:quantity*row.unit_price_paise}
   })
   const subtotal = supplyLines?.reduce((sum,row)=>sum+row.line_total_paise,0) ?? pricing?.calculated_total_paise ?? 0
