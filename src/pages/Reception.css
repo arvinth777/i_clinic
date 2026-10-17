@@ -200,3 +200,5 @@
 .similar-patients { padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-md); background: var(--amber-bg); border-radius: var(--r-lg); }
 .similar-patients ul { list-style: none; margin: var(--space-xs) 0 0; padding: 0; }
 .similar-patients li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); padding: var(--space-xs) 0; }
+.similar-patients li > span { flex: 1; min-width: 0; }
+.similar-patients li > button { flex: none; white-space: nowrap; }

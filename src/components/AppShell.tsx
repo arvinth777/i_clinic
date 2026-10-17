@@ -9,6 +9,7 @@ import type { AlertTarget } from '../lib/clinicAlerts'
 import { useCallSound } from './CallSound'
 import { LockScreen } from './LockScreen'
 import { Drawer } from './Drawer'
+import { GlobalSearch } from './GlobalSearch'
 import { OfflineQueueBanner } from './OfflineQueueBanner'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -136,7 +137,7 @@ export function AppShell({
   const queryClient = useQueryClient()
   const clinical = sections.some((section) => section.key === 'consultation' || section.key === 'reception')
   const queueKey = ['shell-queue', clinicId]
-  const { data: queue, isError: queueError } = useQuery({
+  const { data: queue } = useQuery({
     queryKey: queueKey, refetchInterval:queuePollInterval(connected),
     enabled: !!clinicId && clinical,
     queryFn: async () => {
@@ -177,7 +178,6 @@ export function AppShell({
   const eventVisible=!!eventTime&&expiredEvent!==eventTime
   useEffect(()=>{if(!eventTime)return;const remaining=new Date(eventTime).getTime()+10000-Date.now();const timer=setTimeout(()=>setExpiredEvent(eventTime),Math.max(0,remaining));return()=>clearTimeout(timer)},[eventTime])
   const eventText=latestEvent && ({call:'Doctor called',sent_in:'Reception sent in',finish:'Ready to bill',request_discount:'Discount review requested'}[latestEvent.action])
-  const current = queue?.find((visit) => ['called','with_doctor'].includes(visit.stage))
   const { data: readyToBill = 0 } = useQuery({
     queryKey: ['billing-ready-count', clinicId],
     enabled: !!clinicId && clinical && !isDoctor,
@@ -195,6 +195,7 @@ export function AppShell({
     queryFn: async () => { const { data, error } = await supabase.rpc('possible_duplicate_patients', { p_clinic_id: clinicId }); if (error) throw error; return data },
     select: (rows: unknown[]) => rows.length,
   })
+  const homeSection = isDoctor ? 'consultation' : 'reception'
   const navigation = sections.filter(section => !section.group && !section.account)
   const hubOf = (key: string) => sections.find(section => section.key === key)?.group ?? key
   const activeHub = hubOf(activeSection)
@@ -205,19 +206,16 @@ export function AppShell({
   function select(key: string) { onSelectSection(key); setMenuOpen(false) }
   function navItem(section: ShellSection) {
     return <a key={section.key} href={`#${section.key}`} className="shell-nav-item"
-      aria-label={section.key === 'billing' && readyToBill ? `Billing, ${readyToBill} patients waiting` : section.key === 'patients' && duplicateCount ? `Patients, ${duplicateCount} possible duplicates` : undefined}
+      aria-label={section.key === homeSection && waitingCount ? `${section.label}, ${waitingCount} waiting` : section.key === 'billing' && readyToBill ? `Billing, ${readyToBill} patients waiting` : section.key === 'patients' && duplicateCount ? `Patients, ${duplicateCount} possible duplicates` : undefined}
       aria-current={section.key === activeHub ? 'page' : undefined}
-      onClick={(event) => { event.preventDefault(); select(section.key) }}>{section.label}{section.key === 'billing' && readyToBill > 0 && <span className="shell-billing-count" aria-hidden="true">{readyToBill}</span>}{section.key === 'patients' && duplicateCount > 0 && <span className="shell-billing-count" aria-hidden="true">{duplicateCount}</span>}</a>
+      onClick={(event) => { event.preventDefault(); select(section.key) }}>{section.label}{section.key === 'billing' && readyToBill > 0 && <span className="shell-billing-count" aria-hidden="true">{readyToBill}</span>}{section.key === homeSection && waitingCount > 0 && <span className="shell-billing-count" aria-hidden="true">{waitingCount}</span>}{section.key === 'patients' && duplicateCount > 0 && <span className="shell-billing-count" aria-hidden="true">{duplicateCount}</span>}</a>
   }
   // Quiet when everything is fine: only speak up when work is waiting or at risk.
   const syncLabel = halted ? 'Save needs attention' : !online ? `Offline · ${pending.length} changes waiting` : pending.length ? `${pending.length} not saved yet` : ''
   const sync = <span className={`shell-sync ${halted || !online ? 'pending' : 'saving'}`} role="status">{syncLabel}</span>
   const waitingCount = queue?.filter((visit) => visit.stage === 'waiting').length ?? 0
-  const queueLink = clinical && <a href={isDoctor ? '#consultation' : '#reception'} onClick={e => { e.preventDefault(); select(isDoctor ? 'consultation' : 'reception') }} className="shell-queue" title={online && connected ? 'Live queue' : 'Showing the saved queue; reconnecting'}>
-    <span className={online && connected ? 'shell-status-dot' : 'shell-status-dot offline'} aria-hidden="true" />
-    <strong>{queueError && !queue ? 'Queue unavailable' : !queue ? 'Loading…' : current ? `Seeing #${current.token_number}` : waitingCount ? `${waitingCount} waiting` : 'No one waiting'}</strong>
-    {queue && current && waitingCount > 0 && <span>{waitingCount} waiting</span>}
-  </a>
+  const search = <GlobalSearch clinicId={clinicId} sections={sections} onGo={key => { select(key) }} onOpen={target => { setMenuOpen(false); onOpenAlert(target) }}
+    actions={[{ label: 'Lock screen', words: 'lock pin screen', run: () => { if (pinSet) onLock(); else setShowPinForm(true) } }, { label: 'Sign out', words: 'sign out log out logout', run: () => { void supabase.auth.signOut() } }]} />
   const settingsSection = sections.find(section => section.account)
   const initial = (userEmail?.trim()[0] ?? '?').toUpperCase()
   const account = <details ref={accountMenu} className="shell-menu shell-account" onClick={event => { if ((event.target as HTMLElement).closest('button')) event.currentTarget.open = false }}>
@@ -239,7 +237,7 @@ export function AppShell({
         <nav className="shell-nav no-scrollbar" aria-label="Main">{navigation.map(navItem)}</nav>
         <div className="shell-status">
           {eventVisible && eventText && <span className="shell-event" role="status">{eventText} #{latestEvent?.visits.token_number}</span>}
-          {queueLink}
+          {search}
           {sync}
           {account}
         </div>
@@ -249,7 +247,7 @@ export function AppShell({
       {clinical && clinicId && <ClinicAlerts key={`${clinicId}:${userId}`} open={alertsOpen} onClose={() => setAlertsOpen(false)} onOpen={target => { if (sections.some(section => section.key === target.section)) onOpenAlert(target) }} clinicId={clinicId} userId={userId} isDoctor={isDoctor} online={online} connected={connected} locked={locked} soundControl={soundControl} />}
       <OfflineQueueBanner userId={userId} redact={locked || !clinical} />
       <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title="Menu" placement="top">
-        {queueLink}
+        {search}
         {sync}
         <nav className="shell-mobile-links" aria-label="Main menu">{navigation.map(navItem)}</nav>
         <div className="shell-mobile-links">

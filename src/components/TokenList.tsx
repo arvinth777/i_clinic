@@ -6,7 +6,8 @@ import { startOfToday, elapsedMinutes, formatElapsed } from '../lib/date'
 import { nextSortState, sortRows, type SortState } from '../lib/sort'
 import { Button } from './ui/button'
 import './Worklist.css'
-import { useQueueAction, type QueueAction } from '../lib/queueActions'
+import { useQueueAction, CANCEL_VISIT_DIALOG, type QueueAction } from '../lib/queueActions'
+import { useAskReason } from '../lib/confirm'
 import { Input } from './ui/input'
 import { restorePagedCache } from '../lib/pagedCache'
 import { useQueuePollInterval } from '../lib/realtimeStatus'
@@ -36,6 +37,8 @@ function StageGlyph({ stage }: { stage: string }) {
 // Stages the receptionist can click into to open (or reopen) a bill --
 // "with_doctor"/"waiting" have nothing for her to do yet.
 const BILLABLE_STAGES = new Set(['ready_to_bill', 'paid'])
+const CLOSED_STAGES = ['paid', 'no_show', 'cancelled']
+const CANCELLABLE_STAGES = ['waiting', 'called', 'with_doctor', 'not_here', 'ready_to_bill']
 
 type SortKey = 'token' | 'name' | 'stage' | 'wait'
 
@@ -61,6 +64,7 @@ export function TokenList({ clinicId, onSelectVisit, highlightVisitId }: { clini
   const [filter, setFilter] = useState<'active' | 'done' | 'all' | 'earlier'>('active')
   const [reason, setReason] = useState('')
   const [confirmNoShow, setConfirmNoShow] = useState<string | null>(null)
+  const askReason = useAskReason()
   const action = useQueueAction(clinicId)
   const { data: settings } = useQuery({ queryKey: ['queue-settings',clinicId], queryFn: async () => { const {data,error}=await supabase.from('clinics').select('no_show_minutes').eq('id',clinicId).single(); if(error) throw error; return data } })
   const [sort, setSort] = useState<SortState<SortKey>>(null)
@@ -88,7 +92,7 @@ export function TokenList({ clinicId, onSelectVisit, highlightVisitId }: { clini
       const legacy = queryClient.getQueryData<Visit[]>(queryKey)
       const saved = queryClient.getQueryCache().findAll({ queryKey: ['visits-earlier', clinicId] })
         .sort((a, b) => b.state.dataUpdatedAt - a.state.dataUpdatedAt).find(query => query.state.data)
-      return restorePagedCache<Visit>(saved?.state.data as { pages: Visit[][] } | undefined, legacy?.filter(v => v.arrived_at < today && !['paid', 'no_show'].includes(v.stage)))
+      return restorePagedCache<Visit>(saved?.state.data as { pages: Visit[][] } | undefined, legacy?.filter(v => v.arrived_at < today && !CLOSED_STAGES.includes(v.stage)))
     },
     initialPageParam: 0,
     getNextPageParam: (last: Visit[], pages: Visit[][]) => last.length === 50 ? pages.length * 50 : undefined,
@@ -113,8 +117,9 @@ export function TokenList({ clinicId, onSelectVisit, highlightVisitId }: { clini
   if (showingEarlier ? earlier.isLoading : isLoading) return <LoadingRows label="Loading queue…" />
   if (viewError && !viewData) return <QueryError retry={() => void reload()} />
   const viewWithFocus = focused.data && !(viewData ?? []).some(v=>v.id===focused.data!.id) ? [focused.data,...(viewData ?? [])] : viewData ?? []
-  const rows = sortRows(viewWithFocus.filter(v => showingEarlier ? v.arrived_at < today && !['paid','no_show'].includes(v.stage) : v.arrived_at >= today && (filter === 'all' || (filter === 'done' ? ['paid','no_show'].includes(v.stage) : !['paid','no_show'].includes(v.stage)))), sort, sortValue)
+  const rows = sortRows(viewWithFocus.filter(v => showingEarlier ? v.arrived_at < today && !CLOSED_STAGES.includes(v.stage) : v.arrived_at >= today && (filter === 'all' || (filter === 'done' ? CLOSED_STAGES.includes(v.stage) : !CLOSED_STAGES.includes(v.stage)))), sort, sortValue)
   // The typed reason belongs to this one action; leaving it in the box tagged the next, unrelated move with it.
+  const cancelVisit = async (v: Visit) => { const why = await askReason({ ...CANCEL_VISIT_DIALOG, body: `#${v.token_number} ${v.patients?.name ?? ''}. ${CANCEL_VISIT_DIALOG.body}` }); if (why) action.mutate({ visitId: v.id, action: 'cancel', reason: why }) }
   const act = (v: Visit, value: QueueAction) => { action.mutate({ visitId:v.id, action:value, reason }); setReason(''); setConfirmNoShow(null) }
   return <div className="queue-worklist">
     {viewError && <QueryError retry={() => void reload()} savedAt={savedAt} />}
@@ -136,6 +141,7 @@ export function TokenList({ clinicId, onSelectVisit, highlightVisitId }: { clini
         {['waiting','called'].includes(v.stage) && <Button variant="ghost" disabled={action.isPending} onClick={()=>act(v,'not_here')}>Not here</Button>}
         {v.stage==='not_here' && v.arrived_at>=today && <><Button variant="ghost" disabled={action.isPending} onClick={()=>act(v,'return_original')}>Return to position</Button><Button variant="ghost" disabled={action.isPending} onClick={()=>act(v,'return_end')}>Return at end</Button></>}
         {(v.stage==='not_here' && v.not_here_at && elapsedMinutes(v.not_here_at)>=(settings?.no_show_minutes??30) || v.arrived_at<today && ['waiting','called','with_doctor'].includes(v.stage)) && <><span className="status-amber">Please review: has this patient returned?</span>{confirmNoShow !== v.id && <Button variant="ghost" disabled={action.isPending} onClick={()=>setConfirmNoShow(v.id)}>Mark no-show</Button>}</>}
+        {CANCELLABLE_STAGES.includes(v.stage) && <Button variant="ghost" disabled={action.isPending} onClick={() => void cancelVisit(v)}>Cancel visit</Button>}
       </>}{onSelectVisit && BILLABLE_STAGES.has(v.stage) && <Button variant="secondary" size="sm" onClick={() => onSelectVisit(v.id)}>{v.stage === 'paid' ? 'Receipt' : 'Bill'}</Button>}</div>
       {confirmNoShow === v.id && <div className="queue-confirm" role="alert"><span className="status-amber">Close this visit? It cannot be reopened; the patient would need a new token.</span><Button variant="dark" disabled={action.isPending} onClick={()=>act(v,'no_show')}>Confirm no-show</Button><Button variant="ghost" onClick={()=>setConfirmNoShow(null)}>Cancel</Button></div>}
     </li>)}</ul>

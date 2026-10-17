@@ -60,7 +60,7 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
     enabled: !!selected && selected !== 'new',
     queryFn: async () => {
       const { data, error } = await supabase.from('visits').select('token_number, stage').eq('patient_id', (selected as SearchResult).id)
-        .gte('arrived_at', startOfToday()).not('stage', 'in', '(paid,no_show)').limit(1)
+        .gte('arrived_at', startOfToday()).not('stage', 'in', '(paid,no_show,cancelled)').limit(1)
       if (error) throw error
       return data
     },

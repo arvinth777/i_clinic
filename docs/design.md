@@ -113,10 +113,12 @@ Related tools are tabs inside their page, never separate bar items: Billing > To
 Billing carries the ready-to-bill count; the doctor's Patients carries the possible-duplicate count (both the
 `nav-count-size` circle).
 
-The right side holds the queue pill, an optional save warning, and the profile circle. The profile circle
-(control-height, blue-tint, the first letter of the sign-in email) opens the account menu: Alerts and sound, Settings
-(doctor), Lock screen, Change lock PIN, Sign out. Settings, Alerts and Lock are not bar items. The queue pill reads
-"Seeing #12" with "3 waiting" beside it, "3 waiting", or "No one waiting"; it links to the login's home.
+The right side holds the search box, an optional save warning, and the profile circle. There is no queue pill:
+the waiting count is a badge on the login's first tab (Queue for reception, Consultation for the doctor), like the
+Billing and Patients counts. The search box ("Search…  ( / )", `/` focuses it) finds patients (name, phone, token),
+medicines and pages by the words people use ("supplier", "merge", "unpaid"), plus Lock screen and Sign out; arrow keys and
+Enter work. The profile circle (control-height, blue-tint, the first letter of the sign-in email) opens the account menu:
+Alerts and sound, Settings (doctor), Lock screen, Change lock PIN, Sign out. Settings, Alerts and Lock are not bar items.
 The save indicator is silent when everything is saved and appears only for "Save needs attention",
 "Offline · N changes waiting" or "N not saved yet" (real mutation/IndexedDB state, never a timer).
 Optional event text must be a real cross-role event, visible about ten seconds. Reception gets administrative
@@ -135,7 +137,7 @@ and real patient/token context. No fake Called/Sent-in state before that workflo
 is implemented.
 
 Wording: plain words a doctor would use. Queue filters are Now, Finished, Everyone today, Earlier days. No
-"token" jargon in status text ("No one waiting", not "No active token").
+"token" jargon in status text (no "No active token" style status text).
 
 ## Controls, overlays and states
 
