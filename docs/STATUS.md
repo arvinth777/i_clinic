@@ -2435,3 +2435,11 @@ supply migrations and browser verification. Physical-print and fresh browser
 offline release gates remain; production is untouched.
 The approval action uses the existing secondary variant so this stacked PR builds
 independently before step 4 introduces the dark button variant.
+
+## Doctor acceptance follow-up — 2026-10-17
+
+- Doctor offline reminder settings survive reload and replay once on reconnect; backend values checked before/after. Restored defaults: call5 minutes, no-show30 minutes, close16:00 IST.
+- Doctor archive history and private prescription download passed. All6 synthetic prescriptions and11 receipts are ready in Drive. Downloaded A4 PDF visually inspected; affected layout uses Hanken without page overflow at1440/390. Reception/offline receipt checks remain passing from the preceding entry.
+- Restored staging permitted preview origin and verified OPTIONS204/allowed-origin. No production or merge. Existing completed-consultation “View prescription” routes to billing/receipt in the tested fixture; prescription print from that route is not verified. Fresh physical printer/Safari remain open, alongside the documented oversized-row archive limitation.
+- PR35/36/37 ready for user review in that order; hosted Actions blocked by account billing. No uncommitted source; generated output/ evidence remains local. Next: review/merge authorization, resolve the recorded prescription navigation issue, then human release acceptance.
+

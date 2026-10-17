@@ -360,3 +360,11 @@ Using the user-signed-in reception session, temporarily set staging CLINIC_APP_U
 Browser found stale batch counts and missing list-loading feedback; fixed with per-success local completed IDs and existing LoadingRows. Stateful regression covers count2->1 and clearing; Standards/Spec follow-up found no blocker. Fresh archive unit suites, tsc, lint8 and build pass. No financial transaction or schema/endpoint change in this follow-up.
 
 Staging app URL restored to `https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app`, verified OPTIONS204/ACAO; no OAuth credentials or production changed. Doctor archive-history UI/doctor offline settings, Safari and physical-printer acceptance remain pending; user asked to switch accounts themselves. No merge authorized.
+
+### 2026-10-17 — Doctor acceptance and staging origin restored
+
+User signed in as staging doctor. Reminder settings changed offline to 35-minute no-show, 7-minute call and 16:15 close; one queued write survived PWA reload. Read-only backend verification stayed at 30/5/960 offline, then became 35/7/975 on reconnect. Doctor restored 30/5/16:00; backend confirmed 30/5/960.
+
+Doctor archive worker completed all remaining prescription jobs. Staging now has 6 prescription PDFs and 11 receipts ready, none pending. Patient Documents shows issued receipt and prescription; private prescription Download PDF worked and the downloaded A4 PDF was rendered and visually inspected. Hanken and no horizontal page overflow verified at 1440/390; local evidence: output/playwright/doctor-archive-desktop.png and doctor-archive-mobile.png. Existing completed-consultation “View prescription” opened billing/receipt instead of prescription print in this fixture; record as a separate navigation issue, not a passed offline prescription-print check. Earlier offline receipt printing and multi-page renderer checks remain valid; fresh physical printer and Safari acceptance remain open.
+
+Restored staging CLINIC_APP_URL to https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app; OPTIONS 204 and matching allowed-origin verified. No OAuth credential change, production action or merge. PR35/36/37 remain unmerged, hosted Actions blocked by GitHub billing; only generated local evidence is untracked after documentation commits.
