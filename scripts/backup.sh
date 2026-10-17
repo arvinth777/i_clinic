@@ -45,6 +45,15 @@ trap 'rm -rf "$WORKDIR"' EXIT
 DUMP_FILE="$WORKDIR/clinic-backup-$STAMP.sql"
 ENCRYPTED_FILE="$WORKDIR/clinic-backup-$STAMP.sql.gz.age"
 
+# RLS is on for every public table and backup_reader cannot bypass it, so each table needs its own read policy
+# (migration 20261017060000). A table without one dumps as silently empty, so refuse to run rather than back up nothing.
+GAPS="$(psql "$BACKUP_DB_URL" -Atc "select t.tablename from pg_tables t where t.schemaname = 'public' and t.rowsecurity and not exists (select 1 from pg_policies p where p.schemaname = 'public' and p.tablename = t.tablename and 'backup_reader' = any(p.roles))")"
+if [ -n "$GAPS" ]; then
+  echo "These public tables have no backup_reader read policy, so their rows would be missing from the backup:" >&2
+  echo "$GAPS" >&2
+  exit 1
+fi
+
 echo "Dumping public schema via backup_reader..."
 # --no-owner/--no-privileges: backup_reader isn't the owner of anything it
 # reads, and a restore should never try to reassign ownership or replay
@@ -53,6 +62,7 @@ echo "Dumping public schema via backup_reader..."
 # disaster recovery recreates logins via the existing admin-create-login
 # flow (docs/STATUS.md), not by restoring Supabase's own auth tables.
 pg_dump "$BACKUP_DB_URL" \
+  --enable-row-security \
   --schema=public \
   --no-owner \
   --no-privileges \
