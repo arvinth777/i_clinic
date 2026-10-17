@@ -2,6 +2,10 @@
 
 ## START HERE (written 2026-10-17 for the switch to Codex; this block is the current state, the rest is history)
 
+**Archive checkpoint (2026-10-17):** `codex/drive-pdf-archive` worktree now has the new staging migration and JWT-verified endpoint. Actual synthetic issued prescription and name-only receipt Drive uploads/retries/byte-exact private downloads pass; clinical/OAuth access remains denied to reception. Draft browser/offline/printer acceptance is still pending. Alert draft PR #36 and baseline PR #35 are unmerged. Main/production freshly verified at `1eeaa92`.
+
+**Current Codex delta (2026-10-17):** main/production verified at `1eeaa92`. Open, unmerged PR35 repairs tests/CI; draft PR36 adds reminder settings; draft PR37 adds Drive PDF archives and continuation/receipt fixes; PR38 fixes issued-prescription viewing and offline printing. Doctor/reception browser and offline replay checks passed. Physical printer/Safari acceptance and hosted CI (account billing block) remain. Production untouched; merge only when the user instructs. The table below is historical; see newest section9 entries.
+
 **Current Codex delta (2026-10-17):** main/production remain `1eeaa92`. Unmerged PR35 repairs baseline tests/CI; draft PR36 implements alert settings; draft PR37 implements Drive PDF archives. Doctor/reception app checks and offline replay passed; all17 synthetic archive jobs ready. Fresh physical print/Safari acceptance and completed-consultation prescription navigation remain open. GitHub Actions cannot start due to billing lock. Production untouched; merge only on user instruction. See newest section9 entries.
 
 **Verify first:** `git fetch origin && git log --oneline -3 origin/main origin/production && gh pr list` and `cat supabase/.temp/project-ref` (root must say `cofnrcgsolluyhghutah`, staging).
@@ -324,6 +328,43 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 - **Limits:** no pagination (all events for one patient load at once); no filters; reception does not get the tab; the timeline shows the amount of each bill row as stored (a correction row shows its own final amount).
 - **Release needs:** no migration, so only the feature PR into `main`, then the `main` -> `production` release PR.
 
+### 2026-10-17: Drive PDF archive branch started
+- Created managed worktree `~/.codex/worktrees/clinic-drive-pdf-archive/i_clinic`, branch `codex/drive-pdf-archive`, from `origin/main` `1eeaa92`. Separate from pending test-baseline PR #35 and alert-settings work. Root target is staging only; no production commands or merges.
+- User-approved scope: issued prescription and paid receipt PDFs using the existing print layout; durable retries, stable source/version identity, corrections separately linked, name-only pharmacy sales retained, reception archive permission restricted to receipts.
+- Baseline PR #35 local checks pass; GitHub Actions cannot start because the account is locked due to billing. Vercel preview succeeds.
+
+### 2026-10-17 — Drive archive staging migration
+
+Applied `20261016205705_document_pdf_archives` to staging `cofnrcgsolluyhghutah` only after dry run listed only that file. First attempt rolled back because diagnosis/advice live on prescriptions, not visits; corrected the unapplied file and retried successfully. New durable issued snapshots and receipt jobs use RLS and a service-only upload lease. No historical backfill, merge, production action or live Google transfer. Implementation/tests remain in progress. An exact local copy of the already-applied alert migration is present only for CLI history matching and is not part of this PR.
+
+### 2026-10-17 — Archive endpoint deployed to staging for synthetic verification
+
+Deployed `patient-documents` with JWT verification retained to staging `cofnrcgsolluyhghutah`; no secret values changed and production untouched. Mock handler tests cover narrow receipt access, stable Drive IDs, lost-ready recovery and leases. Live staging Drive connection metadata reports a saved connection; refreshing the grant and transferring an issued synthetic PDF are next, not yet claimed. Source remains uncommitted pending checks/review.
+
+### 2026-10-17 — Alert draft PR #36
+
+Pushed `codex/alert-settings` and opened draft PR #36 into main, commit `9ef2ea1`. No merge. Remaining reception/offline browser acceptance is explicit in the PR. Production untouched. Separate Drive archive migration is now also on staging, so local alert-only schema smoke sees archive tables but depends only on its own migration.
+
+### 2026-10-17 — Live archive checks and release preparation
+
+Actual saved staging Google grant worked without new consent or secret changes. Uploaded an exact issued synthetic prescription snapshot and a name-only pharmacy receipt; repeated uploads kept one Drive ID and canonical bytes; private downloads matched byte-for-byte. Reception receipt upload/download passed; prescription and OAuth status access denied. New anonymous/direct-snapshot-write backend checks pass. All generated source exports contained explicit SYNTHETIC fixtures only.
+
+Fixed review findings: failed individual jobs no longer block later jobs; unchanged polls/manual retries trigger processing; queue read errors are visible; final download generation/lock/user checks run after session awaits; receipt totals stay together. Corresponding handler/worker/download tests pass. Actual PDFs generated from same React print components, embedded fonts/artwork, short/typical/45-medicine5-page/receipt/70-item3-page visually checked. Initial blank-capture and missing-artwork defects caught visually and fixed. Final PDF writer is pdf-lib with html2canvas-pro; lazy renderer avoids loading PDF code in the initial bundle.
+
+Local release alias `20261017040000_document_pdf_archives.sql` links the exact applied staging SQL, sorting after the existing production chain and alert alias0300. Release in reviewed alert-then-archive order; no production `--include-all`, no staging history repair. No production command, merge or historical archive backfill. PR35 now provides optional feature-script CI hooks, but hosted jobs are still blocked by GitHub account billing. Preparing archive draft PR; full app browser/offline/phone/Safari/printer acceptance remains pending user sign-in.
+
+### 2026-10-17 — Archive draft PR #37
+
+Pushed `codex/drive-pdf-archive`, commit `901178a`, and opened draft PR #37 into main. No merge. Source checks pass; local generated synthetic PDFs/PNGs are retained under worktree `output/pdf/`, not committed or shipped. Temporary exported synthetic snapshot and CLI-history alert copy removed. Remaining application reception/offline/mobile/Safari and physical-printer acceptance are explicit. Production untouched; main/production remain `1eeaa92`. Review order35,36,37; reconcile shared docs/package edits after earlier PRs merge.
+
+### 2026-10-17 — Reception archive PWA acceptance
+
+Using the user-signed-in reception session, temporarily set staging CLINIC_APP_URL to localhost5173 and served the archive production build at the same local origin. Verified pending archive banner across real offline PWA reload, automatic resumed uploads (HTTP200), all11 receipt jobs ready, doctor prescription jobs still pending, private receipt download, and no page overflow at1440/390. Offline Page.printToPDF produced one unclipped A4 receipt from the actual print DOM. Browser screenshot default clipped emulated desktop; full CDP screenshot with zoom-adjusted1584x1100 clip correctly captured the measured1440px layout. Local proof lives in primary output/playwright.
+
+Browser found stale batch counts and missing list-loading feedback; fixed with per-success local completed IDs and existing LoadingRows. Stateful regression covers count2->1 and clearing; Standards/Spec follow-up found no blocker. Fresh archive unit suites, tsc, lint8 and build pass. No financial transaction or schema/endpoint change in this follow-up.
+
+Staging app URL restored to `https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app`, verified OPTIONS204/ACAO; no OAuth credentials or production changed. Doctor archive-history UI/doctor offline settings, Safari and physical-printer acceptance remain pending; user asked to switch accounts themselves. No merge authorized.
+
 ### 2026-10-17: test baseline PR #35; alert settings branch
 - `codex/test-baseline` pushed, PR #35 into main opened; not merged. Fresh staging suites pass (billing 16, pricing 15, handoff 10, stock 25, offline 21, phase-g 21, isolation 21), local CI suites 7/7; typecheck/build, lint at eight warnings and 86 query-schema checks pass. Standards/spec review complete.
 - Started `codex/alert-settings` from `origin/main` `1eeaa92`, independently of unmerged #35. User approved notification sound mute with all alerts still visible. Defaults remain five-minute called reminder and 16:00 IST close; make timing configurable and add a closing checklist with individual unpaid-bill links.
@@ -369,6 +410,12 @@ Doctor archive worker completed all remaining prescription jobs. Staging now has
 
 Restored staging CLINIC_APP_URL to https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app; OPTIONS 204 and matching allowed-origin verified. No OAuth credential change, production action or merge. PR35/36/37 remain unmerged, hosted Actions blocked by GitHub billing; only generated local evidence is untracked after documentation commits.
 
+### 2026-10-17 — Remaining archive rendering fixes
+
+User requested remaining fixes. PR37 follow-up fragments oversized text rows at measured word/grapheme boundaries with markup, labels, patient/header/footer retained; browser character-for-character tests include English/Tamil/unbrokenemoji and medicine/receipt columns. Stress prescription17pages15.98MB, oversized receipt5pages, normal long prescription5pages and longreceipt3pages. Short/typical/receipt assert1page. Ordinary receipt regression was caught (2pages); fixed min-heightA4 contaminating intrinsic-content capacity measurement. No financial calculation, schema, permissions or endpoint change. Fresh local checks/reviews pass. Clinic-printer packet in output/pdf; actual printer/Safari sign-off remains open.
+
+Navigation fix pushed separately in PR38; baselinePR35 optional unit hook pushed, combined local8/8 suites verified. Alert PR36 unchanged. No merges, no production commands. Staging origin remains restored to its original preview URL; no further secret writes in this turn.
+
 ### 2026-10-17: Codex resumes approved backlog — branch `codex/test-baseline`
 - User approved Drive PDF auto-archive, alert settings and test/validation gaps. Branch created from `origin/main` `1eeaa92`; `origin/production` is the same commit. Timeline release PR #34 is already merged; older START HERE timeline-pending statements are stale.
 - Root CLI target confirmed staging (`cofnrcgsolluyhghutah`). No production commands, merge or database changes. Begin by reproducing the seven reported failing legacy suites, then separate feature PRs into main. Merges require user instruction.
@@ -391,3 +438,7 @@ Returned temporarily to codex/test-baseline for PR35: its unit runner includes t
 ### 2026-10-17 — Authorized merge35 and alert integration
 
 User instructed merge. PR35 merged into main at3804ce6. Verified Vercel production branch is production; production remains1eeaa92. Integrated origin/main into codex/alert-settings for PR36; resolved additive docs and package-script conflicts retaining both test:unit and test:alerts. No app behavior changed during conflict resolution. Local checks precede PR36 merge. No production command.
+
+### 2026-10-17 — Authorized merge36 and archive integration
+
+PR36 merged into main at8724301 after integrating PR35 and passing tsc/lint8/build/unit/alert checks. Integrated origin/main into PR37's archive worktree; source App merged additively, preserving both alert navigation and ArchiveWorker. Retained all test scripts and both feature requirement/runbook records in document conflicts. Running combined checks before archive merge; no database/secret or production command. PR7 remains untouched.

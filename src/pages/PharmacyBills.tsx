@@ -1,3 +1,4 @@
+import { DocumentArchives } from '../components/DocumentArchives'
 import { usePrintDocument } from '../lib/usePrintDocument'
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -155,7 +156,7 @@ export function PharmacyBills({ clinicId, isDoctor }: { clinicId: string; isDoct
       {!isDoctor && !selected.bill_id && <div className="action-row"><label htmlFor="pharmacy-payment">Payment method</label><div className="text-toggles" id="pharmacy-payment" aria-label="Payment method">{["cash", "upi"].map(value => <button key={value} type="button" aria-pressed={method === value} onClick={() => setMethod(value)}>{value === "cash" ? "Cash" : "UPI"}</button>)}</div><Button type="button" disabled={confirm.isPending} onClick={() => confirm.mutate()}>Confirm payment</Button></div>}
       {confirm.error && <p className="form-error">{confirm.error.message}</p>}{discount.error && <p className="form-error">{discount.error.message}</p>}
       {print.isError && <p className="form-error" role="alert">{print.error.message}</p>}
-      {selected.bills && <><Button type="button" variant="dark" disabled={print.isPending} onClick={() => print.mutate()}>Print receipt</Button><div className="print-area"><PrintableReceipt clinic={clinic} customerName={selected.customer_name} billable={lines} amountPaise={selected.bills.final_amount_paise} discountPaise={total - selected.bills.final_amount_paise} bill={selected.bills} /></div></>}
+      {selected.bills && <><DocumentArchives clinicId={clinicId} billId={selected.bills.id} /><Button type="button" variant="dark" disabled={print.isPending} onClick={() => print.mutate()}>Print receipt</Button><div className="print-area"><PrintableReceipt clinic={clinic} customerName={selected.customer_name} billable={lines} amountPaise={selected.bills.final_amount_paise} discountPaise={total - selected.bills.final_amount_paise} bill={selected.bills} /></div></>}
     </div>
   }
   const listPanel = <div className="admin-page">

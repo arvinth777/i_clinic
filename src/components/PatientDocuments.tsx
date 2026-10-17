@@ -1,3 +1,4 @@
+import { DocumentArchives } from './DocumentArchives'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
@@ -83,6 +84,7 @@ export function PatientDocuments({ clinicId, patientId, locked = false }: { clin
     })
   }
   return <section className="patient-documents" aria-label="Patient documents">
+    <DocumentArchives clinicId={clinicId} patientId={patientId} locked={locked} />
     <header className="documents-heading"><div><h2 className="readout-heading">Documents</h2><p className="field-hint">Scans, photos and reports · PDF, JPG or PNG · up to 25 MB each</p></div>
       <Button variant="ghost" disabled={busy || !status.data?.configured} onClick={() => void run(() => connectDrive(clinicId))}>{status.data?.connected ? 'Reconnect Drive' : 'Connect Google Drive'}</Button>
     </header>

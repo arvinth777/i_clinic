@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:archives": "node scripts/document-archive-handler-test.mjs && node scripts/document-archive-worker-test.mjs && node scripts/document-archive-download-test.mjs && node scripts/patient-documents-test.mjs",
     "test:alerts": "node scripts/clinic-alerts-test.mjs && node scripts/alert-settings-test.mjs && node scripts/unpaid-bill-target-test.mjs",
     "test:unit": "node scripts/run-unit-tests.mjs"
   },
@@ -21,7 +22,9 @@
     "@tanstack/react-query-persist-client": "^5.102.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "html2canvas-pro": "2.5.2",
     "idb-keyval": "^6.3.0",
+    "pdf-lib": "1.17.1",
     "qrcode": "^1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

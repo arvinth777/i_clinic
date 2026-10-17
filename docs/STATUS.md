@@ -1,5 +1,20 @@
 # Status
 
+## Archive continuation and receipt regression fixes — 2026-10-17
+
+- Oversized diagnosis/advice/medicine-note/receipt rows now split at measured word or grapheme boundaries. Inline markup and text order are retained; identifying labels and page context repeat. Browser fixtures verify exact character preservation for Tamil, emoji/unbroken text and both two-column row types. Unsplittable non-text/huge-label content still fails explicitly;25MiB PDF limit remains.
+- Fresh PDF checks: short/typical prescriptions and ordinary receipt each1A4page;45-medicine prescription5pages;70-item receipt3pages; oversized clinical paragraphs17pages (15.98MB) and oversized receipt line5pages. Selected continuation/final pages visually inspected, including end markers and final totals. Fixed intrinsic receipt height measurement: the new one-page assertion was red (got2) before the fix and green afterwards. No money or stock calculation changed.
+- Fresh tsc/build/lint8 and local archive suites pass; schema smoke90 from this follow-up passes. Standards/spec re-review clear. No schema/endpoint/auth change. Production untouched and no merge authorized. Fresh synthetic clinic-printer packet is local under output/pdf (archive-short.pdf, archive-typical.pdf, archive-long.pdf, archive-receipt.pdf); real printer and Safari acceptance remain open.
+- Next: user review/merge of PR35/36/37/38 and human release gates. Hosted Actions remain blocked by account billing. After commit, only generated output/ is untracked. PR38 handles completed-consultation prescription navigation separately.
+
+## Issued PDF archives — 2026-10-17
+
+- Implemented immutable server archive jobs for finalised approved prescriptions, paid receipts, settlements and separate bill corrections. Patient links survive merges through visits; name-only pharmacy receipts retain no patient/visit. Reception is restricted to receipts. Staging migration and JWT-verified endpoint deployed only to `cofnrcgsolluyhghutah`.
+- Unlocked app worker stores rendered PDF bytes in owner/clinic IndexedDB, retries stable server jobs and Drive IDs, isolates individual failures and visibly reports pending/error states. Same print components/fonts/artwork; continuation pages repeat context; totals stay together. Downloads cancel across lock/unmount/account changes.
+- Backend staging and handler/worker/download regressions pass; actual staging Drive issued-prescription and name-only-receipt uploads, duplicate retries and byte-exact downloads pass. Reception clinical/OAuth denial verified. PDF short/typical/45-medicine5-page/receipt and70-item3-page samples visually inspected. Tsc/build pass; lint8; schema smoke90. Production dependency audit reports0 known vulnerabilities. Security advisor has0 errors,35 existing warnings and2 INFO notices; review findings fixed.
+- Implementation committed in managed `codex/drive-pdf-archive` worktree and draft PR #37 into main. Generated synthetic PDF evidence remains local under `output/pdf/`. No merge/production action. Reception application browser now passes at1440/390, including pending archive offline reload/reconnect and receipt download; all11 synthetic receipt jobs ready while5 prescription jobs remain doctor-only pending. Offline browser print PDF is one unclipped A4 page. Remaining: doctor archive-history UI, phone/Safari, fresh physical printer acceptance. Single rows taller than a page remain pending with an explicit error rather than clipping; other jobs continue. Initial app JS remains about145kB gzip; PDF renderer is a separate241kB gzip lazy chunk, PWA precache about2MiB.
+- Next: user signs in to finish browser acceptance; review/merge PR35 first to activate CI feature-script hooks. GitHub account billing lock currently prevents hosted Actions from starting. Backups/R2 and production remain outside this change.
+
 ## Doctor acceptance follow-up — 2026-10-17
 
 - Doctor offline reminder settings survive reload and replay once on reconnect; backend values checked before/after. Restored defaults: call5 minutes, no-show30 minutes, close16:00 IST.
@@ -2469,6 +2484,13 @@ supply migrations and browser verification. Physical-print and fresh browser
 offline release gates remain; production is untouched.
 The approval action uses the existing secondary variant so this stacked PR builds
 independently before step 4 introduces the dark button variant.
+
+## Doctor acceptance follow-up — 2026-10-17
+
+- Doctor offline reminder settings survive reload and replay once on reconnect; backend values checked before/after. Restored defaults: call5 minutes, no-show30 minutes, close16:00 IST.
+- Doctor archive history and private prescription download passed. All6 synthetic prescriptions and11 receipts are ready in Drive. Downloaded A4 PDF visually inspected; affected layout uses Hanken without page overflow at1440/390. Reception/offline receipt checks remain passing from the preceding entry.
+- Restored staging permitted preview origin and verified OPTIONS204/allowed-origin. No production or merge. Existing completed-consultation “View prescription” routes to billing/receipt in the tested fixture; prescription print from that route is not verified. Fresh physical printer/Safari remain open, alongside the documented oversized-row archive limitation.
+- PR35/36/37 ready for user review in that order; hosted Actions blocked by account billing. No uncommitted source; generated output/ evidence remains local. Next: review/merge authorization, resolve the recorded prescription navigation issue, then human release acceptance.
 
 ## Optional issued-view CI regression — 2026-10-17
 

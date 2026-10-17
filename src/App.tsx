@@ -1,3 +1,4 @@
+import { ArchiveWorker } from './components/DocumentArchives'
 import './Workspace.css'
 import { Component, Suspense, lazy, useState, type ReactNode } from 'react'
 import { LoadingRows } from './components/QueryState'
@@ -95,6 +96,7 @@ function App() {
   return (
     <ConfirmProvider locked={locked}>
       <StagingBanner />
+      {clinicId && <ArchiveWorker clinicId={clinicId} ownerId={session.user.id} locked={locked} />}
       <AppShell key={`${clinicId}:${session.user.id}`}
         userId={session.user.id}
         userEmail={session.user.email}
