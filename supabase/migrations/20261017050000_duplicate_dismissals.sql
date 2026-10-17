@@ -1,6 +1,8 @@
 -- "Not a duplicate": the doctor can dismiss a suggested pair so it stops being listed.
 -- The pair is stored once (patient_a < patient_b, same order the suggestion uses). A merge deletes the
 -- removed patient, so its dismissals go with it (on delete cascade). No update/delete policy: a dismissal is final.
+-- (dropped first: this file was reworked on staging before it ever reached production)
+drop table if exists public.duplicate_dismissals cascade;
 create table public.duplicate_dismissals (
   clinic_id uuid not null references public.clinics(id),
   patient_a uuid not null references public.patients(id) on delete cascade,
@@ -19,6 +21,7 @@ create policy duplicate_dismissals_doctor_read on public.duplicate_dismissals fo
 create policy duplicate_dismissals_doctor_insert on public.duplicate_dismissals for insert to authenticated
   with check (
     public.has_clinic_role(clinic_id, 'doctor')
+    and dismissed_by = auth.uid()
     and (select count(*) from public.patients p where p.clinic_id = duplicate_dismissals.clinic_id and p.id in (patient_a, patient_b)) = 2
   );
 

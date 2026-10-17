@@ -98,7 +98,7 @@ Sticky top bar, z-index 30, at least 56px, white with bottom hairline; 8px 28px
 padding. Clinic name 15px/700 links home. Fixed main order: Reception, Doctor,
 Billing, Refills, Patients, Inventory, Reports, More. Hide inaccessible sections.
 Doctor sees Reception/Billing in view mode unless also a receptionist. Reception
-gets administrative patient records, no clinical history view. Keep backend
+gets administrative patient records, no clinical history view (its Timeline tab shows visits and payments only, no complaint or prescription text). Keep backend
 permissions and clinic scoping; hiding a control is not a security boundary.
 
 Links are 36px high, 14px, 10px horizontal padding. Active is ink/600 on hover grey,

@@ -52,6 +52,11 @@ await check('a pair must be stored in order, and only for patients of the doctor
   const missing = await doctor.from('duplicate_dismissals').insert({ clinic_id: clinicId, patient_a: A, patient_b: crypto.randomUUID() })
   assert.ok(missing.error, 'an unknown patient must be refused')
 })
+await check('a dismissal cannot be filed under someone else\'s name', async () => {
+  const [x, y] = A < H ? [A, H] : [H, A]
+  const forged = await doctor.from('duplicate_dismissals').insert({ clinic_id: clinicId, patient_a: x, patient_b: y, dismissed_by: crypto.randomUUID() })
+  assert.ok(forged.error, 'a forged dismissed_by must be refused')
+})
 await check('reception cannot read dismissals', async () => { const { data } = await reception.from('duplicate_dismissals').select('patient_a').in('patient_a', [lo]); assert.equal((data ?? []).length, 0) })
 if (failures.length) { console.log(`\nFAILED ${failures.length}`); process.exit(1) }
 console.log('\nPASS: possible duplicate patients')

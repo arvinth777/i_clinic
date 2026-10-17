@@ -99,7 +99,12 @@
 .drive-connection .ui-button { margin-top: var(--space-lg); }
 
 /* Text buttons inside ruled rows and the record heading sit flush with the text above them. */
-.history-row .ui-button, .patient-record-heading .ui-button { padding-inline: 0; min-height: var(--control-height); }
+.history-row .ui-button-neutral, .patient-record-heading > .ui-button-neutral { padding-inline: 0; }
 
 /* An explanatory line under the figures: readable measure, clear of the next section. */
 .report-note { max-width: 70ch; margin-block: var(--space-md) var(--space-xl); }
+
+/* Inline height/weight editor in the patient record heading. */
+.patient-body-edit { display: grid; grid-template-columns: repeat(2, minmax(0, 12rem)); gap: var(--space-md); margin-top: var(--space-sm); }
+.patient-body-edit > .form-error, .patient-body-edit > .action-row { grid-column: 1 / -1; }
+@media (max-width: 520px) { .patient-body-edit { grid-template-columns: minmax(0, 1fr); } }

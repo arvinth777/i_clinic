@@ -43,5 +43,5 @@
 }
 
 .merge-suggestion-dismiss {
-  color: var(--text-tertiary);
+  color: var(--muted);
 }

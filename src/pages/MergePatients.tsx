@@ -112,7 +112,8 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['possible-duplicates'] }),
-    onError: (e: Error) => setResult(e.message),
+    // 23505: this pair was already dismissed (double click, another tab): the end state is what the doctor wanted.
+    onError: (e: Error & { code?: string }) => { if (e.code === '23505') void queryClient.invalidateQueries({ queryKey: ['possible-duplicates'] }); else setResult(e.message) },
   })
 
   const bothSelected = !!a && !!b
@@ -156,7 +157,7 @@ export function MergePatients({ clinicId }: { clinicId: string }) {
                   <button type="button" className="merge-suggestion-review" onClick={() => { setA(s.a); setB(s.b); setResult(''); window.scrollTo({ top: 0, behavior: 'instant' }) }}>
                     Review
                   </button>
-                  <button type="button" className="merge-suggestion-dismiss" disabled={dismiss.isPending} onClick={() => dismiss.mutate(s)}>
+                  <button type="button" className="merge-suggestion-dismiss" disabled={dismiss.isPending && dismiss.variables === s} onClick={async () => { if (await confirm({ title: 'Not a duplicate?', body: `"${s.a.name}" and "${s.b.name}" will no longer be suggested as a pair.`, confirmLabel: 'Not a duplicate' })) dismiss.mutate(s) }}>
                     Not a duplicate
                   </button>
                 </span>

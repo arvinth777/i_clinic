@@ -7,14 +7,15 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 
 // Returning patients: height and weight change over time, and there is no other patient edit screen.
-export function PatientBodyEdit({ clinicId, patientId, height, weight }: { clinicId: string; patientId: string; height: number | null; weight: number | null }) {
+export function PatientBodyEdit({ clinicId, patientId, height, weight }: { clinicId: string; patientId: string; height: number | null | undefined; weight: number | null | undefined }) {
   const client = useQueryClient()
   const [open, setOpen] = useState(false)
   const [h, setH] = useState('')
   const [w, setW] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  if (!open) return <Button variant="ghost" onClick={() => { setH(height != null ? String(Number(height)) : ''); setW(weight != null ? String(Number(weight)) : ''); setError(''); setOpen(true) }}>Update height and weight</Button>
+  // height/weight are undefined until the patient's record has loaded; saving before then would overwrite stored values with blanks.
+  if (!open) return <Button variant="ghost" disabled={height === undefined || weight === undefined} onClick={() => { setH(height != null ? String(Number(height)) : ''); setW(weight != null ? String(Number(weight)) : ''); setError(''); setOpen(true) }}>Update height and weight</Button>
   async function save(event: React.FormEvent) {
     event.preventDefault()
     if (!bodyOk(h, ...HEIGHT_RANGE)) return setError('Height must be 30 to 260 cm.')
@@ -24,7 +25,11 @@ export function PatientBodyEdit({ clinicId, patientId, height, weight }: { clini
     try {
       const { queued } = await attemptOrQueue({
         clinicId,
-        attempt: token => supabase.from('patients').update(payload).eq('id', patientId).setHeader('Authorization', `Bearer ${token}`),
+        attempt: async token => {
+          const result = await supabase.from('patients').update(payload).eq('id', patientId).select('id').setHeader('Authorization', `Bearer ${token}`)
+          // An update that matches no visible row (permission, merged or deleted patient) is not an error to Postgres.
+          return !result.error && !result.data?.length ? { error: new Error('Could not save: this patient could not be updated. Reload and try again.') } : result
+        },
         queueItem: () => ({ kind: 'update', table: 'patients', match: { id: patientId }, payload, description: 'Save height and weight' }),
         applyOptimistic: () => client.setQueryData(['patient-body', patientId], payload),
       })
