@@ -1,3 +1,5 @@
+import { assertStaging } from './clinic-workflow-fixture.mjs'
+import { checked, sendToBilling, consultationOnlyFixture } from './clinic-workflow-fixture.mjs'
 // TDD for Phase F (docs/build-plan.md): offline. The DB-level contract
 // only -- the browser-level flows (network cut mid-consultation/
 // mid-billing/at-print, reload while offline) are covered separately by a
@@ -40,6 +42,7 @@ function loadEnv(path) {
 const appEnv = loadEnv('.env.local')
 const userEnv = loadEnv('.env.test-users.local')
 const SUPABASE_URL = appEnv.VITE_SUPABASE_URL
+assertStaging(SUPABASE_URL)
 const ANON_KEY = appEnv.VITE_SUPABASE_ANON_KEY
 const CLINIC_A_ID = '23e03361-9d6c-49f5-83b7-ad57f4a0c5ce'
 
@@ -50,7 +53,7 @@ function report(label, pass, detail) {
 }
 
 async function signIn(email, password) {
-  const client = createClient(SUPABASE_URL, ANON_KEY, { realtime: { transport: ws } })
+  const client = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false }, realtime: { transport: ws } })
   const { error } = await client.auth.signInWithPassword({ email, password })
   if (error) throw new Error(`sign-in failed for ${email}: ${error.message}`)
   return client
@@ -69,10 +72,8 @@ async function makeVisit(complaint) {
 // calling confirm_bill -- that's this script's own job, with whatever
 // snapshot args each section wants to exercise.
 async function readyForBilling(visitId, finalAmountPaise) {
-  await doctorA.from('visits').update({ stage: 'with_doctor' }).eq('id', visitId)
-  await doctorA.from('visit_pricing').update({ final_amount_paise: finalAmountPaise }).eq('visit_id', visitId)
-  await doctorA.from('visits').update({ stage: 'packing' }).eq('id', visitId)
-  await receptionA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId)
+  const prescriptions = checked(await doctorA.from('prescriptions').select('id').eq('visit_id', visitId))
+  return prescriptions.length ? sendToBilling(doctorA, receptionA, CLINIC_A_ID, visitId, finalAmountPaise) : consultationOnlyFixture(doctorA, receptionA, CLINIC_A_ID, visitId, finalAmountPaise)
 }
 
 async function pricingOf(visitId) {
@@ -163,6 +164,7 @@ console.log('signed in as doctor.a, reception.a\n')
   const stamp = Date.now() + Math.random()
   const { data: med, error: medErr } = await doctorA.from('medicines').insert({ clinic_id: CLINIC_A_ID, name: `Offline Idempotency Med ${stamp}`, price_paise: 500 }).select('id').single()
   if (medErr) throw new Error(`fixture: creating medicine failed: ${medErr.message}`)
+  checked(await doctorA.rpc('set_medicine_unit_price', { p_medicine_id: med.id, p_stock_unit: 'tablet', p_price_paise: 500 }))
 
   const { data: point } = await doctorA.from('stock_points').select('id').eq('clinic_id', CLINIC_A_ID).eq('name', 'Counter').single()
   const { data: supplier, error: supplierErr } = await doctorA.from('suppliers').insert({ clinic_id: CLINIC_A_ID, name: `Offline Test Supplier ${stamp}` }).select('id').single()
@@ -182,7 +184,7 @@ console.log('signed in as doctor.a, reception.a\n')
   if (rxErr) throw new Error(`fixture: creating prescription failed: ${rxErr.message}`)
   const { data: item, error: itemErr } = await doctorA
     .from('prescription_items')
-    .insert({ clinic_id: CLINIC_A_ID, prescription_id: rx.id, medicine_id: med.id, duration_days: 5, quantity_dispensed: 2 })
+    .insert({ clinic_id: CLINIC_A_ID, prescription_id: rx.id, medicine_id: med.id, duration_days: 5, quantity_dispensed: 2, dosage_frequency: 'SOS' })
     .select('id')
     .single()
   if (itemErr) throw new Error(`fixture: prescribing failed: ${itemErr.message}`)
@@ -246,3 +248,5 @@ if (failed.length) {
   for (const f of failed) console.log(`  FAIL - ${f.label}`)
   process.exitCode = 1
 }
+
+process.exit(process.exitCode ?? 0)
