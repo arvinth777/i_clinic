@@ -143,7 +143,7 @@
 .prescription-note { padding-bottom: var(--space-sm); white-space: pre-wrap; }
 .prescription-rx { color: var(--blue); font-size: var(--print-rx-size); font-weight: 600; }
 .prescription-column-labels { color: var(--muted); font-size: var(--print-caption-size); border-bottom: 1px solid var(--line-2); }
-.prescription-medicine td { padding: var(--space-sm) var(--space-sm) var(--space-sm) 0; }
+.prescription-medicine td { padding: var(--space-xs) var(--space-sm) var(--space-xs) 0; }
 .prescription-medicine p { margin: var(--space-2xs) 0 0; white-space: pre-wrap; }
 .prescription-signature { display: flex; justify-content: space-between; gap: var(--space-md); padding-top: var(--space-xl); font-size: var(--print-caption-size); }
 .prescription-signature > span:last-child { text-align: right; }
