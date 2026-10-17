@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { readPrescriptionPrint, savePrescriptionPrint, type PrescriptionPrintSnapshot } from '../lib/prescriptionPrint'
+import { formatDateOnly } from '../lib/date'
 import { usePrintDocument } from '../lib/usePrintDocument'
 import { PrintablePrescription, type ClinicPrintInfo, type DetailRow, type PrintVisit } from './VisitPrintout'
 import { LetterheadPreview } from './LetterheadPreview'
@@ -52,6 +53,16 @@ export function IssuedPrescription({ userId, clinicId, visitId }: { userId: stri
     {!snapshot && (issued.isFetching || local.isPending) && <LoadingRows label="Loading issued prescription…" />}
     {!snapshot && !issued.isFetching && !local.isPending && <p className="field-hint">No print copy is saved on this device. Connect once to load this prescription.</p>}
     {snapshot && <div>
+      <div className="rx-patient"><h2>{snapshot.visit.patients?.name}</h2><p>Token #{snapshot.visit.token_number}</p></div>
+      {snapshot.visit.complaint && <p><strong>Complaints: </strong>{snapshot.visit.complaint}</p>}
+      {snapshot.visit.diagnosis && <p className="prescription-note"><strong>Diagnosis: </strong>{snapshot.visit.diagnosis}</p>}
+      <ul className="review-list">{snapshot.medicines.map((medicine, index) => <li className="review-item" key={index}>
+        <span className="review-item-name">{medicine.description} {medicine.strength}</span>
+        <p>{[medicine.drug_type, medicine.dosage_frequency, medicine.before_after_food, medicine.duration_days ? `${medicine.duration_days} days` : ''].filter(Boolean).join(' · ')}</p>
+        {medicine.notes && <p className="review-item-note">{medicine.notes}</p>}
+      </li>)}</ul>
+      {snapshot.visit.advice && <p className="prescription-note"><strong>Advice / investigations: </strong>{snapshot.visit.advice}</p>}
+      {snapshot.visit.follow_up_date && <p>Review: {formatDateOnly(snapshot.visit.follow_up_date)}</p>}
       <Button disabled={print.isPending} onClick={() => print.mutate()}>Print prescription</Button>
       <div className="print-area"><PrintablePrescription clinic={snapshot.clinic} visit={snapshot.visit} medicines={snapshot.medicines} /></div>
     </div>}

@@ -6,7 +6,7 @@
 - Existing owner/clinic/visit IndexedDB issued snapshots take precedence and are never replaced by later catalog edits. Uncached visits use immutable approved medicine lines plus saved diagnosis/advice independently of medicine items; procedure-only clinical fields are preserved. No database, billing/stock mutation, auth or RLS change.
 - Regression was red before the fix; routing, discount-review routing, offline print snapshot and procedure-only cases now pass. Fresh tsc/build/lint8 and 89-query staging schema smoke pass. Standards/spec review findings fixed and re-reviewed clear. Staging security advisor returned no errors; existing advisories remain.
 - Browser doctor check: measured1440/390 with Hanken and no page overflow; offline PWA reload retained the print copy after the updated service worker activated. Browser PDF printed at zero connectivity: one unclipped A4 prescription. Evidence under local output/playwright/issued-prescription-*; actual printer and Safari still require human acceptance. Production untouched and no merge authorized.
-- Branch codex/issued-prescription-view from origin/main1eeaa92. Next: open separate PR into main; PR35/36/37 remain unmerged. Archive oversized-row follow-up stays in PR37's worktree. Only generated output/ remains untracked after this commit.
+- Branch codex/issued-prescription-view from origin/main1eeaa92. Next: review open PR38 into main; PR35/36/37 remain unmerged. Archive oversized-row follow-up stays in PR37's worktree. Only generated output/ remains untracked after this commit.
 
 ## Populated doctor visual check — 2026-10-12
 
@@ -2435,3 +2435,7 @@ supply migrations and browser verification. Physical-print and fresh browser
 offline release gates remain; production is untouched.
 The approval action uses the existing secondary variant so this stacked PR builds
 independently before step 4 introduces the dark button variant.
+
+## Review completion follow-up — 2026-10-17
+
+PR38 opened, unmerged; saved clinical details/medicine instructions and Print align with the existing editor layout. Baseline PR35 now detects the feature regression; local combined harness8/8 passes (using PR35's existing queue-performance stub). All required checks remain local because hosted Actions billing is blocked. Archive oversized-row and one-page receipt corrections remain isolated in PR37. Physical-printer/Safari acceptance and user merge authorization remain open. No uncommitted source after push; output/ is local generated evidence.
