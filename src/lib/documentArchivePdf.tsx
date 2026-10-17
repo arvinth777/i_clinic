@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
 import html2canvas from 'html2canvas-pro'
 import { PDFDocument, PageSizes } from 'pdf-lib'
+import { splitArchiveRow } from './splitArchiveRow'
 import { PrintablePrescription, PrintableReceipt, type PrintVisit, type ClinicPrintInfo, type DetailRow, type BillLine, type Bill } from '../components/VisitPrintout'
 
 export type ArchiveSnapshot = { kind: 'prescription' | 'receipt'; clinic: ClinicPrintInfo; visit?: PrintVisit; medicines?: DetailRow[]; customerName?: string; billable?: BillLine[]; amountPaise?: number; discountPaise?: number; bill?: Bill }
@@ -57,9 +58,9 @@ export async function renderArchivePdf(snapshot: ArchiveSnapshot): Promise<Blob>
       let page = original.cloneNode(true) as HTMLElement, used = 0
       let target = page.querySelector('tbody')!; target.replaceChildren()
       function finish() { const fill = body.querySelector('.prescription-fill')!.cloneNode(true); target.append(fill); pages.push(page) }
-      for (const row of rows) {
-        const rowHeight = row.getBoundingClientRect().height
-        if (rowHeight > capacity) throw new Error('A prescription paragraph is longer than a page. Split it into shorter paragraphs before archiving.')
+      const continuationSpace = capacity - patient.getBoundingClientRect().height - labels.getBoundingClientRect().height
+      const printableRows = rows.flatMap(row => row.getBoundingClientRect().height > continuationSpace ? splitArchiveRow(row, continuationSpace) : [{ row, height: row.getBoundingClientRect().height }])
+      for (const { row, height: rowHeight } of printableRows) {
         if (used + rowHeight > capacity) {
           finish(); page = original.cloneNode(true) as HTMLElement; target = page.querySelector('tbody')!; target.replaceChildren(patient.cloneNode(true), labels.cloneNode(true)); used = patient.getBoundingClientRect().height + labels.getBoundingClientRect().height
         }
@@ -68,14 +69,16 @@ export async function renderArchivePdf(snapshot: ArchiveSnapshot): Promise<Blob>
       }
       finish()
     } else {
+      // Measure intrinsic receipt content, not its A4 minimum height.
+      original.style.minHeight = '0'
       // Receipts repeat clinic/customer context, and retain totals/payment only on the last page.
-      const rows = [...original.querySelectorAll('tbody tr')]
+      const rows = [...original.querySelectorAll<HTMLTableRowElement>('tbody tr')]
       let page = original.cloneNode(true) as HTMLElement
       let target = page.querySelector('tbody')!; target.replaceChildren()
       const rowHeight = rows.map(row => row.getBoundingClientRect().height)
       const capacity = height - (original.getBoundingClientRect().height - rowHeight.reduce((a,b) => a+b,0))
       let used = 0
-      const groups = [...rows.slice(0,-2).map((row,i)=>({rows:[row],height:rowHeight[i]})),{rows:rows.slice(-2),height:rowHeight.slice(-2).reduce((a,b)=>a+b,0)}]
+      const groups = [...rows.slice(0,-2).flatMap((row,i)=>rowHeight[i] > capacity ? splitArchiveRow(row,capacity).map(part=>({rows:[part.row],height:part.height})) : [{rows:[row],height:rowHeight[i]}]),{rows:rows.slice(-2),height:rowHeight.slice(-2).reduce((a,b)=>a+b,0)}]
       for (const group of groups) {
         if (group.height > capacity) throw new Error('A receipt line is longer than one page.')
         if (used + group.height > capacity) { page.querySelector('section > p:last-child')?.remove(); pages.push(page); page = original.cloneNode(true) as HTMLElement; target=page.querySelector('tbody')!; target.replaceChildren(); used=0 }

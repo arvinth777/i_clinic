@@ -283,3 +283,9 @@ a patient. Automatic issued-prescription/receipt PDF archival is not implemented
 ## Pending archive release migration ordering — 2026-10-17
 
 The staging archive migration is immutable `20261016205705_document_pdf_archives.sql`. The host CLI UTC date made it sort before the already-released `20261017020000` migration. Its exact SQL is linked into the dedicated production chain with the later alias `20261017040000_document_pdf_archives.sql`; the alert step uses `20261017030000`. These are local preparation only. Production commands remain user-run after approval, with the dedicated-chain dry run listing only approved aliases and no `--include-all`. Never repair staging history or rename the applied source file.
+
+## Archive rendering regression checks — 2026-10-17
+
+The dev-only fixtures scripts/fixtures/archive-pdf-check.html and archive-row-check.html test PDF page counts and measured row fragments. Use synthetic data only. Short/typical prescriptions and ordinary receipts must each remain one A4 page; long medicine lists, long receipts and oversized paragraphs continue with context. The row fixture verifies exact text retention (including Tamil and emoji) and height limits. These browser fixtures supplement test:archives; they are not automatically executed by the hosted unit runner.
+
+Fresh physical release acceptance still requires short, typical and continuation prescriptions plus one receipt on the clinic printer. Local samples are under output/pdf in the archive worktree; record actual paper alignment/clipping evidence before release. Unsupported non-text content or a label that cannot fit still fails explicitly, and PDFs over25MiB remain pending rather than being truncated.

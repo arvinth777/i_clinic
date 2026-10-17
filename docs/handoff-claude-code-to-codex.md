@@ -4,6 +4,8 @@
 
 **Archive checkpoint (2026-10-17):** `codex/drive-pdf-archive` worktree now has the new staging migration and JWT-verified endpoint. Actual synthetic issued prescription and name-only receipt Drive uploads/retries/byte-exact private downloads pass; clinical/OAuth access remains denied to reception. Draft browser/offline/printer acceptance is still pending. Alert draft PR #36 and baseline PR #35 are unmerged. Main/production freshly verified at `1eeaa92`.
 
+**Current Codex delta (2026-10-17):** main/production verified at `1eeaa92`. Open, unmerged PR35 repairs tests/CI; draft PR36 adds reminder settings; draft PR37 adds Drive PDF archives and continuation/receipt fixes; PR38 fixes issued-prescription viewing and offline printing. Doctor/reception browser and offline replay checks passed. Physical printer/Safari acceptance and hosted CI (account billing block) remain. Production untouched; merge only when the user instructs. The table below is historical; see newest section9 entries.
+
 **Verify first:** `git fetch origin && git log --oneline -3 origin/main origin/production && gh pr list` and `cat supabase/.temp/project-ref` (root must say `cofnrcgsolluyhghutah`, staging).
 
 | Thing | State at hand-off |
@@ -368,3 +370,9 @@ User signed in as staging doctor. Reminder settings changed offline to 35-minute
 Doctor archive worker completed all remaining prescription jobs. Staging now has 6 prescription PDFs and 11 receipts ready, none pending. Patient Documents shows issued receipt and prescription; private prescription Download PDF worked and the downloaded A4 PDF was rendered and visually inspected. Hanken and no horizontal page overflow verified at 1440/390; local evidence: output/playwright/doctor-archive-desktop.png and doctor-archive-mobile.png. Existing completed-consultation “View prescription” opened billing/receipt instead of prescription print in this fixture; record as a separate navigation issue, not a passed offline prescription-print check. Earlier offline receipt printing and multi-page renderer checks remain valid; fresh physical printer and Safari acceptance remain open.
 
 Restored staging CLINIC_APP_URL to https://iclinic-1jplfzbwe-arvinth777s-projects.vercel.app; OPTIONS 204 and matching allowed-origin verified. No OAuth credential change, production action or merge. PR35/36/37 remain unmerged, hosted Actions blocked by GitHub billing; only generated local evidence is untracked after documentation commits.
+
+### 2026-10-17 — Remaining archive rendering fixes
+
+User requested remaining fixes. PR37 follow-up fragments oversized text rows at measured word/grapheme boundaries with markup, labels, patient/header/footer retained; browser character-for-character tests include English/Tamil/unbrokenemoji and medicine/receipt columns. Stress prescription17pages15.98MB, oversized receipt5pages, normal long prescription5pages and longreceipt3pages. Short/typical/receipt assert1page. Ordinary receipt regression was caught (2pages); fixed min-heightA4 contaminating intrinsic-content capacity measurement. No financial calculation, schema, permissions or endpoint change. Fresh local checks/reviews pass. Clinic-printer packet in output/pdf; actual printer/Safari sign-off remains open.
+
+Navigation fix pushed separately in PR38; baselinePR35 optional unit hook pushed, combined local8/8 suites verified. Alert PR36 unchanged. No merges, no production commands. Staging origin remains restored to its original preview URL; no further secret writes in this turn.

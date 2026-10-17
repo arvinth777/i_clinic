@@ -1,5 +1,12 @@
 # Status
 
+## Archive continuation and receipt regression fixes — 2026-10-17
+
+- Oversized diagnosis/advice/medicine-note/receipt rows now split at measured word or grapheme boundaries. Inline markup and text order are retained; identifying labels and page context repeat. Browser fixtures verify exact character preservation for Tamil, emoji/unbroken text and both two-column row types. Unsplittable non-text/huge-label content still fails explicitly;25MiB PDF limit remains.
+- Fresh PDF checks: short/typical prescriptions and ordinary receipt each1A4page;45-medicine prescription5pages;70-item receipt3pages; oversized clinical paragraphs17pages (15.98MB) and oversized receipt line5pages. Selected continuation/final pages visually inspected, including end markers and final totals. Fixed intrinsic receipt height measurement: the new one-page assertion was red (got2) before the fix and green afterwards. No money or stock calculation changed.
+- Fresh tsc/build/lint8 and local archive suites pass; schema smoke90 from this follow-up passes. Standards/spec re-review clear. No schema/endpoint/auth change. Production untouched and no merge authorized. Fresh synthetic clinic-printer packet is local under output/pdf (archive-short.pdf, archive-typical.pdf, archive-long.pdf, archive-receipt.pdf); real printer and Safari acceptance remain open.
+- Next: user review/merge of PR35/36/37/38 and human release gates. Hosted Actions remain blocked by account billing. After commit, only generated output/ is untracked. PR38 handles completed-consultation prescription navigation separately.
+
 ## Issued PDF archives — 2026-10-17
 
 - Implemented immutable server archive jobs for finalised approved prescriptions, paid receipts, settlements and separate bill corrections. Patient links survive merges through visits; name-only pharmacy receipts retain no patient/visit. Reception is restricted to receipts. Staging migration and JWT-verified endpoint deployed only to `cofnrcgsolluyhghutah`.
