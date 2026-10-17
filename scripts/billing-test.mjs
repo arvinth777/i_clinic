@@ -1,5 +1,5 @@
 import { assertStaging } from './clinic-workflow-fixture.mjs'
-import { checked, sendToBilling, consultationOnlyFixture, payVisitResult } from './clinic-workflow-fixture.mjs'
+import { checked, sendToBilling, payVisitResult } from './clinic-workflow-fixture.mjs'
 // TDD for the billing screen's backend (AGENTS.md Phase 3: money touches --
 // tests before UI). Same convention as isolation-test.mjs/pricing-test.mjs:
 // a plain script against live staging, signed in as the real roles, no
