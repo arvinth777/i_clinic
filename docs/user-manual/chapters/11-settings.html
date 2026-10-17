@@ -1,0 +1,30 @@
+<h1 id="ch11"><span class="num">Chapter 11</span>Settings <span class="who adm">Doctor / Admin</span></h1>
+<p class="lead">Settings is where the clinic is set up: prices, templates, logins and clinic details. Only doctors and administrators see it. Changes here affect everybody, so please change things carefully.</p>
+{{fig:settings-home|Settings. The list on the left switches between sections.}}
+<h2 id="s11-1">Queue</h2>
+<p>Three simple options that control how the queue behaves:</p>
+<div class="keys">
+<b>No-show reminder (minutes)</b><span>How long a patient may stay <i>Not here</i> before reception is reminded.</span>
+<b>Called but not sent in (minutes)</b><span>How long a called patient may wait before an alert appears.</span>
+<b>Closing time (IST)</b><span>When the end-of-day checklist appears.</span>
+</div>
+{{fig:settings-queue|Queue settings.}}
+<h2 id="s11-2">Medicines &amp; prices</h2>
+<p>The full medicine list (Drugs). Press <span class="btn primary">+ Add drug</span> to add one; type its name, type, price and when to warn about low stock. <span class="btn">Remove</span> takes a medicine off the list.</p>
+{{fig:settings-medicines|The drug list.}}
+<h2 id="s11-3">Procedures</h2>
+<p>The list of procedures the doctor performs, each with a price. These are what appear in the prescription's <b>Procedures &amp; bill approval</b> search (Chapter 4).</p>
+{{fig:settings-procedures|Procedures and their prices.}}
+<h2 id="s11-4">Templates</h2>
+<p>Medicine sets for quick adding (Chapter 4). You can see, rename or remove them here.</p>
+{{fig:settings-templates|Prescription templates.}}
+<h2 id="s11-5">Custom fields</h2>
+<p>Extra questions on the new-patient form, such as <b>Pain Score 0-10</b>. Press <span class="btn primary">+ Add field</span>, give it a label, and it appears on the form from then on. <span class="btn">Remove</span> takes it off the form (what was already typed is kept).</p>
+{{fig:settings-custom-fields|Custom patient fields.}}
+<h2 id="s11-6">Staff &amp; access</h2>
+<p>The list of logins and the role of each. Press <span class="btn primary">+ Add login</span> (top right) to create a login for a new person: type their email, choose a role (receptionist, doctor or admin) and give them a first password. <span class="btn">Remove</span> takes a role away.</p>
+{{fig:settings-staff|Logins and roles. The Add login button sits at the top right.}}
+<div class="callout warn"><b>Use the right role</b><p>Give reception staff the <b>receptionist</b> role. Only give <b>doctor</b> or <b>admin</b> to people who really need Reports, Settings and prescriptions.</p></div>
+<h2 id="s11-7">Clinic information</h2>
+<p>Details that print on receipts and QR codes: <b>UPI ID (VPA)</b>, <b>Consultation fee (₹)</b>, <b>Doctor's name</b>, <b>Doctor's registration number</b>, <b>Clinic address</b> and <b>Clinic phone</b>. If the UPI ID is wrong, the payment QR code will send money to the wrong place, so check it with care.</p>
+{{fig:settings-clinic|Clinic information.}}

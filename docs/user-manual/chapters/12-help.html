@@ -1,0 +1,84 @@
+<h1 id="ch12"><span class="num">Chapter 12</span>When things go wrong</h1>
+<h2 id="s12-1">If the internet drops</h2>
+<p>iClinic is built to keep working when the connection is poor. What you already loaded stays on the screen, and what you save is kept on this computer until the connection returns, then sent automatically. A banner at the top tells you what is waiting.</p>
+<ul>
+<li><b>All saved</b> in the top bar: everything is safely stored.</li>
+<li>A banner saying something is <b>not saved yet</b>: your change is waiting in this browser. Keep the page open (or at least the same browser) until it says saved.</li>
+</ul>
+<div class="callout stop"><b>Please do not clear browser data</b><p>Clearing history, cookies or "site data" while changes are waiting would delete them. If the banner shows unsaved changes, wait for it to clear first.</p></div>
+<h2 id="s12-2">A change was rejected (stuck changes)</h2>
+<p>Occasionally the server refuses a waiting change, for example because it was already handled on another computer. The banner then says the change is on hold and gives two choices.</p>
+<table>
+<tr><th>Button</th><th>When to use it</th></tr>
+<tr><td><span class="btn">Retry</span></td><td>Try again. Use this first, especially after the internet came back.</td></tr>
+<tr><td><span class="btn">Discard this change</span></td><td>Remove that one change for good. A confirmation box asks you to be sure. Use it only if you know the work was already done another way.</td></tr>
+</table>
+{{pair:queue-halted-banner|The banner for a change on hold.;;queue-discard-confirm|Discarding asks for confirmation.}}
+<h2 id="s12-3">Quick fixes</h2>
+<table>
+<tr><th>Problem</th><th>What to do</th></tr>
+<tr><td>I cannot sign in</td><td>Check the email, and that Caps Lock is off. If it still fails, ask the administrator to reset the password.</td></tr>
+<tr><td>The screen is locked and I forgot my PIN</td><td>Sign out from the lock screen and sign in again with your password, then set a new PIN.</td></tr>
+<tr><td>A page I need is missing</td><td>Your role may not include it. Ask the administrator.</td></tr>
+<tr><td>A patient has two tokens today</td><td>Ask the doctor to open More → Merge patients if there are two records, or finish the extra visit as no-show.</td></tr>
+<tr><td>A medicine is not in the search</td><td>Ask the doctor or administrator to add it in Settings → Medicines &amp; prices.</td></tr>
+<tr><td>Stock shows a negative number</td><td>More was supplied than was recorded. Do a Monthly count (Chapter 8).</td></tr>
+<tr><td>The page looks out of date</td><td>It refreshes by itself every half minute. You can also reload the browser; nothing saved is lost.</td></tr>
+<tr><td>Wrong amount on a bill</td><td>Ask the doctor to change the final amount before payment. After payment, use the correction process (Chapter 10).</td></tr>
+</table>
+
+<h1 id="appA"><span class="num">Appendix A</span>Words used in iClinic</h1>
+<table>
+<tr><th>Word</th><th>Meaning</th></tr>
+<tr><td>Token</td><td>The number given to a patient for today's visit, e.g. #3067.</td></tr>
+<tr><td>Check in</td><td>Putting a patient in today's queue.</td></tr>
+<tr><td>Called</td><td>The doctor has asked for this token to come in.</td></tr>
+<tr><td>Sent in</td><td>Reception confirms the patient has gone into the doctor's room.</td></tr>
+<tr><td>Not here</td><td>The patient has stepped out; they can be returned to the queue.</td></tr>
+<tr><td>No-show</td><td>The patient did not come back; the visit is closed.</td></tr>
+<tr><td>Ready to bill</td><td>The doctor has finished; payment is due.</td></tr>
+<tr><td>Template</td><td>A saved set of medicines to add in one click.</td></tr>
+<tr><td>Refill</td><td>A medicine-only sale without seeing the doctor.</td></tr>
+<tr><td>Calculated total</td><td>The sum of consultation, procedures and medicines before any discount.</td></tr>
+<tr><td>Amount to collect</td><td>Calculated total minus the doctor's discount.</td></tr>
+<tr><td>Pay later / Credit</td><td>The bill is left unpaid and settled later.</td></tr>
+<tr><td>Reconciliation</td><td>Correcting a bill that was made offline against an old price.</td></tr>
+<tr><td>Long-term care</td><td>A patient marked for regular review.</td></tr>
+<tr><td>Stock point</td><td>A place where medicines are kept, such as the Counter or the Storeroom.</td></tr>
+<tr><td>Drive</td><td>Google Drive, where PDF copies and uploaded reports are kept.</td></tr>
+</table>
+
+<h1 id="appB"><span class="num">Appendix B</span>Quick reference by role</h1>
+<h2 id="appB1">Reception: a day at the desk</h2>
+<ol class="steps">
+<li>Sign in. Open <b>Reception</b>.</li>
+<li>Patient arrives: search first, then <b>Check in</b> (or <b>Register new patient</b>).</li>
+<li>Doctor calls a token: press <b>Sent in</b> when the patient goes in.</li>
+<li>Patient steps out: <b>Not here</b>; when back, <b>Return to position</b> or <b>Return at end</b>.</li>
+<li>Doctor finishes: <b>Bill</b> → check supplied quantities → payment method → <b>Mark paid</b> → print.</li>
+<li>Medicine-only customer: <b>Refills</b>.</li>
+<li>End of day: Alerts → closing checklist; clear Earlier open visits; lock or sign out.</li>
+</ol>
+<h2 id="appB2">Doctor: a consultation</h2>
+<ol class="steps">
+<li>Open <b>Doctor</b> and press <b>Call #…</b>.</li>
+<li>When reception sends the patient in: <b>Start prescription</b>.</li>
+<li>Diagnosis, medicines (or a template), advice, follow-up date.</li>
+<li>Procedures and <b>Approve bill</b>.</li>
+<li><b>Review prescription</b> → <b>Confirm prescription</b> → <b>Finish consultation</b>.</li>
+</ol>
+<h2 id="appB3">Cheat sheet: where do I find…</h2>
+<table>
+<tr><th>I want to…</th><th>Go to</th></tr>
+<tr><td>register or check in a patient</td><td>Reception → right-hand panel</td></tr>
+<tr><td>see who is waiting</td><td>Reception (queue) or Doctor (waiting list)</td></tr>
+<tr><td>collect money, print a receipt</td><td>Billing</td></tr>
+<tr><td>sell medicine only</td><td>Refills</td></tr>
+<tr><td>find an old prescription</td><td>Patients → Visits &amp; prescriptions</td></tr>
+<tr><td>upload a scan or report</td><td>Patients → Documents</td></tr>
+<tr><td>receive a delivery</td><td>Inventory → + Record purchase</td></tr>
+<tr><td>settle an unpaid bill</td><td>More → Unpaid bills</td></tr>
+<tr><td>see today's or this month's money</td><td>Reports</td></tr>
+<tr><td>change prices, add a login</td><td>More → Settings</td></tr>
+</table>
+<p class="small">This manual was written for iClinic as it stands in October 2026. Screens may change a little as the software improves. If something on your screen does not match, ask the person who looks after iClinic.</p>
