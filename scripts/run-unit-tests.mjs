@@ -1,5 +1,7 @@
 import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 const suites = ['patient-timeline', 'clinic-alerts', 'document-upload-queue', 'offline-queue-owner', 'prescription-draft', 'print-readiness', 'queue-performance']
+if (existsSync('scripts/issued-prescription-view-test.mjs')) suites.push('issued-prescription-view')
 let failed = 0
 for (const suite of suites) {
   const result = spawnSync(process.execPath, [`scripts/${suite}-test.mjs`], { stdio: 'inherit', timeout: 30_000 })

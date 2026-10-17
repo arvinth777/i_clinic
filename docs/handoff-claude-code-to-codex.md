@@ -336,3 +336,7 @@ Missing: duplicate-patient detection with review, unified patient timeline, Driv
 ### 2026-10-17 — PR #35 CI feature hooks
 
 Temporarily checked out `codex/test-baseline` from the alert branch to add optional `test:alerts` and `test:archives` CI steps. Their scripts are introduced by the independent feature PRs and run once those features are present. Existing baseline unit suites remain mandatory. No merge or staging/production mutation; GitHub account billing lock still prevents hosted jobs from starting. Returning to `codex/alert-settings` after push.
+
+### 2026-10-17 — Baseline CI feature regression hook
+
+Returned temporarily to codex/test-baseline for PR35: its unit runner includes the issued-prescription-view regression when that feature file is present. The baseline still runs independently before the feature merges. Local unit suite verified; hosted Actions remain blocked by GitHub account billing. New navigation PR is separate; main/production unchanged, no merge.

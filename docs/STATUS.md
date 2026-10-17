@@ -2452,3 +2452,7 @@ supply migrations and browser verification. Physical-print and fresh browser
 offline release gates remain; production is untouched.
 The approval action uses the existing secondary variant so this stacked PR builds
 independently before step 4 introduces the dark button variant.
+
+## Optional issued-view CI regression — 2026-10-17
+
+PR35's unit runner now includes the issued prescription navigation test when present after that feature merges. Local tests pass, no source logic changed; GitHub billing still prevents hosted runs. No production/merge; returning to the navigation branch after this push. Only local output/ remains untracked.
