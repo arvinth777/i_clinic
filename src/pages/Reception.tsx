@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
@@ -87,11 +87,16 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
     },
   })
 
+  // The ids for one new-patient submission. Kept across a failed attempt so a retry updates the same patient
+  // instead of registering a second one when only the visit insert was rejected.
+  const newPatientIds = useRef<{ patientId: string; visitId: string } | null>(null)
+  // Picking an existing patient abandons the new-patient submission, so its ids must not leak into a later one.
+  useEffect(() => { if (selected !== 'new') newPatientIds.current = null }, [selected])
   const checkInNew = useMutation({
     networkMode: 'always',
     mutationFn: async (input: NewPatientInput) => {
       if (!clinicId) return
-      const patientId = crypto.randomUUID()
+      const { patientId, visitId } = (newPatientIds.current ??= { patientId: crypto.randomUUID(), visitId: crypto.randomUUID() })
       const patientRow = {
         id: patientId,
         clinic_id: clinicId,
@@ -104,11 +109,12 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
         phone: input.phone || null,
         custom_fields: input.customFields,
       }
-      const visitRow = { id: crypto.randomUUID(), clinic_id: clinicId, patient_id: patientId, arrived_at: new Date().toISOString(), complaint: input.complaint }
+      const visitRow = { id: visitId, clinic_id: clinicId, patient_id: patientId, arrived_at: new Date().toISOString(), complaint: input.complaint }
 
       await attemptOrQueue({
         clinicId,
-        attempt: (accessToken) => supabase.from('patients').insert(patientRow).setHeader('Authorization', `Bearer ${accessToken}`),
+        // upsert on the client id: a retry after the visit step failed rewrites this patient rather than adding another
+        attempt: (accessToken) => supabase.from('patients').upsert(patientRow, { onConflict: 'id' }).setHeader('Authorization', `Bearer ${accessToken}`),
         queueItem: () => ({ kind: 'insert', table: 'patients', payload: patientRow, description: `Register new patient ${input.name}` }),
       })
       await attemptOrQueue({
@@ -139,6 +145,7 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
   })
 
   function reset() {
+    newPatientIds.current = null
     setQuery('')
     setDebouncedQuery('')
     setSelected(null)
