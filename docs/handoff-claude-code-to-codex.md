@@ -3,7 +3,7 @@
 ## START HERE (written 2026-10-17 for the switch to Codex; this block is the current state, the rest is history)
 
 
-**Current Codex delta (2026-10-17):** user authorized merging. PR35 merged at3804ce6, PR36 at8724301 and PR37 atf6ea5fd. PR38 is being integrated/tested before merge. Production remains1eeaa92 and is untouched. Physical printer/Safari acceptance and hosted CI billing remain open. Historical sections below are superseded by newest section9 entries.
+**Current Codex delta (2026-10-17):** user authorized and completed merges PR35 (3804ce6), PR36 (8724301), PR37 (f6ea5fd), PR38 (e2cc288) into main. Combined app passes tsc/build/lint8, unit8/8, alert/archive regressions and95 staging schema queries. Production remains1eeaa92; no production commands, migrations or promotion. Physical printer/Safari acceptance and hosted Actions billing remain open. PR7 is still draft and untouched. This checkpoint changes documentation only after application mergee2cc288; older table/entries below are historical.
 
 **Verify first:** `git fetch origin && git log --oneline -3 origin/main origin/production && gh pr list` and `cat supabase/.temp/project-ref` (root must say `cofnrcgsolluyhghutah`, staging).
 
@@ -457,3 +457,9 @@ PR36 merged into main at8724301 after integrating PR35 and passing tsc/lint8/bui
 ### 2026-10-17 — Authorized merge37 and final application integration
 
 PR37 merged into main atf6ea5fd after combined baseline/alert/archive tests, typecheck, lint8 and build passed. Integrated main into PR38; conflict resolution retained all package dependencies and test scripts plus both documentation histories. Running the complete8-suite baseline, alert/archive regressions, build/lint/typecheck and staging schema smoke before merging PR38. No new behavior was introduced by conflict resolution; production and PR7 untouched.
+
+### 2026-10-17 — Authorized feature merges complete
+
+Merged35 at3804ce6,36 at8724301,37 atf6ea5fd and38 ate2cc288, in that order. Between merges, integrated latestmain into the next reviewed branch and resolved additive package-script/document conflicts while retaining both intents; no new app behavior in conflict resolution. Latestmain includes baseline CI, alert settings/checklist, Drive PDF archives and issued-prescription view/offline-print fixes. Fresh combined tsc/build/lint8,8/8 unit suites, alert/archive regressions and95-query staging schema smoke pass.
+
+Vercel API confirmed production branch production before merges; no production command/secret/migration/deploy and no promotion PR. Staging migrations/endpoint were already applied during feature verification, not re-applied during merge. Hosted Actions cannot start because of GitHub account billing; local success is distinct. Fresh clinic-printer/Safari acceptance remains required before release. PR7 remains draft/untouched. Local generated output/ remains untracked; no source edits pending. Documentation checkpoint follows the application merge and checkout returns to main.
