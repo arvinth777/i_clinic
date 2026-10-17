@@ -194,6 +194,13 @@ export async function drainQueue(): Promise<void> {
         notify()
         return
       }
+      if (next.kind === 'rpc' && next.rpc === 'confirm_bill') {
+        // The old payment route was retired (brand-matched reception billing); the server would only answer
+        // "permission denied". Say what to do instead, and never send it.
+        halted = { mutation: next, error: 'This payment was saved by an older version of iClinic and can no longer be sent. Open the visit in Billing and take the payment again, then discard this change.' }
+        notify()
+        return
+      }
       try {
         // Bind the request token so a concurrent login change cannot reattribute it.
         await replayOne(next, session.access_token)

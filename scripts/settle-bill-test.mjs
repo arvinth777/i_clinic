@@ -1,4 +1,4 @@
-import {consultationOnlyFixture} from './clinic-workflow-fixture.mjs'
+import {consultationOnlyFixture,payVisitResult} from './clinic-workflow-fixture.mjs'
 // TDD for Phase C (docs/build-plan.md): payments completed. Cash and
 // UPI already worked before this phase (Billing.tsx already builds a
 // real UPI QR and lets confirm_bill close a visit with payment_method
@@ -61,8 +61,8 @@ async function makeVisit(client, complaint) {
 
 async function billAsPayLater(visitId) {
   await consultationOnlyFixture(doctorA,receptionA,CLINIC_A_ID,visitId)
-  const { data: billId, error } = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'pay_later' })
-  if (error) throw new Error(`confirm_bill (pay_later) failed: ${error.message}`)
+  const { data: billId, error } = await payVisitResult(receptionA, visitId, { method: 'pay_later' })
+  if (error) throw new Error(`confirm_reception_bill (pay_later) failed: ${error.message}`)
   return billId
 }
 
@@ -79,7 +79,7 @@ let visitId, billId
 {
   visitId = await makeVisit(doctorA, 'settle test visit')
   billId = await billAsPayLater(visitId)
-  report('confirm_bill accepts pay_later and returns a bill id', !!billId)
+  report('confirm_reception_bill accepts pay_later and returns a bill id', !!billId)
 
   const { data: visit } = await doctorA.from('visits').select('stage').eq('id', visitId).single()
   report('the visit closes as paid/billed even on credit', visit?.stage === 'paid', JSON.stringify(visit))
@@ -141,7 +141,7 @@ let visitId, billId
 {
   const cashVisitId = await makeVisit(doctorA, 'settle test cash visit')
   await consultationOnlyFixture(doctorA,receptionA,CLINIC_A_ID,cashVisitId)
-  const { data: cashBillId } = await receptionA.rpc('confirm_bill', { p_visit_id: cashVisitId, p_payment_method: 'cash' })
+  const { data: cashBillId } = await payVisitResult(receptionA, cashVisitId)
 
   const { error: settleCashErr } = await receptionA.rpc('settle_bill', { p_bill_id: cashBillId, p_payment_method: 'cash' })
   report('a cash bill cannot be "settled" -- it was never unpaid', !!settleCashErr, settleCashErr?.message)

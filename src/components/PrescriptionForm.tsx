@@ -89,7 +89,8 @@ export function PrescriptionForm({
     let active = true
     readPrescriptionDraft(userId, clinicId, visitId).then(draft => {
       if (!active) return
-      if (draft) { setDraftItems(draft.items); setDiagnosis(draft.diagnosis); setAdvice(draft.advice) }
+      // A draft saved before stockUnit existed has none: default it so nothing downstream calls .trim() on undefined.
+      if (draft) { setDraftItems(draft.items.map(item => ({ ...item, stockUnit: item.stockUnit ?? '' }))); setDiagnosis(draft.diagnosis); setAdvice(draft.advice) }
       setDraftLoaded(true)
     }).catch(() => { if (active) setDraftStorageError(true) })
     return () => { active = false }
