@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
+import { bodyOk, HEIGHT_RANGE, WEIGHT_RANGE } from '../lib/patientBody'
 import { buttonVariants } from './ui/button'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
@@ -68,10 +69,8 @@ export function NewPatientForm({
     if (!form.name.trim()) next.name = 'Required'
     if (!form.age.trim()) next.age = 'Required'
     else if (!/^\d{1,3}$/.test(form.age.trim()) || Number(form.age) > 120) next.age = 'Enter a whole number from 0 to 120'
-    // Optional; one decimal at most, within what the database accepts (patients_height_range / patients_weight_range).
-    const bodyOk = (v: string, lo: number, hi: number) => !v.trim() || (/^\d{1,3}(\.\d)?$/.test(v.trim()) && Number(v) >= lo && Number(v) <= hi)
-    if (!bodyOk(form.height, 30, 260)) next.height = 'Enter 30 to 260 cm'
-    if (!bodyOk(form.weight, 1, 400)) next.weight = 'Enter 1 to 400 kg'
+    if (!bodyOk(form.height, ...HEIGHT_RANGE)) next.height = 'Enter 30 to 260 cm'
+    if (!bodyOk(form.weight, ...WEIGHT_RANGE)) next.weight = 'Enter 1 to 400 kg'
     if (!form.complaint.trim()) next.complaint = 'Required'
     // People type "98765 43210", "+91-98765-43210" or "098765 43210"; store the 10 digits.
     const phone = form.phone.replace(/[\s-]/g, '').replace(/^(\+91|91|0)(?=\d{10}$)/, '')
@@ -113,7 +112,7 @@ export function NewPatientForm({
         <label className="field-label" htmlFor="new-height">
           Height (cm), optional
         </label>
-        <Input id="new-height" type="number" inputMode="decimal" min={30} max={260} step={0.1} value={form.height} onChange={(e) => set('height', e.target.value)} />
+        <Input id="new-height" type="number" inputMode="decimal" min={HEIGHT_RANGE[0]} max={HEIGHT_RANGE[1]} step={0.1} value={form.height} onChange={(e) => set('height', e.target.value)} />
         {errors.height && (
           <span className="field-error" role="alert">
             {errors.height}
@@ -125,7 +124,7 @@ export function NewPatientForm({
         <label className="field-label" htmlFor="new-weight">
           Weight (kg), optional
         </label>
-        <Input id="new-weight" type="number" inputMode="decimal" min={1} max={400} step={0.1} value={form.weight} onChange={(e) => set('weight', e.target.value)} />
+        <Input id="new-weight" type="number" inputMode="decimal" min={WEIGHT_RANGE[0]} max={WEIGHT_RANGE[1]} step={0.1} value={form.weight} onChange={(e) => set('weight', e.target.value)} />
         {errors.weight && (
           <span className="field-error" role="alert">
             {errors.weight}

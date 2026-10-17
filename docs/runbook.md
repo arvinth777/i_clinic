@@ -197,6 +197,8 @@ The weekly `pg_dump` **is** the primary backup, not a supplement to Supabase's o
 6. Re-apply anything from "Applying a migration" that was written after this particular backup's timestamp, in order, if restoring into a project that started from this snapshot.
 7. **Sanity-check before trusting it**: row counts on `patients`/`visits`/`bills` roughly match expectations for the backup's date; a known patient/visit from around that time is actually present; `bills_needing_reconciliation` and stock levels look plausible, not zeroed out.
 
+**Every new public table needs a read policy for the backup role**, in the same migration that creates it: `create policy backup_reader_read on public.<table> for select to backup_reader using (true);`. `backup_reader` has no BYPASSRLS (a hosted project cannot grant it), so without the policy the table dumps empty; `scripts/backup.sh` checks this first and fails the run naming the table. The policies were added by migration `20261017060000`.
+
 **One restore drill should happen before this is trusted with real patients** (docs/architecture-spec.md: "an untested backup is a hope, not a backup") -- steps 1-4 above have been dry-run against staging with a synthetic payload during this build (encryption round-trip verified byte-for-byte), but the actual `backup_reader` credential path, the real R2 upload, and a real `psql` restore have **not** been exercised end-to-end yet, because they need real credentials that don't exist until the pending setup steps below are done. Do that drill as the very first real run of this pipeline, not the first time it's actually needed.
 
 ## Monitoring: what's live vs. what's pending
@@ -307,3 +309,7 @@ User approved fresh clinic-printer and Safari acceptance in chat. Production ope
 7. Check deployment status and live doctor/reception flows with the user signed in; do not create financial transactions as a smoke test. Reconcile main as documented after the production merge.
 
 Production history/endpoint changes are not verified until the user runs these commands and supplies non-secret results. Preparing this PR did not apply production changes.
+
+### PR40 outcome — 2026-10-17
+
+Completed with explicit user exceptions permitting agent-run production commands and release inside the clinic window. Migration aliases0300/0400 applied, history11/11 verified; patient-documentsv2 ACTIVE with verify_jwt=true. PR40 merge98305fb deployed READY to the canonical production alias. Main reconciled by fast-forward. User-approved saved credential sign-in enabled read-only doctor settings/Drive UI verification; no credentials exposed and no production clinical/financial test writes. Future releases still follow the normal user-run commands/window unless explicitly overridden again.

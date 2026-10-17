@@ -20,7 +20,7 @@ export function ConsultationClock({ startedAt }: { startedAt: string }) {
 
   return (
     <span className="consultation-clock">
-       · {display} in consult
+      {' · '}{display} in consult
     </span>
   )
 }
