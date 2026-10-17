@@ -1,5 +1,30 @@
 # Status
 
+## Test baseline restored — 2026-10-17 (pending review/PR)
+
+- Branch `codex/test-baseline`, based on `origin/main` `1eeaa92`.
+  Updated seven legacy suites for explicit doctor approval, queue actions,
+  confirmed medicine units/quantities, supply caps, immutable arrivals,
+  idempotent corrections and blocked direct bill insertion. No app or SQL change.
+- Fresh staging results: billing 16/16, pricing 15/15, approval/handoff 10/10,
+  stock 25/25, offline payment 21/21, phase-g 21/21, isolation 21/21.
+  The former negative-dispensing case now verifies rejection without stock
+  change; negative stock from adjustment remains covered.
+- Added credential-free CI: Node 24, typecheck, max eight lint warnings,
+  build and seven local unit suites. Node 24 is needed for existing direct TS
+  imports. All seven pass after a fresh build. Removed an unused test login;
+  lint is at eight warnings. Schema smoke passes for all 86 table queries.
+- Staging preparation: two old synthetic with-doctor visits finished through
+  approved queue actions (zero-price sample medicine where no prescription
+  existed). No bill/payment was confirmed for those preparation visits.
+  Test scripts created synthetic fixtures; no production data copied or touched.
+- User signed into the internal browser themselves. No browser credentials
+  entered by Codex. Physical printer, real Safari and real Drive remain unverified.
+- Uncommitted: this test/CI/doc change. Next: finish review and PR into main,
+  then separate alert-settings and Drive PDF archive changes. Never merge #7;
+  all merges require user instruction; production commands remain user-only.
+
+
 ## Populated doctor visual check — 2026-10-12
 
 - Used the current staging preview (PR #11 build) with three owned synthetic
@@ -2427,3 +2452,7 @@ supply migrations and browser verification. Physical-print and fresh browser
 offline release gates remain; production is untouched.
 The approval action uses the existing secondary variant so this stacked PR builds
 independently before step 4 introduces the dark button variant.
+
+## Optional issued-view CI regression — 2026-10-17
+
+PR35's unit runner now includes the issued prescription navigation test when present after that feature merges. Local tests pass, no source logic changed; GitHub billing still prevents hosted runs. No production/merge; returning to the navigation branch after this push. Only local output/ remains untracked.

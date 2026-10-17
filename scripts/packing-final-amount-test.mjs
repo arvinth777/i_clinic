@@ -1,4 +1,7 @@
-// TDD for the "stuck visit" bug found via a live end-to-end flow test:
+import { assertStaging } from './clinic-workflow-fixture.mjs'
+import { consultationOnlyFixture } from './clinic-workflow-fixture.mjs'
+// Approval/handoff regression: the old packing backstop is superseded by explicit approval.
+// Historical context for the original stuck-visit bug:
 // finishing a consultation (reaching stage=packing) with visit_pricing.
 // final_amount_set still false left a visit permanently unbillable -- no
 // screen in the app can touch visit_pricing once a visit leaves
@@ -35,6 +38,7 @@ const appEnv = loadEnv('.env.local')
 const userEnv = loadEnv('.env.test-users.local')
 
 const SUPABASE_URL = appEnv.VITE_SUPABASE_URL
+assertStaging(SUPABASE_URL)
 const ANON_KEY = appEnv.VITE_SUPABASE_ANON_KEY
 const CLINIC_A_ID = '23e03361-9d6c-49f5-83b7-ad57f4a0c5ce'
 
@@ -45,7 +49,7 @@ function report(label, pass, detail) {
 }
 
 async function signIn(email, password) {
-  const client = createClient(SUPABASE_URL, ANON_KEY, { realtime: { transport: ws } })
+  const client = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false }, realtime: { transport: ws } })
   const { error } = await client.auth.signInWithPassword({ email, password })
   if (error) throw new Error(`sign-in failed for ${email}: ${error.message}`)
   return client
@@ -79,76 +83,22 @@ async function readPricing(client, visitId) {
   return data
 }
 
-async function setStage(client, visitId, stage) {
-  const { error } = await client.from('visits').update({ stage }).eq('id', visitId)
-  if (error) throw new Error(`setting stage=${stage} failed: ${error.message}`)
-}
-
 const doctorA = await signIn('doctor.a@staging.test', userEnv.TEST_DOCTOR_A_PASSWORD)
 const receptionA = await signIn('reception.a@staging.test', userEnv.TEST_RECEPTION_A_PASSWORD)
-
-// -------------------------------------------------------------
-// Case 1: a consultation finished with pricing never touched -- the exact
-// shape of the bug found live (confirming a prescription used to do this
-// automatically; "Consultation done" alone, with nothing else clicked, does
-// it too, and is the legitimate case this backstop exists for).
-// -------------------------------------------------------------
-{
-  const visitId = await makeVisit(doctorA, 'Packing-untouched-pricing fixture')
-  await setStage(doctorA, visitId, 'with_doctor')
-
+for (const amount of [25000, 0]) {
+  const visitId = await makeVisit(doctorA, 'Synthetic approval-before-finish regression')
   const before = await readPricing(doctorA, visitId)
-  report(
-    'fresh with_doctor visit: final_amount_set is false, final_amount tracks the fee',
-    before.final_amount_set === false && before.final_amount_paise === 25000,
-    JSON.stringify(before),
-  )
-
-  // "Consultation done" (or the old buggy prescription-confirm path) --
-  // reaching packing without ever touching visit_pricing.
-  await setStage(doctorA, visitId, 'packing')
-
-  const afterPacking = await readPricing(doctorA, visitId)
-  report(
-    'reaching packing auto-confirms final_amount_set, without changing the amount or bumping revision',
-    afterPacking.final_amount_set === true &&
-      afterPacking.final_amount_paise === before.final_amount_paise &&
-      afterPacking.revision_number === before.revision_number,
-    JSON.stringify(afterPacking),
-  )
-
-  // The actual end-to-end proof: reception can now bill and collect.
-  await setStage(receptionA, visitId, 'ready_at_reception')
-  const { data: billId, error: confirmErr } = await receptionA.rpc('confirm_bill', {
-    p_visit_id: visitId,
-    p_payment_method: 'cash',
-  })
-  report('confirm_bill now succeeds for a visit that reached packing with pricing untouched', !confirmErr && !!billId, confirmErr?.message ?? `bill ${billId}`)
+  report('fresh visit has no approved final amount', before.final_amount_set === false)
+  const bypass = await doctorA.from('visits').update({ stage: 'ready_to_bill' }).eq('id', visitId)
+  report('direct stage write cannot bypass doctor approval', !!bypass.error)
+  const early = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash' })
+  report('unapproved visit cannot be billed', !!early.error)
+  const approved = await consultationOnlyFixture(doctorA, receptionA, CLINIC_A_ID, visitId, amount)
+  const after = await readPricing(doctorA, visitId)
+  report('explicit approval preserves the doctor amount, including zero', after.final_amount_set && after.final_amount_paise === amount)
+  const paid = await receptionA.rpc('confirm_bill', { p_visit_id: visitId, p_payment_method: 'cash', p_snapshot_final_amount_paise: amount, p_snapshot_revision_number: approved.revision_number })
+  report('approved finished consultation can be billed', !paid.error && !!paid.data, paid.error?.message)
 }
-
-// -------------------------------------------------------------
-// Case 2: a doctor who DID set a real discount before finishing -- the
-// backstop must never override a genuine choice, including a deliberate
-// zero.
-// -------------------------------------------------------------
-{
-  const visitId = await makeVisit(doctorA, 'Packing-doctor-set-zero fixture')
-  await setStage(doctorA, visitId, 'with_doctor')
-
-  const { error: setErr } = await doctorA.from('visit_pricing').update({ final_amount_paise: 0 }).eq('visit_id', visitId)
-  if (setErr) throw new Error(`setting final_amount to 0 failed: ${setErr.message}`)
-  const afterSet = await readPricing(doctorA, visitId)
-  report('doctor sets final amount to 0 (a free consultation): final_amount_set flips true', afterSet.final_amount_set === true && afterSet.final_amount_paise === 0, JSON.stringify(afterSet))
-
-  await setStage(doctorA, visitId, 'packing')
-  const afterPacking = await readPricing(doctorA, visitId)
-  report(
-    'the backstop does not override an already-set amount, including a deliberate zero',
-    afterPacking.final_amount_set === true && afterPacking.final_amount_paise === 0 && afterPacking.revision_number === afterSet.revision_number,
-    JSON.stringify(afterPacking),
-  )
-}
-
-const failed = results.filter((r) => !r.pass)
-console.log(`\n== Summary ==\n${results.length - failed.length}/${results.length} passed`)
-if (failed.length) process.exit(1)
+const failed = results.filter(r => !r.pass)
+console.log(`${results.length - failed.length}/${results.length} passed`)
+process.exit(failed.length ? 1 : 0)

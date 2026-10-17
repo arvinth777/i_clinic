@@ -1,3 +1,4 @@
+import { assertStaging } from './scripts/clinic-workflow-fixture.mjs'
 // One-off tenant/role isolation check against staging. Reads secrets from
 // local env files itself -- .env.local (anon key) and .env.test-users.local
 // (test-user passwords) -- and never prints their values, only pass/fail.
@@ -23,6 +24,7 @@ const appEnv = loadEnv('.env.local')
 const userEnv = loadEnv('.env.test-users.local')
 
 const SUPABASE_URL = appEnv.VITE_SUPABASE_URL
+assertStaging(SUPABASE_URL)
 const ANON_KEY = appEnv.VITE_SUPABASE_ANON_KEY
 
 // Known fixture IDs from the seed migration (public data -- not secrets).
@@ -41,7 +43,7 @@ function report(label, pass, detail) {
 }
 
 async function signIn(email, password) {
-  const client = createClient(SUPABASE_URL, ANON_KEY, { realtime: { transport: ws } })
+  const client = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false }, realtime: { transport: ws } })
   const { error } = await client.auth.signInWithPassword({ email, password })
   if (error) throw new Error(`sign-in failed for ${email}: ${error.message}`)
   return client
@@ -237,9 +239,7 @@ async function main() {
       `before: ${JSON.stringify(before.data)}, after: ${JSON.stringify(after.data)}`)
   }
 
-  // doctor.a inserting a bill with corrects_bill_id set -- must succeed
-  // (doctor authors corrections); with it null -- must fail (receptionist
-  // authors original bills, not doctor).
+  // Direct bill inserts are forbidden; doctor corrections use correct_bill.
   {
     const { error: correctionErr } = await doctorA.from('bills').insert({
       clinic_id: CLINIC_A_ID,
@@ -250,7 +250,7 @@ async function main() {
       confirmed_by: (await doctorA.auth.getUser()).data.user.id,
       corrects_bill_id: MEENA_BILL_ID,
     })
-    report('doctor.a inserting a bill with corrects_bill_id set succeeds', !correctionErr,
+    report('doctor cannot bypass the correction RPC with a direct bill insert', !!correctionErr,
       correctionErr ? `error: ${correctionErr.message}` : 'inserted')
 
     const { error: originalErr } = await doctorA.from('bills').insert({
@@ -285,7 +285,9 @@ async function main() {
   }
 }
 
-main().catch((err) => {
+await main().catch((err) => {
   console.error('isolation test errored:', err.message)
   process.exitCode = 1
 })
+
+process.exit(process.exitCode ?? 0)
