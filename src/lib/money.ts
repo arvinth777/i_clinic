@@ -14,6 +14,11 @@ export function formatPaise(paise: number): string {
   return `${sign}₹${rupees}.${String(cents).padStart(2, '0')}`
 }
 
+// Plain "290.00" with no currency sign: receipts head their money columns "Rs." because dot-matrix printers often have no rupee glyph.
+export function formatRupees(paise: number): string {
+  return `${paise < 0 ? '-' : ''}${Math.floor(Math.abs(paise) / 100)}.${String(Math.abs(paise) % 100).padStart(2, '0')}`
+}
+
 // Same value, formatted for an editable rupees field: no trailing ".00" for
 // a whole-rupee amount, so an untouched field doesn't read as "changed".
 export function formatPaiseForInput(paise: number): string {
@@ -33,4 +38,21 @@ export function parseRupeesToPaise(input: string): number | null {
   if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return null
   const [rupees, paise = ''] = trimmed.split('.')
   return Number(rupees) * 100 + Number((paise + '00').slice(0, 2))
+}
+
+// "Rupees Two Hundred Ninety Only", the way an Indian receipt writes an amount: crore/lakh/thousand grouping, integer paise only.
+const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
+const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+function below1000(n: number): string {
+  const hundreds = Math.floor(n / 100), rest = n % 100
+  return [hundreds ? `${ONES[hundreds]} Hundred` : '', rest < 20 ? ONES[rest] : `${TENS[Math.floor(rest / 10)]}${rest % 10 ? ` ${ONES[rest % 10]}` : ''}`].filter(Boolean).join(' ')
+}
+function inWords(n: number): string {
+  if (n === 0) return 'Zero'
+  const crore = Math.floor(n / 1e7), lakh = Math.floor((n % 1e7) / 1e5), thousand = Math.floor((n % 1e5) / 1e3), rest = n % 1e3
+  return [crore ? `${inWords(crore)} Crore` : '', lakh ? `${below1000(lakh)} Lakh` : '', thousand ? `${below1000(thousand)} Thousand` : '', rest ? below1000(rest) : ''].filter(Boolean).join(' ')
+}
+export function amountInWords(paise: number): string {
+  const abs = Math.abs(Math.trunc(paise)), rupees = Math.floor(abs / 100), cents = abs % 100
+  return `Rupees ${inWords(rupees)}${cents ? ` and ${inWords(cents)} Paise` : ''} Only`
 }

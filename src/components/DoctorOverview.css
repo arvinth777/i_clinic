@@ -1,0 +1,46 @@
+/* The doctor's first look at the patient in front of them: who, why, what happened last time. */
+.dv { display: flex; flex-direction: column; gap: var(--space-xl); }
+.dv-hero { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-lg); }
+.dv-who { min-width: 0; flex: 1 1 22rem; }
+.dv-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); margin: 0; font-size: var(--text-sm); }
+.dv-token { padding: 0 var(--space-sm); border-radius: var(--radius-pill); background: var(--blue-tint); color: var(--blue-ink); font-weight: 700; line-height: 1.75rem; }
+.dv-state { font-weight: 600; color: var(--blue); }
+.dv-state.is-called { color: var(--amber); }
+.dv-state.is-sent { color: var(--green); }
+.dv-name { margin: var(--space-xs) 0 var(--space-2xs); font-size: var(--text-3xl); line-height: var(--line-title); letter-spacing: var(--tracking-title); overflow-wrap: anywhere; }
+.dv-facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2xs) var(--space-lg); margin: 0; color: var(--ink-2); }
+.dv-facts > .dv-tag { padding: 0 var(--space-sm); border-radius: var(--r-sm); background: var(--hover); font-size: var(--text-sm); font-weight: 600; color: var(--ink-2); }
+.dv-facts > .dv-tag.is-new { background: var(--green-bg); color: var(--green); }
+.dv-address { margin: var(--space-2xs) 0 0; color: var(--muted); font-size: var(--text-sm); }
+.dv-actions { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-sm); }
+.dv-secondary { display: flex; gap: var(--space-md); }
+.dv-link { border: 0; background: transparent; padding: 0; font: inherit; font-size: var(--text-sm); font-weight: 600; color: var(--blue); cursor: pointer; }
+.dv-link.is-danger { color: var(--muted); font-weight: 400; }
+.dv-link.is-danger:hover { color: var(--red); }
+.dv-link:disabled { opacity: .5; cursor: default; }
+.dv-label { margin: 0 0 var(--space-xs); font-size: var(--text-sm); font-weight: 600; color: var(--ink-2); }
+.dv-reason { padding: var(--space-lg) var(--space-20); border-radius: var(--r-lg); background: var(--blue-tint); }
+.dv-reason .dv-label { color: var(--blue-ink); }
+.dv-complaint { margin: 0; font-size: var(--text-xl); font-weight: 600; line-height: 1.35; color: var(--ink); overflow-wrap: anywhere; }
+.dv-registered { display: flex; flex-wrap: wrap; gap: var(--space-md) var(--space-xl); margin: var(--space-md) 0 0; }
+.dv-registered dt { font-size: var(--text-xs); color: var(--muted); }
+.dv-registered dd { margin: 0; font-size: var(--text-lg); font-weight: 700; color: var(--ink); }
+.dv-scale { font-weight: 400; color: var(--muted); font-size: var(--text-sm); }
+.dv-meter { display: block; width: 6rem; height: .3rem; margin-top: var(--space-2xs); border-radius: var(--radius-pill); background: var(--line-2); position: relative; }
+.dv-meter::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--dv-fill); border-radius: inherit; background: var(--blue); }
+.dv-notice { margin: calc(-1 * var(--space-md)) 0 0; padding: var(--space-sm) var(--space-md); border-radius: var(--r-md); background: var(--amber-bg); color: var(--amber); font-size: var(--text-sm); font-weight: 600; }
+.dv-columns { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--space-xl); }
+.dv-columns section { min-width: 0; }
+.dv-complaint-small { margin: 0 0 var(--space-xs); color: var(--ink); }
+.dv-diagnosis { margin: 0 0 var(--space-xs); font-size: var(--text-lg); font-weight: 700; }
+.dv-meds { display: flex; flex-wrap: wrap; gap: var(--space-xs); list-style: none; margin: 0 0 var(--space-xs); padding: 0; }
+.dv-meds li { padding: var(--space-2xs) var(--space-sm); border-radius: var(--r-sm); background: var(--panel); color: var(--ink); font-size: var(--text-sm); font-weight: 500; }
+.dv-advice { margin: 0; color: var(--ink-2); font-size: var(--text-base); line-height: 1.5; }
+.dv-empty { margin: 0; color: var(--muted); }
+.dv-history { list-style: none; margin: 0; padding: 0; }
+.dv-history li { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: var(--space-sm); padding: var(--space-xs) 0; border-top: 1px solid var(--line); font-size: var(--text-base); color: var(--ink); }
+.dv-history time { font-weight: 600; }
+.dv-notes > summary { cursor: pointer; list-style: none; }
+.dv-notes > summary::-webkit-details-marker { display: none; }
+.dv-notes[open] > summary { margin-bottom: var(--space-xs); }
+@media (max-width: 720px) { .dv-columns { grid-template-columns: minmax(0, 1fr); } .dv-actions { align-items: flex-start; } }

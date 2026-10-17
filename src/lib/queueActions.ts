@@ -2,7 +2,7 @@ import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-
 import { supabase } from './supabase'
 import { attemptOrQueue } from './offlineQueue'
 
-export type QueueAction = 'call' | 'sent_in' | 'finish' | 'move_up' | 'move_down' | 'not_here' | 'return_original' | 'return_end' | 'no_show'
+export type QueueAction = 'call' | 'sent_in' | 'finish' | 'move_up' | 'move_down' | 'not_here' | 'return_original' | 'return_end' | 'no_show' | 'cancel'
 export type QueueRow = { id: string; stage: string; queue_position?: number; arrived_at?: string }
 export function useQueueAction(clinicId: string | null | undefined) {
   const client = useQueryClient()
@@ -30,7 +30,7 @@ export function updateQueueRows(old: QueueRow[] | undefined, visitId: string, ac
   const rows = old.map(v => ({ ...v }))
   const row = rows.find(v => v.id === visitId)
   if (!row) return old
-  const stages: Partial<Record<QueueAction,string>> = {call:'called',sent_in:'with_doctor',finish:'ready_to_bill',not_here:'not_here',return_original:'waiting',return_end:'waiting',no_show:'no_show'}
+  const stages: Partial<Record<QueueAction,string>> = {call:'called',sent_in:'with_doctor',finish:'ready_to_bill',not_here:'not_here',return_original:'waiting',return_end:'waiting',no_show:'no_show',cancel:'cancelled'}
   Object.assign(row, {stage:stages[action] ?? row.stage}, action === 'call' ? {called_at:time} : action === 'sent_in' ? {sent_in_at:time,with_doctor_at:time} : action === 'not_here' ? {not_here_at:time} : {})
   if (action==='return_end') row.queue_position=Math.max(0,...rows.map(v=>v.queue_position??0))+1024
   if (action==='move_up'||action==='move_down') {
@@ -39,4 +39,13 @@ export function updateQueueRows(old: QueueRow[] | undefined, visitId: string, ac
     if(other) [row.queue_position,other.queue_position]=[other.queue_position,row.queue_position]
   }
   return rows.sort((a,b)=>(a.queue_position??0)-(b.queue_position??0))
+}
+
+// Shared wording for cancelling a visit (doctor and reception): either may close any unpaid visit, with a reason.
+export const CANCEL_VISIT_DIALOG = {
+  title: 'Cancel this visit?',
+  body: 'No bill is made and nothing is taken from stock. The patient needs a new token to be seen later.',
+  label: 'Reason',
+  choices: ['Left without treatment', 'Registered by mistake', 'Will come another day'],
+  confirmLabel: 'Cancel visit',
 }

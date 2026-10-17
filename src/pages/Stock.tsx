@@ -17,7 +17,7 @@ export function Stock({ clinicId, highlightMedicineId }: { clinicId: string; hig
 
   return (
     <div className="admin-page inventory-page">
-      <div className="page-heading"><h1>Inventory</h1><p>Stock goes down automatically when a bill or refill is paid.</p></div>
+      <div className="page-heading"><h1>Stock</h1><p>Stock goes down automatically when a bill or refill is paid.</p></div>
       <nav className="admin-tabs">
         {TABS.map((t) => (
           <button

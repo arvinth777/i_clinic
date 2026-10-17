@@ -1,5 +1,5 @@
-import { formatPaise } from '../lib/money'
-import { formatDate, formatDateOnly } from '../lib/date'
+import { amountInWords, formatRupees } from '../lib/money'
+import { formatDate, formatDateOnly, formatDateTime } from '../lib/date'
 import { formatBody } from '../lib/patientBody'
 import './Billing.css'
 import { PrescriptionLetterhead } from './PrescriptionLetterhead'
@@ -100,44 +100,53 @@ export function PrintableReceipt({
   discountPaise: number
   bill: Bill | null
 }) {
-  // Plain and transactional on purpose -- a payment record, not a
-  // doctor's document. Clinic name/address/phone are legitimate on a
-  // receipt (a real business's contact details); the doctor's name and
-  // registration number are not (that's a medical credential, and has
-  // nothing to do with who took the payment).
+  // Plain and transactional on purpose -- a payment record, not a doctor's document: clinic name, address and phone are
+  // legitimate on a receipt; the doctor's name and registration number are not. Black on white, ruled with solid lines,
+  // sized in em: it must print cleanly on a dot-matrix printer and read the same in the on-screen preview and the archived PDF.
+  const when = bill?.confirmed_at ?? visit?.arrived_at
+  const rows = billable.map(row => {
+    const quantity = row.quantity ?? 1, amount = row.line_total_paise ?? row.unit_price_paise * quantity
+    return { row, quantity, rate: quantity ? Math.round(amount / quantity) : row.unit_price_paise, amount }
+  })
+  const subtotal = rows.reduce((sum, r) => sum + r.amount, 0)
+  const method = bill?.payment_method === 'upi' ? 'UPI' : bill?.payment_method === 'cash' ? 'Cash' : bill?.payment_method
+  const person = visit ? [visit.patients?.name, [visit.patients?.age != null ? `${visit.patients.age} yrs` : '', visit.patients?.gender].filter(Boolean).join(' / ')].filter(Boolean).join(', ') : customerName
   return (
-    <section className="print-page print-page-plain">
-      <h1>{clinic?.name}</h1>
-      {(clinic?.address || clinic?.phone) && <p className="print-contact-line">{[clinic?.address, clinic?.phone].filter(Boolean).join(' · ')}</p>}
-      <p>
-        {visit ? `${visit.patients?.name} — Token ${visit.token_number} — ${formatDate(visit.arrived_at)}` : customerName}
-      </p>
-
-      <h2>Receipt</h2>
-      <table className="print-table">
+    <section className="print-page print-page-plain rcpt">
+      <header className="rcpt-head">
+        <h1>{clinic?.name}</h1>
+        {clinic?.address && <p>{clinic.address}</p>}
+        {clinic?.phone && <p>Phone: {clinic.phone}</p>}
+      </header>
+      <div className="rcpt-title"><strong>RECEIPT</strong><strong>{bill ? 'PAID' : 'NOT PAID'}</strong></div>
+      <dl className="rcpt-meta">
+        <div><dt>Date</dt><dd>{when ? formatDateTime(when) : ''}</dd></div>
+        {visit && <div><dt>Token no.</dt><dd>{visit.token_number}</dd></div>}
+        <div className="rcpt-wide"><dt>{visit ? 'Patient' : 'Customer'}</dt><dd>{person}</dd></div>
+      </dl>
+      <table className="rcpt-items">
+        <thead><tr><th>Sl</th><th>Item</th><th>Qty</th><th>Rate (Rs.)</th><th>Amount (Rs.)</th></tr></thead>
         <tbody>
-          {billable.map((r, i) => (
+          {rows.map(({ row, quantity, rate, amount }, i) => (
             <tr key={i}>
-              <td>{r.description}{r.quantity != null && ` × ${r.quantity} ${r.stock_unit ?? ''}`}{'shortfall' in r && !!r.shortfall && <small> · {r.shortfall} not supplied</small>}</td>
-              <td>{formatPaise(r.line_total_paise ?? r.unit_price_paise)}</td>
+              <td>{i + 1}</td>
+              <td>{row.description}{'shortfall' in row && !!row.shortfall && <small> ({row.shortfall} not supplied)</small>}</td>
+              <td>{quantity}{row.stock_unit && row.kind === 'medicine' ? ` ${row.stock_unit}` : ''}</td>
+              <td>{formatRupees(rate)}</td>
+              <td>{formatRupees(amount)}</td>
             </tr>
           ))}
-          <tr>
-            <td>Discount</td>
-            <td>{formatPaise(discountPaise)}</td>
-          </tr>
-          <tr className="print-total-row">
-            <td>{bill ? 'Amount paid' : 'Total'}</td>
-            <td>{formatPaise(amountPaise)}</td>
-          </tr>
         </tbody>
+        <tfoot>
+          {discountPaise > 0 && <tr><td colSpan={4}>Sub total</td><td>{formatRupees(subtotal)}</td></tr>}
+          {discountPaise > 0 && <tr><td colSpan={4}>Discount</td><td>- {formatRupees(discountPaise)}</td></tr>}
+          <tr className="rcpt-total"><td colSpan={4}>{bill ? 'TOTAL PAID (Rs.)' : 'TOTAL (Rs.)'}</td><td>{formatRupees(amountPaise)}</td></tr>
+        </tfoot>
       </table>
-      <div className="receipt-end">
-        {!bill && <p>Not paid yet</p>}
-        {bill?.pending && <p>Payment recorded on this device—not saved yet.</p>}
-        {bill && <p>Paid via {bill.payment_method} on {formatDate(bill.confirmed_at)}</p>}
-        <p className="receipt-medicine-notice">Prescribed drugs are for the specified condition and period only; do not self-medicate.<br /><span lang="ta">குறிப்பிட்ட நோய்நிலைக்கும் காலத்திற்கும் மட்டுமே இந்த மருந்துகள் பரிந்துரைக்கப்பட்டுள்ளன. மருத்துவரின் ஆலோசனையின்றி மருந்துகளை உட்கொள்ள வேண்டாம்.</span></p>
-      </div>
+      <p className="rcpt-words">{amountInWords(amountPaise)}</p>
+      {bill && <p className="rcpt-paid">Paid by {method} on {formatDateTime(bill.confirmed_at)}{bill.pending && ' (recorded on this device, not saved yet)'}</p>}
+      <p className="receipt-medicine-notice">Prescribed drugs are for the specified condition and period only; do not self-medicate.<br /><span lang="ta">குறிப்பிட்ட நோய்நிலைக்கும் காலத்திற்கும் மட்டுமே இந்த மருந்துகள் பரிந்துரைக்கப்பட்டுள்ளன. மருத்துவரின் ஆலோசனையின்றி மருந்துகளை உட்கொள்ள வேண்டாம்.</span></p>
+      <footer className="rcpt-foot"><span>Thank you. Get well soon.</span><span>Receiver's signature</span></footer>
     </section>
   )
 }

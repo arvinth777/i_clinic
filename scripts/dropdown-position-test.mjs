@@ -175,21 +175,8 @@ const procedureCheck = await checkDropdownReachable(page, procedureItem)
 report('Procedures dropdown is within the viewport', procedureCheck.withinViewport, JSON.stringify(procedureCheck.box))
 report('Procedures dropdown: a real coordinate click actually lands on it', procedureCheck.coordClickHitsItem)
 
-// ---- MergePatients (standalone page, not inside a fixed drawer -- the audit's "unconfirmed" instance) ----
-await page.locator('.drawer-close').click()
-await page.getByRole('button', { name: 'Merge patients' }).click()
-await page.waitForTimeout(500)
-await page.locator('input[placeholder="Search by name or phone"]').first().fill('Dropdown Position Test')
-await page.waitForTimeout(700)
-const mergeResult = page.locator('.search-result-button', { hasText: `Dropdown Position Test ${stamp}` })
-if ((await mergeResult.count()) > 0) {
-  const mergeCheck = await checkDropdownReachable(page, mergeResult)
-  report('MergePatients dropdown is within the viewport', mergeCheck.withinViewport, JSON.stringify(mergeCheck.box))
-  report('MergePatients dropdown: a real coordinate click actually lands on it', mergeCheck.coordClickHitsItem)
-} else {
-  report('MergePatients dropdown is within the viewport', false, 'no search results rendered at all to check')
-  report('MergePatients dropdown: a real coordinate click actually lands on it', false, 'no search results rendered at all to check')
-}
+// ---- The merge search now lives inside a patient's file (a plain list under the field, not a floating dropdown),
+// so it has no dropdown position to check here; the old standalone MergePatients page was removed.
 
 await browser.close()
 

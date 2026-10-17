@@ -14,3 +14,7 @@
 .confirm-dialog-title { margin: 0; font-size: var(--text-lg); font-weight: 700; overflow-wrap: anywhere; }
 .confirm-dialog-text { margin: 0; font-size: var(--text-sm); color: var(--text-secondary); overflow-wrap: anywhere; }
 .confirm-dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-sm); }
+.confirm-dialog-choices { display: flex; flex-wrap: wrap; gap: var(--space-2xs); margin-inline: calc(-1 * var(--space-sm)); }
+.confirm-dialog-choices .shell-nav-item[aria-pressed='true'] { background: var(--blue-tint); color: var(--blue); }
+.confirm-dialog-input { width: 100%; border: 0; border-bottom: 1px solid var(--line-2); background: transparent; padding: 0 0 var(--space-xs); font: inherit; color: var(--ink); }
+.confirm-dialog-input:focus { outline: 0; border-bottom-color: var(--blue); }

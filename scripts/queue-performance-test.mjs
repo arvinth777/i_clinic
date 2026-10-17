@@ -23,6 +23,7 @@ function load(path) {
     if (name.endsWith('/realtimeStatus')) return load('src/lib/realtimeStatus.ts')
     if (name.endsWith('/stageLabels')) return load('src/lib/stageLabels.ts')
     if (name.endsWith('/queueActions')) return load('src/lib/queueActions.ts')
+    if (name.endsWith('/confirm')) return { useAskReason: () => async () => null }
     if (name.endsWith('/QueryState')) return load('src/components/QueryState.tsx')
     if (name.endsWith('/ui/input')) return { Input: props => React.createElement('input', props) }
     if (name.endsWith('/ui/button')) return { Button: props => React.createElement('button', props) }

@@ -47,6 +47,7 @@ these tokens so all current screens use one palette.
 | scroll-thumb / scroll-hover / toast-undo | #D5DAE1 / #B4BBC6 / #9DBBF5 (explicit exceptions from scrollbar/toast spec) |
 | r-sm / md / lg / xl | 8 / 10 / 14 / 16px |
 | dialog-width | 420px (the shared confirmation dialog, `ConfirmDialog.tsx`; uses the Dialogs rule below: r-xl, space-28, scrim, shadow-modal) |
+| print-receipt-size | 11pt: the receipt body (`.rcpt`, black on white, solid rules, em units; Rs. columns; amount in words; prints on 9.5 × 11 in dot-matrix stock) |
 | nav-count-size | 20px for the reception Billing waiting-count circle |
 | call-flash-duration / opacity / layer | 600ms × three pulses / .22 / 60, with a persistent alert banner during the pulses; reduced-motion users see the banner and a steady tint |
 | shadow-pop | 0 12px 36px rgba(20,28,43,.14), 0 0 0 1px var(--line) |
@@ -98,25 +99,45 @@ sticky content accommodates a wrapped header. Paper dimensions are below.
 ## Menu and navigation
 
 Sticky top bar, z-index 30, at least 56px, white with bottom hairline; 8px 28px
-padding. Clinic name 15px/700 links home. Fixed main order: Reception, Doctor,
-Billing, Refills, Patients, Inventory, Reports, More. Hide inaccessible sections.
-Doctor sees Reception/Billing in view mode unless also a receptionist. Reception
-gets administrative patient records, no clinical history view (its Timeline tab shows visits and payments only, no complaint or prescription text). Keep backend
+padding. Clinic name 15px/700 links to the login's home. One short bar per login, no
+More menu (revised 2026-10-18 at the owner's direction; the doctor is the administrator, there is no separate admin login):
+
+| Login | Bar |
+| --- | --- |
+| Receptionist | Queue, Billing, Patients, Stock |
+| Doctor | Consultation, Billing, Patients, Stock, Reports |
+
+Related tools are tabs inside their page, never separate bar items: Billing > To collect, Medicine sale (Unpaid bills only while older unpaid bills still exist); Patients > Everyone, Due for review; Reports > Summary, Needs review
+(doctor); Stock holds Medicines, Medicine units and prices, Suppliers. Tabs are a 36px text row under the bar with a
+2px blue underline on the current one. The doctor has no Reception tab (the waiting list is in Consultation).
+Billing carries the ready-to-bill count (the `nav-count-size` circle). Possible duplicates have no menu entry: they surface
+inside the registration form ("Already registered?") and as a notice at the top of that patient's own file.
+
+The right side holds the search box, an optional save warning, and the profile circle. There is no queue pill:
+the waiting count is a badge on the login's first tab (Queue for reception, Consultation for the doctor), like the
+Billing and Patients counts. The search box ("Search…  ( / )", `/` focuses it) finds patients (name, phone, token),
+medicines and pages by the words people use ("supplier", "merge", "unpaid"), plus Lock screen and Sign out; arrow keys and
+Enter work. The profile circle (control-height, blue-tint, the first letter of the sign-in email) opens the account menu:
+Alerts and sound, Settings (doctor), Lock screen, Change lock PIN, Sign out. Settings, Alerts and Lock are not bar items.
+The save indicator is silent when everything is saved and appears only for "Save needs attention",
+"Offline · N changes waiting" or "N not saved yet" (real mutation/IndexedDB state, never a timer).
+Optional event text must be a real cross-role event, visible about ten seconds. Reception gets administrative
+patient records, no clinical history view (its Timeline tab shows visits and payments only). Keep backend
 permissions and clinic scoping; hiding a control is not a security boundary.
 
 Links are 36px high, 14px, 10px horizontal padding. Active is ink/600 on hover grey,
-with aria-current=page. More is a page with a left list of existing tools. Queue
-pill links Reception, stays visible, uses real token/waiting data and a connection
-dot. Save state comes from mutations/IndexedDB, never a timer. Optional event text
-must be a real cross-role event, visible about ten seconds. Account and Lock are
-text controls.
+with aria-current=page. Grey side columns (queue list, record rails, settings list) run the full height of the
+working area, top bar to bottom of the window, not just the height of their content.
 
 At ≥1100px one row. At 768–1099px two rows: identity/status then horizontally
 scrolling nav with hidden scrollbar and right fade. Below 768px show clinic name,
-queue, Menu ▾; full-height top sheet contains navigation, save status and account.
+queue, Menu ▾; full-height top sheet contains navigation, save status and the account items.
 Prescription sub-bar is sticky below the measured header, with workspace link
 and real patient/token context. No fake Called/Sent-in state before that workflow
 is implemented.
+
+Wording: plain words a doctor would use. Queue filters are Now, Finished, Everyone today, Earlier days. No
+"token" jargon in status text (no "No active token" style status text).
 
 ## Controls, overlays and states
 

@@ -176,16 +176,9 @@
 .bill-lines small { display: block; color: var(--text-tertiary); margin-top: var(--space-2xs); }
 .receipt-preview { min-width: 0; background: var(--surface-2); padding: var(--page-top) var(--page-padding); }
 .receipt-preview > .print-page-plain { background: var(--surface); margin-top: var(--space-sm); padding: var(--space-lg); box-shadow: var(--shadow-paper); font-size: var(--text-xs); }
-.receipt-preview h1 { text-align: center; color: var(--accent); font-size: var(--text-base); margin: 0 0 var(--space-xs); }
-.receipt-preview .print-contact-line { text-align: center; color: var(--text-secondary); }
-.receipt-preview h2 { font-size: var(--text-sm); border-top: 1px dashed var(--border-strong); padding-top: var(--space-md); }
-.receipt-preview .print-table { width: 100%; border-collapse: collapse; }
-.receipt-preview td { padding-block: var(--space-xs); vertical-align: top; overflow-wrap: anywhere; }
-.receipt-preview td:last-child { text-align: right; white-space: nowrap; padding-left: var(--space-xs); }
 .bill-brand-field { display: block; margin-top: var(--space-sm); }
 .bill-brand-field select { width: 100%; max-width: 100%; border: 0; border-bottom: 1px solid var(--line-2); background: transparent; color: var(--ink); padding: var(--space-xs) 0; font: inherit; }
 .bill-brand-field select:focus { outline: 0; border-color: var(--blue); box-shadow: 0 1px 0 var(--blue); }
-.receipt-preview .print-total-row { border-top: 1px dashed var(--border-strong); font-weight: 700; }
 .receipt-medicine-notice { font-family: var(--font); margin-top: var(--space-lg); font-size: var(--print-receipt-notice-size); line-height: 1.8; }
 .receipt-medicine-notice [lang="ta"] { display: block; }
 .payment-method-row { flex-wrap: wrap; gap: var(--space-xs); }
@@ -233,3 +226,29 @@
   .prescription-rx { font-size: var(--paper-rx-cqw); }
 }
 @media print { .prescription-sheet:last-child { break-after: auto; } }
+
+/* Receipt (also the archived PDF and the refill receipt): black on white, solid rules, em units so it scales from the preview to the 9.5 x 11 in sheet. */
+.rcpt { color: var(--ink); background: var(--bg); font-size: var(--print-receipt-size); line-height: 1.4; font-variant-numeric: tabular-nums; }
+.receipt-preview .rcpt { font-size: var(--text-xs); }
+.rcpt-head { padding-bottom: .5em; border-bottom: 2px solid var(--ink); text-align: center; }
+.rcpt-head h1 { margin: 0; font-size: 1.5em; line-height: 1.2; }
+.rcpt-head p { margin: .15em 0 0; }
+.rcpt-title { display: flex; justify-content: space-between; margin: .6em 0 .35em; font-size: 1.1em; }
+.rcpt-meta { display: grid; grid-template-columns: 1fr 1fr; gap: .15em 1.5em; margin: 0 0 .6em; }
+.rcpt-meta > div { display: flex; gap: .5em; min-width: 0; }
+.rcpt-meta dt { min-width: 5.5em; font-weight: 700; }
+.rcpt-meta dd { margin: 0; overflow-wrap: anywhere; }
+.rcpt-wide { grid-column: 1 / -1; }
+.rcpt-items { width: 100%; border-collapse: collapse; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.rcpt-items th, .rcpt-items td { padding: .25em .4em; text-align: left; vertical-align: top; }
+.rcpt-items th { border-bottom: 1px solid var(--ink); font-weight: 700; }
+.rcpt-items th:first-child, .rcpt-items td:first-child { width: 2.4em; }
+.rcpt-items :is(th, td):nth-child(n+3) { text-align: right; white-space: nowrap; }
+.rcpt-items td small { font-size: .85em; }
+.rcpt-items tfoot td { text-align: right; font-weight: 700; }
+.rcpt-items .rcpt-total td { border-top: 1px solid var(--ink); font-size: 1.1em; }
+.rcpt-words { margin: .5em 0; font-weight: 600; }
+.rcpt-paid { margin: 0 0 .6em; }
+.rcpt-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 1em; margin-top: 2.5em; }
+.rcpt-foot span:last-child { min-width: 11em; padding-top: .2em; border-top: 1px solid var(--ink); text-align: center; }
+@media print { .rcpt { padding: .3in .45in; } .rcpt * { color: var(--ink) !important; background: none !important; } }

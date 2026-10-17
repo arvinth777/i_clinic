@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { useClinicId } from '../lib/useClinicId'
 import { startOfToday } from '../lib/date'
+import { useFrontDeskSuggestions } from '../lib/useFrontDeskSuggestions'
 import { NewPatientForm, type NewPatientInput } from '../components/NewPatientForm'
 import { TokenList } from '../components/TokenList'
 import { stageLabel } from '../lib/stageLabels'
@@ -54,13 +55,25 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
     },
   })
 
+  const suggestions = useFrontDeskSuggestions(clinicId ?? '')
+  // A returning patient is often back for the same thing: offer last visit's complaint in one tap.
+  const { data: lastComplaint } = useQuery({
+    queryKey: ['last-complaint', selected && selected !== 'new' ? selected.id : null],
+    enabled: !!selected && selected !== 'new',
+    queryFn: async () => {
+      const { data, error } = await supabase.from('visits').select('complaint').eq('patient_id', (selected as SearchResult).id).order('arrived_at', { ascending: false }).limit(1)
+      if (error) throw error
+      return (data[0]?.complaint as string | undefined)?.trim() || null
+    },
+  })
+
   // A patient already waiting or with the doctor today: warn before issuing a second token.
   const { data: openToday } = useQuery({
     queryKey: ['open-visit-today', selected && selected !== 'new' ? selected.id : null],
     enabled: !!selected && selected !== 'new',
     queryFn: async () => {
       const { data, error } = await supabase.from('visits').select('token_number, stage').eq('patient_id', (selected as SearchResult).id)
-        .gte('arrived_at', startOfToday()).not('stage', 'in', '(paid,no_show)').limit(1)
+        .gte('arrived_at', startOfToday()).not('stage', 'in', '(paid,no_show,cancelled)').limit(1)
       if (error) throw error
       return data
     },
@@ -230,7 +243,7 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
               <button type="button" className="back-to-queue" onClick={reset}>
                 ← Back to queue
               </button>
-              <NewPatientForm clinicId={clinicId} initialName={debouncedQuery} onSubmit={(input: NewPatientInput) => checkInNew.mutate(input)} submitting={checkInNew.isPending} />
+              <NewPatientForm clinicId={clinicId} initialName={debouncedQuery} onSubmit={(input: NewPatientInput) => checkInNew.mutate(input)} onUseExisting={patient => setSelected(patient)} submitting={checkInNew.isPending} />
               {checkInNew.isError && <p className="form-error" role="alert">{checkInNew.error.message}</p>}
               <div className="action-row">
                 <Button type="button" variant="secondary" onClick={reset}>
@@ -255,7 +268,9 @@ export function Reception({ userId, readOnly = false, highlightVisitId }: { user
                   <label className="field-label" htmlFor="complaint">
                     Complaint
                   </label>
-                  <Input id="complaint" value={complaint} onChange={(e) => setComplaint(e.target.value)} required autoFocus />
+                  <Input id="complaint" list="complaint-suggestions" value={complaint} onChange={(e) => setComplaint(e.target.value)} required autoFocus />
+                  <datalist id="complaint-suggestions">{suggestions.complaints.map(value => <option key={value} value={value} />)}</datalist>
+                  {lastComplaint && lastComplaint !== complaint && <button type="button" className="rx-chip" onClick={() => setComplaint(lastComplaint)}>Same as last visit: {lastComplaint}</button>}
                 </div>
                 <div className="action-row">
                   <button type="submit" className={buttonVariants({ variant: 'primary' })} data-press="stamp" disabled={checkInExisting.isPending}>

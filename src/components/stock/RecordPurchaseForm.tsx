@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
-import { parseRupeesToPaise } from '../../lib/money'
+import { formatPaiseForInput, parseRupeesToPaise } from '../../lib/money'
 import { localDateStr } from '../../lib/date'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -36,7 +36,20 @@ export function RecordPurchaseForm({
     },
   })
 
-  const [supplierId, setSupplierId] = useState('')
+  // Learn from the last deliveries: the supplier used last time, and the last cost price of each drug.
+  const { data: lastPurchase } = useQuery({
+    queryKey: ['last-purchase', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('purchases').select('supplier_id, purchase_items(medicine_id, cost_price_paise)')
+        .eq('clinic_id', clinicId).order('created_at', { ascending: false }).limit(40)
+      if (error) throw error
+      const lastCost = new Map<string, number>()
+      for (const purchase of data) for (const line of purchase.purchase_items) if (!lastCost.has(line.medicine_id)) lastCost.set(line.medicine_id, line.cost_price_paise as number)
+      return { supplierId: (data[0]?.supplier_id as string | undefined) ?? '', lastCost: [...lastCost] }
+    },
+  })
+  const [pickedSupplier, setSupplierId] = useState('')
+  const supplierId = pickedSupplier || ((suppliers ?? []).some(s => s.id === lastPurchase?.supplierId) ? lastPurchase!.supplierId : '')
   const [invoiceNumber, setInvoiceNumber] = useState('')
   const [purchaseDate, setPurchaseDate] = useState(() => localDateStr(new Date()))
   const [stockPointId, setStockPointId] = useState('')
@@ -135,7 +148,7 @@ export function RecordPurchaseForm({
         <span className="field-label">Drugs received</span>
         {items.map((item, i) => (
           <div key={i} className="action-row">
-            <Select value={item.medicine_id} onValueChange={(v) => updateItem(i, { medicine_id: v })}>
+            <Select value={item.medicine_id} onValueChange={(v) => { const last = lastPurchase?.lastCost.find(([id]) => id === v)?.[1]; updateItem(i, { medicine_id: v, ...(last != null && !item.cost_price ? { cost_price: formatPaiseForInput(last) } : {}) }) }}>
               <SelectTrigger>
                 <SelectValue placeholder="— Drug —" />
               </SelectTrigger>

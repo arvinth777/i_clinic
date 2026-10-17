@@ -8,6 +8,9 @@ import { Input } from './ui/input'
 type PatientLongTerm = { is_long_term: boolean; long_term_review_interval_days: number | null }
 type VisitFollowUp = { follow_up_date: string | null }
 
+// YYYY-MM-DD plus n days, calendar arithmetic only (no time zones involved).
+const addDays = (iso: string, days: number) => { const d = new Date(`${iso}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10) }
+
 export function CarePanel({ visitId, patientId, clinicId }: { visitId: string; patientId: string; clinicId: string }) {
   const queryClient = useQueryClient()
   // Review date: today (clinic time) up to 5 years ahead, same window the database enforces.
@@ -89,6 +92,12 @@ export function CarePanel({ visitId, patientId, clinicId }: { visitId: string; p
           Follow-up date
         </label>
         <Input id="follow-up-date" type="date" min={today} max={maxDay} value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
+        <div className="rx-quick-add" role="group" aria-label="Quick follow-up dates">
+          {([[7, '1 week'], [14, '2 weeks'], [30, '1 month'], [90, '3 months']] as const).map(([days, label]) => {
+            const date = addDays(today, days)
+            return date <= maxDay && <button key={days} type="button" className="rx-chip" aria-pressed={followUpDate === date} onClick={() => setFollowUpDate(date)}>{label}</button>
+          })}
+        </div>
         <div className="action-row">
           <Button type="submit" variant="secondary" disabled={saveFollowUp.isPending}>
             {saveFollowUp.isPending ? 'Saving…' : 'Save follow-up date'}
@@ -97,7 +106,7 @@ export function CarePanel({ visitId, patientId, clinicId }: { visitId: string; p
         {saveFollowUp.isError && <p className="form-error">Couldn't save — try again.</p>}
       </form>
 
-      <details className="rx-support"><summary>Long-term care</summary><form
+      <details className="rx-support"><summary>Regular check-ups</summary><form
         className="field"
         onSubmit={(e) => {
           e.preventDefault()
@@ -105,12 +114,12 @@ export function CarePanel({ visitId, patientId, clinicId }: { visitId: string; p
         }}
       >
         <label className="field-label" htmlFor="long-term-checkbox">
-          <input id="long-term-checkbox" type="checkbox" checked={isLongTerm} onChange={(e) => setIsLongTerm(e.target.checked)} /> Long-term patient
+          <input id="long-term-checkbox" type="checkbox" checked={isLongTerm} onChange={(e) => setIsLongTerm(e.target.checked)} /> This patient needs regular check-ups
         </label>
         {isLongTerm && (
           <>
             <label className="field-label" htmlFor="long-term-interval">
-              Review interval (days)
+              Ask them to come back every (days)
             </label>
             <Input id="long-term-interval" type="number" min={1} value={intervalDays} onChange={(e) => setIntervalDays(e.target.value)} required />
           </>

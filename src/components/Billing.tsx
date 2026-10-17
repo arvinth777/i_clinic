@@ -22,7 +22,6 @@ const normal = (text: string | null | undefined) => text?.trim().toLocaleLowerCa
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
   { value: 'upi', label: 'UPI' },
-  { value: 'pay_later', label: 'Pay later / Credit' },
 ] as const
 
 function UpiQr({ vpa, amountPaise, payeeName }: { vpa: string; amountPaise: number; payeeName: string }) {
@@ -147,7 +146,15 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   const plan = planQuery.data
   const choicesFor = (item: PrescribedItem) => (catalogQuery.data ?? []).filter(m => m.unit_confirmed_at && normal(m.stock_unit) === normal(item.stock_unit) && normal(m.molecule_name || m.name) === normal(item.molecule_name) && (m.id === item.medicine_id && !m.strength_options?.length || !!item.strength && m.strength_options?.some(s => normal(s) === normal(item.strength))))
   const stockByMedicine = new Map((stockQuery.data ?? []).map(row => [row.medicine_id, row.quantity]))
-  const chosenFor = (item: PrescribedItem) => choicesFor(item).find(m => m.id === selectedBrands[item.prescription_item_id])
+  // Pre-pick the product when there is no real choice: the only match, or the only one with Counter stock. Reception can still change it.
+  const autoChoice = (item: PrescribedItem) => {
+    const choices = choicesFor(item)
+    if (choices.length === 1) return choices[0].id
+    const stocked = choices.filter(choice => (stockByMedicine.get(choice.id) ?? 0) > 0)
+    return stocked.length === 1 ? stocked[0].id : undefined
+  }
+  const pickedBrand = (item: PrescribedItem) => selectedBrands[item.prescription_item_id] ?? autoChoice(item)
+  const chosenFor = (item: PrescribedItem) => choicesFor(item).find(m => m.id === pickedBrand(item))
   const supplyLines: SupplyLine[] | undefined = plan && detail ? [
     {kind:'consultation',description:'Consultation',quantity:1,unit_price_paise:plan.consultation_charge_paise,line_total_paise:plan.consultation_charge_paise},
     ...detail.filter(row => row.kind === 'procedure').map(row => ({kind:'procedure' as const,description:row.description,quantity:1,unit_price_paise:row.unit_price_paise,line_total_paise:row.unit_price_paise})),
@@ -167,10 +174,10 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
     if (!row.medicine_id) {
       const item = plan?.medicines.find(m => m.prescription_item_id === row.prescription_item_id)
       return item && choicesFor(item).length === 0
-        ? `${row.description}: no stocked product matches this molecule, strength and unit. Add that product (with its unit and price confirmed) under Inventory, then refresh this bill.`
+        ? `${row.description}: no stocked product matches this molecule, strength and unit. Add that product (with its unit and price confirmed) under Stock, then refresh this bill.`
         : `${row.description}: choose the stocked product that matches the doctor's molecule and strength.`
     }
-    if (row.quantity > Math.max(0, row.available_quantity??0)) return `${row.description}: only ${Math.max(0, row.available_quantity??0)} in Counter stock. Reduce the supplied units (0 if none can be supplied) or receive stock under Inventory.`
+    if (row.quantity > Math.max(0, row.available_quantity??0)) return `${row.description}: only ${Math.max(0, row.available_quantity??0)} in Counter stock. Reduce the supplied units (0 if none can be supplied) or receive stock under Stock.`
     return null
   }).find(Boolean)
   const payable = subtotal
@@ -266,7 +273,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
           <div className="bill-table-wrap"><table className="bill-lines"><thead><tr><th>Item</th><th>Supplied</th><th>Price</th><th>Amount</th></tr></thead><tbody>
             {billable.map((row, i) => {
               const prescribed = plan?.medicines.find(item => item.prescription_item_id === row.prescription_item_id)
-              return <tr key={i}><td><strong>{row.description}</strong><small>{row.kind === 'consultation' ? 'Consultation charge set by doctor' : row.kind === 'procedure' ? 'Procedure' : row.stock_unit}</small>{!bill && prescribed && !readOnly && <label className="field bill-brand-field"><span className="field-label">Stocked product · {prescribed.molecule_name} {prescribed.strength}</span><select value={selectedBrands[prescribed.prescription_item_id] ?? ''} onChange={e => setSelectedBrands(old => ({...old,[prescribed.prescription_item_id]:e.target.value}))}><option value="">Choose matching product</option>{choicesFor(prescribed).map(choice => <option key={choice.id} value={choice.id}>{choice.name} · {formatPaise(choice.price_paise)} / {choice.stock_unit} · {stockByMedicine.get(choice.id) ?? 0} available</option>)}</select></label>}</td><td>{!bill && !readOnly && row.kind==='medicine' && row.prescription_item_id ? <Input type="number" inputMode="numeric" min={0} max={Math.min(row.approved_quantity??0,row.available_quantity??0)} step={1} aria-label={`Supplied quantity for ${row.description}`} value={supplied[row.prescription_item_id]??String(row.quantity??0)} onChange={e=>setSupplied(old=>({...old,[row.prescription_item_id!]:e.target.value}))}/> : row.quantity ?? 1}{row.kind==='medicine' && 'approved_quantity' in row && row.approved_quantity!=null && <small>{row.approved_quantity} prescribed{'shortfall' in row && !!row.shortfall && ` · ${row.shortfall} not supplied`}</small>}</td><td>{formatPaise(row.unit_price_paise)}</td><td><strong>{formatPaise(row.line_total_paise ?? row.unit_price_paise)}</strong></td></tr>
+              return <tr key={i}><td><strong>{row.description}</strong><small>{row.kind === 'consultation' ? 'Consultation charge set by doctor' : row.kind === 'procedure' ? 'Procedure' : row.stock_unit}</small>{!bill && prescribed && !readOnly && <label className="field bill-brand-field"><span className="field-label">Stocked product · {prescribed.molecule_name} {prescribed.strength}</span><select value={pickedBrand(prescribed) ?? ''} onChange={e => setSelectedBrands(old => ({...old,[prescribed.prescription_item_id]:e.target.value}))}><option value="">Choose matching product</option>{choicesFor(prescribed).map(choice => <option key={choice.id} value={choice.id}>{choice.name} · {formatPaise(choice.price_paise)} / {choice.stock_unit} · {stockByMedicine.get(choice.id) ?? 0} available</option>)}</select></label>}</td><td>{!bill && !readOnly && row.kind==='medicine' && row.prescription_item_id ? <Input type="number" inputMode="numeric" min={0} max={Math.min(row.approved_quantity??0,row.available_quantity??0)} step={1} aria-label={`Supplied quantity for ${row.description}`} value={supplied[row.prescription_item_id]??String(row.quantity??0)} onChange={e=>setSupplied(old=>({...old,[row.prescription_item_id!]:e.target.value}))}/> : row.quantity ?? 1}{row.kind==='medicine' && 'approved_quantity' in row && row.approved_quantity!=null && <small>{row.approved_quantity} prescribed{'shortfall' in row && !!row.shortfall && ` · ${row.shortfall} not supplied`}</small>}</td><td>{formatPaise(row.unit_price_paise)}</td><td><strong>{formatPaise(row.line_total_paise ?? row.unit_price_paise)}</strong></td></tr>
             })}
           </tbody></table></div>
         )}

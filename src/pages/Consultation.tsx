@@ -10,14 +10,14 @@ import { DocumentsPanel } from '../components/DocumentsPanel'
 import { CarePanel } from '../components/CarePanel'
 import { RepQueueRows } from '../components/RepQueueRows'
 import { type TodayVisit } from '../components/TodayFlow'
-import { ConsultationClock } from '../components/ConsultationClock'
+import { DoctorOverview } from '../components/DoctorOverview'
 import { Button } from '../components/ui/button'
-import { useQueueAction } from '../lib/queueActions'
+import { useQueueAction, CANCEL_VISIT_DIALOG } from '../lib/queueActions'
+import { useAskReason } from '../lib/confirm'
 import { LoadingRows, QueryError } from '../components/QueryState'
 import { readPrescriptionPrint } from '../lib/prescriptionPrint'
 import { Billing } from '../components/Billing'
 import { IssuedPrescription } from '../components/IssuedPrescription'
-import { formatBody } from '../lib/patientBody'
 import '../components/Worklist.css'
 import './Consultation.css'
 import { useQueuePollInterval } from '../lib/realtimeStatus'
@@ -41,10 +41,10 @@ type DoctorVisit = {
   discount_requested_at: string | null
   patient_id: string
   with_doctor_at: string | null
-  patients: { name: string; age: number | null; gender: string | null; address: string | null; phone: string | null; height_cm: number | null; weight_kg: number | null } | null
+  patients: { name: string; age: number | null; gender: string | null; address: string | null; phone: string | null; height_cm: number | null; weight_kg: number | null; custom_fields: Record<string, unknown> | null; is_long_term: boolean | null } | null
 }
 
-type PastVisit = { id: string; arrived_at: string; complaint: string }
+type PastVisit = { id: string; arrived_at: string; complaint: string; follow_up_date: string | null }
 
 type PrescriptionItem = {
   medicine_id: string
@@ -67,10 +67,6 @@ type Comment = { id: string; body: string; created_at: string }
 function formatAgeSex(age: number | null, gender: string | null): string {
   const parts = [age != null ? String(age) : null, gender ? gender.charAt(0) : null].filter(Boolean)
   return parts.length ? parts.join(' · ') : '—'
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNavigation = 0 }: { userId: string; onOpenPatient: (id: string) => void; requestedVisitId?: string; alertNavigation?: number }) {
@@ -114,8 +110,9 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
     if (prescribingActive && requestedVisitId !== reviewVisitId) setGuard(true)
     else if (!prescribingActive) setReviewVisitId(requestedVisitId)
   }, [alertNavigation, requestedVisitId, prescribingActive, reviewVisitId])
-  const requested = useQuery({ queryKey: ['doctor-alert-visit', clinicId, requestedVisitId], refetchInterval: useQueuePollInterval(), enabled: !!clinicId && !!requestedVisitId, queryFn: async () => { const {data,error}=await supabase.from('visits').select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone, height_cm, weight_kg)').eq('clinic_id',clinicId!).eq('id',requestedVisitId!).maybeSingle(); if(error) throw error; return data as unknown as DoctorVisit | null } })
+  const requested = useQuery({ queryKey: ['doctor-alert-visit', clinicId, requestedVisitId], refetchInterval: useQueuePollInterval(), enabled: !!clinicId && !!requestedVisitId, queryFn: async () => { const {data,error}=await supabase.from('visits').select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone, height_cm, weight_kg, custom_fields, is_long_term)').eq('clinic_id',clinicId!).eq('id',requestedVisitId!).maybeSingle(); if(error) throw error; return data as unknown as DoctorVisit | null } })
   const queueAction = useQueueAction(clinicId)
+  const askReason = useAskReason()
 
   const interval = useQueuePollInterval()
   const today = startOfToday()
@@ -126,7 +123,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visits')
-        .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone, height_cm, weight_kg)')
+        .select('id, token_number, arrived_at, complaint, stage, patient_id, with_doctor_at, queue_position, queue_note, called_at, sent_in_at, not_here_at, discount_requested_at, patients(name, age, gender, address, phone, height_cm, weight_kg, custom_fields, is_long_term)')
         .eq('clinic_id', clinicId)
         .gte('arrived_at', today)
         .in('stage', ['waiting', 'called', 'with_doctor', 'not_here', 'ready_to_bill'])
@@ -177,7 +174,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
     queryFn: async () => {
       const { data, error } = await supabase
         .from('visits')
-        .select('id, arrived_at, complaint')
+        .select('id, arrived_at, complaint, follow_up_date')
         .eq('patient_id', current!.patient_id)
         .neq('id', current!.id)
         .order('arrived_at', { ascending: false })
@@ -281,43 +278,18 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
             <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />
           </ul>
           {reviewVisitId && <Button variant="secondary" onClick={()=>{setReviewVisitId(null);setWorkspace('overview')}}>Return to consultation</Button>}
-          {earlierCount>0 && <div className="doctor-earlier"><p className="field-hint">Left open from earlier days · {earlierCount}</p><p>Not counted in today’s queue. Reception can review them under Earlier open visits.</p></div>}
+          {earlierCount>0 && <div className="doctor-earlier"><p className="field-hint">Still open from earlier days · {earlierCount}</p><p>Not counted in today’s queue. Reception can close them under Earlier days.</p></div>}
           </div>
         </aside>
         <div className="consultation-stage">
           {!current ? <div className="doctor-idle"><h2>Ready for the next patient</h2><p className="readout-empty">Call next to begin a consultation.</p></div> : <>
             {workspace !== 'overview' && <div className="rx-toolbar"><Button variant="ghost" onClick={backToWorkspace}>← Back to workspace</Button><strong>{workspace === 'billing' ? 'Bill review' : 'Prescription'} · #{current.token_number} · {current.patients?.name}</strong></div>}
             <div className="doctor-overview" hidden={workspace !== 'overview'}>
-              <section className="doctor-current">
-                <p className={current.stage==='called' ? 'status-amber' : 'status-blue'}>{current.stage==='called' ? 'Called · waiting for reception to send this patient in' : current.sent_in_at ? `Sent in by reception · ${new Date(current.sent_in_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` : 'With doctor'}</p>
-                <div className="doctor-patient-summary"><div>
-                  <p className="doctor-queue-meta">#{current.token_number} · {pastVisits ? pastVisits.length ? `Follow-up · ${pastVisits.length+1} visits` : 'New patient' : 'Loading visits…'}{current.stage === 'with_doctor' && current.with_doctor_at && <ConsultationClock startedAt={current.with_doctor_at} />}</p>
-                  <h2>{current.patients?.name}</h2>
-                  <p>{formatAgeSex(current.patients?.age ?? null, current.patients?.gender ?? null)}{formatBody(current.patients?.height_cm, current.patients?.weight_kg) ? ` · ${formatBody(current.patients?.height_cm, current.patients?.weight_kg)}` : ''}{current.patients?.phone ? ` · ${current.patients.phone}` : ''}</p>
-                  {current.patients?.address && <p className="field-hint">{current.patients.address}</p>}
-                </div>{sent ? <div className="doctor-sent"><strong className="status-green">Prescription sent to billing</strong><Button variant="secondary" onClick={()=>setWorkspace('prescription')}>View prescription</Button></div> : <Button disabled={current.stage==='called'} onClick={() => setWorkspace('prescription')}>{prescribingActive ? 'Continue prescription →' : 'Start prescription →'}</Button>}</div>
-              </section>
-              <div className="doctor-context">
-                <section><h3>Today, from reception</h3><p>{current.complaint || 'No complaint recorded.'}</p></section>
-                <section><h3>Last prescription</h3><p>{prescriptions?.find(p=>p.visit_id!==current.id)?.prescription_items.map(item => [item.molecule_name || item.medicines?.name, item.dosage_frequency, `${item.duration_days} days`].filter(Boolean).join(' ')).join(' · ') || 'No prescription on record.'}</p></section>
-              </div>
-              <section className="record-section"><div className="rail-head"><h3 className="readout-heading doctor-section-label">History</h3><Button variant="secondary" onClick={()=>onOpenPatient(current.patient_id)}>Full record →</Button></div>
-                {!pastVisits?.length ? <p className="readout-empty">No past visits.</p> : <ul className="past-visit-list">{pastVisits.slice(0,3).map(v => <li key={v.id} className="history-row">
-                  <time>{formatDate(v.arrived_at)}</time><div><p>{v.complaint}</p>{prescriptions?.filter(p => p.visit_id === v.id).map(p => <div key={p.id}>
-                    {p.diagnosis && <p>{p.diagnosis}</p>}
-                    <p className="field-hint">{p.prescription_items.map(item => [item.molecule_name || item.medicines?.name, item.dosage_frequency, `${item.duration_days} days`].filter(Boolean).join(' ')).join(' · ')}</p>
-                    {p.advice && <p className="field-hint">{p.advice}</p>}
-                  </div>)}</div>
-                </li>)}</ul>}
-              </section>
-              <section className="record-section"><h3 className="readout-heading">Personal notes · for the doctor</h3>
-                {!!comments?.length && <ul className="comment-list">{comments.map(c => <li key={c.id} className="comment-item"><span className="comment-date">{formatDate(c.created_at)}</span><p>{c.body}</p></li>)}</ul>}
-                <form className="action-row" onSubmit={e => { e.preventDefault(); if (commentBody.trim()) addComment.mutate({patientId:current.patient_id,body:commentBody.trim()}) }}>
-                  <div className="field comment-field"><textarea id="comment-body" aria-label="Personal note" rows={1} placeholder="Write a note about this patient" value={commentBody} onChange={e => setCommentBody(e.target.value)} /></div>
-                  <Button type="submit" variant="secondary" disabled={addComment.isPending || !commentBody.trim()}>{addComment.isPending ? 'Adding…' : 'Add note'}</Button>
-                </form>
-                {addComment.isError && <p className="form-error">Couldn't save the note — try again.</p>}
-              </section>
+              <DoctorOverview clinicId={clinicId} visit={current} pastVisits={pastVisits} prescriptions={prescriptions} comments={comments}
+                noteDraft={commentBody} onNoteDraft={setCommentBody} onAddNote={() => addComment.mutate({ patientId: current.patient_id, body: commentBody.trim() })} noteBusy={addComment.isPending} noteFailed={addComment.isError}
+                sent={sent} prescribingActive={prescribingActive} busy={queueAction.isPending}
+                onStart={() => setWorkspace('prescription')} onViewPrescription={() => setWorkspace('prescription')} onOpenRecord={() => onOpenPatient(current.patient_id)}
+                onCancel={() => void askReason({ ...CANCEL_VISIT_DIALOG, body: `#${current.token_number} ${current.patients?.name ?? ''}. ${CANCEL_VISIT_DIALOG.body}` }).then(why => { if (why) queueAction.mutate({ visitId: current.id, action: 'cancel', reason: why }) })} />
             </div>
             <div id="stage-prescription" hidden={workspace === 'overview'}>
               {sent && workspace === 'billing' ? <Billing clinicId={clinicId} visitId={current.id} readOnly onClose={()=>setWorkspace('overview')} /> : sent ? <IssuedPrescription key={current.id} userId={userId} clinicId={clinicId} visitId={current.id} /> : <PrescriptionForm userId={userId} visit={current} key={current.id} clinicId={clinicId} visitId={current.id} pastPrescriptions={prescriptions} onActiveChange={setPrescribingActive}>

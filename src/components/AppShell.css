@@ -14,8 +14,7 @@
 .shell-nav-item:hover, .shell-nav-item[aria-current='page'] { color: var(--ink); background: var(--hover); }
 .shell-nav-item[aria-current='page'] { font-weight: 600; }
 .shell-billing-count { display: inline-grid; place-items: center; min-width: var(--nav-count-size); height: var(--nav-count-size); padding-inline: var(--space-2xs); border-radius: var(--radius-pill); background: var(--blue-tint); color: var(--blue); font-size: var(--text-xs); font-weight: 700; font-variant-numeric: tabular-nums; }
-.shell-queue { display: flex; align-items: center; gap: var(--space-xs); min-height: var(--control-height); padding: 0 10px; border-radius: var(--r-sm); background: var(--panel); color: var(--ink); font-size: var(--text-sm); text-decoration: none; white-space: nowrap; }
-.shell-queue > span:last-child, .shell-sync { color: var(--faint); }
+.shell-sync { color: var(--faint); }
 .shell-status-dot { width: var(--status-dot-size); height: var(--status-dot-size); border-radius: var(--radius-pill); background: var(--live); flex: none; }
 .shell-status-dot.offline { background: var(--placeholder); }
 .shell-sync { font-size: var(--text-xs); }
@@ -26,10 +25,16 @@
 .shell-menu > summary::-webkit-details-marker { display: none; }
 .shell-menu-items { position: absolute; top: 100%; right: 0; min-width: max-content; display: flex; flex-direction: column; padding: var(--space-6); background: var(--bg); border-radius: var(--r-md); box-shadow: var(--shadow-pop); z-index: 40; }
 .shell-user-email { font-size: var(--text-xs); padding: var(--space-xs) var(--space-sm); color: var(--muted); }
-.shell-content { flex: 1; min-width: 0; background: var(--bg); padding: var(--page-top) var(--page-padding); }
-.shell-content > * { max-width: var(--content-width); margin-inline: auto; }
-.shell-content:has(> .reception-page, > .consultation-page, > .billing-desk, > .support-layout, > .settings-page, > .refill-workspace, > .patients-workspace) { padding: 0; }
-.shell-content > :is(.reception-page, .consultation-page, .billing-desk, .support-layout, .settings-page, .refill-workspace, .patients-workspace) { max-width: none; }
+.shell-content { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+/* Plain pages get the page padding and a centred column; workspace pages fill the width and the full height (their grey side columns run top to bottom). */
+.shell-content > :not(.shell-subnav, .reception-page, .consultation-page, .billing-desk, .support-layout, .settings-page, .refill-workspace, .patients-workspace) { width: 100%; max-width: calc(var(--content-width) + 2 * var(--page-padding)); margin-inline: auto; padding: var(--page-top) var(--page-padding); }
+.shell-content > :is(.reception-page, .consultation-page, .billing-desk, .support-layout, .settings-page, .refill-workspace, .patients-workspace) { flex: 1; max-width: none; }
+.shell-subnav { display: flex; gap: var(--space-2xs); padding: var(--space-sm) var(--page-padding) 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.shell-subnav .shell-nav-item { border-radius: var(--r-sm) var(--r-sm) 0 0; }
+.shell-subnav .shell-nav-item[aria-current='page'] { background: transparent; box-shadow: inset 0 -2px 0 var(--blue); }
+.shell-avatar { display: grid; place-items: center; width: var(--control-height); height: var(--control-height); border-radius: var(--radius-pill); background: var(--blue-tint); color: var(--blue-ink); font-size: var(--text-sm); font-weight: 700; cursor: pointer; list-style: none; }
+.shell-avatar:hover { background: var(--blue-row); }
+.shell-sync:empty { display: none; }
 .shell-mobile-toggle { display: none; }
 .shell-mobile-links { display: flex; flex-direction: column; margin-block: var(--space-lg); }
 .shell-mobile-links .shell-nav-item { min-height: var(--space-48); }
@@ -40,18 +45,18 @@
 @media (max-width: 767px) {
  .shell-header { padding: var(--space-xs) var(--space-md); gap: var(--space-xs); }
  .shell-clinic-name { flex-basis: 100%; }
- .shell-nav, .shell-status > :not(.shell-queue) { display: none; }
+ .shell-nav, .shell-status { display: none; }
  .shell-mobile-toggle { display: inline-flex; }
- .shell-status { flex: 1; }
- .shell-content { padding: var(--space-lg) var(--space-md); }
+ .shell-content > :not(.shell-subnav, .reception-page, .consultation-page, .billing-desk, .support-layout, .settings-page, .refill-workspace, .patients-workspace) { padding: var(--space-lg) var(--space-md); }
+ .shell-subnav { padding-inline: var(--space-md); }
 }
-.billing-desk { display: grid; grid-template-columns: var(--record-rail-width) minmax(0, 1fr); min-height: 100%; }
+.billing-desk { display: grid; grid-template-columns: var(--record-rail-width) minmax(0, 1fr); }
 .record-sidebar { min-width: 0; padding: var(--page-top) var(--space-lg); background: var(--surface-2); }
 .record-sidebar > .field-hint { margin-bottom: var(--space-sm); }
 .record-selector { display: block; width: 100%; border: 0; background: transparent; color: var(--text); font: inherit; font-size: var(--text-sm); text-align: left; padding: var(--space-sm); border-radius: 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; cursor: pointer; }
 .record-selector small { display: block; color: var(--text-tertiary); font-size: var(--text-xs); }
 .record-selector[aria-pressed='true'], .record-selector:hover { background: var(--surface); }
-.support-layout { display: grid; grid-template-columns: var(--record-rail-width) minmax(0, 1fr); min-height: 100%; }
+.support-layout { display: grid; grid-template-columns: var(--record-rail-width) minmax(0, 1fr); }
 .support-layout .record-sidebar { display: flex; flex-direction: column; gap: var(--space-xs); }
 .support-layout .shell-nav-item[aria-current='page'] { background: var(--surface); }
 .support-content { padding: var(--page-top) var(--page-padding); min-width: 0; }
@@ -66,3 +71,13 @@
 
 .shell-event { color: var(--blue); font-weight: 600; }
 @media (max-width: 1099px) { .shell-event { display: none; } }
+.shell-search { position: relative; width: 14rem; flex: 0 1 14rem; }
+.shell-search-input { width: 100%; height: var(--control-height); border: 0; border-bottom: 1px solid var(--line-2); background: transparent; padding: 0 var(--space-2xs); font: inherit; font-size: var(--text-sm); color: var(--ink); }
+.shell-search-input:focus { outline: 0; border-bottom-color: var(--blue); }
+.shell-search-results { position: absolute; top: 100%; right: 0; z-index: 40; width: max(100%, 22rem); max-height: var(--dropdown-height); overflow-y: auto; margin: var(--space-2xs) 0 0; padding: var(--space-6); list-style: none; background: var(--bg); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+.shell-search-hit { display: flex; align-items: baseline; gap: var(--space-sm); width: 100%; padding: var(--space-xs) var(--space-sm); border: 0; border-radius: var(--r-sm); background: transparent; color: var(--ink); font: inherit; font-size: var(--text-sm); text-align: left; cursor: pointer; }
+.shell-search-hit[data-active] { background: var(--hover); }
+.shell-search-hit small { color: var(--faint); font-size: var(--text-xs); }
+.shell-search-kind { flex: none; width: 4.5rem; color: var(--faint); font-size: var(--text-xs); }
+.shell-search-empty { padding: var(--space-sm); color: var(--muted); font-size: var(--text-sm); }
+@media (max-width: 767px) { .shell-search { width: 100%; flex-basis: 100%; } .shell-search-results { width: 100%; } }
