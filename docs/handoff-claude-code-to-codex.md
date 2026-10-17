@@ -2,6 +2,8 @@
 
 ## START HERE (written 2026-10-17 for the switch to Codex; this block is the current state, the rest is history)
 
+**Current Codex delta (2026-10-17):** main/production verified at `1eeaa92`. Open, unmerged PR35 repairs tests/CI; draft PR36 adds reminder settings; draft PR37 adds Drive PDF archives and continuation/receipt fixes; PR38 fixes issued-prescription viewing and offline printing. Doctor/reception browser and offline replay checks passed. Physical printer/Safari acceptance and hosted CI (account billing block) remain. Production untouched; merge only when the user instructs. The table below is historical; see newest section9 entries.
+
 **Verify first:** `git fetch origin && git log --oneline -3 origin/main origin/production && gh pr list` and `cat supabase/.temp/project-ref` (root must say `cofnrcgsolluyhghutah`, staging).
 
 | Thing | State at hand-off |
