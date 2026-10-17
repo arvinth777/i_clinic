@@ -380,3 +380,18 @@ metadata and authorization. Preserve doctor-only clinical access. No DICOM
 viewer, public sharing, reception access or Drive migration was requested.
 Google Cloud OAuth setup is required in addition to creating the account.
 See `patient-documents-setup.md` for implementation, setup and release gates.
+
+### Drive PDF archive implementation checkpoint — 2026-10-17
+
+Implemented on an independent draft branch, not released: atomic issued snapshots, offline-safe server jobs and owner/clinic IndexedDB PDF retries, source/version deduplication, same A4 print components with continuation headers/footers, patient/source links, receipt-only reception path, settlements and corrections. Name-only pharmacy receipts stay outside patient history. Actual synthetic staging Drive upload/retry/download and permission checks pass; application browser/offline/Safari and fresh physical-printer acceptance remain open. A paragraph/row taller than an A4 body remains visibly pending instead of truncating; processing other jobs continues. Existing backups and other deferred backlog items remain unchanged.
+
+## Alert settings decisions — 2026-10-17
+
+User approved completing alert settings and confirmed sound-only mute: every
+clinical, stock, offline and failed-save alert stays visible. The existing
+five-minute called-patient reminder and 16:00 IST closing are defaults; doctor
+or administrator may change them with the no-show threshold in Settings.
+Closing review includes unresolved visits, visits awaiting billing, individual
+unpaid bills at reception, and this device's pending saves/failed uploads.
+The checklist does not claim visibility into another device's pending queue.
+Nothing removes patients or settles payments automatically.

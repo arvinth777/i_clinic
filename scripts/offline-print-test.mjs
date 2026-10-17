@@ -58,7 +58,6 @@ async function signIn(email, password) {
   return client
 }
 const doctorA = await signIn('doctor.a@staging.test', userEnv.TEST_DOCTOR_A_PASSWORD)
-const receptionA = await signIn('reception.a@staging.test', userEnv.TEST_RECEPTION_A_PASSWORD)
 
 // Fixture: a fresh visit with a REAL prescribed medicine, so a print
 // showing "No medicines prescribed" is unambiguously wrong, not vacuous.

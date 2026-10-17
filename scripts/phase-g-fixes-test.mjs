@@ -1,3 +1,5 @@
+import { assertStaging } from './clinic-workflow-fixture.mjs'
+import { checked, sendToBilling, consultationOnlyFixture } from './clinic-workflow-fixture.mjs'
 // TDD for the Phase G fix pass (docs/STATUS.md's ranked findings). One
 // section per finding, in the same severity order the fix pass itself
 // follows -- each section's own comment says which finding it closes and
@@ -26,6 +28,7 @@ function loadEnv(path) {
 const appEnv = loadEnv('.env.local')
 const userEnv = loadEnv('.env.test-users.local')
 const SUPABASE_URL = appEnv.VITE_SUPABASE_URL
+assertStaging(SUPABASE_URL)
 const ANON_KEY = appEnv.VITE_SUPABASE_ANON_KEY
 const CLINIC_A_ID = '23e03361-9d6c-49f5-83b7-ad57f4a0c5ce'
 
@@ -36,7 +39,7 @@ function report(label, pass, detail) {
 }
 
 async function signIn(email, password) {
-  const client = createClient(SUPABASE_URL, ANON_KEY, { realtime: { transport: ws } })
+  const client = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false }, realtime: { transport: ws } })
   const { error } = await client.auth.signInWithPassword({ email, password })
   if (error) throw new Error(`sign-in failed for ${email}: ${error.message}`)
   return client
@@ -51,20 +54,18 @@ console.log('\nsigned in as doctor.a, reception.a, admin.only\n')
 // Fixture helpers, same shape as phase-f-test.mjs's own (that script
 // exercises confirm_bill's snapshot args; this one needs a real
 // needs_reconciliation bill to correct, same underlying mechanism).
-async function makeVisit(complaint) {
+async function makeVisit(complaint, arrivedAt = new Date().toISOString()) {
   const stamp = Date.now() + Math.random()
   const { data: patient, error: patientErr } = await doctorA.from('patients').insert({ clinic_id: CLINIC_A_ID, name: `Phase G Fix Test Patient ${stamp}`, age: 40 }).select('id').single()
   if (patientErr) throw new Error(`fixture: creating patient failed: ${patientErr.message}`)
-  const { data: visit, error: visitErr } = await doctorA.from('visits').insert({ clinic_id: CLINIC_A_ID, patient_id: patient.id, arrived_at: new Date().toISOString(), complaint }).select('id').single()
+  const { data: visit, error: visitErr } = await doctorA.from('visits').insert({ clinic_id: CLINIC_A_ID, patient_id: patient.id, arrived_at: arrivedAt, complaint }).select('id').single()
   if (visitErr) throw new Error(`fixture: creating visit failed: ${visitErr.message}`)
   return visit.id
 }
 
 async function readyForBilling(visitId, finalAmountPaise) {
-  await doctorA.from('visits').update({ stage: 'with_doctor' }).eq('id', visitId)
-  await doctorA.from('visit_pricing').update({ final_amount_paise: finalAmountPaise }).eq('visit_id', visitId)
-  await doctorA.from('visits').update({ stage: 'packing' }).eq('id', visitId)
-  await receptionA.from('visits').update({ stage: 'ready_at_reception' }).eq('id', visitId)
+  const prescriptions = checked(await doctorA.from('prescriptions').select('id').eq('visit_id', visitId))
+  return prescriptions.length ? sendToBilling(doctorA, receptionA, CLINIC_A_ID, visitId, finalAmountPaise) : consultationOnlyFixture(doctorA, receptionA, CLINIC_A_ID, visitId, finalAmountPaise)
 }
 
 async function pricingOf(visitId) {
@@ -155,8 +156,8 @@ async function pricingOf(visitId) {
   if (flaggedAfterErr) throw new Error(`fixture check failed: ${flaggedAfterErr.message}`)
   report('the original bill no longer appears in bills_needing_reconciliation once corrected', !flaggedAfter, JSON.stringify(flaggedAfter))
 
-  const { error: doubleCorrectErr } = await doctorA.rpc('correct_bill', { p_bill_id: billId })
-  report('correcting an already-corrected bill is rejected', !!doubleCorrectErr, doubleCorrectErr?.message)
+  const { data: repeatedId, error: doubleCorrectErr } = await doctorA.rpc('correct_bill', { p_bill_id: billId })
+  report('retrying a correction returns the same immutable bill', !doubleCorrectErr && repeatedId === newBillId, doubleCorrectErr?.message)
 }
 
 // ============================================================
@@ -182,21 +183,9 @@ async function pricingOf(visitId) {
 {
   const yesterday = new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString() // safely into "yesterday" regardless of timezone
 
-  const staleUnbilledId = await makeVisit('phase g fix test: stale unbilled visit')
-  await doctorA.from('visits').update({ arrived_at: yesterday }).eq('id', staleUnbilledId)
-  await readyForBilling(staleUnbilledId, 15000) // stage: ready_at_reception, never paid
-
-  const stalePaidId = await makeVisit('phase g fix test: stale already-paid visit')
-  await doctorA.from('visits').update({ arrived_at: yesterday }).eq('id', stalePaidId)
-  await readyForBilling(stalePaidId, 15000)
-  const paidSnapshot = await pricingOf(stalePaidId)
-  await receptionA.rpc('confirm_bill', {
-    p_visit_id: stalePaidId,
-    p_payment_method: 'cash',
-    p_snapshot_final_amount_paise: paidSnapshot.final_amount_paise,
-    p_snapshot_revision_number: paidSnapshot.revision_number,
-  })
-
+  const staleUnbilledId = await makeVisit('phase g fix test: stale unbilled visit', yesterday)
+  const staleClosedId = await makeVisit('phase g fix test: stale no-show visit', yesterday)
+  checked(await receptionA.rpc('queue_visit_action', { p_visit_id: staleClosedId, p_action: 'no_show', p_request_id: crypto.randomUUID() }))
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
 
@@ -208,11 +197,19 @@ async function pricingOf(visitId) {
     .from('visits')
     .select('id, stage')
     .eq('clinic_id', CLINIC_A_ID)
-    .or(`arrived_at.gte.${todayStart.toISOString()},stage.neq.paid`)
+    .lt('arrived_at', todayStart.toISOString())
+    .in('stage', ['waiting', 'called', 'with_doctor', 'not_here', 'ready_to_bill'])
   if (fixedErr) throw new Error(`fixed query failed: ${fixedErr.message}`)
   const fixedIds = new Map((fixedQuery ?? []).map((v) => [v.id, v.stage]))
-  report('the fixed query surfaces the stale UNBILLED visit', fixedIds.get(staleUnbilledId) === 'ready_at_reception', JSON.stringify(fixedIds.get(staleUnbilledId)))
-  report('the fixed query still excludes the stale PAID visit (no worklist bloat from settled history)', !fixedIds.has(stalePaidId), JSON.stringify(fixedIds.has(stalePaidId)))
+  report('the fixed query surfaces the stale UNBILLED visit', fixedIds.get(staleUnbilledId) === 'waiting', JSON.stringify(fixedIds.get(staleUnbilledId)))
+  report('the fixed query still excludes the stale NO-SHOW visit (closed history stays out of earlier open visits)', !fixedIds.has(staleClosedId), JSON.stringify(fixedIds.has(staleClosedId)))
+  // Existing immutable staging history supplies midnight billing cases that
+  // cannot be fabricated by editing arrival timestamps through the public API.
+  for (const stage of ['ready_to_bill', 'paid']) {
+    const historical = checked(await doctorA.from('visits').select('id').eq('clinic_id', CLINIC_A_ID).lt('arrived_at', todayStart.toISOString()).eq('stage', stage).limit(1))
+    if (!historical.length) throw new Error(`Staging requires an older synthetic ${stage} fixture for the midnight regression`)
+    report(`earlier-open query ${stage === 'paid' ? 'excludes paid' : 'includes ready-to-bill'} history`, fixedIds.has(historical[0].id) === (stage === 'ready_to_bill'))
+  }
 }
 
 // ============================================================
@@ -232,7 +229,7 @@ async function pricingOf(visitId) {
   // would make a bare "permission denied" assertion pass for the wrong
   // reason (caught by running this before the migration and reading the
   // actual message, not assumed).
-  const anonClient = createClient(SUPABASE_URL, ANON_KEY, { realtime: { transport: ws } })
+  const anonClient = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false }, realtime: { transport: ws } })
   const { data, error } = await anonClient.rpc('search_patients', { p_clinic_id: CLINIC_A_ID, p_query: 'a' })
   report(
     'anon is denied at the search_patients grant itself, before ever reaching RLS',
@@ -298,3 +295,5 @@ if (failed.length) {
   for (const f of failed) console.log(`  FAIL - ${f.label}`)
   process.exitCode = 1
 }
+
+process.exit(process.exitCode ?? 0)

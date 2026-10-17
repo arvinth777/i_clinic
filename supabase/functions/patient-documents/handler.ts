@@ -1,6 +1,7 @@
 import { MAX_FILE_BYTES, sha256, uuid, validateFile, validateMetadata, type FileMetadata } from '../_shared/patientFiles.ts'
 
 type Config = { supabaseUrl: string; anonKey: string; serviceKey: string; appUrl: string; clientId?: string; clientSecret?: string; encryptionKey?: string }
+type Archive = { id: string; clinic_id: string; kind: string; status: string; drive_file_id: string | null; content_sha256: string | null; size_bytes: number | null }
 type Connection = { account_id: string; account_email: string; folder_id: string; refresh_token_ciphertext: string | null }
 type StoredFile = FileMetadata & { mime_type: string; size_bytes: number; content_sha256: string; drive_file_id: string; status: string; uploaded_by: string }
 class Failure extends Error { status: number; constructor(status: number, message: string) { super(message); this.status = status } }
@@ -76,10 +77,10 @@ export function createHandler(config: Config, fetcher: typeof fetch = fetch) {
       const user = await authResponse.json()
       if (!uuid(user.id)) throw new Failure(401, 'Sign in to the clinic app again.')
       const action = new URL(req.url).searchParams.get('action')
-      const raw = await limitedBody(req, action === 'upload' ? MAX_FILE_BYTES + 16384 : 16384)
+      const raw = await limitedBody(req, (action === 'upload' || action === 'archive-upload') ? MAX_FILE_BYTES + 16384 : 16384)
       let input: Record<string, unknown>; let file: File | undefined
       try {
-        if (action === 'upload') {
+        if (action === 'upload' || action === 'archive-upload') {
           const form = await new Response(raw, { headers: { 'Content-Type': req.headers.get('Content-Type') ?? '' } }).formData()
           input = JSON.parse(String(form.get('metadata')))
           const entry = form.get('file')
@@ -90,7 +91,11 @@ export function createHandler(config: Config, fetcher: typeof fetch = fetch) {
       } catch { throw new Failure(400, 'Invalid document request.') }
       const clinicId = input.clinic_id
       if (!uuid(clinicId)) throw new Failure(400, 'Choose a clinic.')
-      const roles = await db<{ role: string }[]>('user_roles', { select: 'role', user_id: `eq.${user.id}`, clinic_id: `eq.${clinicId}`, role: 'eq.doctor', limit: '1' })
+      const archiveAction = action === 'archive-upload' || action === 'archive-content'
+      if (archiveAction && !uuid(input.id)) throw new Failure(400, 'Invalid archive reference.')
+      const [archive] = archiveAction ? await db<Archive[]>('document_archives', {id: `eq.${input.id}`, clinic_id: `eq.${clinicId}`, select: 'id,clinic_id,kind,status,drive_file_id,content_sha256,size_bytes', limit: '1'}) : []
+      if (archiveAction && !archive) throw new Failure(404, 'Archive not found.')
+      const roles = await db<{ role: string }[]>('user_roles', { select: 'role', user_id: `eq.${user.id}`, clinic_id: `eq.${clinicId}`, role: archive?.kind === 'receipt' ? 'in.(doctor,receptionist)' : 'eq.doctor', limit: '1' })
       if (!roles.length) throw new Failure(403, 'Only the clinic doctor can access patient documents.')
       if (action === 'status' && !configured) return json({ configured: false, connected: false })
       if (!configured) throw new Failure(503, 'Google Drive setup is not complete yet.')
@@ -134,6 +139,58 @@ export function createHandler(config: Config, fetcher: typeof fetch = fetch) {
         return json({ connected: false })
       }
       if (!connection?.refresh_token_ciphertext) throw new Failure(409, 'Connect the clinic Google Drive account first.')
+      if (archiveAction && archive) {
+        const token = (await tokenRequest({ grant_type: 'refresh_token', refresh_token: await decryptToken(connection.refresh_token_ciphertext, config.encryptionKey!, clinicId) })).access_token
+        const match = {id: `eq.${archive.id}`, clinic_id: `eq.${clinicId}`}
+        if (action === 'archive-content') {
+          if (archive.status !== 'ready' || !archive.drive_file_id) throw new Failure(409, 'This PDF is not uploaded yet.')
+          const response = await google(`${DRIVE}/files/${encodeURIComponent(archive.drive_file_id)}?alt=media`, token)
+          const blob = await limitedBody(new Request('https://local.invalid', {method:'POST', body:response.body, duplex:'half'} as RequestInit), MAX_FILE_BYTES)
+          if (await sha256(await blob.arrayBuffer()) !== archive.content_sha256) throw new Failure(409, 'The archived file changed in Google Drive.')
+          return new Response(blob, {headers:{...headers, 'Content-Type':'application/pdf', 'Content-Disposition':`attachment; filename="${archive.kind}-${archive.id}.pdf"`, 'Content-Security-Policy':"sandbox; default-src 'none'"}})
+        }
+        if (file?.type !== 'application/pdf') throw new Failure(400, 'An archive must be a PDF.')
+        try { await validateFile(file) } catch (error) { throw new Failure(400, (error as Error).message) }
+        if (archive.status === 'ready') return json({id:archive.id})
+        const lease = crypto.randomUUID()
+        const [claimed] = await db<Archive[]>('rpc/claim_document_archive', {}, 'POST', {p_id:archive.id,p_lease_id:lease})
+        if (!claimed) throw new Failure(503, 'Another device is uploading this PDF. It will retry automatically.')
+        const leased = {...match, lease_id:`eq.${lease}`}
+        try {
+          let record = claimed
+          // A previous upload may have finished just before its response was lost.
+          if (record.drive_file_id && record.content_sha256) {
+            const existing = await fetcher(`${DRIVE}/files/${encodeURIComponent(record.drive_file_id)}?fields=id,size,mimeType,sha256Checksum,trashed`, {redirect:'error',headers:{Authorization:`Bearer ${token}`}})
+            if (existing.ok) {
+              const saved = await existing.json()
+              if (saved.trashed || saved.mimeType !== 'application/pdf' || Number(saved.size) !== Number(record.size_bytes) || saved.sha256Checksum !== record.content_sha256) throw new Failure(409, 'The archived file changed in Google Drive.')
+              await db('document_archives', leased, 'PATCH', {status:'ready',ready_at:new Date().toISOString(),last_error:null})
+              return json({id:record.id})
+            }
+            if (existing.status !== 404) throw new Failure(503, 'Google Drive is unavailable. Try again.')
+          }
+          const hash = await sha256(await file.arrayBuffer())
+          if (!record.drive_file_id) {
+            const ids = await (await google(`${DRIVE}/files/generateIds?count=1&space=drive&type=files`, token)).json()
+            if (typeof ids.ids?.[0] !== 'string') throw new Failure(503, 'Could not prepare the archive upload.')
+            record = {...record,drive_file_id:ids.ids[0]}
+          }
+          await db('document_archives', leased, 'PATCH', {drive_file_id:record.drive_file_id,content_sha256:hash,size_bytes:file.size})
+          const init = await google('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', token, {method:'POST',headers:{'Content-Type':'application/json','X-Upload-Content-Type':'application/pdf','X-Upload-Content-Length':String(file.size)},body:JSON.stringify({id:record.drive_file_id,name:`${record.kind}-${record.id}.pdf`,mimeType:'application/pdf',parents:[connection.folder_id]})})
+          if (init.status !== 409) {
+            const location=init.headers.get('Location')
+            if (!location || new URL(location).origin !== 'https://www.googleapis.com' || !new URL(location).pathname.startsWith('/upload/drive/')) throw new Failure(503,'Google returned an invalid upload destination.')
+            await google(location,token,{method:'PUT',headers:{'Content-Type':'application/pdf'},body:file})
+          }
+          const saved=await (await google(`${DRIVE}/files/${encodeURIComponent(record.drive_file_id!)}?fields=id,size,mimeType,sha256Checksum,trashed`,token)).json()
+          if (saved.trashed || saved.mimeType !== 'application/pdf' || Number(saved.size)!==file.size || saved.sha256Checksum!==hash) throw new Failure(409,'Google Drive could not verify the archived PDF.')
+          await db('document_archives',leased,'PATCH',{status:'ready',ready_at:new Date().toISOString(),last_error:null})
+          return json({id:record.id})
+        } catch (error) {
+          await db('document_archives',leased,'PATCH',{last_error:error instanceof Failure ? error.message : 'Archive upload failed. Retry.'})
+          throw error
+        } finally { await db('document_archives',leased,'PATCH',{lease_id:null,lease_until:null}) }
+      }
       const patientId = input.patient_id
       if (!uuid(patientId)) throw new Failure(400, 'Choose a patient.')
       const patients = await db<{ id: string }[]>('patients', { id: `eq.${patientId}`, clinic_id: `eq.${clinicId}`, select: 'id', limit: '1' })

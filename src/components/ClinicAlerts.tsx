@@ -19,7 +19,7 @@ export function ClinicAlerts({ open, onClose, onOpen, clinicId, userId, isDoctor
   const [recent, setRecent] = useState<RecentAlert[]>([])
   const [ready, setReady] = useState(false)
   const [error, setError] = useState('')
-  const [tab, setTab] = useState<'active' | 'recent'>('active')
+  const [tab, setTab] = useState<'active' | 'recent' | 'closing'>('active')
   const [limit, setLimit] = useState(50)
   const [now, setNow] = useState(() => Date.now())
   const key = `clinic-alert-history:${clinicId}:${userId}`
@@ -53,19 +53,20 @@ export function ClinicAlerts({ open, onClose, onOpen, clinicId, userId, isDoctor
       pages(() => supabase.from('visits').select('id,patient_id,token_number,stage,arrived_at,called_at,not_here_at,discount_requested_at').eq('clinic_id', clinicId).in('stage', ['waiting','called','with_doctor','not_here','ready_to_bill']).order('id')),
       pages(() => supabase.from('medicines').select('id,name,low_stock_threshold,expiry_date').eq('clinic_id', clinicId).order('id')),
       pages(() => supabase.from('medicine_stock').select('medicine_id,quantity').eq('clinic_id', clinicId).order('medicine_id').order('stock_point_id')),
-      supabase.from('clinics').select('no_show_minutes').eq('id', clinicId).single(),
+      supabase.from('clinics').select('no_show_minutes,called_reminder_minutes,closing_minute').eq('id', clinicId).single(),
       isDoctor ? pages(() => supabase.from('bill_line_items').select('bill_id,shortfall,bills!inner(visit_id,confirmed_at,visits(patient_id,token_number))').eq('clinic_id', clinicId).gt('shortfall', 0).gte('bills.confirmed_at', today).order('id')) : Promise.resolve([]),
+      !isDoctor ? pages(() => supabase.from('unpaid_bills').select('bill_id,visit_id,token_number,final_amount_paise').eq('clinic_id', clinicId).order('bill_id')) : Promise.resolve([]),
     ])
     for (const result of results) if (result.status === 'rejected') throw result.reason
     const values = results.map(result => (result as PromiseFulfilledResult<unknown>).value)
-    const settings = values[3] as { data: { no_show_minutes: number }; error: unknown }
+    const settings = values[3] as { data: { no_show_minutes: number; called_reminder_minutes: number; closing_minute: number }; error: unknown }
     if (settings.error) throw settings.error
-    return { visits: values[0], medicines: values[1], stock: values[2], noShowMinutes: settings.data.no_show_minutes, shortfalls: values[4] } as AlertSource
+    return { visits: values[0], medicines: values[1], stock: values[2], noShowMinutes: settings.data.no_show_minutes, calledReminderMinutes: settings.data.called_reminder_minutes, closingMinute: settings.data.closing_minute, shortfalls: values[4], unpaidBills: values[5] } as AlertSource
   } })
   const local = useMemo(() => {
   const owned = pending.filter(item => item.ownerId === userId && item.clinicId === clinicId)
   const alerts: ClinicAlert[] = owned.map(item => ({ id: `pending:${item.id}`, title: 'Change not saved yet', detail: `${item.description} · Waiting on this device; review the pending-save banner.`, severity: 'amber', section: 'reception' }))
-  if (halted?.mutation.ownerId === userId && halted.mutation.clinicId === clinicId) alerts.push({ id: `halted:${halted.mutation.id}`, title: 'Save needs attention', detail: 'Review the pending-save banner before retrying.', severity: 'red', section: 'reception' })
+  if (halted?.mutation.ownerId === userId && halted.mutation.clinicId === clinicId) alerts.push({ id: `halted:${halted.mutation.id}`, title: 'Save needs attention', detail: `${halted.mutation.description} · ${halted.error}`, severity: 'red', section: 'reception' })
   if (isDoctor && (drive.isError || drive.data && !drive.data.connected)) alerts.push({ id: 'drive-connection', title: 'Document storage needs attention', detail: drive.isError ? 'Could not verify Google Drive. Open Documents to retry or reconnect.' : drive.data?.configured ? 'Reconnect the clinic Google Drive account. Pending files stay on this device.' : 'Google Drive setup is pending. Files stay on this device.', severity: 'amber', section: 'patients', patientTab: 'documents' })
   if (isDoctor) for (const upload of uploads.filter(item => item.error)) alerts.push({ id: `upload:${upload.id}`, title: 'Document upload needs attention', detail: upload.error!, severity: 'red', section: 'patients', patientId: upload.metadata.patient_id, patientTab: 'documents' })
   if (!online || !connected) alerts.push({ id: 'connection', title: !online ? 'Offline' : 'Live connection interrupted', detail: !online ? 'Changes wait on this device; other screens cannot receive them yet.' : 'Queue recovery polling is active. Reconnecting…', severity: 'red', section: 'reception' })
@@ -95,6 +96,9 @@ export function ClinicAlerts({ open, onClose, onOpen, clinicId, userId, isDoctor
     if (!online) { setError('Reconnect before opening an alert so its current state can be checked. Saved screens remain available from the menu.'); return }
     const result = await source.refetch()
     if (result.isError) { setError('Could not verify the latest state. Try again.'); return }
+    if (alert.billId && !result.data?.unpaidBills?.some(bill => bill.bill_id === alert.billId)) {
+      setError('This bill is no longer outstanding. The checklist has been refreshed.'); return
+    }
     let target: AlertTarget = alert
     if (alert.visitId) {
       const {data,error}=await supabase.from('visits').select('id,stage,patient_id').eq('clinic_id',clinicId).eq('id',alert.visitId).maybeSingle()
@@ -107,13 +111,15 @@ export function ClinicAlerts({ open, onClose, onOpen, clinicId, userId, isDoctor
     onClose(); onOpen(target)
   }
   const visibleActive = active.filter(alert => !recent.find(item => item.id === alert.id)?.dismissed)
-  const visible = tab === 'active' ? visibleActive : recent
+  const closingBills = source.data ? buildClinicAlerts({ ...source.data, closingMinute: 0 }, isDoctor, now, today).filter(alert => alert.id.startsWith('unpaid:')) : []
+  const visible = tab === 'active' ? visibleActive : tab === 'recent' ? recent : [...closingBills, ...local.filter(alert => /^(pending:|halted:|upload:|drive-connection$)/.test(alert.id))]
   return <Drawer open={open && !locked} onClose={onClose} title="Alerts">
     {soundControl}
     <p className="field-hint">{source.dataUpdatedAt ? `Last checked · ${new Date(source.dataUpdatedAt).toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'})} IST` : 'Awaiting first check'}</p>
-    <p className="field-hint">Remind after 5 minutes · Closing review at 4:00 PM IST</p>
+    <p className="field-hint">Called reminder · {source.data?.calledReminderMinutes ?? 5} minutes · Closing review · {String(Math.floor((source.data?.closingMinute ?? 960) / 60)).padStart(2, '0')}:{String((source.data?.closingMinute ?? 960) % 60).padStart(2, '0')} IST</p><p className="field-hint">Muting notification sound keeps every alert visible.</p>
     <p className="field-hint">Recent/read/dismiss state is saved for this account on this device.</p>
-    <div className="queue-filters"><button className="shell-nav-item" aria-pressed={tab === 'active'} onClick={() => { setTab('active'); setLimit(50) }}>Active · {visibleActive.length}</button><button className="shell-nav-item" aria-pressed={tab === 'recent'} onClick={() => { setTab('recent'); setLimit(50) }}>Recent · {recent.filter(item => !item.read).length} unread</button></div>
+    <div className="queue-filters"><button className="shell-nav-item" aria-pressed={tab === 'active'} onClick={() => { setTab('active'); setLimit(50) }}>Active · {visibleActive.length}</button><button className="shell-nav-item" aria-pressed={tab === 'recent'} onClick={() => { setTab('recent'); setLimit(50) }}>Recent · {recent.filter(item => !item.read).length} unread</button><button className="shell-nav-item" aria-pressed={tab === 'closing'} onClick={() => { setTab('closing'); setLimit(50) }}>Closing checklist</button></div>
+    {tab === 'closing' && source.data && <section aria-label="Closing checklist"><h2>Before closing</h2><p>{source.data.visits.filter(visit => visit.stage !== 'ready_to_bill').length} unresolved visits · {source.data.visits.filter(visit => visit.stage === 'ready_to_bill').length} awaiting billing · {isDoctor ? 'Unpaid bills reviewed at reception' : `${source.data.unpaidBills?.length ?? 0} unpaid bills`}</p><p>{pending.filter(item => item.ownerId === userId && item.clinicId === clinicId).length} local changes waiting · {uploads.filter(item => item.error).length} failed uploads on this device</p><p className="field-hint">Pending saves and uploads on another device must be checked there.</p><button className="shell-nav-item" onClick={() => { onClose(); onOpen({ section: 'reception' }) }}>Review unresolved visits</button><button className="shell-nav-item" onClick={() => { onClose(); onOpen({ section: 'billing' }) }}>Review visits awaiting billing</button></section>}
     {error && <p role="alert" className="form-error">{error}</p>}
     {source.isError && <QueryError retry={() => void source.refetch()} savedAt={source.data ? source.dataUpdatedAt : undefined} />}
     <button className="shell-nav-item" onClick={() => { void drainQueue(); void drainUploads(true); void client.invalidateQueries({ queryKey: ['clinic-alerts', clinicId] }); if(isDoctor) void drive.refetch(); setError('') }}>Retry saves and refresh</button>
@@ -122,7 +128,7 @@ export function ClinicAlerts({ open, onClose, onOpen, clinicId, userId, isDoctor
       <strong className={`status-${alert.severity}`}>{alert.title}</strong><p>{alert.detail}</p>
       {'resolvedAt' in alert && typeof alert.resolvedAt === 'string' && alert.resolvedAt && <p className="field-hint">Resolved · {new Date(alert.resolvedAt).toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})}</p>}
       <button className="shell-nav-item" onClick={() => void navigate(alert)}>Open</button>
-      <button className="shell-nav-item" onClick={() => void mark(alert.id, true)}>Dismiss</button>
+      {tab !== 'closing' && <button className="shell-nav-item" onClick={() => void mark(alert.id, true)}>Dismiss</button>}
     </article>)}
     {!source.isPending && !visible.length && <p className="readout-empty">No alerts in this view.</p>}
     {visible.length > limit && <button className="shell-nav-item" onClick={() => setLimit(value => value + 50)}>Show more</button>}

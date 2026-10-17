@@ -26,5 +26,5 @@ export function useCallSound({ event, userId, clinicId, locked, available }: { e
       enabledAt.current = Date.now(); setEnabled(true); playCall(context.current)
     } catch { setError('Sound could not start. Try again or watch the live queue.') }
   }
-  return available ? <><button className="shell-nav-item" type="button" aria-pressed={enabled} onClick={() => void toggle()} title="Enable once per session; only new doctor calls sound">{enabled ? 'Mute call sound' : 'Enable call sound'}</button>{error && <span className="form-error" role="alert">{error}</span>}</> : null
+  return available ? <><button className="shell-nav-item" type="button" aria-pressed={enabled} onClick={() => void toggle()} title="Enable once per session; only new doctor calls sound">{enabled ? 'Mute notification sound' : 'Enable notification sound'}</button>{error && <span className="form-error" role="alert">{error}</span>}</> : null
 }

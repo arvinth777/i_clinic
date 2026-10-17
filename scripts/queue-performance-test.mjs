@@ -21,6 +21,7 @@ function load(path) {
     if (name.endsWith('/sort')) return { sortRows: rows => rows, nextSortState: () => null }
     if (name.endsWith('/pagedCache')) return load('src/lib/pagedCache.ts')
     if (name.endsWith('/realtimeStatus')) return load('src/lib/realtimeStatus.ts')
+    if (name.endsWith('/stageLabels')) return load('src/lib/stageLabels.ts')
     if (name.endsWith('/queueActions')) return load('src/lib/queueActions.ts')
     if (name.endsWith('/QueryState')) return load('src/components/QueryState.tsx')
     if (name.endsWith('/ui/input')) return { Input: props => React.createElement('input', props) }

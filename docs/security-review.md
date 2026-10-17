@@ -118,3 +118,9 @@ negative role tests verify the changed document/alert paths.
 References: [RLS no-policy advisory](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy),
 [function execution advisory](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable),
 [leaked-password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+
+## Issued PDF archive changed paths — 2026-10-17
+
+New archive table has RLS, clinic-scoped doctor reads and reception receipt-only reads; no client writes. Authenticated staging tests cover other-clinic/admin/anonymous denial, frozen issued snapshots, no clinical prescription reads by reception and service-only upload claims. The JWT-validated endpoint rechecks clinic/role against each immutable job before Drive access; existing manual attachments/OAuth remain doctor-only. Mock tests cover leases, lost completion recovery, changed-file rejection and PDF signatures. Actual staging prescription and name-only receipt upload/retry/private download pass, including reception prescription/connection denial. No tokens or source patient fields are logged. Lock/unmount response races were fixed and regression-tested.
+
+Fresh read-only staging advisor: zero errors,35 warnings (2 anon callable functions,32 authenticated including the separate alert setter,1 leaked-password protection) and2 informational server-only no-policy tables. No new archive function is client-callable. Existing warnings are not individually certified resolved. Standards and Spec review findings fixed; application offline/browser and real-printer acceptance remain pending. No production operations.
