@@ -294,7 +294,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
             {workspace !== 'overview' && <div className="rx-toolbar"><Button variant="ghost" onClick={backToWorkspace}>← Back to workspace</Button><strong>{workspace === 'billing' ? 'Bill review' : 'Prescription'} · #{current.token_number} · {current.patients?.name}</strong></div>}
             <div className="doctor-overview" hidden={workspace !== 'overview'}>
               <DoctorOverview clinicId={clinicId} visit={current} pastVisits={pastVisits} prescriptions={prescriptions} comments={comments}
-                noteDraft={commentBody} onNoteDraft={setCommentBody} onAddNote={() => addComment.mutate({ patientId: current.patient_id, body: commentBody.trim() })} noteBusy={addComment.isPending} noteFailed={addComment.isError}
+                noteDraft={commentBody} onNoteDraft={setCommentBody} onAddNote={() => addComment.mutate({ patientId: current.patient_id, body: commentBody.trim() })} noteBusy={addComment.isPending} noteFailed={addComment.isError} noteSaved={addComment.isSuccess}
                 sent={sent} prescribingActive={prescribingActive} busy={queueAction.isPending}
                 onStart={() => setWorkspace('prescription')} onViewPrescription={() => setWorkspace('prescription')} onOpenRecord={() => onOpenPatient(current.patient_id)}
                 onCancel={() => void askReason({ ...CANCEL_VISIT_DIALOG, body: `#${current.token_number} ${current.patients?.name ?? ''}. ${CANCEL_VISIT_DIALOG.body}` }).then(why => { if (why) queueAction.mutate({ visitId: current.id, action: 'cancel', reason: why }) })} />

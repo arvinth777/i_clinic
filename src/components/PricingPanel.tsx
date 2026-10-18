@@ -20,6 +20,7 @@ type Pricing = {
 
 function LegacyQuantities({ clinicId, visitId }: { clinicId: string; visitId: string }) {
   const queryClient = useQueryClient()
+  const [legacyHint, setLegacyHint] = useState('')
   const key = ['legacy-prescription-quantities', visitId]
   const { data: items } = useQuery({ queryKey: key, queryFn: async () => {
     const { data, error } = await supabase.from('prescription_items')
@@ -44,12 +45,15 @@ function LegacyQuantities({ clinicId, visitId }: { clinicId: string; visitId: st
     {items.map(item => <form className="action-row" key={item.id} onSubmit={event => {
       event.preventDefault()
       const quantity = Number(new FormData(event.currentTarget).get('quantity'))
-      if (Number.isInteger(quantity) && quantity > 0) review.mutate({ id: item.id, quantity })
+      if (!item.medicines.unit_confirmed_at) setLegacyHint(`${item.medicines.name}: set its unit and price under Stock first, then confirm the quantity here.`)
+      else if (!Number.isInteger(quantity) || quantity <= 0) setLegacyHint('Enter a whole number of units, 1 or more.')
+      else { setLegacyHint(''); review.mutate({ id: item.id, quantity }) }
     }}>
       <label htmlFor={`legacy-${item.id}`}>{item.medicines.name} · {item.medicines.stock_unit ?? 'unit unconfirmed'}</label>
       <Input id={`legacy-${item.id}`} name="quantity" type="number" min="1" step="1" required defaultValue={item.quantity_dispensed ?? ''} />
-      <Button type="submit" variant="secondary" disabled={review.isPending || !item.medicines.unit_confirmed_at}>Confirm supplied quantity</Button>
+      <Button type="submit" variant="secondary" disabled={review.isPending}>Confirm supplied quantity</Button>
     </form>)}
+    {legacyHint && <p className="form-error" role="alert">{legacyHint}</p>}
     {review.isError && <p className="form-error">Couldn't confirm quantity — check the unit setup and retry.</p>}
   </div>
 }

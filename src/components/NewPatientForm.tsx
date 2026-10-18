@@ -96,7 +96,10 @@ export function NewPatientForm({
     const phone = form.phone.replace(/[\s-]/g, '').replace(/^(\+91|91|0)(?=\d{10}$)/, '')
     if (phone && !/^\d{10}$/.test(phone)) next.phone = 'Must be 10 digits'
     setErrors(next)
-    if (Object.keys(next).length > 0) return
+    if (Object.keys(next).length > 0) {
+      requestAnimationFrame(() => document.querySelector<HTMLElement>('.form-panel .field-error')?.parentElement?.querySelector<HTMLElement>('input, select, textarea, button')?.focus())
+      return
+    }
     onSubmit({ ...form, phone })
   }
 

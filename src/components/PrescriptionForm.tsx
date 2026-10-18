@@ -633,6 +633,7 @@ export function PrescriptionForm({
           </Button>
         </form>
       )}
+      {saveTemplate.isSuccess && !showSaveTemplate && <p className="save-state save-state-ok" role="status">✓ Template saved</p>}
       {saveTemplate.isError && <p className="form-error">Couldn't save the template — try again.</p>}
       {children}
     </div>{preview}</div>

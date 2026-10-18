@@ -66,9 +66,9 @@ dot colour is only used for "with doctor / called". Action buttons: `success` (g
 or completing (Mark paid, Finish consultation, Bill, Collect payment), `danger` (red text) for
 destructive (Cancel visit), blue stays the everyday action. Icons (`Icon.tsx`, 24-unit outline, current
 colour) sit before a button label (print, check, rupee, plus); they never replace the word.
-A change that saves on its own shows "✓ Saved" (`.save-state-ok`). Placeholder colour is never real content. The supplied faint and
-placeholder colours do **not** meet 4.5:1 for small text on white; the specification's
-blanket contrast statement must not be reported as a verified accessibility pass.
+A change that saves on its own shows "✓ Saved" (`.save-state-ok`). Placeholder colour is never real content. Faint (#626C7C, 5.3:1) and
+placeholder (#6B7585, 4.6:1) were darkened on 2026-10-18 to pass 4.5:1 on white; the specification's
+blanket contrast statement still must not be reported as a verified accessibility pass.
 
 ## Typography and measurements
 

@@ -11,21 +11,23 @@ function ReasonDialog({ pending, onDone }: { pending: PendingReason; onDone: () 
   const dialog = useRef<HTMLDialogElement | null>(null)
   const titleId = useId()
   const [text, setText] = useState('')
+  const [needed, setNeeded] = useState(false)
   const mount = useCallback((el: HTMLDialogElement | null) => { dialog.current = el; if (el && !el.open) el.showModal() }, [])
   const { options } = pending
   return (
     <dialog className="confirm-dialog" aria-labelledby={titleId} ref={mount}
       onClose={e => { pending.resolve(e.currentTarget.returnValue === 'yes' && text.trim() ? text.trim() : null); onDone() }}
       onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close('no') }}>
-      <form className="confirm-dialog-body" onSubmit={e => { e.preventDefault(); if (text.trim()) dialog.current?.close('yes') }}>
+      <form className="confirm-dialog-body" onSubmit={e => { e.preventDefault(); if (text.trim()) dialog.current?.close('yes'); else { setNeeded(true); document.getElementById(`${titleId}-reason`)?.focus() } }}>
         <h2 id={titleId} className="confirm-dialog-title">{options.title}</h2>
         {options.body && <p className="confirm-dialog-text">{options.body}</p>}
         {options.choices && <div className="confirm-dialog-choices">{options.choices.map(choice => <button key={choice} type="button" className="shell-nav-item" aria-pressed={text === choice} onClick={() => setText(choice)}>{choice}</button>)}</div>}
         <label className="field-label" htmlFor={`${titleId}-reason`}>{options.label}</label>
         <input id={`${titleId}-reason`} className="confirm-dialog-input" value={text} maxLength={200} onChange={e => setText(e.target.value)} autoFocus />
+        {needed && !text.trim() && <p className="form-error" role="alert">Please give a short reason.</p>}
         <div className="confirm-dialog-actions">
           <Button type="button" variant="ghost" onClick={() => dialog.current?.close('no')}>{options.cancelLabel ?? 'Keep the visit'}</Button>
-          <Button type="submit" variant="dark" disabled={!text.trim()}>{options.confirmLabel}</Button>
+          <Button type="submit" variant="dark">{options.confirmLabel}</Button>
         </div>
       </form>
     </dialog>
