@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Icon } from './Icon'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { AlertTarget } from '../lib/clinicAlerts'
@@ -65,7 +66,8 @@ export function GlobalSearch({ clinicId, sections, onGo, onOpen, actions }: {
   const choose = (hit: Hit) => { hit.run(); setText(''); setOpen(false); input.current?.blur() }
   return (
     <div className="shell-search" ref={box} role="search">
-      <input ref={input} className="shell-search-input" type="search" aria-label="Search patients, medicines and pages" placeholder="Search…  ( / )" value={text} autoComplete="off"
+      <span className="shell-search-icon" aria-hidden="true"><Icon name="search" size={16} /></span>
+      <input ref={input} className="shell-search-input" type="search" aria-label="Search patients, medicines and pages" placeholder="Search patient (name / phone / token)" value={text} autoComplete="off"
         onChange={event => { setText(event.target.value); setOpen(true); setActive(0) }} onFocus={() => setOpen(true)}
         onKeyDown={event => {
           if (event.key === 'Escape') { setOpen(false); input.current?.blur() }
