@@ -59,8 +59,8 @@
   --print-caption-size: calc(var(--paper-width) * 0.018);
   --print-dose-size: calc(var(--paper-width) * 0.0195);
   --print-receipt-notice-size: 11pt; --print-receipt-size: 11pt;
-  --receipt-paper-width: 9.5in;
-  --receipt-paper-height: 11in;
+  --receipt-paper-width: 10in;
+  --receipt-paper-height: 12in;
   --print-rx-size: calc(var(--paper-width) * 0.04);
   --text-xs: 0.8125rem;
   --text-sm: 0.875rem;
