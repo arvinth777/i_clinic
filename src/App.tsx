@@ -68,11 +68,19 @@ function App() {
   const sections: ShellSection[] = []
   if (isReception) sections.push({ key: 'reception', label: 'Queue' })
   if (isDoctor) sections.push({ key: 'consultation', label: 'Consultation' })
-  if (staff) sections.push({ key: 'billing', label: 'Billing', tab: 'To collect' })
-  if (staff) sections.push({ key: 'pharmacy', label: 'Medicine sale', group: 'billing' })
-  if (isReception && unpaidCount > 0) sections.push({ key: 'unpaid', label: 'Unpaid bills', group: 'billing' })
-  if (staff) sections.push({ key: 'patients', label: 'Patients', tab: 'Everyone' })
-  if (staff) sections.push({ key: 'register', label: 'Due for review', group: 'patients' })
+  const billingSections = () => {
+    if (!staff) return
+    sections.push({ key: 'billing', label: 'Billing', tab: 'To collect' })
+    sections.push({ key: 'pharmacy', label: 'Medicine sale', group: 'billing' })
+    if (isReception && unpaidCount > 0) sections.push({ key: 'unpaid', label: 'Unpaid bills', group: 'billing' })
+  }
+  const patientSections = () => {
+    if (!staff) return
+    sections.push({ key: 'patients', label: 'Patients', tab: 'Everyone' })
+    sections.push({ key: 'register', label: 'Due for review', group: 'patients' })
+  }
+  // Doctor: Consultation, Patients, Billing; reception: Queue, Billing, Patients (billing is the receptionist's second job of the day).
+  if (isDoctor) { patientSections(); billingSections() } else { billingSections(); patientSections() }
   if (staff) sections.push({ key: 'stock', label: 'Stock' })
   if (isAdmin || isDoctor) sections.push({ key: 'reports', label: 'Reports', tab: 'Summary' })
   if (isDoctor) sections.push({ key: 'reconciliation', label: 'Needs review', group: 'reports' })

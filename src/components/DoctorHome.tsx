@@ -11,14 +11,6 @@ const SHOWN = 5
 // What the doctor sees when nobody is in the consultation room: a briefing for the day. The numbers, two plain lists (who is at
 // reception paying, who is done) and the things that need attention. Who is waiting, and the Call button, stay in the side panel.
 export function DoctorHome({ clinicId, onNavigate }: { clinicId: string; onNavigate: (section: string) => void }) {
-  const clinic = useQuery({
-    queryKey: ['doctor-home-clinic', clinicId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('clinics').select('doctor_name').eq('id', clinicId).single()
-      if (error) throw error
-      return data as { doctor_name: string | null }
-    },
-  })
   const board = useQuery({
     queryKey: ['doctor-home-board', clinicId],
     refetchInterval: 30_000,
@@ -57,9 +49,6 @@ export function DoctorHome({ clinicId, onNavigate }: { clinicId: string; onNavig
 
   const hour = Number(new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }))
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  // "Dr. Meena Krishnan, MD" -> "Dr. Meena Krishnan": the degree after the comma is dropped so the title is not doubled.
-  const name = clinic.data?.doctor_name?.split(',')[0].trim()
-  const who = name ? (/^dr\.?\s/i.test(name) ? name : `Dr. ${name}`) : ''
   const date = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', day: 'numeric', month: 'long' })
 
   const visits = board.data ?? []
@@ -84,7 +73,7 @@ export function DoctorHome({ clinicId, onNavigate }: { clinicId: string; onNavig
     <section className="dhome" aria-label="Today at the clinic" aria-busy={!board.data && !failed}>
       <header className="dhome-head">
         <p className="dhome-date">{date}</p>
-        <h2>{greeting}{who ? `, ${who}` : ''}</h2>
+        <h2>{greeting}, Doctor</h2>
       </header>
 
       {failed && <p className="dhome-error" role="alert">Today's numbers could not be loaded. <button type="button" onClick={retry}>Try again</button></p>}

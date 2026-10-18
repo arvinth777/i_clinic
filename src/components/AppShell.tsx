@@ -259,9 +259,12 @@ export function AppShell({
         <PinForm onDone={() => { setPinSet(true); setShowPinForm(false) }} />
       </Drawer>
       <LockScreen locked={locked} onUnlock={onUnlock} />
+      <div className="shell-body">
+      <aside className="shell-sidebar"><nav aria-label="Sections">{navigation.map(navItem)}</nav></aside>
       <main className="shell-content">
         {activeSection ? <>{tabs.length > 1 && <nav className="shell-subnav" aria-label={sections.find(section => section.key === activeHub)?.label}>{tabs.map(tab => <a key={tab.key} href={`#${tab.key}`} className="shell-nav-item" aria-current={tab.key === activeSection ? 'page' : undefined} onClick={event => { event.preventDefault(); select(tab.key) }}>{tab.tab ?? tab.label}</a>)}</nav>}{children}</> : <p className="readout-empty">This account has no role assigned at this clinic. Contact your admin to get access.</p>}
       </main>
+      </div>
     </div></RealtimeConnected>
   )
 }

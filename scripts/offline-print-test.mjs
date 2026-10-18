@@ -69,7 +69,7 @@ async function signInAsReception(page) {
 }
 
 async function openBill(page, stamp) {
-  await page.locator('nav.shell-nav a[href="#billing"]').click()
+  await page.locator('a.shell-nav-item[href="#billing"]:visible').click()
   await page.locator('.record-selector', { hasText: stamp }).click()
 }
 const markPaid = page => page.locator('button[data-press="stamp"]')
