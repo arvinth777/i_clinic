@@ -16,7 +16,7 @@ const source = readFileSync(new URL('../src/lib/prescriptionDraft.ts', import.me
 const { outputText } = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
 })
-const { usualCombo, newDraftItem, suggestedQuantity, itemIsValid } = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
+const { usualCombo, newDraftItem, suggestedQuantity, itemIsValid, itemMissing } = await import('data:text/javascript;base64,' + Buffer.from(outputText).toString('base64'))
 
 let passed = 0
 function check(name, actual, expected) {
@@ -110,3 +110,5 @@ check('tablet without strength is invalid', itemIsValid({ ...ready, strength: ' 
 check('syrup without strength is invalid', itemIsValid({ ...ready, drugType: 'Syrup', strength: '' }), false)
 check('other form needs explicit supply unit', itemIsValid({ ...ready, drugType: 'Other', stockUnit: '' }), false)
 check('empty dose is invalid', itemIsValid({ ...ready, dosageFrequency: '' }), false)
+check('missing fields are named in row order', itemMissing({ ...ready, strength: '', durationDays: '', quantityDispensed: '0' }).map(m => m.field), ['strength', 'duration', 'quantity'])
+check('a complete row misses nothing', itemMissing(ready), [])

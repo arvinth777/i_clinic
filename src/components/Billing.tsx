@@ -1,3 +1,4 @@
+import { DriveCheck } from './DriveCheck'
 import { DocumentArchives } from './DocumentArchives'
 import { usePrintDocument } from '../lib/usePrintDocument'
 import { LoadingRows, QueryError } from './QueryState'
@@ -355,6 +356,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
 
       {bill && (
         <section className="record-section">
+          <DriveCheck clinicId={clinicId} kind="receipt" billId={bill.pending ? undefined : bill.id} />
           <DocumentArchives clinicId={clinicId} billId={bill.id} />
           <div className="paid-stamp" aria-hidden="true">
             Paid
