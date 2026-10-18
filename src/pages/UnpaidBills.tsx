@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Icon } from '../components/Icon'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
@@ -67,7 +68,7 @@ function SettleForm({ bill, onDone, onCancel, validating }: { bill: UnpaidBill; 
       {formError && <p className="form-error">{formError}</p>}
       <div className="action-row">
         <Button type="submit" disabled={settle.isPending || validating}>
-          {settle.isPending ? 'Saving…' : 'Mark settled'}
+          {settle.isPending ? 'Saving…' : 'Mark as paid'}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
@@ -113,7 +114,7 @@ export function UnpaidBills({ clinicId, initialBillId }: { clinicId: string; ini
         <button type="button" className="back-to-queue" onClick={() => setSettlingId(null)}>
           ← Back to unpaid bills
         </button>
-        <h2 className="readout-heading">Settle bill</h2>
+        <h2 className="readout-heading">Collect payment</h2>
         {target.isError && <QueryError retry={() => void target.refetch()} savedAt={target.dataUpdatedAt} />}
         <SettleForm bill={settling} validating={target.isFetching || target.isError} onDone={onSettled} onCancel={() => setSettlingId(null)} />
       </div>
@@ -147,8 +148,8 @@ export function UnpaidBills({ clinicId, initialBillId }: { clinicId: string; ini
                 <TableCell className="worklist-wait-cell">{formatDate(b.confirmed_at)}</TableCell>
                 <TableCell className="worklist-wait-cell">{formatPaise(b.final_amount_paise)}</TableCell>
                 <TableCell>
-                  <Button type="button" variant="secondary" onClick={() => setSettlingId(b.bill_id)}>
-                    Settle
+                  <Button type="button" variant="success" size="sm" onClick={() => setSettlingId(b.bill_id)}>
+                    <Icon name="rupee" size={14} />Collect payment
                   </Button>
                 </TableCell>
               </TableRow>

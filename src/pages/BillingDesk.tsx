@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { StatusPill } from '../components/StatusPill'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { startOfToday } from '../lib/date'
@@ -26,7 +27,7 @@ export function BillingDesk({ clinicId, readOnly = false, initialVisitId }: { cl
     {isError && <QueryError retry={() => void refetch()} savedAt={dataUpdatedAt} />}
     {isPending && <LoadingRows label="Loading bills…" />}
     <div className={isError ? "stale-copy" : undefined}>
-    {visits?.slice(0, visibleCount).map(v => <button key={v.id} className="record-selector" aria-pressed={selected === v.id} onClick={() => { setSelected(v.id); window.scrollTo({ top: 0, behavior: 'instant' }) }}><strong>#{v.token_number} {v.patients?.name}</strong><small>{v.stage === 'paid' ? 'Paid' : 'Ready to bill'}</small></button>)}
+    {visits?.slice(0, visibleCount).map(v => <button key={v.id} className="record-selector" aria-pressed={selected === v.id} onClick={() => { setSelected(v.id); window.scrollTo({ top: 0, behavior: 'instant' }) }}><strong>#{v.token_number} {v.patients?.name}</strong><small>{v.stage === 'paid' ? <StatusPill tone="ok">Paid</StatusPill> : <StatusPill tone="warn">Ready to bill</StatusPill>}</small></button>)}
     </div>
     {(visibleCount < (visits?.length ?? 0) || hasNextPage) && <button className="ui-button ui-button-neutral" disabled={isFetchingNextPage} onClick={async () => { if (visibleCount >= (visits?.length ?? 0) && (await fetchNextPage()).isError) return; setVisibleCount(count => count + 50) }}>{isFetchingNextPage ? 'Loading…' : 'Show more'}</button>}
     {visits?.length === 0 && <p className="field-hint">No bills to collect.</p>}

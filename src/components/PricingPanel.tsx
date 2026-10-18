@@ -358,6 +358,7 @@ export function PricingPanel({ clinicId, visitId }: { clinicId: string; visitId:
           </div>
         )}
         <Button variant="dark" disabled={updateCharge.isPending || !chargeDirty} onClick={commitCharge}>Save charge</Button>
+        {updateCharge.isSuccess && !chargeDirty && <span className="save-state save-state-ok" role="status">✓ Saved</span>}
         <p className="field-hint">Reception chooses the stocked product and bills its current catalog price. The charge defaults to ₹250 for a first visit and ₹200 for a returning patient.</p>
         {updateCharge.isError && <p className="form-error">{updateCharge.error.message}</p>}
       </section>

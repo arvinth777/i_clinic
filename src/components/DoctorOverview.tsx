@@ -116,7 +116,7 @@ export function DoctorOverview({ clinicId, visit, pastVisits, prescriptions, com
       </div>
 
       <details className="dv-notes" open={!!comments?.length}>
-        <summary><span className="dv-label">Personal notes · only you see these{comments?.length ? ` (${comments.length})` : ''}</span></summary>
+        <summary><span className="dv-label">Personal notes · only you see these{comments?.length ? ` (${comments.length})` : ''}</span><span className="dv-notes-add">{comments?.length ? '' : 'Add a note'}</span></summary>
         {!!comments?.length && <ul className="comment-list">{comments.map(c => <li key={c.id} className="comment-item"><span className="comment-date">{formatDate(c.created_at)}</span><p>{c.body}</p></li>)}</ul>}
         <form className="action-row" onSubmit={e => { e.preventDefault(); if (noteDraft.trim()) onAddNote() }}>
           <div className="field comment-field"><textarea id="comment-body" aria-label="Personal note" rows={1} placeholder="Write a note about this patient" value={noteDraft} onChange={e => onNoteDraft(e.target.value)} /></div>

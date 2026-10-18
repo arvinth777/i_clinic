@@ -8,9 +8,6 @@
 .care-controls .rx-quick-add { margin: 0; }
 .care-every { display: flex; align-items: center; gap: var(--space-xs); color: var(--ink); }
 .care-every input { width: 5rem; }
-.care-state { font-size: var(--text-sm); color: var(--ink-2); }
-.care-state-ok { color: var(--green); font-weight: 600; }
-.care-state-error { color: var(--red); font-weight: 600; }
 .care-controls input[type="date"] { width: 11.5rem; flex: none; }
 .care-controls .rx-chip { border: 1px solid var(--border-strong); color: var(--ink); background: var(--bg); }
 .care-controls .rx-chip[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-tint); color: var(--blue); font-weight: 600; }

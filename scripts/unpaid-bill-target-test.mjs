@@ -22,11 +22,11 @@ function loadTarget(fetching=false,cached=false){
  return exports.UnpaidBills
 }
 const html=renderToStaticMarkup(React.createElement(loadTarget(),{clinicId:'clinic',initialBillId:bill.bill_id}))
-assert.match(html,/Settle bill/);assert.match(html,/SYNTHETIC target outside list/,'target is shown even when the list page is empty')
+assert.match(html,/Collect payment/);assert.match(html,/SYNTHETIC target outside list/,'target is shown even when the list page is empty')
 await queries.find(q=>q.queryKey[0]==='unpaid-bill-target').queryFn()
 assert.deepEqual(filters,[['clinic_id','clinic'],['bill_id',bill.bill_id]])
 const pending=renderToStaticMarkup(React.createElement(loadTarget(true,true),{clinicId:'clinic',initialBillId:bill.bill_id}))
-assert.ok(!pending.includes('Settle bill'),'cached settlement form is hidden until the target is refreshed')
+assert.ok(!pending.includes('Collect payment'),'cached settlement form is hidden until the target is refreshed')
 const background=renderToStaticMarkup(React.createElement(loadTarget(true),{clinicId:'clinic',initialBillId:bill.bill_id}))
-assert.match(background,/Settle bill/,'a background refresh preserves the mounted form')
+assert.match(background,/Collect payment/,'a background refresh preserves the mounted form')
 console.log('PASS: bill outside first list page opens via a clinic-scoped read; cached target waits for validation')

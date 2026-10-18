@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils'
 
 const buttonVariants = cva('ui-button', {
   variants: {
-    variant: { primary: 'ui-button-primary', dark: 'ui-button-dark', secondary: 'ui-button-text', ghost: 'ui-button-neutral' },
+    variant: { primary: 'ui-button-primary', dark: 'ui-button-dark', secondary: 'ui-button-text', ghost: 'ui-button-neutral', success: 'ui-button-success', danger: 'ui-button-danger' },
     size: { default: '', sm: 'ui-button-small' },
   },
   defaultVariants: { variant: 'primary', size: 'default' },

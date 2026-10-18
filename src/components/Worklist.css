@@ -66,12 +66,9 @@
 .queue-patient-name > span, .queue-patient-name p, .queue-time { font-size: var(--text-xs); color: var(--text-tertiary); }
 .queue-patient-name p { margin: var(--space-2xs) 0 0; }
 .queue-time { white-space: nowrap; }
-.queue-patient .stage-pill { border: 0; background: none; padding: 0; font-size: var(--text-xs); font-weight: 500; }
-.queue-patient .stage-pill svg { width: var(--space-sm); height: var(--space-sm); }
 @media (max-width: 1000px) {
   .queue-patient { grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-sm); }
-  .queue-patient .stage-pill { grid-column: 2; }
+  .queue-patient .pill { grid-column: 2; justify-self: start; }
   .queue-action { grid-column: 3; }
 }
 .queue-token { font-size: var(--text-subheading); font-weight: 700; }
-.queue-patient .stage-pill { font-size: var(--text-sm); font-weight: 600; }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Icon } from '../components/Icon'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
@@ -21,6 +22,7 @@ import { IssuedPrescription } from '../components/IssuedPrescription'
 import '../components/Worklist.css'
 import './Consultation.css'
 import { useQueuePollInterval } from '../lib/realtimeStatus'
+import { useVisitProcedures } from '../lib/useVisitProcedures'
 
 // A wait past this is flagged in the overdue colour (danger), not just
 // shown as a plain elapsed time -- reserving colour for something that
@@ -217,7 +219,13 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
   const {data: localPrescription}=useQuery({queryKey:['prescription-print',userId,clinicId,current?.id],enabled:!!current&&!!clinicId,queryFn:async()=>await readPrescriptionPrint(userId,clinicId!,current!.id)??null})
   const issuedMedicines = prescriptions?.filter(p => p.visit_id === current?.id).flatMap(p => p.prescription_items) ?? []
   const reviewedMedicines=localPrescription?.medicines ?? issuedMedicines
-  const issuedComplete = reviewedMedicines.length > 0 && reviewedMedicines.every(item => !!item.dosage_frequency?.trim() && (item.duration_days ?? 0) > 0)
+  const { data: visitProcedures } = useVisitProcedures(current?.id)
+  // A visit can finish on medicines or on procedures alone (injection, dressing); every medicine it does have needs a dose and days.
+  const hasWork = reviewedMedicines.length > 0 || (visitProcedures?.length ?? 0) > 0
+  const medicinesComplete = reviewedMedicines.every(item => !!item.dosage_frequency?.trim() && (item.duration_days ?? 0) > 0)
+  const issuedComplete = hasWork && medicinesComplete
+  const finishProblem = !hasWork ? 'Add a medicine or a procedure before finishing.' : !medicinesComplete ? 'Every medicine needs a dose (or SOS) and a number of days.' : ''
+  const [triedFinish, setTriedFinish] = useState(false)
 
   const addComment = useMutation({
     networkMode: 'always',
@@ -296,9 +304,9 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
                 <CarePanel clinicId={clinicId} key={`care-${current.id}`} visitId={current.id} patientId={current.patient_id} />
                 <details className="rx-support" open><summary>Procedures &amp; consultation charge</summary><PricingPanel key={current.id} clinicId={clinicId} visitId={current.id} /></details>
                 <details className="rx-support"><summary>Documents</summary><DocumentsPanel key={`docs-${current.id}`} clinicId={clinicId} visitId={current.id} patientName={current.patients?.name ?? ''} patientAge={current.patients?.age ?? null} complaint={current.complaint} issuedBy={userId} /></details>
-                {!prescribingActive && <div className="action-row rx-actions"><Button variant="primary" disabled={prescribingActive || queueAction.isPending || !issuedComplete} onClick={() => void finish().catch(()=>{})}>{queueAction.isPending ? 'Saving…' : 'Finish consultation'}</Button></div>}
+                {!prescribingActive && <div className="action-row rx-actions"><Button variant="success" disabled={prescribingActive || queueAction.isPending} onClick={() => { if (issuedComplete) void finish().catch(()=>{}); else { setTriedFinish(true); requestAnimationFrame(() => document.getElementById('finish-problem')?.scrollIntoView({ block: 'center', behavior: 'smooth' })) } }}>{queueAction.isPending ? 'Saving…' : <><Icon name="check" />Finish consultation</>}</Button></div>}
                 {prescribingActive && <p className="field-hint">Review and confirm the prescription before finishing.</p>}
-                {!prescribingActive && !issuedComplete && <p className="field-hint">Finish requires at least one medicine; each medicine needs a dose or SOS and a duration.</p>}
+                {!prescribingActive && !issuedComplete && <p id="finish-problem" className={triedFinish ? 'form-error' : 'field-hint'} role={triedFinish ? 'alert' : undefined}>{finishProblem}</p>}
               </PrescriptionForm>}
             </div>
           </>}

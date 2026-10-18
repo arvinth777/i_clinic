@@ -42,7 +42,7 @@ const viewerContext={exports:{},Set,require(path){
 const viewerCode=ts.transpileModule(readFileSync('src/components/IssuedPrescription.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText
 vm.runInNewContext(viewerCode,viewerContext)
 const view=walk(viewerContext.exports.IssuedPrescription({userId:'owner',clinicId:'clinic',visitId:'visit'}))
-assert.ok(view.some(node=>node.props?.children==='Print prescription'),'offline saved snapshot still offers printing')
+assert.ok(view.some(node=>[].concat(node.props?.children ?? []).includes('Print prescription')),'offline saved snapshot still offers printing')
 assert.equal(queries[0].networkMode,'always','IndexedDB reads must work offline')
 assert.equal(queries[1].enabled,false,'existing issued snapshot must not be replaced after catalog edits');
 const loaded=await queries[1].queryFn();assert.equal(loaded.visit.diagnosis,'SYNTHETIC diagnosis');assert.equal(loaded.visit.advice,'SYNTHETIC advice')
