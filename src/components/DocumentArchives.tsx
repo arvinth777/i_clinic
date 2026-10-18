@@ -66,7 +66,7 @@ export function ArchiveWorker({clinicId,ownerId,locked}:{clinicId:string;ownerId
   if(query.isError)return <div className="offline-queue-banner offline-queue-banner-halted" role="alert">Could not check PDF archive status. Issued records and printing still work. <button className="ui-button ui-button-neutral" type="button" onClick={()=>void query.refetch()}>Try again</button></div>
   const remaining=query.data?.filter(job=>!completed.includes(job.id)).length??0
   if(!remaining)return null
-  return <div className="offline-queue-banner offline-queue-banner-pending" role="status" title={error || undefined}><span>{remaining === 1 ? '1 PDF has' : `${remaining} PDFs have`} not reached Google Drive yet. It keeps retrying on its own. Prescriptions, payments and printing are not affected.</span><button className="ui-button ui-button-neutral" type="button" onClick={()=>void query.refetch()}>Try now</button></div>
+  return <div className="offline-queue-banner offline-queue-banner-pending" role="status" title={error || undefined}><span>{remaining} {remaining === 1 ? 'PDF has' : 'PDFs have'} not reached Google Drive yet. It keeps retrying on its own. Prescriptions, payments and printing are not affected.</span><button className="ui-button ui-button-neutral" type="button" onClick={()=>void query.refetch()}>Try now</button></div>
 }
 
 export function DocumentArchives({clinicId,patientId,billId,locked=false}:{clinicId:string;patientId?:string;billId?:string;locked?:boolean}){
