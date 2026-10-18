@@ -705,3 +705,13 @@ Built on `feat/rx-validation-care-drive` (#72) and merges `fix/bill-zero-supply-
 - Doctor's waiting list: the wait time is now a pill (blue, amber after the long-wait limit, grey for "not here").
 - Buttons: `danger` has a thin red outline (`--red-line` token); new `warn` (amber) variant used for **Fix** on Needs review.
 - Verified in the browser (reception queue, doctor consultation, Needs review).
+
+### 2026-10-19: Playwright scripts updated for the new app (Claude Code) - branch `test/update-playwright-scripts`
+All five browser scripts were stale after the menu, prescription and billing redesigns; all now pass (Node 24, staging, synthetic data):
+- `dropdown-position-test.mjs` (dev server 5173): the consultation drawer is gone, so it uses the real flow (reception check-in, call, sent in, doctor "Start prescription"); checks quick-add chips, drug search and procedure dropdowns; cleans stray open consultations first and cancels its own visit at the end.
+- `no-role-account-test.mjs`: already passing, unchanged.
+- `patient-info-redaction-test.mjs` (5173): lock and sign-out now go through the account menu; the queue helper needs a clinic id.
+- `alerts-cross-role-test.mjs` (5173): a headless reception browser now clicks "Sent in" itself (it used to need a person).
+- `offline-print-test.mjs` (**production build on 4173**: `npm run build`, then `npx vite preview --port 4173`): rewritten around today's "Mark paid" (blip, outage after the bill is open, never-answered detail request). Cleans up its fixture visits.
+- Not in CI (they need browsers and staging); run by hand before a release.
+- Release PR **#75** (`main` -> `production`) is open and unmerged: production still lacks migration `20261018030000_bill_zero_supply` (checked read-only via the Supabase MCP); the owner runs `supabase --workdir deploy/production db push` first.

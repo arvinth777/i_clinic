@@ -1,4 +1,4 @@
-// Live browser test for the drawer-dropdown CSS bug (docs/STATUS.md's
+// Live browser test (rewritten 2026-10-19 for the full-page prescription: the consultation drawer no longer exists) for the dropdown CSS bug (docs/STATUS.md's
 // High finding): `.search-results` (position: absolute) needs a
 // positioned ancestor, but `.field`/`.record-section` never declared
 // `position: relative` -- inside the consultation drawer (position:
@@ -53,16 +53,20 @@ async function signIn(email, password) {
 }
 const doctorA = await signIn('doctor.a@staging.test', userEnv.TEST_DOCTOR_A_PASSWORD)
 
-// Clean up any stray with_doctor visits from earlier runs first -- the
-// same fixture-collision lesson from Phase F's own testing: Consultation
-// resolves "current" to whichever visit is first at with_doctor, not
-// whichever row was clicked.
-await doctorA.from('visits').update({ stage: 'packing' }).eq('clinic_id', CLINIC_A_ID).eq('stage', 'with_doctor')
+// Consultation resolves "current" to whichever visit is first at with_doctor/called, so close any strays first (cancel needs a reason).
+const midnight = new Date(); midnight.setHours(0, 0, 0, 0)
+const doctorQueue = (client, id, action, reason) => client.rpc('queue_visit_action', { p_visit_id: id, p_action: action, p_request_id: crypto.randomUUID(), p_reason: reason ?? null })
+const receptionA = await signIn('reception.a@staging.test', userEnv.TEST_RECEPTION_A_PASSWORD)
+const { data: strays } = await doctorA.from('visits').select('id').eq('clinic_id', CLINIC_A_ID).in('stage', ['called', 'with_doctor'])
+for (const stray of strays ?? []) await doctorQueue(doctorA, stray.id, 'cancel', 'dropdown test cleanup')
 
 const stamp = Date.now() + Math.random()
-const { data: patient } = await doctorA.from('patients').insert({ clinic_id: CLINIC_A_ID, name: `Dropdown Position Test ${stamp}`, age: 31 }).select('id').single()
-const { data: visit } = await doctorA.from('visits').insert({ clinic_id: CLINIC_A_ID, patient_id: patient.id, arrived_at: new Date().toISOString(), complaint: 'dropdown position test' }).select('id').single()
-await doctorA.from('visits').update({ stage: 'with_doctor' }).eq('id', visit.id)
+const { data: patient } = await receptionA.from('patients').insert({ clinic_id: CLINIC_A_ID, name: `Dropdown Position Test ${stamp}`, age: 31 }).select('id').single()
+const { data: visit } = await receptionA.from('visits').insert({ clinic_id: CLINIC_A_ID, patient_id: patient.id, arrived_at: new Date().toISOString(), complaint: 'dropdown position test' }).select('id').single()
+const { data: waiting } = await receptionA.from('visits').select('id').eq('clinic_id', CLINIC_A_ID).eq('stage', 'waiting').gte('arrived_at', midnight.toISOString()).order('queue_position')
+for (let i = 0; i < waiting.findIndex(v => v.id === visit.id); i++) await doctorQueue(receptionA, visit.id, 'move_up')
+await doctorQueue(doctorA, visit.id, 'call')
+await doctorQueue(receptionA, visit.id, 'sent_in')
 
 // Clean up this script's own templates from earlier runs first -- left
 // unbounded, they accumulate (prescription_template_items cascades on
@@ -119,12 +123,10 @@ await page.locator('#signin-email').fill('doctor.a@staging.test')
 await page.locator('#signin-password').fill(userEnv.TEST_DOCTOR_A_PASSWORD)
 await page.getByRole('button', { name: 'Sign in' }).click()
 await page.waitForSelector('.shell-nav', { timeout: 10000 })
-await page.getByRole('button', { name: 'Consultation' }).click()
-await page.waitForTimeout(500)
-
-await page.locator('.worklist-row', { hasText: `Dropdown Position Test ${stamp}` }).click()
-await page.waitForSelector('.drawer-panel', { timeout: 10000 })
-// The drawer's own entrance transition (Drawer.tsx: 220ms) is still
+await page.locator('nav.shell-nav a[href="#consultation"]').click()
+await page.getByRole('button', { name: /Start prescription/ }).click({ timeout: 15000 })
+await page.waitForSelector('#drug-search', { timeout: 10000 })
+// (Historical) the old drawer's entrance transition (Drawer.tsx: 220ms) was still
 // moving right after the panel attaches -- a coordinate-based hit test
 // taken mid-transition can miss even though getBoundingClientRect()
 // already reports the final, settled position (caught as a real,
@@ -139,16 +141,16 @@ await page.waitForTimeout(400)
 // this check actually verifies -- the dropdown wrapper itself is
 // correctly anchored -- holds regardless of which specific template
 // happens to render first.
-const templateItem = page.locator('.field.search-results-anchor .search-result-button').first()
+const templateItem = page.locator('.rx-quick-add .rx-chip').first()
 await templateItem.waitFor({ state: 'attached', timeout: 5000 })
 const templateCheck = await checkDropdownReachable(page, templateItem)
-report('Templates dropdown is within the viewport', templateCheck.withinViewport, JSON.stringify(templateCheck.box))
-report('Templates dropdown: a real coordinate click actually lands on it', templateCheck.coordClickHitsItem)
+report('Quick-add chips are within the viewport', templateCheck.withinViewport, JSON.stringify(templateCheck.box))
+report('Quick-add chips: a real coordinate click actually lands on one', templateCheck.coordClickHitsItem)
 
 // ---- Drug search dropdown ----
 await page.locator('#drug-search').fill('a') // any single common letter -- broad match across the medicines list
-await page.waitForTimeout(500)
 const drugResult = page.locator('.search-results .search-result-button').first()
+await drugResult.waitFor({ state: 'attached', timeout: 6000 }).catch(() => {}) // the search is debounced and queries the catalog
 if ((await drugResult.count()) > 0) {
   const drugCheck = await checkDropdownReachable(page, drugResult)
   report('Drug search dropdown is within the viewport', drugCheck.withinViewport, JSON.stringify(drugCheck.box))
@@ -166,6 +168,11 @@ if ((await drugResult.count()) > 0) {
 // anchored right below the "Procedures" heading -- checked via the first
 // row, scoped to this section specifically since Templates/drug-search
 // results may still be in the DOM alongside it.
+await page.locator('#drug-search').fill('')
+const procedureInput = page.getByPlaceholder(/procedure/i).first()
+await procedureInput.scrollIntoViewIfNeeded() // the procedures box sits well below the fold on the full page; the check is about the dropdown's anchor, not the page scroll
+await procedureInput.fill('a')
+await page.waitForTimeout(600)
 const procedureItem = page
   .locator('section', { has: page.getByRole('heading', { name: 'Procedures' }) })
   .locator('.search-result-button')
@@ -179,6 +186,7 @@ report('Procedures dropdown: a real coordinate click actually lands on it', proc
 // so it has no dropdown position to check here; the old standalone MergePatients page was removed.
 
 await browser.close()
+await doctorQueue(doctorA, visit.id, 'cancel', 'dropdown test finished') // leave no consultation open for the next test
 
 console.log('\n== Summary ==')
 const failed = results.filter((r) => !r.pass)
