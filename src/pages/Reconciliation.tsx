@@ -87,7 +87,7 @@ export function Reconciliation({ clinicId }: { clinicId: string }) {
                 <TableCell>
                   {b.live_final_amount_paise===null ? <span className="field-hint">Set the amount in that visit first</span> : <Button
                     type="button"
-                    variant="secondary"
+                    variant="warn"
                     disabled={correct.isPending}
                     onClick={async () => {
                       if (await confirm({ title: `Write a correction for ${b.patient_name}?`, body: `Bill ${formatPaise(b.live_final_amount_paise!)} instead of ${formatPaise(b.final_amount_paise)}.`, confirmLabel: 'Write correction' })) {

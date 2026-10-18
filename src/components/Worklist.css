@@ -74,4 +74,4 @@
 .queue-token { font-size: var(--text-subheading); font-weight: 700; }
 
 .queue-action { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2xs); }
-.queue-action .ui-button-danger { margin-left: var(--space-2xs); padding-left: var(--space-xs); border-left: 1px solid var(--border); border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.queue-action .ui-button-danger { margin-left: var(--space-xs); padding-inline: var(--space-sm); }

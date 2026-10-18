@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { SaveTick } from '../SaveTick'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
@@ -77,6 +78,7 @@ export function TemplateList({ clinicId }: { clinicId: string }) {
             <Button type="submit" disabled={rename.isPending}>
               {rename.isPending ? 'Saving…' : 'Save'}
             </Button>
+            <SaveTick mutation={rename} />
             <Button type="button" variant="secondary" onClick={() => setRenaming(null)}>
               Cancel
             </Button>

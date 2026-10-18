@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { SaveTick } from '../SaveTick'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { formatPaiseForInput, parseRupeesToPaise } from '../../lib/money'
@@ -147,6 +148,7 @@ export function ClinicSettings({ clinicId }: { clinicId: string }) {
           <Button type="submit" disabled={save.isPending}>
             {save.isPending ? 'Saving…' : 'Save'}
           </Button>
+            <SaveTick mutation={save} />
         </div>
       </form>
     </div>
