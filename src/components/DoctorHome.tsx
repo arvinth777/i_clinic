@@ -81,7 +81,7 @@ export function DoctorHome({ clinicId, onNavigate }: { clinicId: string; onNavig
   const retry = () => { void board.refetch(); void daily.refetch(); void warnings.refetch(); void dueReview.refetch() }
 
   return (
-    <section className="dhome" aria-label="Today at the clinic">
+    <section className="dhome" aria-label="Today at the clinic" aria-busy={!board.data && !failed}>
       <header className="dhome-head">
         <p className="dhome-date">{date}</p>
         <h2>{greeting}{who ? `, ${who}` : ''}</h2>
@@ -99,7 +99,7 @@ export function DoctorHome({ clinicId, onNavigate }: { clinicId: string; onNavig
         {columns.map(col => (
           <section key={col.key} className={`dhome-col dhome-col-${col.tone}`} aria-label={col.title}>
             <h3><span className="dhome-dot" aria-hidden="true" />{col.title}<em>{board.data ? col.rows.length : '—'}</em></h3>
-            {col.rows.length === 0 ? <p className="dhome-empty">{col.empty}</p> : <ul>
+            {!board.data && !failed ? <ul aria-hidden="true"><li className="dhome-skel" /><li className="dhome-skel" /></ul> : col.rows.length === 0 ? <p className="dhome-empty">{col.empty}</p> : <ul>
               {col.rows.slice(0, SHOWN).map(v => (
                 <li key={v.id}><span className="dhome-token">#{v.token_number}</span><span className="dhome-name">{v.patients?.name}</span></li>
               ))}
