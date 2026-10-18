@@ -28,7 +28,7 @@ const isDriveCallback = new URLSearchParams(window.location.search).has('drive_c
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <>{isDriveCallback ? <DriveCallback /> : <App />}</>
+      <>{isDriveCallback ? <DriveCallback /> : <App />}<div className="grain" aria-hidden="true" /></>
     </QueryClientProvider>
   </StrictMode>,
 )

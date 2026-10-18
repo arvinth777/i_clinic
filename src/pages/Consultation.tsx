@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { StatusPill } from '../components/StatusPill'
 import { Icon } from '../components/Icon'
+import { DoctorHome } from '../components/DoctorHome'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { attemptOrQueue } from '../lib/offlineQueue'
@@ -72,7 +73,7 @@ function formatAgeSex(age: number | null, gender: string | null): string {
   return parts.length ? parts.join(' · ') : '—'
 }
 
-export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNavigation = 0 }: { userId: string; onOpenPatient: (id: string) => void; requestedVisitId?: string; alertNavigation?: number }) {
+export function Consultation({ userId, onOpenPatient, onNavigate, requestedVisitId, alertNavigation = 0 }: { userId: string; onOpenPatient: (id: string) => void; onNavigate: (section: string) => void; requestedVisitId?: string; alertNavigation?: number }) {
   const queryClient = useQueryClient()
   const { data: clinicId } = useClinicId(userId)
   const [visibleQueueCount, setVisibleQueueCount] = useState(7)
@@ -291,7 +292,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
           </div>
         </aside>
         <div className="consultation-stage">
-          {!current ? <div className="doctor-idle"><h2>Ready for the next patient</h2><p className="readout-empty">Call next to begin a consultation.</p></div> : <>
+          {!current ? <DoctorHome clinicId={clinicId} onNavigate={onNavigate} /> : <>
             {workspace !== 'overview' && <div className="rx-toolbar"><Button variant="ghost" onClick={backToWorkspace}>← Back to workspace</Button><strong>{workspace === 'billing' ? 'Bill review' : 'Prescription'} · #{current.token_number} · {current.patients?.name}</strong></div>}
             <div className="doctor-overview" hidden={workspace !== 'overview'}>
               <DoctorOverview clinicId={clinicId} visit={current} pastVisits={pastVisits} prescriptions={prescriptions} comments={comments}
