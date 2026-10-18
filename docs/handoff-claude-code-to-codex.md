@@ -715,3 +715,10 @@ All five browser scripts were stale after the menu, prescription and billing red
 - `offline-print-test.mjs` (**production build on 4173**: `npm run build`, then `npx vite preview --port 4173`): rewritten around today's "Mark paid" (blip, outage after the bill is open, never-answered detail request). Cleans up its fixture visits.
 - Not in CI (they need browsers and staging); run by hand before a release.
 - Release PR **#75** (`main` -> `production`) is open and unmerged: production still lacks migration `20261018030000_bill_zero_supply` (checked read-only via the Supabase MCP); the owner runs `supabase --workdir deploy/production db push` first.
+
+### 2026-10-19: released to production (Claude Code)
+- Owner applied `20261018030000_bill_zero_supply` to production (`supabase --workdir deploy/production db push`); verified read-only via the Supabase MCP (30 migrations through `bill_zero_supply`).
+- Release PR #75 (`main` -> `production`) merged as `8c9e98d`; the Vercel Production deployment for that commit completed successfully (GitHub status "Deployment has completed"). The Vercel MCP returned 403 on listing deployments; the status came from the GitHub API.
+- Contents: PRs #70-#74 and #76 (bill fixes and 10 x 12 in medicine-only receipt, cropped archive PDF, issued-prescription view and Review guidance, Next visit panel, Drive tick, dead-end fixes, wording, status pills/icons/colour, saved ticks, notification prompt, updated Playwright scripts).
+- **Still to do by the owner:** print a real bill and prescription on the dot-matrix printer; save a bill to Drive and check the PDF is cropped and the green tick appears; confirm the browser notification prompt on the reception login; run a live visit, a procedure-only visit and a cancelled visit; add real medicines and opening stock; delete the old Drive PDFs by hand.
+- Still open: user manual refresh, in-app correction of paid new-flow bills.
