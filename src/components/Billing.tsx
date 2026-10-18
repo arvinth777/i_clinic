@@ -1,4 +1,5 @@
 import { DriveCheck } from './DriveCheck'
+import { ReceiptPaper } from './ReceiptPaper'
 import { Icon } from './Icon'
 import { DocumentArchives } from './DocumentArchives'
 import { usePrintDocument } from '../lib/usePrintDocument'
@@ -99,6 +100,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   const detail = detailQuery.data
   const [selectedBrands, setSelectedBrands] = useState<Record<string,string>>({})
   const [supplied, setSupplied] = useState<Record<string,string>>({})
+  const [bigPreview, setBigPreview] = useState(false)
   const detailStillLoading = visit?.stage === 'ready_to_bill' && (!detail || !planQuery.data || !catalogQuery.data || !stockQuery.data)
 
   const clinicQuery = useQuery({
@@ -390,7 +392,11 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       )}
 
       </div></div>
-      <aside className="receipt-preview" aria-label="Receipt preview"><div className="sticky-panel"><p className="field-hint">Receipt preview</p><PrintableReceipt clinic={clinic} visit={visit} billable={billable ?? []} amountPaise={amountPaise} discountPaise={discountPaise} bill={bill} /></div></aside>
+      <aside className="receipt-preview" aria-label="Receipt preview"><div className="sticky-panel"><div className="receipt-preview-head"><p className="field-hint">Receipt preview · 10 × 12 in sheet, shown smaller</p><Button type="button" variant="secondary" size="sm" onClick={() => setBigPreview(true)}>Enlarge</Button></div><ReceiptPaper><PrintableReceipt clinic={clinic} visit={visit} billable={billable ?? []} amountPaise={amountPaise} discountPaise={discountPaise} bill={bill} /></ReceiptPaper></div></aside>
+      {bigPreview && <dialog className="receipt-dialog" aria-label="Receipt, enlarged" ref={el => { if (el && !el.open) el.showModal() }} onClose={() => setBigPreview(false)} onClick={e => { if (e.target === e.currentTarget) e.currentTarget.close() }}>
+        <div className="receipt-dialog-bar"><span>Receipt · 10 × 12 in sheet</span><Button type="button" variant="ghost" size="sm" onClick={e => e.currentTarget.closest('dialog')?.close()}>Close</Button></div>
+        <ReceiptPaper><PrintableReceipt clinic={clinic} visit={visit} billable={billable ?? []} amountPaise={amountPaise} discountPaise={discountPaise} bill={bill} /></ReceiptPaper>
+      </dialog>}
       <div className="print-area"><PrintableReceipt clinic={clinic} visit={visit} billable={billable ?? []} amountPaise={amountPaise} discountPaise={discountPaise} bill={bill} /></div>
     </div>
   )
