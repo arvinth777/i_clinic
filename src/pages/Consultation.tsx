@@ -12,7 +12,6 @@ import { PricingPanel } from '../components/PricingPanel'
 import { DocumentsPanel } from '../components/DocumentsPanel'
 import { CarePanel } from '../components/CarePanel'
 import { RepQueueRows } from '../components/RepQueueRows'
-import { type TodayVisit } from '../components/TodayFlow'
 import { DoctorOverview } from '../components/DoctorOverview'
 import { Button } from '../components/ui/button'
 import { useQueueAction, CANCEL_VISIT_DIALOG } from '../lib/queueActions'
@@ -148,20 +147,6 @@ export function Consultation({ userId, onOpenPatient, onNavigate, requestedVisit
     },
   })
 
-  const metricsKey = ['doctor-today-metrics', clinicId]
-  const { data: todayVisits } = useQuery({
-    queryKey: metricsKey,
-    enabled: !!clinicId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('visits')
-        .select('stage, arrived_at')
-        .eq('clinic_id', clinicId)
-        .gte('arrived_at', startOfToday())
-      if (error) throw error
-      return data as TodayVisit[]
-    },
-  })
 
   const todaysQueue = visits?.filter(v => v.arrived_at >= today) ?? []
   const queue = todaysQueue.filter(v => v.stage === 'waiting')
@@ -272,12 +257,12 @@ export function Consultation({ userId, onOpenPatient, onNavigate, requestedVisit
         <aside className="consultation-rail" aria-label="Waiting patients">
           <div className="sticky-panel doctor-waiting">
           <div className="rail-head">
-            <h2 className="readout-heading">Waiting · {queue.length}</h2>
-            <span className="field-hint">{todayVisits?.filter(v=>['ready_to_bill','paid'].includes(v.stage)).length ?? '—'} seen today</span>
+            <h2 className="readout-heading">Today's queue</h2>
+            <span className="rail-count">{queue.length}</span>
           </div>
           {guard && <div className="inline-notice" role="alert"><strong>Finish the current prescription before changing patients.</strong><p>Saved work stays with this patient.</p><Button variant="secondary" onClick={()=>{setWorkspace('prescription');setGuard(false)}}>Open prescription</Button><Button variant="ghost" onClick={()=>setGuard(false)}>Not now</Button></div>}
           {queue[0] && active?.stage !== 'called' && !guard && <Button variant="dark" disabled={queueAction.isPending} onClick={()=>void callNext().catch(()=>{})}>Call #{queue[0].token_number} {queue[0].patients?.name}</Button>}
-          {rows.length === 0 && repCount === 0 && <p className="readout-empty">Your queue is empty.</p>}
+          {rows.length === 0 && repCount === 0 && <div className="rail-empty"><Icon name="calendar" size={22} /><p>Your queue is empty.</p></div>}
           <ul className="rail-list">
             {rows.slice(0, visibleQueueCount).map(v => <li key={v.id} className={'rail-row'}>
               <span className="rail-row-token">#{v.token_number}</span>

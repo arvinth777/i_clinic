@@ -44,7 +44,7 @@ await page.goto('http://localhost:5173')
 await page.locator('#signin-email').fill('reception.a@staging.test')
 await page.locator('#signin-password').fill(userEnv.TEST_RECEPTION_A_PASSWORD)
 await page.getByRole('button', { name: 'Sign in' }).click()
-await page.waitForSelector('.shell-nav', { timeout: 10000 })
+await page.waitForSelector('.shell-header', { timeout: 10000 })
 
 // Force a genuine halt: a queued update against a row that doesn't
 // exist matches zero rows -- a real rejection (offlineQueue.ts's own
