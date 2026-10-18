@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import QRCode from 'qrcode'
 import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
+import { hasPrintableLines } from '../lib/receiptLines'
 import { PrintableReceipt, type PrintVisit as Visit, type DetailRow, type BillLine, type Bill } from './VisitPrintout'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { Input } from './ui/input'
@@ -166,17 +167,18 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
     }),
   ] : undefined
   const subtotal = supplyLines?.reduce((sum,row)=>sum+row.line_total_paise,0) ?? 0
-  const supplyInvalid = !Number.isSafeInteger(subtotal) || supplyLines?.some(row=>!Number.isInteger(row.quantity)||row.quantity<0||(row.kind==='medicine'&&(!row.medicine_id||row.quantity>(row.approved_quantity??0)||row.quantity>Math.max(0,row.available_quantity??0))))
+  const supplyInvalid = !Number.isSafeInteger(subtotal) || supplyLines?.some(row=>!Number.isInteger(row.quantity)||row.quantity<0||(row.kind==='medicine'&&(row.quantity>(row.approved_quantity??0)||(row.quantity>0&&(!row.medicine_id||row.quantity>Math.max(0,row.available_quantity??0))))))
   // Say WHICH line and WHICH rule failed -- the old single sentence hid that the drug simply had no stock.
   const supplyProblem = supplyLines?.map(row => {
     if (row.kind !== 'medicine') return null
     if (!Number.isInteger(row.quantity) || row.quantity < 0) return `${row.description}: enter a whole number of units.`
     if (row.quantity > (row.approved_quantity ?? 0)) return `${row.description}: more than the ${row.approved_quantity ?? 0} the doctor approved.`
+    if (row.quantity === 0) return null
     if (!row.medicine_id) {
       const item = plan?.medicines.find(m => m.prescription_item_id === row.prescription_item_id)
       return item && choicesFor(item).length === 0
-        ? `${row.description}: no stocked product matches this molecule, strength and unit. Add that product (with its unit and price confirmed) under Stock, then refresh this bill.`
-        : `${row.description}: choose the stocked product that matches the doctor's molecule and strength.`
+        ? `${row.description}: no stocked product matches this molecule, strength and unit. Add that product (with its unit and price confirmed) under Stock and refresh this bill, or enter 0 to leave it out.`
+        : `${row.description}: choose the stocked product that matches the doctor's molecule and strength, or enter 0 to leave it out.`
     }
     if (row.quantity > Math.max(0, row.available_quantity??0)) return `${row.description}: only ${Math.max(0, row.available_quantity??0)} in Counter stock. Reduce the supplied units (0 if none can be supplied) or receive stock under Stock.`
     return null
@@ -237,7 +239,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       // Give the DOM a tick to render the printable slip before invoking
       // the browser's print dialog -- the print path stays DOM-based, no
       // server round trip, works with zero connectivity, queued or not.
-      setTimeout(() => print.mutate(), 100)
+      if (hasPrintableLines(bill.bill_line_items ?? [])) setTimeout(() => print.mutate(), 100)
     },
     onError: () => {
       void queryClient.invalidateQueries({ queryKey: ['reception-bill-plan', visitId] })
@@ -254,6 +256,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   const billable = bill?.bill_line_items ?? supplyLines ?? detail
   const calculatedTotal = bill?.bill_line_items ? bill.bill_line_items.reduce((sum, row) => sum + row.line_total_paise, 0) : subtotal
   const discountPaise = Math.max(0,calculatedTotal - amountPaise)
+  const canPrint = hasPrintableLines(billable ?? [])
 
   return (
     <div className="billing-workspace"><div className="bill-editor">
@@ -359,13 +362,13 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
             Paid
           </div>
           <p>
-            Paid via {bill.payment_method}. Print the receipt below; the doctor prints the prescription separately.
+            Paid via {bill.payment_method}. {canPrint ? 'Print the receipt below; the doctor prints the prescription separately.' : 'No medicines were supplied, so there is no bill to print.'}
             {bill.pending && ' Not saved yet — waiting for a connection to actually confirm with the server.'}
           </p>
           <div className="action-row">
-            <Button type="button" variant="dark" disabled={print.isPending} onClick={() => print.mutate()}>
+            {canPrint && <Button type="button" variant="dark" disabled={print.isPending} onClick={() => print.mutate()}>
               Print again
-            </Button>
+            </Button>}
             <Button type="button" onClick={onClose}>
               Back to queue
             </Button>
