@@ -48,7 +48,7 @@ export async function renderArchivePdf(snapshot: ArchiveSnapshot): Promise<Blob>
     for(const svg of doc.querySelectorAll('svg')){const fonts=doc.createElementNS('http://www.w3.org/2000/svg','style');fonts.textContent=embeddedFonts.join('\n');svg.prepend(fonts)}
     const original = rootElement.querySelector<HTMLElement>('section')!
     const width = frame.contentWindow!.innerWidth
-    const height = snapshot.kind === 'receipt' ? width * 11 / 9.5 : width * 297 / 210
+    const height = snapshot.kind === 'receipt' ? width * 12 / 10 : width * 297 / 210
     const pdf = await PDFDocument.create()
     const pages: HTMLElement[] = []
     if (snapshot.kind === 'prescription') {
@@ -90,18 +90,21 @@ export async function renderArchivePdf(snapshot: ArchiveSnapshot): Promise<Blob>
     flushSync(() => root.render(null))
     for (let i=0;i<pages.length;i++) {
       const page = pages[i]
-      Object.assign(page.style, { width: `${width}px`, height: `${height}px`, minHeight: `${height}px`, boxSizing:'border-box', overflow:'hidden' })
+      const receipt = snapshot.kind === 'receipt'
+      // A receipt PDF is cut to its content, like the bill itself; a prescription is always a full A4 sheet.
+      Object.assign(page.style, { width: `${width}px`, height: receipt ? 'auto' : `${height}px`, minHeight: receipt ? '0' : `${height}px`, boxSizing:'border-box', overflow:'hidden' })
       const letterhead=page.querySelector<SVGElement>('.prescription-letterhead');if(letterhead)letterhead.style.position='absolute'
       rootElement.append(page)
+      const pageHeight = receipt ? Math.ceil(page.getBoundingClientRect().height) : height
       if (page.getBoundingClientRect().height < 1) throw new Error('The print layout could not be measured.')
 
 
-      const canvas = await html2canvas(page, {scale:2,backgroundColor:getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(),width,height,windowWidth:width,windowHeight:height,logging:false})
+      const canvas = await html2canvas(page, {scale:2,backgroundColor:getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(),width,height:pageHeight,windowWidth:width,windowHeight:pageHeight,logging:false})
       const pixels=canvas.getContext('2d')!.getImageData(0,0,canvas.width,canvas.height).data
       let ink=0;for(let pixel=0;pixel<pixels.length;pixel+=64)if(Math.min(pixels[pixel],pixels[pixel+1],pixels[pixel+2])<200)ink++
       if(ink<100)throw new Error('The PDF page rendered blank. The issued record is safe; retry after reloading the app.')
       const jpeg=await pdf.embedJpg(canvas.toDataURL('image/jpeg',0.95))
-      const outputPage=pdf.addPage(snapshot.kind === 'receipt' ? [9.5 * 72, 11 * 72] : PageSizes.A4)
+      const outputPage=pdf.addPage(receipt ? [10 * 72, 10 * 72 * pageHeight / width] : PageSizes.A4)
       outputPage.drawImage(jpeg,{x:0,y:0,width:outputPage.getWidth(),height:outputPage.getHeight()})
       page.remove()
     }
