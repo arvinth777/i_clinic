@@ -260,3 +260,7 @@ and spacing tokens. Active/recent filters are text toggles. Alert targets use
 control lives in Alerts at desktop and mobile widths; enabling lasts only
 this signed-in browser session. No card containers, extra primary buttons or
 new colours are introduced.
+
+## Home and empty states — 2026-10-19
+- **Doctor home** (`DoctorHome.tsx`) replaces the blank "Ready for the next patient" pane when nobody is in the consultation room: greeting and date (IST), three plain numbers (Waiting now, Seen today, Collected today), a three-column board (Waiting with a Call button, At reception for payment, Done today; each capped at 5 with "+ N more"), and "Needs your attention" (patients due for review, medicines low/expiring, visits still open from earlier days). Calm style: white page, hairline dividers, one coloured top edge per column; no tinted tiles.
+- **Empty panes** use `EmptyState.tsx` (blue icon circle, title, one or two sentences, optional shortcut). Used in Billing ("Pick a patient to collect payment" / "Nothing to collect right now") and Patients.

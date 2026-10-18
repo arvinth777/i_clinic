@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { EmptyState } from '../components/EmptyState'
 import { StatusPill } from '../components/StatusPill'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
@@ -31,5 +32,5 @@ export function BillingDesk({ clinicId, readOnly = false, initialVisitId }: { cl
     </div>
     {(visibleCount < (visits?.length ?? 0) || hasNextPage) && <button className="ui-button ui-button-neutral" disabled={isFetchingNextPage} onClick={async () => { if (visibleCount >= (visits?.length ?? 0) && (await fetchNextPage()).isError) return; setVisibleCount(count => count + 50) }}>{isFetchingNextPage ? 'Loading…' : 'Show more'}</button>}
     {visits?.length === 0 && <p className="field-hint">No bills to collect.</p>}
-  </aside>{selected ? <Billing readOnly={readOnly} key={selected} clinicId={clinicId} visitId={selected} onClose={() => setSelected(null)} /> : <div className="bill-editor"><h2 className="readout-heading">Billing</h2><p className="readout-empty">Choose a visit to collect payment or reprint a receipt.</p></div>}</div>
+  </aside>{selected ? <Billing readOnly={readOnly} key={selected} clinicId={clinicId} visitId={selected} onClose={() => setSelected(null)} /> : <div className="bill-editor"><EmptyState icon="rupee" title={waiting ? 'Pick a patient to collect payment' : 'Nothing to collect right now'}>{waiting ? 'Patients who have finished with the doctor are listed on the left. Choose one to see the bill and take payment.' : 'When the doctor finishes a consultation, the patient appears on the left. Paid bills stay in the list so a receipt can be printed again.'}</EmptyState></div>}</div>
 }

@@ -1,0 +1,33 @@
+.dhome { max-width: calc(var(--editor-width) + 14rem); margin-inline: auto; padding: var(--page-top) var(--page-padding); display: grid; gap: var(--space-xl); }
+.dhome-date { margin: 0; color: var(--ink-2); font-size: var(--text-sm); }
+.dhome-head h2 { margin: var(--space-2xs) 0 0; font-size: var(--text-page); letter-spacing: var(--tracking-title); line-height: var(--line-title); color: var(--ink); }
+.dhome-numbers { display: flex; flex-wrap: wrap; margin: 0; padding-block: var(--space-md); border-block: 1px solid var(--border); }
+.dhome-numbers > div { display: flex; flex-direction: column-reverse; gap: var(--space-2xs); padding-right: var(--space-xl); margin-right: var(--space-xl); border-right: 1px solid var(--border); }
+.dhome-numbers > div:last-child { border-right: 0; margin-right: 0; padding-right: 0; }
+.dhome-numbers dd { margin: 0; font-size: var(--text-xl); font-weight: 700; color: var(--ink); line-height: 1.1; }
+.dhome-numbers dt { color: var(--ink-2); font-size: var(--text-sm); }
+.dhome-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--space-md); align-items: start; }
+.dhome-col { min-width: 0; padding: var(--space-md); border-radius: var(--r-lg); background: var(--panel); border-top: 3px solid var(--blue); }
+.dhome-col-warn { border-top-color: var(--amber); }
+.dhome-col-ok { border-top-color: var(--green); }
+.dhome-col h3 { display: flex; align-items: center; justify-content: space-between; gap: var(--space-xs); margin: 0 0 var(--space-sm); font-size: var(--text-sm); color: var(--ink); }
+.dhome-col h3 span { min-width: 1.6rem; padding: 0 var(--space-xs); border-radius: 999px; background: var(--bg); color: var(--ink-2); font-size: var(--text-xs); font-weight: 700; text-align: center; }
+.dhome-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2xs); }
+.dhome-col li { display: flex; align-items: center; gap: var(--space-xs); min-width: 0; min-height: 2.75rem; padding: 0 var(--space-sm); overflow: hidden; border-radius: var(--r-md); background: var(--bg); }
+.dhome-token { flex: none; font-weight: 700; color: var(--ink-2); font-size: var(--text-sm); }
+.dhome-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.dhome-more { justify-content: center; background: none !important; color: var(--ink-2); font-size: var(--text-sm); }
+.dhome-empty { margin: 0; color: var(--ink-2); font-size: var(--text-sm); line-height: 1.5; }
+.dhome-attention h3 { margin: 0 0 var(--space-sm); font-size: var(--text-base); color: var(--ink); }
+.dhome-attention ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-xs); }
+.dhome-attention li button { display: flex; align-items: center; gap: var(--space-xs); width: 100%; padding: var(--space-sm) var(--space-md); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg); color: var(--ink); font: inherit; font-size: var(--text-base); text-align: left; cursor: pointer; }
+.dhome-attention li button:hover { background: var(--hover); }
+.dhome-attention li button .icon:last-child { margin-left: auto; color: var(--blue); }
+.dhome-note { display: flex; align-items: flex-start; gap: var(--space-xs); padding: var(--space-sm) var(--space-md); border-radius: var(--r-md); background: var(--amber-bg); color: var(--amber); font-size: var(--text-sm); }
+.dhome-ok { color: var(--green); font-weight: 700; }
+.dhome-links { display: flex; flex-wrap: wrap; gap: var(--space-sm); padding-top: var(--space-md); border-top: 1px solid var(--border); }
+.dhome-links button { padding: var(--space-xs) var(--space-md); border: 0; border-radius: var(--r-sm); background: transparent; color: var(--blue); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.dhome-links button:hover { background: var(--hover); }
+.dhome-links kbd { margin-left: var(--space-xs); padding: 0 var(--space-xs); border: 1px solid var(--border-strong); border-radius: var(--r-sm); color: var(--ink-2); font: inherit; font-size: var(--text-xs); }
+@media (max-width: 720px) { .dhome { padding: var(--space-lg) var(--space-md); } .dhome-numbers > div { padding-right: var(--space-md); margin-right: var(--space-md); } }
+.dhome-call { width: 100%; margin-bottom: var(--space-sm); }
