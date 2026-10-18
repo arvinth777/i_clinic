@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
 import { clinicToday, startOfToday } from '../lib/date'
-import { Icon, type IconName } from './Icon'
+import { Icon } from './Icon'
 import './DoctorHome.css'
 
 type BoardVisit = { id: string; token_number: number; stage: string; arrived_at: string; patients: { name: string } | null }
@@ -73,9 +73,9 @@ export function DoctorHome({ clinicId, onNavigate }: { clinicId: string; onNavig
     { key: 'paying', title: 'At reception for payment', tone: 'warn', rows: paying, empty: 'Nobody is waiting to pay.' },
     { key: 'done', title: 'Done today', tone: 'ok', rows: done, empty: 'Finished visits will be listed here.' },
   ]
-  const attention: { text: string; section: string; icon: IconName }[] = [
-    ...(due > 0 ? [{ text: `${due} patient${due === 1 ? '' : 's'} to review`, section: 'register', icon: 'user' as IconName }] : []),
-    ...(stock > 0 ? [{ text: `${stock} medicine${stock === 1 ? '' : 's'} to check`, section: 'stock', icon: 'box' as IconName }] : []),
+  const attention: { text: string; section: string }[] = [
+    ...(due > 0 ? [{ text: `${due} patient${due === 1 ? '' : 's'} to review`, section: 'register' }] : []),
+    ...(stock > 0 ? [{ text: `${stock} medicine${stock === 1 ? '' : 's'} to check`, section: 'stock' }] : []),
   ]
   const failed = board.isError || daily.isError
   const retry = () => { void board.refetch(); void daily.refetch(); void warnings.refetch(); void dueReview.refetch() }
@@ -98,7 +98,7 @@ export function DoctorHome({ clinicId, onNavigate }: { clinicId: string; onNavig
       <div className="dhome-board">
         {columns.map(col => (
           <section key={col.key} className={`dhome-col dhome-col-${col.tone}`} aria-label={col.title}>
-            <h3><span className="dhome-dot" aria-hidden="true" />{col.title}<em>{board.data ? col.rows.length : '—'}</em></h3>
+            <h3>{col.title}<em>{board.data ? col.rows.length : '—'}</em></h3>
             {!board.data && !failed ? <ul aria-hidden="true"><li className="dhome-skel" /><li className="dhome-skel" /></ul> : col.rows.length === 0 ? <p className="dhome-empty">{col.empty}</p> : <ul>
               {col.rows.slice(0, SHOWN).map(v => (
                 <li key={v.id}><span className="dhome-token">#{v.token_number}</span><span className="dhome-name">{v.patients?.name}</span></li>
@@ -112,7 +112,7 @@ export function DoctorHome({ clinicId, onNavigate }: { clinicId: string; onNavig
       <div className="dhome-attention">
         <h3>Needs your attention</h3>
         {attention.length === 0 ? <p className="dhome-empty"><span className="dhome-ok" aria-hidden="true">✓</span> Nothing needs attention right now.</p> : <ul>
-          {attention.map(a => <li key={a.section}><button type="button" onClick={() => onNavigate(a.section)}><Icon name={a.icon} size={16} />{a.text}<Icon name="arrow" size={14} /></button></li>)}
+          {attention.map(a => <li key={a.section}><button type="button" onClick={() => onNavigate(a.section)}>{a.text}<Icon name="arrow" size={14} /></button></li>)}
         </ul>}
       </div>
 
