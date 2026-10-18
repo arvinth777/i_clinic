@@ -712,6 +712,6 @@ All five browser scripts were stale after the menu, prescription and billing red
 - `no-role-account-test.mjs`: already passing, unchanged.
 - `patient-info-redaction-test.mjs` (5173): lock and sign-out now go through the account menu; the queue helper needs a clinic id.
 - `alerts-cross-role-test.mjs` (5173): a headless reception browser now clicks "Sent in" itself (it used to need a person).
-- `offline-print-test.mjs` (**production build on 4173**: `npm run build`, then the `i-clinic-preview-4173` entry in `.claude/launch.json` / `npx vite preview --port 4173`): rewritten around today's "Mark paid" (blip, outage after the bill is open, never-answered detail request). Cleans up its fixture visits.
+- `offline-print-test.mjs` (**production build on 4173**: `npm run build`, then `npx vite preview --port 4173`): rewritten around today's "Mark paid" (blip, outage after the bill is open, never-answered detail request). Cleans up its fixture visits.
 - Not in CI (they need browsers and staging); run by hand before a release.
 - Release PR **#75** (`main` -> `production`) is open and unmerged: production still lacks migration `20261018030000_bill_zero_supply` (checked read-only via the Supabase MCP); the owner runs `supabase --workdir deploy/production db push` first.
