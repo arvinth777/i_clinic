@@ -92,7 +92,9 @@
   .shell-sidebar { display: block; flex: none; width: 14.5rem; position: sticky; top: var(--header-current-height); align-self: flex-start; height: calc(100dvh - var(--header-current-height)); overflow-y: auto; padding: var(--space-md) var(--space-sm); border-right: 1px solid var(--line); background: var(--bg); }
   .shell-sidebar nav { display: grid; gap: var(--space-2xs); }
   .shell-sidebar .shell-nav-item { width: 100%; min-height: 2.75rem; gap: var(--space-sm); padding: 0 var(--space-md); font-size: var(--text-base); border-radius: var(--r-sm); transition: background-color .18s ease, color .18s ease; }
-  .shell-sidebar .shell-nav-item .icon { width: 18px; height: 18px; }
+  .shell-sidebar .shell-nav-item .icon { width: 22px; height: 22px; color: var(--ink-2); transition: color .18s ease; }
+  .shell-sidebar .shell-nav-item:hover .icon { color: var(--ink); }
+  .shell-sidebar .shell-nav-item[aria-current='page'] .icon { color: var(--blue); }
   .shell-sidebar .shell-nav-item[aria-current='page'] { background: var(--hover); color: var(--ink); font-weight: 600; box-shadow: inset 3px 0 0 var(--blue); }
   .shell-sidebar .shell-billing-count { margin-left: auto; }
 }

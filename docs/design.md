@@ -65,8 +65,8 @@ saved/paid. Status is a coloured **pill** (`StatusPill`, `.pill-info|live|warn|o
 background, dot, and always the word; stage tones live in `stageLabel.ts`). The animated-looking live
 dot colour is only used for "with doctor / called". Action buttons: `success` (green, solid) for money-in
 or completing (Mark paid, Finish consultation, Bill, Collect payment), `danger` (red text with a thin red outline) for
-destructive (Cancel visit), `warn` (amber tint) for needs-attention actions (Fix a bill), blue stays the everyday action. Icons (`Icon.tsx`, 24-unit outline, current
-colour) sit before a button label (print, check, rupee, plus); they never replace the word.
+destructive (Cancel visit), `warn` (amber tint) for needs-attention actions (Fix a bill), blue stays the everyday action. Icons (`Icon.tsx`, 24-unit outline, 1.6 stroke, round caps, current
+colour; the object icons - heart-pulse, person, receipt, box, bar chart, clock, calendar, printer, pill - are duotone: a 16 % tint of the colour fills the main shape; the sidebar draws them at 22 px, blue when active) sit before a button label (print, check, rupee, plus); they never replace the word.
 A change that saves on its own shows "✓ Saved" (`.save-state-ok`); a save that leaves its form on screen uses `SaveTick` (fades after 5 s). Placeholder colour is never real content. Faint (#626C7C, 5.3:1) and
 placeholder (#6B7585, 4.6:1) were darkened on 2026-10-18 to pass 4.5:1 on white; the specification's
 blanket contrast statement still must not be reported as a verified accessibility pass.
