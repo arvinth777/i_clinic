@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { SaveTick } from '../SaveTick'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
@@ -146,6 +147,7 @@ export function CustomFieldList({ clinicId }: { clinicId: string }) {
             <Button type="submit" disabled={save.isPending}>
               {save.isPending ? 'Saving…' : 'Save'}
             </Button>
+            <SaveTick mutation={save} />
             <Button type="button" variant="secondary" onClick={() => setEditing(null)}>
               Cancel
             </Button>

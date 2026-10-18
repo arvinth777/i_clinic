@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { setMedicineUnitPrice } from '../lib/offlineQueue'
 import { formatPaiseForInput, parseRupeesToPaise } from '../lib/money'
@@ -14,6 +14,13 @@ export function ConfirmUnitRow({ clinicId, medicineId, name, pricePaise, onDone 
   const [unit, setUnit] = useState('')
   const [price, setPrice] = useState(pricePaise ? formatPaiseForInput(pricePaise) : '')
   const paise = parseRupeesToPaise(price)
+  const unitInput = useRef<HTMLInputElement>(null), priceInput = useRef<HTMLInputElement>(null)
+  const [hint, setHint] = useState('')
+  const submit = () => {
+    if (!unit.trim()) { setHint('Enter the unit it is sold in (tablet, strip, bottle…).'); unitInput.current?.focus() }
+    else if (paise === null) { setHint('Enter the price per unit, for example 2.50.'); priceInput.current?.focus() }
+    else { setHint(''); confirm.mutate() }
+  }
   const confirm = useMutation({
     networkMode: 'always',
     mutationFn: async () => {
@@ -24,11 +31,12 @@ export function ConfirmUnitRow({ clinicId, medicineId, name, pricePaise, onDone 
   })
   return (
     <div className="rx-new-medicine">
-      <Input aria-label={`Billing unit for ${name}`} value={unit} maxLength={24} onChange={(e) => setUnit(e.target.value)} placeholder="tablet, strip, bottle…" />
-      <Input aria-label={`Unit price (₹) for ${name}`} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" />
-      <Button type="button" variant="secondary" disabled={confirm.isPending || !unit.trim() || paise === null} onClick={() => confirm.mutate()}>
+      <Input ref={unitInput} aria-label={`Billing unit for ${name}`} value={unit} maxLength={24} onChange={(e) => setUnit(e.target.value)} placeholder="tablet, strip, bottle…" />
+      <Input ref={priceInput} aria-label={`Unit price (₹) for ${name}`} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" />
+      <Button type="button" variant="secondary" disabled={confirm.isPending} onClick={submit}>
         {confirm.isPending ? 'Saving…' : 'Confirm unit'}
       </Button>
+      {hint && <p className="form-error" role="alert">{hint}</p>}
       {confirm.isError && <p className="form-error" role="alert">Couldn't confirm the unit — try again.</p>}
     </div>
   )

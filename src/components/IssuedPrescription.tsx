@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Icon } from './Icon'
 import { supabase } from '../lib/supabase'
 import { readPrescriptionPrint, savePrescriptionPrint, type PrescriptionPrintSnapshot } from '../lib/prescriptionPrint'
 import { formatDateOnly } from '../lib/date'
@@ -7,6 +8,7 @@ import { PrintablePrescription, type ClinicPrintInfo, type DetailRow, type Print
 import { LetterheadPreview } from './LetterheadPreview'
 import { LoadingRows, QueryError } from './QueryState'
 import { Button } from './ui/button'
+import { DriveCheck } from './DriveCheck'
 import './PrescriptionForm.css'
 
 export function IssuedPrescription({ userId, clinicId, visitId }: { userId: string; clinicId: string; visitId: string }) {
@@ -63,7 +65,8 @@ export function IssuedPrescription({ userId, clinicId, visitId }: { userId: stri
       </li>)}</ul>
       {snapshot.visit.advice && <p className="prescription-note"><strong>Advice / investigations: </strong>{snapshot.visit.advice}</p>}
       {snapshot.visit.follow_up_date && <p>Review: {formatDateOnly(snapshot.visit.follow_up_date)}</p>}
-      <Button disabled={print.isPending} onClick={() => print.mutate()}>Print prescription</Button>
+      <Button disabled={print.isPending} onClick={() => print.mutate()}><Icon name="print" />Print prescription</Button>
+      <DriveCheck clinicId={clinicId} kind="prescription" visitId={visitId} />
       <div className="print-area"><PrintablePrescription clinic={snapshot.clinic} visit={snapshot.visit} medicines={snapshot.medicines} /></div>
     </div>}
     {print.isError && <p className="form-error" role="alert">{print.error.message}</p>}

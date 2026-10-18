@@ -100,53 +100,59 @@ export function PrintableReceipt({
   discountPaise: number
   bill: Bill | null
 }) {
-  // Plain and transactional on purpose -- a payment record, not a doctor's document: clinic name, address and phone are
-  // legitimate on a receipt; the doctor's name and registration number are not. Black on white, ruled with solid lines,
-  // sized in em: it must print cleanly on a dot-matrix printer and read the same in the on-screen preview and the archived PDF.
+  // A medicine bill, not a doctor's document: clinic name, address and phone are fine; the doctor's name and registration
+  // number are not, and neither are consultation or procedure fees (the doctor's charges are collected on screen, never printed).
+  // Black on white, solid rules, em units: it must print cleanly on 10 x 12 in dot-matrix stock and look the same in the
+  // on-screen preview and the archived PDF.
   const when = bill?.confirmed_at ?? visit?.arrived_at
-  const rows = billable.map(row => {
+  const rows = billable.filter(row => row.kind !== 'consultation' && row.kind !== 'procedure').map(row => {
     const quantity = row.quantity ?? 1, amount = row.line_total_paise ?? row.unit_price_paise * quantity
     return { row, quantity, rate: quantity ? Math.round(amount / quantity) : row.unit_price_paise, amount }
-  })
+  }).filter(r => r.quantity > 0)
   const subtotal = rows.reduce((sum, r) => sum + r.amount, 0)
+  // With fee lines hidden the printed total is the medicines alone; a saved discount only applies when every line is shown.
+  const feesHidden = billable.some(row => row.kind === 'consultation' || row.kind === 'procedure')
+  const discount = feesHidden ? 0 : discountPaise
+  const total = feesHidden ? subtotal : amountPaise
   const method = bill?.payment_method === 'upi' ? 'UPI' : bill?.payment_method === 'cash' ? 'Cash' : bill?.payment_method
-  const person = visit ? [visit.patients?.name, [visit.patients?.age != null ? `${visit.patients.age} yrs` : '', visit.patients?.gender].filter(Boolean).join(' / ')].filter(Boolean).join(', ') : customerName
+  const patientLine = visit ? [visit.patients?.name, [visit.patients?.age != null ? `${visit.patients.age} yrs` : '', visit.patients?.gender].filter(Boolean).join(' / ')].filter(Boolean).join(', ') : customerName
   return (
     <section className="print-page print-page-plain rcpt">
       <header className="rcpt-head">
         <h1>{clinic?.name}</h1>
-        {clinic?.address && <p>{clinic.address}</p>}
-        {clinic?.phone && <p>Phone: {clinic.phone}</p>}
+        <p>{[clinic?.address, clinic?.phone && `Phone ${clinic.phone}`].filter(Boolean).join('  ·  ')}</p>
       </header>
-      <div className="rcpt-title"><strong>RECEIPT</strong><strong>{bill ? 'PAID' : 'NOT PAID'}</strong></div>
+      <h2 className="rcpt-title">Medicine bill</h2>
       <dl className="rcpt-meta">
+        <div className="rcpt-wide"><dt>{visit ? 'Patient' : 'Customer'}</dt><dd>{patientLine}</dd></div>
         <div><dt>Date</dt><dd>{when ? formatDateTime(when) : ''}</dd></div>
         {visit && <div><dt>Token no.</dt><dd>{visit.token_number}</dd></div>}
-        <div className="rcpt-wide"><dt>{visit ? 'Patient' : 'Customer'}</dt><dd>{person}</dd></div>
+        {method && <div><dt>Paid by</dt><dd>{method}{bill?.pending && ' (not saved yet)'}</dd></div>}
       </dl>
       <table className="rcpt-items">
-        <thead><tr><th>Sl</th><th>Item</th><th>Qty</th><th>Rate (Rs.)</th><th>Amount (Rs.)</th></tr></thead>
+        <thead><tr><th>No.</th><th>Medicine</th><th>Qty</th><th>Rate (Rs.)</th><th>Amount (Rs.)</th></tr></thead>
         <tbody>
           {rows.map(({ row, quantity, rate, amount }, i) => (
             <tr key={i}>
               <td>{i + 1}</td>
-              <td>{row.description}{'shortfall' in row && !!row.shortfall && <small> ({row.shortfall} not supplied)</small>}</td>
-              <td>{quantity}{row.stock_unit && row.kind === 'medicine' ? ` ${row.stock_unit}` : ''}</td>
+              <td>{row.description}</td>
+              <td>{quantity}{row.stock_unit ? ` ${row.stock_unit}` : ''}</td>
               <td>{formatRupees(rate)}</td>
               <td>{formatRupees(amount)}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
-          {discountPaise > 0 && <tr><td colSpan={4}>Sub total</td><td>{formatRupees(subtotal)}</td></tr>}
-          {discountPaise > 0 && <tr><td colSpan={4}>Discount</td><td>- {formatRupees(discountPaise)}</td></tr>}
-          <tr className="rcpt-total"><td colSpan={4}>{bill ? 'TOTAL PAID (Rs.)' : 'TOTAL (Rs.)'}</td><td>{formatRupees(amountPaise)}</td></tr>
+          {discount > 0 && <tr><td colSpan={4}>Sub total</td><td>{formatRupees(subtotal)}</td></tr>}
+          {discount > 0 && <tr><td colSpan={4}>Discount</td><td>- {formatRupees(discount)}</td></tr>}
+          <tr className="rcpt-total"><td colSpan={4}>Total (Rs.)</td><td>{formatRupees(total)}</td></tr>
         </tfoot>
       </table>
-      <p className="rcpt-words">{amountInWords(amountPaise)}</p>
-      {bill && <p className="rcpt-paid">Paid by {method} on {formatDateTime(bill.confirmed_at)}{bill.pending && ' (recorded on this device, not saved yet)'}</p>}
-      <p className="receipt-medicine-notice">Prescribed drugs are for the specified condition and period only; do not self-medicate.<br /><span lang="ta">குறிப்பிட்ட நோய்நிலைக்கும் காலத்திற்கும் மட்டுமே இந்த மருந்துகள் பரிந்துரைக்கப்பட்டுள்ளன. மருத்துவரின் ஆலோசனையின்றி மருந்துகளை உட்கொள்ள வேண்டாம்.</span></p>
-      <footer className="rcpt-foot"><span>Thank you. Get well soon.</span><span>Receiver's signature</span></footer>
+      <p className="rcpt-words">{amountInWords(total)}</p>
+      <footer className="rcpt-foot">
+        <p className="receipt-medicine-notice">Prescribed drugs are for the specified condition and period only; do not self-medicate.<br /><span lang="ta">குறிப்பிட்ட நோய்நிலைக்கும் காலத்திற்கும் மட்டுமே இந்த மருந்துகள் பரிந்துரைக்கப்பட்டுள்ளன. மருத்துவரின் ஆலோசனையின்றி மருந்துகளை உட்கொள்ள வேண்டாம்.</span></p>
+        <span className="rcpt-sign">Receiver's signature</span>
+      </footer>
     </section>
   )
 }

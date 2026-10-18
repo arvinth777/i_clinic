@@ -1,4 +1,5 @@
 import { usePrintDocument } from '../lib/usePrintDocument'
+import { Icon } from './Icon'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
@@ -14,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useClinicLearning } from '../lib/useClinicLearning'
 import { adviceSuggestions, applyDefaults, matchingDiagnoses, medicinesForDiagnosis, sortByPopularity, topMedicines } from '../lib/clinicLearning'
 import {
+  itemMissing,
   newDraftItem,
   draftFromExisting,
   itemRow,
@@ -75,6 +77,10 @@ export function PrescriptionForm({
   const [draftLoaded, setDraftLoaded] = useState(false)
   const [draftStorageError, setDraftStorageError] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
+  // After Confirm the doctor sees what was issued, not a blank form; "Add more medicines" opens the form again.
+  const [addingMore, setAddingMore] = useState(false)
+  // Set once the doctor presses Review with rows incomplete: from then on the missing fields are marked and listed.
+  const [showMissing, setShowMissing] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
@@ -224,6 +230,21 @@ export function PrescriptionForm({
   }
 
   const canReview = draftItems.length > 0 && draftItems.every(itemIsValid)
+  const incomplete = draftItems.map(item => ({ item, missing: itemMissing(item) })).filter(row => row.missing.length > 0)
+  const fieldClass = (item: DraftItem, field: string) => showMissing && itemMissing(item).some(m => m.field === field) ? 'field is-missing' : 'field'
+  // Open the first incomplete row, bring its first missing field into view and focus it.
+  function showFirstProblem() {
+    const first = incomplete[0]
+    if (!first) return
+    setShowMissing(true)
+    setClosedRows(previous => previous.filter(key => key !== first.item.key))
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const target = document.querySelector<HTMLElement>(`[data-row="${first.item.key}"] [data-field="${first.missing[0].field}"]`)
+      target?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      target?.querySelector<HTMLElement>('input, button, [role="combobox"]')?.focus({ preventScroll: true })
+    }))
+  }
+  const tryReview = () => canReview ? (setShowMissing(false), setReviewOpen(true)) : showFirstProblem()
 
   const saveTemplate = useMutation({
     mutationFn: async () => {
@@ -296,6 +317,7 @@ export function PrescriptionForm({
       setDiagnosis('')
       setAdvice('')
       setReviewOpen(false)
+      setAddingMore(false)
     },
   })
 
@@ -327,7 +349,7 @@ export function PrescriptionForm({
         </ul>
         {advice && <p>Advice: {advice}</p>}
         {diagnosis ? <p>Diagnosis: {diagnosis}</p> : <p className="rx-reminder" role="status">Diagnosis is missing. You can still issue this prescription.</p>}
-        {!followUp?.follow_up_date && <p className="rx-reminder" role="status">Review date is missing. Set it under Regular check-ups if needed.</p>}
+        {!followUp?.follow_up_date && <p className="rx-reminder" role="status">No review date yet. You can set one under Next visit.</p>}
         <div className="action-row">
           <Button type="button" variant="secondary" disabled={confirm.isPending} onClick={() => setReviewOpen(false)}>
             Back to edit
@@ -348,6 +370,35 @@ export function PrescriptionForm({
     )
   }
 
+  const issuedMedicines = printed?.medicines ?? existingMedicines
+  if (!addingMore && !draftItems.length && !diagnosis && !advice && issuedMedicines.length > 0) {
+    const issuedVisit = printed?.visit ?? visit
+    return (
+      <div className="rx-workspace"><div className="rx-editor">
+        <div className="rx-patient"><h2>{visit.patients?.name}</h2><p>{[visit.patients?.age != null ? `${visit.patients.age} years` : '', visit.patients?.gender, `Token #${visit.token_number}`].filter(Boolean).join(' · ')}</p></div>
+        <h3 className="readout-heading">Prescription issued</h3>
+        <ul className="review-list">
+          {issuedMedicines.map((m, i) => (
+            <li key={i} className="review-item">
+              <span className="review-item-name">{m.description} {m.strength}</span>
+              <p>{[m.drug_type, m.before_after_food, m.dosage_frequency, m.duration_days ? `For ${m.duration_days} days` : ''].filter(Boolean).join(' · ')}</p>
+              {m.notes && <p className="review-item-note">{m.notes}</p>}
+            </li>
+          ))}
+        </ul>
+        {issuedVisit.advice && <p>Advice: {issuedVisit.advice}</p>}
+        {issuedVisit.diagnosis && <p>Diagnosis: {issuedVisit.diagnosis}</p>}
+        <div className="action-row rx-issued-actions">
+          <Button type="button" disabled={print.isPending} onClick={() => print.mutate()}><Icon name="print" />Print prescription</Button>
+          <Button type="button" variant="secondary" onClick={() => setAddingMore(true)}>Add more medicines</Button>
+        </div>
+        {print.isError && <p className="form-error" role="alert">{print.error.message}</p>}
+        <div className="print-area"><PrintablePrescription clinic={clinic ?? printed?.clinic} visit={issuedVisit} medicines={issuedMedicines} /></div>
+        {children}
+      </div>{preview}</div>
+    )
+  }
+
   const hasQuickAdd = combo.length > 0 || (templates && templates.length > 0)
 
   return (
@@ -358,7 +409,7 @@ export function PrescriptionForm({
       <p className="field-hint rx-complaint">From reception · {visit.complaint || 'No complaint recorded'}</p>
       {printed && (
         <>
-          <Button type="button" variant="secondary" disabled={print.isPending} onClick={() => print.mutate()}>Print prescription</Button>
+          <Button type="button" variant="secondary" disabled={print.isPending} onClick={() => print.mutate()}><Icon name="print" />Print prescription</Button>
           <div className="print-area"><PrintablePrescription clinic={printed.clinic} visit={printed.visit} medicines={printed.medicines} /></div>
         </>
       )}
@@ -438,7 +489,7 @@ export function PrescriptionForm({
       {draftItems.length > 0 && (
         <div className="drug-row-list">
           {draftItems.map((item) => (
-            <details key={item.key} className="drug-row" open={!closedRows.includes(item.key)} onToggle={event => {
+            <details key={item.key} data-row={item.key} className="drug-row" open={!closedRows.includes(item.key)} onToggle={event => {
               const open = event.currentTarget.open
               setClosedRows(previous => open === !previous.includes(item.key) ? previous : open ? previous.filter(key => key !== item.key) : [...previous, item.key])
             }}>
@@ -450,7 +501,7 @@ export function PrescriptionForm({
                 </button>
               </summary>
               <div className="drug-row-fields">
-                <div className="field">
+                <div className={fieldClass(item, 'type')} data-field="type">
                   <label className="field-label">Type</label>
                   <Select value={item.drugType} onValueChange={(v) => updateDraft(item.key, { drugType: v })}>
                     <SelectTrigger aria-label={`Type for ${item.medicineName}`}>
@@ -465,24 +516,24 @@ export function PrescriptionForm({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="field">
+                <div className={fieldClass(item, 'strength')} data-field="strength">
                   <label className="field-label">Strength</label>
                   <Input aria-label={`Strength for ${item.medicineName}`} value={item.strength} onChange={(e) => updateDraft(item.key, { strength: e.target.value })} placeholder="500mg" />
                 </div>
-                {item.drugType === 'Other' && <div className="field">
+                {item.drugType === 'Other' && <div className={fieldClass(item, 'unit')} data-field="unit">
                   <label className="field-label">Supply unit</label>
                   <Input aria-label={`Supply unit for ${item.medicineName}`} value={item.stockUnit} maxLength={24} onChange={(e) => updateDraft(item.key, { stockUnit: e.target.value })} placeholder="e.g. ampoule" />
                 </div>}
-                <div className="field">
+                <div className={fieldClass(item, 'food')} data-field="food">
                   <label className="field-label">Food</label>
                   <div className="text-toggles" role="group" aria-label={`Food for ${item.medicineName}`}>{FOOD_OPTIONS.map(food => <button key={food} type="button" aria-pressed={item.beforeAfterFood === food} onClick={() => updateDraft(item.key, { beforeAfterFood: food })}>{food}</button>)}</div>
                 </div>
-                <div className="field">
+                <div className={fieldClass(item, 'frequency')} data-field="frequency">
                   <label className="field-label">Frequency</label>
                   <div className="text-toggles" role="group" aria-label={`Dose presets for ${item.medicineName}`}>{['1-0-0', '1-0-1', '1-1-1', 'SOS'].map(dose => <button key={dose} type="button" aria-pressed={item.dosageFrequency === dose} onClick={() => updateDraft(item.key, { dosageFrequency: dose })}>{dose}</button>)}</div>
                   <Input aria-label={`Frequency for ${item.medicineName}`} list="rx-frequencies" value={item.dosageFrequency} maxLength={200} onChange={e => updateDraft(item.key, { dosageFrequency: e.target.value })} placeholder="1-0-1, SOS, or type instructions" />
                 </div>
-                <div className="field">
+                <div className={fieldClass(item, 'duration')} data-field="duration">
                   <label className="field-label">Duration (days)</label>
                   <div className="text-toggles" role="group" aria-label={`Duration presets for ${item.medicineName}`}>{['3', '5', '7', '14', '30'].map(days => <button key={days} type="button" aria-pressed={item.durationDays === days} onClick={() => updateDraft(item.key, { durationDays: days })}>{days}</button>)}</div>
                   <Input
@@ -494,7 +545,7 @@ export function PrescriptionForm({
                     onChange={(e) => updateDraft(item.key, { durationDays: e.target.value })}
                   />
                 </div>
-                <div className="field">
+                <div className={fieldClass(item, 'quantity')} data-field="quantity">
                   <label className="field-label">Quantity prescribed ({medicineUnits?.find((m) => m.id === item.medicineId)?.stock_unit ?? (item.drugType === 'Other' ? item.stockUnit || 'unit' : prescribedUnit(item.drugType))})</label>
                   <Input
                     type="number"
@@ -511,8 +562,8 @@ export function PrescriptionForm({
                   <Input aria-label={`Note for ${item.medicineName}`} value={item.notes} onChange={(e) => updateDraft(item.key, { notes: e.target.value })} placeholder="Optional" />
                 </div>
               </div>
-              {!itemIsValid(item) && (
-                <span className="field-error">Type, strength, food, frequency, duration and whole-number prescribed quantity are required.</span>
+              {itemMissing(item).length > 0 && (
+                <span className="field-error">Still needed: {itemMissing(item).map(m => m.label).join(', ')}.</span>
               )}
             </details>
           ))}
@@ -542,12 +593,17 @@ export function PrescriptionForm({
         </div>
       )}
       {!diagnosis.trim() && <p className="rx-reminder" role="status">Diagnosis is missing. You can still issue this prescription.</p>}
+      {showMissing && incomplete.length > 0 && (
+        <p className="form-error rx-missing" role="alert">
+          {incomplete.map(({ item, missing }) => `${item.medicineName}: add ${missing.map(m => m.label).join(', ')}`).join('. ')}.
+        </p>
+      )}
       {draftItems.length > 0 && (
         <div className="action-row rx-actions">
-          <Button type="button" disabled={!canReview} onClick={() => setReviewOpen(true)}>
+          <Button type="button" onClick={tryReview}>
             Review prescription
           </Button>
-          <Button type="button" variant="secondary" disabled={!canReview} onClick={() => setShowSaveTemplate((s) => !s)}>
+          <Button type="button" variant="secondary" onClick={() => canReview ? setShowSaveTemplate((s) => !s) : showFirstProblem()}>
             Save as template
           </Button>
         </div>
@@ -577,6 +633,7 @@ export function PrescriptionForm({
           </Button>
         </form>
       )}
+      {saveTemplate.isSuccess && !showSaveTemplate && <p className="save-state save-state-ok" role="status">✓ Template saved</p>}
       {saveTemplate.isError && <p className="form-error">Couldn't save the template — try again.</p>}
       {children}
     </div>{preview}</div>

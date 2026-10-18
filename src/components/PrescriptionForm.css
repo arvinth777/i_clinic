@@ -1,8 +1,6 @@
 .rx-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, var(--preview-width)); align-items: start; min-height: 100%; }
-.rx-editor { min-width: 0; padding: var(--page-top) var(--page-padding); }
-.rx-editor > * { max-width: var(--editor-width); margin-inline: auto; }
-/* These carry their own margin shorthand elsewhere and would otherwise hang outside the centred column. */
-.rx-editor > .rx-quick-add, .rx-editor > .field-hint, .rx-editor > .rx-quick-add-note { margin-inline: auto; }
+/* The column is centred with padding, not with each child's auto margins: any child that sets its own margin (lists, buttons) used to hang off the left edge. */
+.rx-editor { min-width: 0; padding: var(--page-top) max(var(--page-padding), calc((100% - var(--editor-width)) / 2)); }
 .rx-patient { margin-bottom: var(--space-xl); }
 .rx-patient h2 { font-size: var(--text-page); line-height: var(--line-title); letter-spacing: var(--tracking-title); font-weight: 700; margin: 0 0 var(--space-2xs); }
 .rx-patient p { font-size: var(--text-sm); color: var(--text-secondary); margin: 0; }
@@ -35,3 +33,9 @@
 
 .rx-editor .drug-row-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 520px) { .rx-editor .drug-row-fields { grid-template-columns: minmax(0, 1fr); } }
+
+.rx-issued-actions { margin-block: var(--space-lg) var(--space-xl); }
+.rx-editor .field.is-missing .field-label { color: var(--red); font-weight: 600; }
+.rx-editor .field.is-missing :is(input, button[role="combobox"]) { border-color: var(--red); }
+.rx-editor .field.is-missing .text-toggles { outline: 1px solid var(--red); outline-offset: 2px; border-radius: var(--r-sm); }
+.rx-missing { margin-block: var(--space-md); }

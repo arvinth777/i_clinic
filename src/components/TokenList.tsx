@@ -4,6 +4,8 @@ import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-quer
 import { supabase } from '../lib/supabase'
 import { startOfToday, elapsedMinutes, formatElapsed } from '../lib/date'
 import { nextSortState, sortRows, type SortState } from '../lib/sort'
+import { Icon } from './Icon'
+import { StatusPill } from './StatusPill'
 import { Button } from './ui/button'
 import './Worklist.css'
 import { useQueueAction, CANCEL_VISIT_DIALOG, type QueueAction } from '../lib/queueActions'
@@ -26,12 +28,8 @@ type Visit = {
 }
 
 function StageGlyph({ stage }: { stage: string }) {
-  const meta = STAGES[stage] ?? { label: stage, color: 'var(--text-tertiary)' }
-  return (
-    <span className="stage-pill" style={{ color: meta.color }}>
-      {meta.label}
-    </span>
-  )
+  const meta = STAGES[stage] ?? { label: stage, tone: 'mute' as const }
+  return <StatusPill tone={meta.tone}>{meta.label}</StatusPill>
 }
 
 // Stages the receptionist can click into to open (or reopen) a bill --
@@ -127,7 +125,7 @@ export function TokenList({ clinicId, onSelectVisit, highlightVisitId }: { clini
       <div className="queue-filters" role="group" aria-label="Queue filter">{(['active', 'done', 'all', 'earlier'] as const).map(value => <button key={value} className="shell-nav-item" aria-pressed={filter === value} onClick={() => { setFilter(value); setVisibleCount(50) }}>{value === 'done' ? 'Finished' : value === 'active' ? 'Now' : value === 'earlier' ? 'Earlier days' : 'Everyone today'}</button>)}</div>
       <details className="queue-sort"><summary>Sort</summary>{(['token', 'name', 'stage', 'wait'] as const).map(key => <button key={key} className="shell-nav-item" onClick={() => setSort(nextSortState(sort, key))}>{key}{sort?.key === key ? sort.direction === 'asc' ? ' ↑' : ' ↓' : ''}</button>)}</details>
     </div>
-    {onSelectVisit && <Input aria-label="Optional queue move reason" placeholder="Move reason (optional)" value={reason} onChange={e=>setReason(e.target.value)} maxLength={500} />}
+    {onSelectVisit && <details className="queue-reason" open={!!reason}><summary>{reason ? 'Note for the next move' : 'Add a note to the next move (optional)'}</summary><Input aria-label="Optional queue move reason" placeholder="Why is this patient moving?" value={reason} onChange={e=>setReason(e.target.value)} maxLength={500} /></details>}
     {action.isError && <p className="form-error" role="alert">{action.error.message}</p>}
     {!rows.length && <p className="readout-empty">No patients in this view.</p>}
     <ul className={viewError ? "queue-patients stale-copy" : "queue-patients"}>{[...rows].sort((a,b) => Number(b.id === highlightVisitId) - Number(a.id === highlightVisitId)).slice(0, visibleCount).map(v => <li className={`queue-patient${v.id === highlightVisitId ? ' alert-highlight' : ''}`} key={v.id}>
@@ -141,8 +139,8 @@ export function TokenList({ clinicId, onSelectVisit, highlightVisitId }: { clini
         {['waiting','called'].includes(v.stage) && <Button variant="ghost" disabled={action.isPending} onClick={()=>act(v,'not_here')}>Not here</Button>}
         {v.stage==='not_here' && v.arrived_at>=today && <><Button variant="ghost" disabled={action.isPending} onClick={()=>act(v,'return_original')}>Return to position</Button><Button variant="ghost" disabled={action.isPending} onClick={()=>act(v,'return_end')}>Return at end</Button></>}
         {(v.stage==='not_here' && v.not_here_at && elapsedMinutes(v.not_here_at)>=(settings?.no_show_minutes??30) || v.arrived_at<today && ['waiting','called','with_doctor'].includes(v.stage)) && <><span className="status-amber">Please review: has this patient returned?</span>{confirmNoShow !== v.id && <Button variant="ghost" disabled={action.isPending} onClick={()=>setConfirmNoShow(v.id)}>Mark no-show</Button>}</>}
-        {CANCELLABLE_STAGES.includes(v.stage) && <Button variant="ghost" disabled={action.isPending} onClick={() => void cancelVisit(v)}>Cancel visit</Button>}
-      </>}{onSelectVisit && BILLABLE_STAGES.has(v.stage) && <Button variant="secondary" size="sm" onClick={() => onSelectVisit(v.id)}>{v.stage === 'paid' ? 'Receipt' : 'Bill'}</Button>}</div>
+        {CANCELLABLE_STAGES.includes(v.stage) && <Button variant="danger" disabled={action.isPending} onClick={() => void cancelVisit(v)}><Icon name="close" size={14} />Cancel visit</Button>}
+      </>}{onSelectVisit && BILLABLE_STAGES.has(v.stage) && <Button variant={v.stage === 'paid' ? 'secondary' : 'success'} size="sm" onClick={() => onSelectVisit(v.id)}>{v.stage === 'paid' ? 'Receipt' : <><Icon name="rupee" size={14} />Bill</>}</Button>}</div>
       {confirmNoShow === v.id && <div className="queue-confirm" role="alert"><span className="status-amber">Close this visit? It cannot be reopened; the patient would need a new token.</span><Button variant="dark" disabled={action.isPending} onClick={()=>act(v,'no_show')}>Confirm no-show</Button><Button variant="ghost" onClick={()=>setConfirmNoShow(null)}>Cancel</Button></div>}
     </li>)}</ul>
     {(rows.length > visibleCount || showingEarlier && earlier.hasNextPage) && <Button variant="secondary" disabled={earlier.isFetchingNextPage} onClick={() => { if (showingEarlier && rows.length <= visibleCount && earlier.hasNextPage) void earlier.fetchNextPage(); setVisibleCount(count => count + 50) }}>{earlier.isFetchingNextPage ? 'Loading…' : 'Show more'}</Button>}

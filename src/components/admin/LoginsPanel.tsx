@@ -119,7 +119,9 @@ export function LoginsPanel({ clinicId }: { clinicId: string }) {
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            grantRoleMutation.mutate()
+            if (!grantUserId) setFormError('Choose a login first.')
+            else if (!grantRole) setFormError('Choose the role to add.')
+            else { setFormError(''); grantRoleMutation.mutate() }
           }}
         >
           <div className="field">
@@ -164,7 +166,7 @@ export function LoginsPanel({ clinicId }: { clinicId: string }) {
           </div>
           {formError && <p className="form-error">{formError}</p>}
           <div className="action-row">
-            <Button type="submit" disabled={!grantUserId || !grantRole || grantRoleMutation.isPending}>
+            <Button type="submit" disabled={grantRoleMutation.isPending}>
               {grantRoleMutation.isPending ? 'Granting…' : 'Grant role'}
             </Button>
             <Button type="button" variant="secondary" onClick={() => setGranting(false)}>

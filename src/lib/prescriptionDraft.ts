@@ -133,22 +133,25 @@ export function itemRow(item: DraftItem) {
   }
 }
 
+export type MissingField = { field: 'type' | 'unit' | 'strength' | 'food' | 'frequency' | 'duration' | 'quantity'; label: string }
+
+// What still has to be filled in on a drug row, in the order the row shows them.
+export function itemMissing(item: DraftItem): MissingField[] {
+  const wholePositive = (text: string) => text.trim() !== '' && Number.isInteger(Number(text)) && Number(text) > 0
+  const unit = item.stockUnit.trim()
+  const missing: MissingField[] = []
+  if (!item.drugType) missing.push({ field: 'type', label: 'type' })
+  if (item.strength.trim() === '') missing.push({ field: 'strength', label: 'strength' })
+  if (item.drugType === 'Other' && (unit.length === 0 || unit.length > 24)) missing.push({ field: 'unit', label: 'supply unit' })
+  if (!item.beforeAfterFood) missing.push({ field: 'food', label: 'before/after food' })
+  if (!item.dosageFrequency) missing.push({ field: 'frequency', label: 'how often' })
+  if (!wholePositive(item.durationDays)) missing.push({ field: 'duration', label: 'number of days' })
+  if (!wholePositive(item.quantityDispensed)) missing.push({ field: 'quantity', label: 'quantity' })
+  return missing
+}
+
 export function itemIsValid(item: DraftItem): boolean {
-  const days = Number(item.durationDays)
-  const quantity = Number(item.quantityDispensed)
-  return (
-    !!item.drugType &&
-    (item.drugType !== 'Other' || (item.stockUnit.trim().length > 0 && item.stockUnit.trim().length <= 24)) &&
-    !!item.beforeAfterFood &&
-    !!item.dosageFrequency &&
-    item.strength.trim() !== '' &&
-    item.durationDays.trim() !== '' &&
-    Number.isInteger(days) &&
-    days > 0 &&
-    item.quantityDispensed.trim() !== '' &&
-    Number.isInteger(quantity) &&
-    quantity > 0
-  )
+  return itemMissing(item).length === 0
 }
 
 // Only a whole quantity in the same stock unit can be suggested safely.

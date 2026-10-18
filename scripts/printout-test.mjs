@@ -25,8 +25,8 @@ const prescriptionDate = renderToStaticMarkup(React.createElement(PrintablePresc
 assert.ok(prescriptionDate.includes('Oct 11, 2026'), 'issued prescription uses consultation completion date in IST, not arrival date')
 const bill = { id: 'synthetic', final_amount_paise: 25100, payment_method: 'cash', confirmed_at: '2026-10-10', bill_line_items: [{ kind: 'consultation', description: 'Consultation', quantity: 1, unit_price_paise: 25000, line_total_paise: 25000 }, { kind: 'medicine', description: 'Synthetic medicine', quantity: 1, unit_price_paise: 100, line_total_paise: 100 }] }
 const html = renderToStaticMarkup(React.createElement(PrintableReceipt, { clinic: { name: 'Synthetic clinic' }, visit: { id: 'visit', token_number: 1, arrived_at: '2026-10-10', patients: { name: '<script>Synthetic</script>' } }, billable: bill.bill_line_items, amountPaise: 25100, discountPaise: 0, bill }))
-assert.ok(html.includes('₹1.00') && !html.includes('₹9.00'), 'receipt must show the saved price, not the changed catalog price')
-assert.ok(html.includes('₹0.00'), 'saved receipt discount must come from its frozen lines')
+assert.ok(html.includes('1.00') && !html.includes('9.00'), 'receipt must show the saved price, not the changed catalog price')
+assert.ok(!html.includes('Consultation') && !html.includes('250.00'), 'consultation and procedure fees never print')
 assert.ok(!html.includes('<script>'), 'patient text must be escaped')
 const unknown = renderToStaticMarkup(React.createElement(PrintableReceipt, { clinic: { name: 'Synthetic clinic' }, visit: { id: 'visit', token_number: 1, arrived_at: '2026-10-10', patients: { name: 'Synthetic' } }, billable: bill.bill_line_items, amountPaise: 25100, discountPaise: 0, bill }))
 assert.ok(!unknown.includes('No medicines prescribed'), 'missing instructions must not be presented as an empty prescription')
@@ -42,7 +42,7 @@ assert.equal(mergePrescriptionPrint(merged, revised).medicines.length, 2, 'a rep
 console.log('PASS: retry replaces edited instructions without losing earlier medicines')
 
 const pharmacy = renderToStaticMarkup(React.createElement(PrintableReceipt, { clinic: { name: 'Synthetic clinic' }, customerName: 'Synthetic pharmacy <customer>', billable: [{ kind: 'medicine', description: 'Synthetic tablets', quantity: 3, stock_unit: 'tablet', unit_price_paise: 1000, line_total_paise: 3000 }], amountPaise: 2500, discountPaise: 500, bill: { id: 'pending', final_amount_paise: 2500, payment_method: 'upi', confirmed_at: '2026-10-10', pending: true } }))
-assert.ok(pharmacy.includes('₹30.00') && pharmacy.includes('₹25.00') && pharmacy.includes('× 3 tablet'))
+assert.ok(pharmacy.includes('30.00') && pharmacy.includes('25.00') && pharmacy.includes('3 tablet'))
 assert.ok(pharmacy.includes('not saved yet') && pharmacy.includes('&lt;customer&gt;'))
 assert.ok(!pharmacy.includes('Token') && !pharmacy.includes('Consultation') && !pharmacy.includes('Prescription'))
 console.log('PASS: name-only pharmacy receipt shows quantity, unit, discount and pending state without clinical history')

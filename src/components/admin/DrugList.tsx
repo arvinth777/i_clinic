@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { SaveTick } from '../SaveTick'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { attemptOrQueue, setMedicineUnitPrice } from '../../lib/offlineQueue'
 import { supabase } from '../../lib/supabase'
@@ -269,6 +270,7 @@ export function DrugList({ clinicId, pricesOnly = false }: { clinicId: string; p
             <Button type="submit" disabled={save.isPending}>
               {save.isPending ? 'Saving…' : 'Save'}
             </Button>
+            <SaveTick mutation={save} />
             <Button type="button" variant="secondary" onClick={() => setEditing(null)}>
               Cancel
             </Button>

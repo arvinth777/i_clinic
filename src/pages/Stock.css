@@ -27,5 +27,5 @@
 @media(min-width: 1001px) {
  .inventory-page { position: relative; }
  .inventory-page .page-heading { padding-right: 50%; }
- .inventory-page .flow-stats { position: absolute; top: 0; right: 0; padding: 0; grid-template-columns: repeat(3, auto); gap: var(--page-padding); }
+ .inventory-page .flow-stats { position: absolute; top: var(--page-top); right: var(--page-padding); padding: 0; grid-template-columns: repeat(3, auto); gap: var(--page-padding); }
 }

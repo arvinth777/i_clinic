@@ -1,4 +1,5 @@
 import { LoadingRows, QueryError } from '../QueryState'
+import { StatusPill } from '../StatusPill'
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
@@ -129,10 +130,10 @@ export function StockList({ clinicId, highlightMedicineId }: { clinicId: string;
       </TableRow></TableHeader><TableBody>
         {[...visible].sort((a,b) => Number(b.id === highlightMedicineId) - Number(a.id === highlightMedicineId)).slice(0, visibleCount).map(m => <TableRow key={m.id} className={m.id === highlightMedicineId ? 'alert-highlight' : undefined}>
           <TableCell><strong>{m.name}</strong><p className="field-hint">{m.unit_confirmed_at ? m.stock_unit : 'Confirm unit and price before billing'}</p></TableCell>
-          <TableCell className="tabular-nums">{formatPaise(m.price_paise)}<p className="field-hint">per {m.stock_unit ?? 'unconfirmed unit'}</p></TableCell>
+          <TableCell className="tabular-nums">{formatPaise(m.price_paise)}<p className="field-hint">per {m.stock_unit ?? 'unit (not set yet)'}</p></TableCell>
           {stockPoints.map(sp => <TableCell key={sp.id} className={`text-right tabular-nums ${quantityAt(m.id, sp.id) < 0 ? 'stock-qty-negative' : ''}`}>{quantityAt(m.id, sp.id)}</TableCell>)}
-          <TableCell className={`text-right tabular-nums ${m.total < 0 ? 'stock-qty-negative' : m.low ? 'stock-qty-low' : ''}`}><strong>{m.total}</strong>{m.low && <p className="field-hint">Low stock</p>}</TableCell>
-          <TableCell className={m.expiry === 'Expired' ? 'stock-qty-negative' : m.expiry ? 'stock-qty-low' : ''}>{m.expiry_date ? formatDateOnly(m.expiry_date) : '—'}{m.expiry && <p className="field-hint">{m.expiry}</p>}</TableCell>
+          <TableCell className={`text-right tabular-nums ${m.total < 0 ? 'stock-qty-negative' : m.low ? 'stock-qty-low' : ''}`}><strong>{m.total}</strong>{m.total < 0 ? <p><StatusPill tone="bad">Below zero</StatusPill></p> : m.low && <p><StatusPill tone="warn">Low stock</StatusPill></p>}</TableCell>
+          <TableCell className={m.expiry === 'Expired' ? 'stock-qty-negative' : m.expiry ? 'stock-qty-low' : ''}>{m.expiry_date ? formatDateOnly(m.expiry_date) : '—'}{m.expiry && <p><StatusPill tone={m.expiry === 'Expired' ? 'bad' : 'warn'}>{m.expiry}</StatusPill></p>}</TableCell>
         </TableRow>)}
       </TableBody></Table>
       {visible.length > visibleCount && <Button variant="secondary" onClick={() => setVisibleCount(count => count + 50)}>Show more</Button>}

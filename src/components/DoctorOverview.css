@@ -15,8 +15,8 @@
 .dv-actions { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-sm); }
 .dv-secondary { display: flex; gap: var(--space-md); }
 .dv-link { border: 0; background: transparent; padding: 0; font: inherit; font-size: var(--text-sm); font-weight: 600; color: var(--blue); cursor: pointer; }
-.dv-link.is-danger { color: var(--muted); font-weight: 400; }
-.dv-link.is-danger:hover { color: var(--red); }
+.dv-link.is-danger { display: inline-flex; align-items: center; gap: var(--space-2xs); color: var(--red); font-weight: 600; }
+.dv-link.is-danger:hover { text-decoration: underline; }
 .dv-link:disabled { opacity: .5; cursor: default; }
 .dv-label { margin: 0 0 var(--space-xs); font-size: var(--text-sm); font-weight: 600; color: var(--ink-2); }
 .dv-reason { padding: var(--space-lg) var(--space-20); border-radius: var(--r-lg); background: var(--blue-tint); }
@@ -44,3 +44,8 @@
 .dv-notes > summary::-webkit-details-marker { display: none; }
 .dv-notes[open] > summary { margin-bottom: var(--space-xs); }
 @media (max-width: 720px) { .dv-columns { grid-template-columns: minmax(0, 1fr); } .dv-actions { align-items: flex-start; } }
+
+.dv-notes > summary::before { content: '▸'; display: inline-block; margin-right: var(--space-xs); color: var(--blue); transition: transform .15s; }
+.dv-notes[open] > summary::before { transform: rotate(90deg); }
+.dv-notes-add { margin-left: var(--space-sm); color: var(--blue); font-weight: 600; font-size: var(--text-sm); }
+.dv-notes[open] .dv-notes-add { display: none; }

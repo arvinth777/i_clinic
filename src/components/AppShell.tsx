@@ -16,6 +16,7 @@ import { Input } from './ui/input'
 import './AppShell.css'
 import { startOfToday, clinicToday } from '../lib/date'
 import { RealtimeConnected, queuePollInterval, batchRealtimeEvents } from '../lib/realtimeStatus'
+import { Icon, type IconName } from './Icon'
 
 
 function PinForm({ onDone }: { onDone: () => void }) {
@@ -74,6 +75,8 @@ function useClinicName(clinicId: string | null | undefined) {
 
 // `group` puts a section inside another section's tab strip (Billing > Unpaid bills); `tab` is the root's tab name;
 // `account` sections live in the profile menu instead of the main bar (Settings).
+const NAV_ICONS: Record<string, IconName> = { consultation: 'pulse', reception: 'clock', billing: 'rupee', patients: 'user', stock: 'box', reports: 'chart' }
+
 export type ShellSection = { key: string; label: string; group?: string; tab?: string; account?: boolean }
 
 export function AppShell({
@@ -202,7 +205,7 @@ export function AppShell({
     return <a key={section.key} href={`#${section.key}`} className="shell-nav-item"
       aria-label={section.key === homeSection && waitingCount ? `${section.label}, ${waitingCount} waiting` : section.key === 'billing' && readyToBill ? `Billing, ${readyToBill} patients waiting` : undefined}
       aria-current={section.key === activeHub ? 'page' : undefined}
-      onClick={(event) => { event.preventDefault(); select(section.key) }}>{section.label}{section.key === 'billing' && readyToBill > 0 && <span className="shell-billing-count" aria-hidden="true">{readyToBill}</span>}{section.key === homeSection && waitingCount > 0 && <span className="shell-billing-count" aria-hidden="true">{waitingCount}</span>}</a>
+      onClick={(event) => { event.preventDefault(); select(section.key) }}>{NAV_ICONS[section.key] && <Icon name={NAV_ICONS[section.key]} size={15} />}{section.label}{section.key === 'billing' && readyToBill > 0 && <span className="shell-billing-count" aria-hidden="true">{readyToBill}</span>}{section.key === homeSection && waitingCount > 0 && <span className="shell-billing-count" aria-hidden="true">{waitingCount}</span>}</a>
   }
   // Quiet when everything is fine: only speak up when work is waiting or at risk.
   const syncLabel = halted ? 'Save needs attention' : !online ? `Offline · ${pending.length} changes waiting` : pending.length ? `${pending.length} not saved yet` : ''

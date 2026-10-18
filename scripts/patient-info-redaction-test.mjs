@@ -50,7 +50,7 @@ await page.waitForSelector('.shell-nav', { timeout: 10000 })
 // exist matches zero rows -- a real rejection (offlineQueue.ts's own
 // zero-rows check), not a network failure, so it halts rather than
 // retrying quietly.
-await page.evaluate(async (marker) => {
+await page.evaluate(async ({ marker, clinicId }) => {
   const q = window.__debugQueue
   await q.enqueue({
     kind: 'update',
@@ -58,22 +58,29 @@ await page.evaluate(async (marker) => {
     match: { id: '00000000-0000-0000-0000-000000000000' },
     payload: { stage: 'waiting' },
     description: `Open bill for ${marker}`,
+    clinicId, // the queue refuses work without a clinic
   })
   await q.drainQueue()
-}, MARKER)
+}, { marker: MARKER, clinicId: '23e03361-9d6c-49f5-83b7-ad57f4a0c5ce' })
 await page.waitForTimeout(500)
 
 report('the halted banner is showing', (await page.locator('.offline-queue-banner-halted').count()) === 1)
 report('authenticated + unlocked: the patient name IS visible (legitimate use)', (await page.getByText(MARKER).count()) === 1)
 
 // ---- Lock the screen ----
-await page.getByLabel('Set a lock PIN').click()
+// Lock, sign out and the PIN live in the account menu (the circle at the top right).
+const openAccountMenu = () => page.locator('summary.shell-avatar').click()
+await openAccountMenu()
+await page.locator('.shell-account').getByRole('button', { name: 'Lock screen' }).click()
 await page.locator('#new-pin').fill('4242')
 await page.locator('#confirm-pin').fill('4242')
 await page.getByRole('button', { name: 'Save PIN' }).click()
-await page.waitForTimeout(300)
-await page.getByLabel('Lock screen now').click()
-await page.waitForTimeout(300)
+await page.waitForTimeout(400)
+if ((await page.locator('.lock-screen-input').count()) === 0) { // saving the PIN may not lock by itself
+  await openAccountMenu()
+  await page.locator('.shell-account').getByRole('button', { name: 'Lock screen' }).click()
+  await page.waitForTimeout(300)
+}
 
 report('locked: the patient name is no longer in the rendered page', (await page.getByText(MARKER).count()) === 0)
 report('locked: the halted banner still shows *something* (not silently dropped)', (await page.locator('.offline-queue-banner-halted').count()) === 1)
@@ -84,7 +91,8 @@ await page.waitForTimeout(300)
 report('unlocked again: the patient name is visible once more', (await page.getByText(MARKER).count()) === 1)
 
 // ---- Sign out ----
-await page.getByRole('button', { name: 'Sign out' }).click()
+await openAccountMenu()
+await page.locator('.shell-account').getByRole('button', { name: 'Sign out' }).click()
 await page.waitForSelector('#signin-email', { timeout: 10000 })
 report('signed out: the patient name is not on the sign-in screen', (await page.getByText(MARKER).count()) === 0)
 report('signed out: the halted banner still shows *something* (queue survives sign-out, by design)', (await page.locator('.offline-queue-banner-halted').count()) === 1)

@@ -43,6 +43,22 @@ export function useCallSound({ event, tokenNumber, userId, clinicId, locked, ava
       if (result !== 'granted') setError('Browser notifications were not allowed. Calls still appear in the clinic app.')
     } catch { setError('Browser notifications could not start. Calls still appear in the clinic app.') }
   }
+  // Ask for browser notifications as soon as the receptionist is signed in, so the browser's own "Allow / Block" box appears
+  // by itself. Browsers sometimes hold back a prompt that was not triggered by a click, so the first click is a second chance.
+  // Each is tried once per page load; if the box is dismissed the blue banner and the alerts drawer remain.
+  useEffect(() => {
+    if (!available || locked || permission !== 'default' || typeof Notification === 'undefined' || !window.isSecureContext) return
+    let asked = false
+    const ask = () => {
+      if (asked || Notification.permission !== 'default') return
+      asked = true
+      void Notification.requestPermission().then(setPermission).catch(() => {})
+    }
+    const timer = setTimeout(ask, 1200)
+    const onClick = () => { asked = false; ask() }
+    window.addEventListener('pointerdown', onClick, { once: true })
+    return () => { clearTimeout(timer); window.removeEventListener('pointerdown', onClick) }
+  }, [available, locked, permission])
   const controls = available ? <div className="call-alert-controls">
     <button className="shell-nav-item" type="button" aria-pressed={enabled} onClick={() => void toggle()} title="Enable once per session; only new doctor calls sound">{enabled ? 'Mute call chime' : 'Enable call chime'}</button>
     {permission === 'default' && <button className="shell-nav-item" type="button" onClick={() => void enableNotifications()}>Enable browser notifications</button>}

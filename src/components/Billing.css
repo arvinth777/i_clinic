@@ -150,7 +150,7 @@
 .prescription-footer-space { height: var(--paper-footer); }
 @media print {
   @page { size: A4; margin: 0; }
-  @page receipt { size: 9.5in 11in; margin: 0; }
+  @page receipt { size: 10in 12in; margin: 0; }
   .print-page-plain { page: receipt; }
   .prescription-sheet { display: block; min-height: 0; break-after: page; }
   .prescription-paper-content thead { display: table-header-group; }
@@ -227,28 +227,30 @@
 }
 @media print { .prescription-sheet:last-child { break-after: auto; } }
 
-/* Receipt (also the archived PDF and the refill receipt): black on white, solid rules, em units so it scales from the preview to the 9.5 x 11 in sheet. */
-.rcpt { color: var(--ink); background: var(--bg); font-size: var(--print-receipt-size); line-height: 1.4; font-variant-numeric: tabular-nums; }
+/* Receipt (also the archived PDF and the refill receipt): black on white, solid rules, em units so it scales from the preview to the 10 x 12 in sheet. */
+.rcpt { display: flex; flex-direction: column; color: var(--ink); background: var(--bg); font-size: var(--print-receipt-size); line-height: 1.45; font-variant-numeric: tabular-nums; }
 .receipt-preview .rcpt { font-size: var(--text-xs); }
-.rcpt-head { padding-bottom: .5em; border-bottom: 2px solid var(--ink); text-align: center; }
-.rcpt-head h1 { margin: 0; font-size: 1.5em; line-height: 1.2; }
-.rcpt-head p { margin: .15em 0 0; }
-.rcpt-title { display: flex; justify-content: space-between; margin: .6em 0 .35em; font-size: 1.1em; }
-.rcpt-meta { display: grid; grid-template-columns: 1fr 1fr; gap: .15em 1.5em; margin: 0 0 .6em; }
-.rcpt-meta > div { display: flex; gap: .5em; min-width: 0; }
-.rcpt-meta dt { min-width: 5.5em; font-weight: 700; }
-.rcpt-meta dd { margin: 0; overflow-wrap: anywhere; }
+.rcpt-head { padding-bottom: .6em; border-bottom: 3px double var(--ink); text-align: center; }
+.rcpt-head h1 { margin: 0; font-size: 1.9em; font-weight: 700; letter-spacing: .02em; line-height: 1.15; }
+.rcpt-head p { margin: .3em 0 0; }
+.rcpt-title { margin: 1em 0 .7em; font-size: 1em; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; text-align: center; }
+.rcpt-meta { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: .6em 2em; margin: 0 0 1.1em; }
+.rcpt-meta > div { min-width: 0; }
+.rcpt-meta dt { font-size: .78em; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.rcpt-meta dd { margin: .1em 0 0; font-size: 1.05em; overflow-wrap: anywhere; }
 .rcpt-wide { grid-column: 1 / -1; }
-.rcpt-items { width: 100%; border-collapse: collapse; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
-.rcpt-items th, .rcpt-items td { padding: .25em .4em; text-align: left; vertical-align: top; }
-.rcpt-items th { border-bottom: 1px solid var(--ink); font-weight: 700; }
-.rcpt-items th:first-child, .rcpt-items td:first-child { width: 2.4em; }
+.rcpt-items { width: 100%; border-collapse: collapse; border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); }
+.rcpt-items th, .rcpt-items td { padding: .5em .5em; text-align: left; vertical-align: top; }
+.rcpt-items th { border-bottom: 1px solid var(--ink); font-size: .85em; font-weight: 700; letter-spacing: .04em; }
+.rcpt-items th:first-child, .rcpt-items td:first-child { width: 3em; padding-left: 0; }
 .rcpt-items :is(th, td):nth-child(n+3) { text-align: right; white-space: nowrap; }
-.rcpt-items td small { font-size: .85em; }
+.rcpt-items :is(th, td):last-child { padding-right: 0; }
 .rcpt-items tfoot td { text-align: right; font-weight: 700; }
-.rcpt-items .rcpt-total td { border-top: 1px solid var(--ink); font-size: 1.1em; }
-.rcpt-words { margin: .5em 0; font-weight: 600; }
-.rcpt-paid { margin: 0 0 .6em; }
-.rcpt-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 1em; margin-top: 2.5em; }
-.rcpt-foot span:last-child { min-width: 11em; padding-top: .2em; border-top: 1px solid var(--ink); text-align: center; }
-@media print { .rcpt { padding: .3in .45in; } .rcpt * { color: var(--ink) !important; background: none !important; } }
+.rcpt-items .rcpt-total td { border-top: 1px solid var(--ink); padding-block: .6em; font-size: 1.2em; }
+.rcpt-words { margin: .6em 0 0; font-size: .95em; text-align: right; }
+.rcpt-foot { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 2.5em; margin-top: auto; padding-top: 3em; }
+.rcpt-foot .receipt-medicine-notice { flex: 1 1 18em; margin: 0; padding-top: .6em; border-top: 1px solid var(--ink); font-size: .8em; line-height: 1.6; }
+.rcpt-sign { flex: none; min-width: 10em; margin-left: auto; padding-top: .3em; border-top: 1px solid var(--ink); text-align: center; font-size: .9em; }
+@media print { .rcpt { padding: .6in .7in; } .rcpt * { color: var(--ink) !important; background: none !important; } }
+
+.bill-lines tr.bill-line-problem td { background: var(--red-bg); }

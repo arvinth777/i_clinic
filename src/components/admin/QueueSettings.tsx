@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { SaveTick } from '../SaveTick'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { attemptOrQueue } from '../../lib/offlineQueue'
@@ -37,7 +38,7 @@ export function QueueSettings({ clinicId }: { clinicId: string }) {
       <div className="field"><label className="field-label" htmlFor="no-show-minutes">No-show reminder (minutes)</label><Input id="no-show-minutes" name="no_show_minutes" type="number" min={1} max={240} step={1} required value={absenceDraft ?? query.data.no_show_minutes} onChange={event => setAbsenceDraft(event.target.value)} /></div>
       <div className="field"><label className="field-label" htmlFor="called-reminder-minutes">Called but not sent in (minutes)</label><Input id="called-reminder-minutes" name="called_reminder_minutes" type="number" min={1} max={240} step={1} required value={calledDraft ?? query.data.called_reminder_minutes} onChange={event => setCalledDraft(event.target.value)} /></div>
       <div className="field"><label className="field-label" htmlFor="clinic-closing-time">Closing time (IST)</label><Input id="clinic-closing-time" name="closing_time" type="time" required value={closeValue} onChange={event => setCloseDraft(event.target.value)} /></div>
-      <Button disabled={save.isPending} type="submit">Save</Button>
+      <Button disabled={save.isPending} type="submit">Save</Button><SaveTick mutation={save} />
     </form>}
     {save.isError && <p role="alert" className="form-error">{save.error.message}</p>}
   </section>

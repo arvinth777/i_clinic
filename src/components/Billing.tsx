@@ -1,3 +1,5 @@
+import { DriveCheck } from './DriveCheck'
+import { Icon } from './Icon'
 import { DocumentArchives } from './DocumentArchives'
 import { usePrintDocument } from '../lib/usePrintDocument'
 import { LoadingRows, QueryError } from './QueryState'
@@ -6,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import QRCode from 'qrcode'
 import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
+import { hasPrintableLines } from '../lib/receiptLines'
 import { PrintableReceipt, type PrintVisit as Visit, type DetailRow, type BillLine, type Bill } from './VisitPrintout'
 import { attemptOrQueue } from '../lib/offlineQueue'
 import { Input } from './ui/input'
@@ -165,21 +168,34 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
     }),
   ] : undefined
   const subtotal = supplyLines?.reduce((sum,row)=>sum+row.line_total_paise,0) ?? 0
-  const supplyInvalid = !Number.isSafeInteger(subtotal) || supplyLines?.some(row=>!Number.isInteger(row.quantity)||row.quantity<0||(row.kind==='medicine'&&(!row.medicine_id||row.quantity>(row.approved_quantity??0)||row.quantity>Math.max(0,row.available_quantity??0))))
+  const supplyInvalid = !Number.isSafeInteger(subtotal) || supplyLines?.some(row=>!Number.isInteger(row.quantity)||row.quantity<0||(row.kind==='medicine'&&(row.quantity>(row.approved_quantity??0)||(row.quantity>0&&(!row.medicine_id||row.quantity>Math.max(0,row.available_quantity??0))))))
   // Say WHICH line and WHICH rule failed -- the old single sentence hid that the drug simply had no stock.
-  const supplyProblem = supplyLines?.map(row => {
+  const problemFor = (row: SupplyLine): string | null => {
     if (row.kind !== 'medicine') return null
     if (!Number.isInteger(row.quantity) || row.quantity < 0) return `${row.description}: enter a whole number of units.`
     if (row.quantity > (row.approved_quantity ?? 0)) return `${row.description}: more than the ${row.approved_quantity ?? 0} the doctor approved.`
+    if (row.quantity === 0) return null
     if (!row.medicine_id) {
       const item = plan?.medicines.find(m => m.prescription_item_id === row.prescription_item_id)
       return item && choicesFor(item).length === 0
-        ? `${row.description}: no stocked product matches this molecule, strength and unit. Add that product (with its unit and price confirmed) under Stock, then refresh this bill.`
-        : `${row.description}: choose the stocked product that matches the doctor's molecule and strength.`
+        ? `${row.description}: no stocked product matches this molecule, strength and unit. Add that product (with its unit and price confirmed) under Stock and refresh this bill, or enter 0 to leave it out.`
+        : `${row.description}: choose the stocked product that matches the doctor's molecule and strength, or enter 0 to leave it out.`
     }
     if (row.quantity > Math.max(0, row.available_quantity??0)) return `${row.description}: only ${Math.max(0, row.available_quantity??0)} in Counter stock. Reduce the supplied units (0 if none can be supplied) or receive stock under Stock.`
     return null
-  }).find(Boolean)
+  }
+  const supplyIssue = supplyLines?.map(row => { const message = problemFor(row); return message ? { id: row.prescription_item_id, message } : null }).find(Boolean)
+  const supplyProblem = supplyIssue?.message
+  // Mark paid stays pressable: with a problem it opens the offending line instead of sitting greyed out.
+  const [triedPay, setTriedPay] = useState(false)
+  const showSupplyProblem = () => {
+    setTriedPay(true)
+    requestAnimationFrame(() => {
+      const row = supplyIssue?.id ? document.querySelector<HTMLElement>(`[data-line="${supplyIssue.id}"]`) : null
+      ;(row ?? document.querySelector<HTMLElement>('.bill-problem'))?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      row?.querySelector<HTMLElement>('input, select')?.focus({ preventScroll: true })
+    })
+  }
   const payable = subtotal
 
   const confirmPayment = useMutation({
@@ -236,7 +252,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
       // Give the DOM a tick to render the printable slip before invoking
       // the browser's print dialog -- the print path stays DOM-based, no
       // server round trip, works with zero connectivity, queued or not.
-      setTimeout(() => print.mutate(), 100)
+      if (hasPrintableLines(bill.bill_line_items ?? [])) setTimeout(() => print.mutate(), 100)
     },
     onError: () => {
       void queryClient.invalidateQueries({ queryKey: ['reception-bill-plan', visitId] })
@@ -253,6 +269,7 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
   const billable = bill?.bill_line_items ?? supplyLines ?? detail
   const calculatedTotal = bill?.bill_line_items ? bill.bill_line_items.reduce((sum, row) => sum + row.line_total_paise, 0) : subtotal
   const discountPaise = Math.max(0,calculatedTotal - amountPaise)
+  const canPrint = hasPrintableLines(billable ?? [])
 
   return (
     <div className="billing-workspace"><div className="bill-editor">
@@ -273,13 +290,13 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
           <div className="bill-table-wrap"><table className="bill-lines"><thead><tr><th>Item</th><th>Supplied</th><th>Price</th><th>Amount</th></tr></thead><tbody>
             {billable.map((row, i) => {
               const prescribed = plan?.medicines.find(item => item.prescription_item_id === row.prescription_item_id)
-              return <tr key={i}><td><strong>{row.description}</strong><small>{row.kind === 'consultation' ? 'Consultation charge set by doctor' : row.kind === 'procedure' ? 'Procedure' : row.stock_unit}</small>{!bill && prescribed && !readOnly && <label className="field bill-brand-field"><span className="field-label">Stocked product · {prescribed.molecule_name} {prescribed.strength}</span><select value={pickedBrand(prescribed) ?? ''} onChange={e => setSelectedBrands(old => ({...old,[prescribed.prescription_item_id]:e.target.value}))}><option value="">Choose matching product</option>{choicesFor(prescribed).map(choice => <option key={choice.id} value={choice.id}>{choice.name} · {formatPaise(choice.price_paise)} / {choice.stock_unit} · {stockByMedicine.get(choice.id) ?? 0} available</option>)}</select></label>}</td><td>{!bill && !readOnly && row.kind==='medicine' && row.prescription_item_id ? <Input type="number" inputMode="numeric" min={0} max={Math.min(row.approved_quantity??0,row.available_quantity??0)} step={1} aria-label={`Supplied quantity for ${row.description}`} value={supplied[row.prescription_item_id]??String(row.quantity??0)} onChange={e=>setSupplied(old=>({...old,[row.prescription_item_id!]:e.target.value}))}/> : row.quantity ?? 1}{row.kind==='medicine' && 'approved_quantity' in row && row.approved_quantity!=null && <small>{row.approved_quantity} prescribed{'shortfall' in row && !!row.shortfall && ` · ${row.shortfall} not supplied`}</small>}</td><td>{formatPaise(row.unit_price_paise)}</td><td><strong>{formatPaise(row.line_total_paise ?? row.unit_price_paise)}</strong></td></tr>
+              return <tr key={i} data-line={row.prescription_item_id} className={triedPay && supplyIssue?.id && supplyIssue.id === row.prescription_item_id ? 'bill-line-problem' : undefined}><td><strong>{row.description}</strong><small>{row.kind === 'consultation' ? 'Consultation charge set by doctor' : row.kind === 'procedure' ? 'Procedure' : row.stock_unit}</small>{!bill && prescribed && !readOnly && <label className="field bill-brand-field"><span className="field-label">Stocked product · {prescribed.molecule_name} {prescribed.strength}</span><select value={pickedBrand(prescribed) ?? ''} onChange={e => setSelectedBrands(old => ({...old,[prescribed.prescription_item_id]:e.target.value}))}><option value="">Choose matching product</option>{choicesFor(prescribed).map(choice => <option key={choice.id} value={choice.id}>{choice.name} · {formatPaise(choice.price_paise)} / {choice.stock_unit} · {stockByMedicine.get(choice.id) ?? 0} available</option>)}</select></label>}</td><td>{!bill && !readOnly && row.kind==='medicine' && row.prescription_item_id ? <Input type="number" inputMode="numeric" min={0} max={Math.min(row.approved_quantity??0,row.available_quantity??0)} step={1} aria-label={`Supplied quantity for ${row.description}`} value={supplied[row.prescription_item_id]??String(row.quantity??0)} onChange={e=>setSupplied(old=>({...old,[row.prescription_item_id!]:e.target.value}))}/> : row.quantity ?? 1}{row.kind==='medicine' && 'approved_quantity' in row && row.approved_quantity!=null && <small>{row.approved_quantity} prescribed{'shortfall' in row && !!row.shortfall && ` · ${row.shortfall} not supplied`}</small>}</td><td>{formatPaise(row.unit_price_paise)}</td><td><strong>{formatPaise(row.line_total_paise ?? row.unit_price_paise)}</strong></td></tr>
             })}
           </tbody></table></div>
         )}
       </section>
 
-      {supplyInvalid && !bill && !readOnly && <p className="form-error" role="alert">{supplyProblem ?? 'Use whole supplied units within the approved quantity and available Counter stock.'}</p>}
+      {supplyInvalid && !bill && !readOnly && <p className="form-error bill-problem" role="alert">{supplyProblem ?? 'Use whole supplied units within the approved quantity and available Counter stock.'}</p>}
       <section className="record-section">
         <div className="pricing-block">
           <div className="pricing-row">
@@ -334,12 +351,12 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
           <div className="action-row">
             <button
               type="button"
-              className={buttonVariants({ variant: 'primary' })}
+              className={buttonVariants({ variant: 'success' })}
               data-press="stamp"
-              disabled={confirmPayment.isPending || detailStillLoading || supplyInvalid}
-              onClick={() => confirmPayment.mutate()}
+              disabled={confirmPayment.isPending || detailStillLoading}
+              onClick={() => supplyInvalid ? showSupplyProblem() : confirmPayment.mutate()}
             >
-              {confirmPayment.isPending ? 'Confirming…' : detailStillLoading ? 'Loading receipt details…' : `Mark paid · ${formatPaise(amountPaise)}`}
+              {confirmPayment.isPending ? 'Confirming…' : detailStillLoading ? 'Loading receipt details…' : <><Icon name="check" />{`Mark paid · ${formatPaise(amountPaise)}`}</>}
             </button>
             <Button type="button" variant="secondary" onClick={onClose}>
               Back to queue
@@ -352,18 +369,19 @@ export function Billing({ clinicId, visitId, onClose, readOnly = false }: { clin
 
       {bill && (
         <section className="record-section">
+          <DriveCheck clinicId={clinicId} kind="receipt" billId={bill.pending ? undefined : bill.id} />
           <DocumentArchives clinicId={clinicId} billId={bill.id} />
           <div className="paid-stamp" aria-hidden="true">
             Paid
           </div>
           <p>
-            Paid via {bill.payment_method}. Print the receipt below; the doctor prints the prescription separately.
+            Paid via {bill.payment_method}. {canPrint ? 'Print the receipt below; the doctor prints the prescription separately.' : 'No medicines were supplied, so there is no bill to print.'}
             {bill.pending && ' Not saved yet — waiting for a connection to actually confirm with the server.'}
           </p>
           <div className="action-row">
-            <Button type="button" variant="dark" disabled={print.isPending} onClick={() => print.mutate()}>
-              Print again
-            </Button>
+            {canPrint && <Button type="button" variant="dark" disabled={print.isPending} onClick={() => print.mutate()}>
+              <Icon name="print" />Print again
+            </Button>}
             <Button type="button" onClick={onClose}>
               Back to queue
             </Button>
