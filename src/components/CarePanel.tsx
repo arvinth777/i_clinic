@@ -79,7 +79,7 @@ export function CarePanel({ visitId, patientId, clinicId }: { visitId: string; p
     onSuccess: () => queryClient.invalidateQueries({ queryKey: followUpKey }),
   })
   const setFollowUp = (date: string) => { setFollowUpDate(date); saveFollowUp.mutate(date) }
-  const saved = (m: { isPending: boolean; isSuccess: boolean; isError: boolean }) => m.isPending ? <span className="care-state">Saving…</span> : m.isError ? <span className="care-state care-state-error" role="alert">Not saved, try again</span> : m.isSuccess ? <span className="care-state care-state-ok" role="status">✓ Saved</span> : null
+  const saved = (m: { isPending: boolean; isSuccess: boolean; isError: boolean }) => m.isPending ? <span className="save-state">Saving…</span> : m.isError ? <span className="save-state save-state-error" role="alert">Not saved, try again</span> : m.isSuccess ? <span className="save-state save-state-ok" role="status">✓ Saved</span> : null
 
   return (
     <section className="record-section care-panel">

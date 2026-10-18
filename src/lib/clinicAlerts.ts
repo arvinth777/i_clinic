@@ -29,7 +29,7 @@ export function buildClinicAlerts(source: AlertSource, isDoctor: boolean, now: n
     const total = quantities.get(medicine.id) ?? 0
     const days = medicine.expiry_date ? (Date.parse(`${medicine.expiry_date}T00:00:00Z`) - Date.parse(`${todayDate}T00:00:00Z`)) / 86_400_000 : Infinity
     const details: string[] = []
-    if (total < 0) details.push('Negative stock needs reconciliation')
+    if (total < 0) details.push('Stock is below zero, please recount')
     else if (medicine.low_stock_threshold !== null && total <= medicine.low_stock_threshold) details.push(`Low stock · ${total} units`)
     if (total > 0 && days <= 30) details.push(days < 0 ? 'Expired' : `Expiry within 30 days · ${medicine.expiry_date}`)
     if (details.length) alerts.push({ id: `stock:${medicine.id}`, title: medicine.name, detail: details.join(' · '), severity: total < 0 || days < 0 ? 'red' : 'amber', section: 'stock', medicineId: medicine.id })

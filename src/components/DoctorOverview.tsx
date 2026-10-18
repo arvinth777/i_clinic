@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatDate, formatDateOnly } from '../lib/date'
 import { formatBody } from '../lib/patientBody'
 import { Button } from './ui/button'
+import { Icon } from './Icon'
 import { ConsultationClock } from './ConsultationClock'
 import './DoctorOverview.css'
 
@@ -27,12 +29,13 @@ function ago(iso: string): string {
   return `${Math.round(days / 30)} months ago`
 }
 
-export function DoctorOverview({ clinicId, visit, pastVisits, prescriptions, comments, noteDraft, onNoteDraft, onAddNote, noteBusy, noteFailed, sent, prescribingActive, busy, onStart, onViewPrescription, onOpenRecord, onCancel }: {
+export function DoctorOverview({ clinicId, visit, pastVisits, prescriptions, comments, noteDraft, onNoteDraft, onAddNote, noteBusy, noteFailed, noteSaved, sent, prescribingActive, busy, onStart, onViewPrescription, onOpenRecord, onCancel }: {
   clinicId: string; visit: OverviewVisit; pastVisits: PastVisit[] | undefined; prescriptions: OverviewPrescription[] | undefined; comments: Comment[] | undefined
-  noteDraft: string; onNoteDraft: (text: string) => void; onAddNote: () => void; noteBusy: boolean; noteFailed: boolean
+  noteDraft: string; onNoteDraft: (text: string) => void; onAddNote: () => void; noteBusy: boolean; noteFailed: boolean; noteSaved?: boolean
   sent: boolean; prescribingActive: boolean; busy: boolean
   onStart: () => void; onViewPrescription: () => void; onOpenRecord: () => void; onCancel: () => void
 }) {
+  const [noteHint, setNoteHint] = useState(false)
   const patient = visit.patients
   const called = visit.stage === 'called'
   const { data: fields } = useQuery({
@@ -69,7 +72,7 @@ export function DoctorOverview({ clinicId, visit, pastVisits, prescriptions, com
             : <Button disabled={called} onClick={onStart}>{prescribingActive ? 'Continue prescription →' : 'Start prescription →'}</Button>}
           <span className="dv-secondary">
             <button type="button" className="dv-link" onClick={onOpenRecord}>Full record</button>
-            {visit.stage !== 'paid' && <button type="button" className="dv-link is-danger" disabled={busy} onClick={onCancel}>Cancel visit</button>}
+            {visit.stage !== 'paid' && <button type="button" className="dv-link is-danger" disabled={busy} onClick={onCancel}><Icon name="close" size={14} /> Cancel visit</button>}
           </span>
         </div>
       </header>
@@ -116,12 +119,14 @@ export function DoctorOverview({ clinicId, visit, pastVisits, prescriptions, com
       </div>
 
       <details className="dv-notes" open={!!comments?.length}>
-        <summary><span className="dv-label">Personal notes · only you see these{comments?.length ? ` (${comments.length})` : ''}</span></summary>
+        <summary><span className="dv-label">Personal notes · only you see these{comments?.length ? ` (${comments.length})` : ''}</span><span className="dv-notes-add">{comments?.length ? '' : 'Add a note'}</span></summary>
         {!!comments?.length && <ul className="comment-list">{comments.map(c => <li key={c.id} className="comment-item"><span className="comment-date">{formatDate(c.created_at)}</span><p>{c.body}</p></li>)}</ul>}
-        <form className="action-row" onSubmit={e => { e.preventDefault(); if (noteDraft.trim()) onAddNote() }}>
+        <form className="action-row" onSubmit={e => { e.preventDefault(); if (noteDraft.trim()) { setNoteHint(false); onAddNote() } else { setNoteHint(true); document.getElementById('comment-body')?.focus() } }}>
           <div className="field comment-field"><textarea id="comment-body" aria-label="Personal note" rows={1} placeholder="Write a note about this patient" value={noteDraft} onChange={e => onNoteDraft(e.target.value)} /></div>
-          <Button type="submit" variant="secondary" disabled={noteBusy || !noteDraft.trim()}>{noteBusy ? 'Adding…' : 'Add note'}</Button>
+          <Button type="submit" variant="secondary" disabled={noteBusy}>{noteBusy ? 'Adding…' : 'Add note'}</Button>
         </form>
+        {noteSaved && !noteDraft.trim() && <p className="save-state save-state-ok" role="status">✓ Note saved</p>}
+        {noteHint && !noteDraft.trim() && <p className="form-error" role="alert">Write the note first.</p>}
         {noteFailed && <p className="form-error">Couldn't save the note — try again.</p>}
       </details>
     </div>

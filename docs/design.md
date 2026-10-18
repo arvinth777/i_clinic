@@ -43,7 +43,7 @@ these tokens so all current screens use one palette.
 | blue / blue-ink / blue-tint / blue-row | #1A4FB5 / #123E8C / #EAF0FC / #F2F5FB |
 | amber / amber-bg | #93520A / #FDF6EC |
 | red / red-bg | #B42318 / #FDF1F0 |
-| green / green-bg / live | #1F7A4D / #F2FAF5 / #22A55B |
+| green / green-ink / green-bg / live | #1F7A4D / #165C39 / #F2FAF5 / #22A55B |
 | scroll-thumb / scroll-hover / toast-undo | #D5DAE1 / #B4BBC6 / #9DBBF5 (explicit exceptions from scrollbar/toast spec) |
 | r-sm / md / lg / xl | 8 / 10 / 14 / 16px |
 | dialog-width | 420px (the shared confirmation dialog, `ConfirmDialog.tsx`; uses the Dialogs rule below: r-xl, space-28, scrim, shadow-modal) |
@@ -60,10 +60,15 @@ the PNG icons are rendered from the same geometry (circle at 32,18 r5 and bar 27
 Replace the mark by swapping `favicon.svg` and the four PNGs. The tab title is "<section> · iClinic", set in `AppShell.tsx`.
 
 Blue means action/selection/live, amber attention, red error/danger/offline, green
-saved/paid. Status is coloured text with a word; the live dot belongs only in the
-queue readout. Placeholder colour is never real content. The supplied faint and
-placeholder colours do **not** meet 4.5:1 for small text on white; the specification's
-blanket contrast statement must not be reported as a verified accessibility pass.
+saved/paid. Status is a coloured **pill** (`StatusPill`, `.pill-info|live|warn|ok|bad|mute`: tinted
+background, dot, and always the word; stage tones live in `stageLabel.ts`). The animated-looking live
+dot colour is only used for "with doctor / called". Action buttons: `success` (green, solid) for money-in
+or completing (Mark paid, Finish consultation, Bill, Collect payment), `danger` (red text) for
+destructive (Cancel visit), blue stays the everyday action. Icons (`Icon.tsx`, 24-unit outline, current
+colour) sit before a button label (print, check, rupee, plus); they never replace the word.
+A change that saves on its own shows "✓ Saved" (`.save-state-ok`). Placeholder colour is never real content. Faint (#626C7C, 5.3:1) and
+placeholder (#6B7585, 4.6:1) were darkened on 2026-10-18 to pass 4.5:1 on white; the specification's
+blanket contrast statement still must not be reported as a verified accessibility pass.
 
 ## Typography and measurements
 

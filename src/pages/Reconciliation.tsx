@@ -59,8 +59,7 @@ export function Reconciliation({ clinicId }: { clinicId: string }) {
         <h2 className="readout-heading">Needs review</h2>
       </div>
       <p className="readout-empty">
-        Bills saved while offline, at a price that changed before they synced. Correct issues a corrected bill
-        using the supplied quantities and the doctor’s current discount. The original receipt stays as it was.
+        These bills were saved while the clinic was offline, and a price changed before they synced. Press Fix to issue a corrected bill at the right amount. The original receipt is kept.
       </p>
       {error && <QueryError retry={()=>void refetch()} />}
       {isPending ? <LoadingRows label="Loading corrections…" /> : (flagged ?? []).length === 0 ? (
@@ -72,8 +71,8 @@ export function Reconciliation({ clinicId }: { clinicId: string }) {
               <TableHead>Patient</TableHead>
               <TableHead>Token</TableHead>
               <TableHead>Billed on</TableHead>
-              <TableHead>Billed as</TableHead>
-              <TableHead>Actual amount</TableHead>
+              <TableHead>Billed</TableHead>
+              <TableHead>Correct amount</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
@@ -84,20 +83,20 @@ export function Reconciliation({ clinicId }: { clinicId: string }) {
                 <TableCell className="worklist-wait-cell">{b.token_number}</TableCell>
                 <TableCell className="worklist-wait-cell">{formatDate(b.confirmed_at)}</TableCell>
                 <TableCell className="worklist-wait-cell">{formatPaise(b.final_amount_paise)}</TableCell>
-                <TableCell className="worklist-wait-cell">{b.live_final_amount_paise===null?'Review required':formatPaise(b.live_final_amount_paise)}</TableCell>
+                <TableCell className="worklist-wait-cell">{b.live_final_amount_paise===null?<span className="save-state">No final amount set yet</span>:formatPaise(b.live_final_amount_paise)}</TableCell>
                 <TableCell>
-                  <Button
+                  {b.live_final_amount_paise===null ? <span className="field-hint">Set the amount in that visit first</span> : <Button
                     type="button"
                     variant="secondary"
-                    disabled={correct.isPending || b.live_final_amount_paise===null}
+                    disabled={correct.isPending}
                     onClick={async () => {
-                      if (await confirm({ title: `Write a correction for ${b.patient_name}?`, body: `Billing ${b.live_final_amount_paise===null?'Review required':formatPaise(b.live_final_amount_paise)} instead of ${formatPaise(b.final_amount_paise)}.`, confirmLabel: 'Write correction' })) {
+                      if (await confirm({ title: `Write a correction for ${b.patient_name}?`, body: `Bill ${formatPaise(b.live_final_amount_paise!)} instead of ${formatPaise(b.final_amount_paise)}.`, confirmLabel: 'Write correction' })) {
                         correct.mutate(b)
                       }
                     }}
                   >
-                    Correct
-                  </Button>
+                    Fix
+                  </Button>}
                 </TableCell>
               </TableRow>
             ))}

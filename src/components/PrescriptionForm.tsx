@@ -1,4 +1,5 @@
 import { usePrintDocument } from '../lib/usePrintDocument'
+import { Icon } from './Icon'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
@@ -388,7 +389,7 @@ export function PrescriptionForm({
         {issuedVisit.advice && <p>Advice: {issuedVisit.advice}</p>}
         {issuedVisit.diagnosis && <p>Diagnosis: {issuedVisit.diagnosis}</p>}
         <div className="action-row rx-issued-actions">
-          <Button type="button" disabled={print.isPending} onClick={() => print.mutate()}>Print prescription</Button>
+          <Button type="button" disabled={print.isPending} onClick={() => print.mutate()}><Icon name="print" />Print prescription</Button>
           <Button type="button" variant="secondary" onClick={() => setAddingMore(true)}>Add more medicines</Button>
         </div>
         {print.isError && <p className="form-error" role="alert">{print.error.message}</p>}
@@ -408,7 +409,7 @@ export function PrescriptionForm({
       <p className="field-hint rx-complaint">From reception · {visit.complaint || 'No complaint recorded'}</p>
       {printed && (
         <>
-          <Button type="button" variant="secondary" disabled={print.isPending} onClick={() => print.mutate()}>Print prescription</Button>
+          <Button type="button" variant="secondary" disabled={print.isPending} onClick={() => print.mutate()}><Icon name="print" />Print prescription</Button>
           <div className="print-area"><PrintablePrescription clinic={printed.clinic} visit={printed.visit} medicines={printed.medicines} /></div>
         </>
       )}
@@ -632,6 +633,7 @@ export function PrescriptionForm({
           </Button>
         </form>
       )}
+      {saveTemplate.isSuccess && !showSaveTemplate && <p className="save-state save-state-ok" role="status">✓ Template saved</p>}
       {saveTemplate.isError && <p className="form-error">Couldn't save the template — try again.</p>}
       {children}
     </div>{preview}</div>
