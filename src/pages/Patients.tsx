@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { EmptyState } from '../components/EmptyState'
 import { StatusPill } from '../components/StatusPill'
 import { STAGES, stageLabel } from '../lib/stageLabels'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -105,7 +106,7 @@ export function Patients({ clinicId, isDoctor, canBill, initialPatientId, locked
           {connectionError && <p className="form-error" role="alert">{connectionError}</p>}
           <Button disabled={!drive.data?.configured} onClick={() => void connectDrive(clinicId).catch(() => setConnectionError('Could not start Google connection. Try again.'))}>{drive.data?.connected ? 'Reconnect Drive' : 'Connect Google Drive'}</Button>
         </div>
-      </> : <><h1>Patient records</h1><p className="patient-empty-description">Choose a patient from the list to see their details{isDoctor ? ' and visit history' : ''}.</p></>}
+      </> : <EmptyState icon="user" title="Patient records" actions={<><Button variant="secondary" onClick={() => document.querySelector<HTMLInputElement>('.main-search')?.focus()}>Search by name, phone or token</Button></>}>Choose a patient from the list to see their details{isDoctor ? ' and visit history' : ''}.</EmptyState>}
     </section> : billId ? <Billing readOnly={!canBill} key={billId} clinicId={clinicId} visitId={billId} onClose={() => setBillId(null)} /> : <>
       <header className="pf-head">
         {!showList && <p className="pf-nav"><button type="button" className="pf-link" onClick={() => window.history.back()}>← Back</button><button type="button" className="pf-link" onClick={() => setShowList(true)}>All patients</button></p>}

@@ -1,0 +1,5 @@
+.empty-state { display: grid; justify-items: start; gap: var(--space-xs); max-width: 28rem; padding-block: var(--space-xl); }
+.empty-state-icon { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--blue-tint); color: var(--blue); }
+.empty-state h2 { margin: var(--space-sm) 0 0; font-size: var(--text-lg); color: var(--ink); }
+.empty-state p { margin: 0; color: var(--ink-2); line-height: 1.5; }
+.empty-state-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-sm); }

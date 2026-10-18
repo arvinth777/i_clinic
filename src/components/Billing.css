@@ -254,3 +254,15 @@
 @media print { .rcpt { padding: .6in .7in; } .rcpt * { color: var(--ink) !important; background: none !important; } }
 
 .bill-lines tr.bill-line-problem td { background: var(--red-bg); }
+
+/* On-screen preview: the real 10 x 12 in sheet, scaled down (ReceiptPaper). These win over the older narrow-preview rules above. */
+.receipt-paper { position: relative; width: 100%; margin-top: var(--space-sm); overflow: hidden; background: var(--bg); box-shadow: var(--shadow-paper); }
+.receipt-paper-sheet { transform-origin: top left; }
+.receipt-paper .receipt-paper-sheet .rcpt { box-sizing: border-box; width: 100%; min-height: 100%; padding: .6in .7in; box-shadow: none; margin: 0; font-size: var(--print-receipt-size); }
+
+.receipt-preview-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+.receipt-preview-head .field-hint { margin: 0; }
+.receipt-dialog { margin: auto; width: min(52rem, 94vw); max-height: 94dvh; padding: var(--space-md); border: 0; border-radius: var(--r-lg); background: var(--surface-2); box-shadow: var(--shadow-modal); overflow: auto; }
+.receipt-dialog::backdrop { background: var(--scrim); }
+.receipt-dialog-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm); color: var(--ink); font-weight: 600; }
+@media print { .receipt-dialog { display: none !important; } }
