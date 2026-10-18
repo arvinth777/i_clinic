@@ -18,9 +18,12 @@
   --green: #1F7A4D; --green-ink: #165C39; --green-bg: #F2FAF5; --live: #22A55B;
   --scroll-thumb: #D5DAE1; --scroll-hover: #B4BBC6; --toast-undo: #9DBBF5;
   --r-sm: 8px; --r-md: 10px; --r-lg: 14px; --r-xl: 16px;
-  --shadow-pop: 0 12px 36px rgba(20,28,43,.14), 0 0 0 1px var(--line);
-  --shadow-modal: 0 24px 64px rgba(20,28,43,.20);
-  --shadow-paper: 0 1px 2px rgba(20,28,43,.06), 0 10px 30px rgba(20,28,43,.08);
+  /* Shadows carry the app's deep-blue hue instead of grey-black, so they sit on the white page like ink, not dirt. */
+  --shadow-rgb: 22 36 78;
+  --shadow-pop: 0 12px 36px rgb(var(--shadow-rgb) / .15), 0 0 0 1px var(--line);
+  --shadow-modal: 0 24px 64px rgb(var(--shadow-rgb) / .22);
+  --shadow-paper: 0 1px 2px rgb(var(--shadow-rgb) / .07), 0 10px 30px rgb(var(--shadow-rgb) / .09);
+  --grain-opacity: .035;
   --scrim: rgba(20,28,43,.32);
   /* Existing components share the governing palette through these aliases. */
   --surface: var(--bg); --surface-2: var(--panel); --border: var(--line); --border-strong: var(--line-2);
@@ -297,3 +300,8 @@ button[data-press="stamp"]:active:not(:disabled) { transform: scale(var(--press-
 .save-state-error { color: var(--red); font-weight: 600; }
 .save-fade { animation: save-fade 5s forwards; }
 @keyframes save-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+
+/* A fine film grain over the whole app so large white areas do not feel sterile. Screen only: never printed, never in the archived PDFs
+   (those render inside their own frame, which does not contain this layer). Ignores the pointer; sits above content but below dialogs. */
+.grain { position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: var(--grain-opacity); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.09 0 0 0 0 0.14 0 0 0 0 0.26 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+@media print { .grain { display: none; } }
