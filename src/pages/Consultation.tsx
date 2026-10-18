@@ -292,7 +292,7 @@ export function Consultation({ userId, onOpenPatient, onNavigate, requestedVisit
           </div>
         </aside>
         <div className="consultation-stage">
-          {!current ? <DoctorHome clinicId={clinicId} earlierOpen={earlierCount} busy={queueAction.isPending} onCallNext={() => void callNext().catch(() => {})} onNavigate={onNavigate} /> : <>
+          {!current ? <DoctorHome clinicId={clinicId} onNavigate={onNavigate} /> : <>
             {workspace !== 'overview' && <div className="rx-toolbar"><Button variant="ghost" onClick={backToWorkspace}>← Back to workspace</Button><strong>{workspace === 'billing' ? 'Bill review' : 'Prescription'} · #{current.token_number} · {current.patients?.name}</strong></div>}
             <div className="doctor-overview" hidden={workspace !== 'overview'}>
               <DoctorOverview clinicId={clinicId} visit={current} pastVisits={pastVisits} prescriptions={prescriptions} comments={comments}

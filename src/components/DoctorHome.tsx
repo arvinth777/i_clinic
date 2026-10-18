@@ -1,20 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatPaise } from '../lib/money'
-import { clinicToday, elapsedMinutes, formatElapsed, startOfToday } from '../lib/date'
-import { Button } from './ui/button'
+import { clinicToday, startOfToday } from '../lib/date'
 import { Icon, type IconName } from './Icon'
-import { StatusPill } from './StatusPill'
 import './DoctorHome.css'
 
 type BoardVisit = { id: string; token_number: number; stage: string; arrived_at: string; patients: { name: string } | null }
 const SHOWN = 5
 
-// What the doctor sees when nobody is in the consultation room: a briefing for the day. The numbers, a three-column board of
-// where today's patients are (waiting, paying at reception, done), and a short list of things that need attention.
-export function DoctorHome({ clinicId, busy, onCallNext, onNavigate, earlierOpen }: {
-  clinicId: string; busy: boolean; onCallNext: () => void; onNavigate: (section: string) => void; earlierOpen: number
-}) {
+// What the doctor sees when nobody is in the consultation room: a briefing for the day. The numbers, two plain lists (who is at
+// reception paying, who is done) and the things that need attention. Who is waiting, and the Call button, stay in the side panel.
+export function DoctorHome({ clinicId, onNavigate }: { clinicId: string; onNavigate: (section: string) => void }) {
   const clinic = useQuery({
     queryKey: ['doctor-home-clinic', clinicId],
     queryFn: async () => {
@@ -61,7 +57,8 @@ export function DoctorHome({ clinicId, busy, onCallNext, onNavigate, earlierOpen
 
   const hour = Number(new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }))
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  const name = clinic.data?.doctor_name?.trim()
+  // "Dr. Meena Krishnan, MD" -> "Dr. Meena Krishnan": the degree after the comma is dropped so the title is not doubled.
+  const name = clinic.data?.doctor_name?.split(',')[0].trim()
   const who = name ? (/^dr\.?\s/i.test(name) ? name : `Dr. ${name}`) : ''
   const date = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', day: 'numeric', month: 'long' })
 
@@ -72,15 +69,16 @@ export function DoctorHome({ clinicId, busy, onCallNext, onNavigate, earlierOpen
   const stock = warnings.data?.length ?? 0
   const due = dueReview.data ?? 0
 
-  const columns: { key: string; title: string; tone: 'info' | 'warn' | 'ok'; rows: BoardVisit[]; empty: string }[] = [
-    { key: 'waiting', title: 'Waiting', tone: 'info', rows: waiting, empty: 'No one is waiting. New patients appear here as soon as reception checks them in.' },
+  const columns: { key: string; title: string; tone: 'warn' | 'ok'; rows: BoardVisit[]; empty: string }[] = [
     { key: 'paying', title: 'At reception for payment', tone: 'warn', rows: paying, empty: 'Nobody is waiting to pay.' },
     { key: 'done', title: 'Done today', tone: 'ok', rows: done, empty: 'Finished visits will be listed here.' },
   ]
   const attention: { text: string; section: string; icon: IconName }[] = [
-    ...(due > 0 ? [{ text: `${due} patient${due === 1 ? ' is' : 's are'} due for a review`, section: 'register', icon: 'user' as IconName }] : []),
-    ...(stock > 0 ? [{ text: `${stock} medicine${stock === 1 ? '' : 's'} running low or expiring`, section: 'stock', icon: 'box' as IconName }] : []),
+    ...(due > 0 ? [{ text: `${due} patient${due === 1 ? '' : 's'} to review`, section: 'register', icon: 'user' as IconName }] : []),
+    ...(stock > 0 ? [{ text: `${stock} medicine${stock === 1 ? '' : 's'} to check`, section: 'stock', icon: 'box' as IconName }] : []),
   ]
+  const failed = board.isError || daily.isError
+  const retry = () => { void board.refetch(); void daily.refetch(); void warnings.refetch(); void dueReview.refetch() }
 
   return (
     <section className="dhome" aria-label="Today at the clinic">
@@ -89,24 +87,21 @@ export function DoctorHome({ clinicId, busy, onCallNext, onNavigate, earlierOpen
         <h2>{greeting}{who ? `, ${who}` : ''}</h2>
       </header>
 
+      {failed && <p className="dhome-error" role="alert">Today's numbers could not be loaded. <button type="button" onClick={retry}>Try again</button></p>}
+
       <dl className="dhome-numbers">
-        <div><dd>{board.data ? waiting.length : '—'}</dd><dt>Waiting now</dt></div>
-        <div><dd>{board.data ? done.length + paying.length : '—'}</dd><dt>Seen today</dt></div>
-        <div><dd>{daily.data ? formatPaise(daily.data.collections_paise) : '—'}</dd><dt>Collected today</dt></div>
+        <div><dt>Waiting now</dt><dd>{board.data ? waiting.length : '—'}</dd></div>
+        <div><dt>Seen today</dt><dd>{board.data ? done.length + paying.length : '—'}</dd></div>
+        <div><dt>Collected today</dt><dd>{daily.data ? formatPaise(daily.data.collections_paise) : '—'}</dd></div>
       </dl>
 
       <div className="dhome-board">
         {columns.map(col => (
           <section key={col.key} className={`dhome-col dhome-col-${col.tone}`} aria-label={col.title}>
-            <h3>{col.title}<span>{board.data ? col.rows.length : '—'}</span></h3>
-            {col.key === 'waiting' && col.rows.length > 0 && <Button className="dhome-call" variant="dark" disabled={busy} onClick={onCallNext}><Icon name="arrow" size={14} />Call #{col.rows[0].token_number}</Button>}
+            <h3><span className="dhome-dot" aria-hidden="true" />{col.title}<em>{board.data ? col.rows.length : '—'}</em></h3>
             {col.rows.length === 0 ? <p className="dhome-empty">{col.empty}</p> : <ul>
               {col.rows.slice(0, SHOWN).map(v => (
-                <li key={v.id}>
-                  <span className="dhome-token">#{v.token_number}</span>
-                  <span className="dhome-name">{v.patients?.name}</span>
-                  {col.key === 'waiting' && <StatusPill tone={elapsedMinutes(v.arrived_at) >= 45 ? 'warn' : 'info'}>{formatElapsed(v.arrived_at)}</StatusPill>}
-                </li>
+                <li key={v.id}><span className="dhome-token">#{v.token_number}</span><span className="dhome-name">{v.patients?.name}</span></li>
               ))}
               {col.rows.length > SHOWN && <li className="dhome-more">+ {col.rows.length - SHOWN} more</li>}
             </ul>}
@@ -116,14 +111,12 @@ export function DoctorHome({ clinicId, busy, onCallNext, onNavigate, earlierOpen
 
       <div className="dhome-attention">
         <h3>Needs your attention</h3>
-        {attention.length === 0 && earlierOpen === 0 ? <p className="dhome-empty"><span className="dhome-ok" aria-hidden="true">✓</span> Nothing needs attention right now.</p> : <ul>
+        {attention.length === 0 ? <p className="dhome-empty"><span className="dhome-ok" aria-hidden="true">✓</span> Nothing needs attention right now.</p> : <ul>
           {attention.map(a => <li key={a.section}><button type="button" onClick={() => onNavigate(a.section)}><Icon name={a.icon} size={16} />{a.text}<Icon name="arrow" size={14} /></button></li>)}
-          {earlierOpen > 0 && <li className="dhome-note"><Icon name="alert" size={16} />{earlierOpen} visit{earlierOpen === 1 ? ' is' : 's are'} still open from earlier days. Reception can close {earlierOpen === 1 ? 'it' : 'them'} under Earlier days.</li>}
         </ul>}
       </div>
 
       <div className="dhome-links">
-        <button type="button" onClick={() => document.querySelector<HTMLInputElement>('.shell-search-input')?.focus()}>Find a patient or medicine <kbd>/</kbd></button>
         <button type="button" onClick={() => onNavigate('patients')}>All patients</button>
         <button type="button" onClick={() => onNavigate('reports')}>Reports</button>
       </div>
