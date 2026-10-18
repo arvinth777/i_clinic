@@ -75,6 +75,8 @@ export function PrescriptionForm({
   const [draftLoaded, setDraftLoaded] = useState(false)
   const [draftStorageError, setDraftStorageError] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
+  // After Confirm the doctor sees what was issued, not a blank form; "Add more medicines" opens the form again.
+  const [addingMore, setAddingMore] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
@@ -296,6 +298,7 @@ export function PrescriptionForm({
       setDiagnosis('')
       setAdvice('')
       setReviewOpen(false)
+      setAddingMore(false)
     },
   })
 
@@ -344,6 +347,35 @@ export function PrescriptionForm({
         </div>
         {print.isError && <p className="form-error" role="alert">{print.error.message}</p>}
       {confirm.isError && <p className="form-error" role="alert">Couldn't save: {confirm.error instanceof Error || (confirm.error && 'message' in confirm.error) ? String((confirm.error as { message: string }).message) : 'try again'}</p>}
+      </div>{preview}</div>
+    )
+  }
+
+  const issuedMedicines = printed?.medicines ?? existingMedicines
+  if (!addingMore && !draftItems.length && !diagnosis && !advice && issuedMedicines.length > 0) {
+    const issuedVisit = printed?.visit ?? visit
+    return (
+      <div className="rx-workspace"><div className="rx-editor">
+        <div className="rx-patient"><h2>{visit.patients?.name}</h2><p>{[visit.patients?.age != null ? `${visit.patients.age} years` : '', visit.patients?.gender, `Token #${visit.token_number}`].filter(Boolean).join(' · ')}</p></div>
+        <h3 className="readout-heading">Prescription issued</h3>
+        <ul className="review-list">
+          {issuedMedicines.map((m, i) => (
+            <li key={i} className="review-item">
+              <span className="review-item-name">{m.description} {m.strength}</span>
+              <p>{[m.drug_type, m.before_after_food, m.dosage_frequency, m.duration_days ? `For ${m.duration_days} days` : ''].filter(Boolean).join(' · ')}</p>
+              {m.notes && <p className="review-item-note">{m.notes}</p>}
+            </li>
+          ))}
+        </ul>
+        {issuedVisit.advice && <p>Advice: {issuedVisit.advice}</p>}
+        {issuedVisit.diagnosis && <p>Diagnosis: {issuedVisit.diagnosis}</p>}
+        <div className="action-row rx-issued-actions">
+          <Button type="button" disabled={print.isPending} onClick={() => print.mutate()}>Print prescription</Button>
+          <Button type="button" variant="secondary" onClick={() => setAddingMore(true)}>Add more medicines</Button>
+        </div>
+        {print.isError && <p className="form-error" role="alert">{print.error.message}</p>}
+        <div className="print-area"><PrintablePrescription clinic={clinic ?? printed?.clinic} visit={issuedVisit} medicines={issuedMedicines} /></div>
+        {children}
       </div>{preview}</div>
     )
   }
