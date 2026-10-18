@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { StatusPill } from '../components/StatusPill'
 import { Icon } from '../components/Icon'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
@@ -280,7 +281,7 @@ export function Consultation({ userId, onOpenPatient, requestedVisitId, alertNav
             {rows.slice(0, visibleQueueCount).map(v => <li key={v.id} className={'rail-row'}>
               <span className="rail-row-token">#{v.token_number}</span>
               <span className="rail-row-name"><strong>{v.patients?.name}</strong> <span className="field-hint">{formatAgeSex(v.patients?.age??null,v.patients?.gender??null)}</span><small>{v.complaint}{v.stage==='not_here' ? ` · Not here since ${new Date(v.not_here_at!).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` : ''}{v.queue_note && <span className="status-blue"> · {v.queue_note}</span>}</small></span>
-              <span className={elapsedMinutes(v.arrived_at) >= LONG_WAIT_MINUTES ? 'rail-row-wait doctor-queue-overdue' : 'rail-row-wait'}>{formatElapsed(v.arrived_at)}</span>
+              <span className="rail-row-wait"><StatusPill tone={v.stage === 'not_here' ? 'mute' : elapsedMinutes(v.arrived_at) >= LONG_WAIT_MINUTES ? 'warn' : 'info'}>{formatElapsed(v.arrived_at)}</StatusPill></span>
             </li>)}
             {rows.length > visibleQueueCount && <li><Button variant="secondary" onClick={() => setVisibleQueueCount(count => count + 50)}>Show more</Button></li>}
             <RepQueueRows clinicId={clinicId} onCountChange={setRepCount} />

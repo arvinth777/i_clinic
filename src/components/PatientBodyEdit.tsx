@@ -14,8 +14,9 @@ export function PatientBodyEdit({ clinicId, patientId, height, weight }: { clini
   const [w, setW] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [savedAt, setSavedAt] = useState(0)
   // height/weight are undefined until the patient's record has loaded; saving before then would overwrite stored values with blanks.
-  if (!open) return <Button variant="ghost" disabled={height === undefined || weight === undefined} onClick={() => { setH(height != null ? String(Number(height)) : ''); setW(weight != null ? String(Number(weight)) : ''); setError(''); setOpen(true) }}>Update height and weight</Button>
+  if (!open) return <><Button variant="ghost" disabled={height === undefined || weight === undefined} onClick={() => { setH(height != null ? String(Number(height)) : ''); setW(weight != null ? String(Number(weight)) : ''); setError(''); setOpen(true) }}>Update height and weight</Button>{savedAt > 0 && <span key={savedAt} className="save-state save-state-ok save-fade" role="status">✓ Saved</span>}</>
   async function save(event: React.FormEvent) {
     event.preventDefault()
     if (!bodyOk(h, ...HEIGHT_RANGE)) return setError('Height must be 30 to 260 cm.')
@@ -34,7 +35,7 @@ export function PatientBodyEdit({ clinicId, patientId, height, weight }: { clini
         applyOptimistic: () => client.setQueryData(['patient-body', patientId], payload),
       })
       if (!queued) await client.invalidateQueries({ queryKey: ['patient-body', patientId] })
-      setOpen(false)
+      setSavedAt(Date.now()); setOpen(false)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save. Try again.') } finally { setBusy(false) }
   }
   return <form className="patient-body-edit" onSubmit={save}>
