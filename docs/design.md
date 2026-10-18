@@ -47,7 +47,7 @@ these tokens so all current screens use one palette.
 | scroll-thumb / scroll-hover / toast-undo | #D5DAE1 / #B4BBC6 / #9DBBF5 (explicit exceptions from scrollbar/toast spec) |
 | r-sm / md / lg / xl | 8 / 10 / 14 / 16px |
 | dialog-width | 420px (the shared confirmation dialog, `ConfirmDialog.tsx`; uses the Dialogs rule below: r-xl, space-28, scrim, shadow-modal) |
-| print-receipt-size | 11pt: the receipt body (`.rcpt`, black on white, solid rules, em units; Rs. columns; amount in words; prints on 9.5 × 11 in dot-matrix stock) |
+| print-receipt-size | 11pt: the receipt body (`.rcpt`, black on white, solid rules, em units; Rs. columns; amount in words; medicines only, never consultation or procedure fees; prints on 10 × 12 in dot-matrix stock) |
 | nav-count-size | 20px for the reception Billing waiting-count circle |
 | call-flash-duration / opacity / layer | 600ms × three pulses / .22 / 60, with a persistent alert banner during the pulses; reduced-motion users see the banner and a steady tint |
 | shadow-pop | 0 12px 36px rgba(20,28,43,.14), 0 0 0 1px var(--line) |
