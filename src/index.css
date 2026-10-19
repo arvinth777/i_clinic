@@ -19,6 +19,7 @@
   --scroll-thumb: #D5DAE1; --scroll-hover: #B4BBC6; --toast-undo: #9DBBF5;
   --r-sm: 8px; --r-md: 10px; --r-lg: 14px; --r-xl: 16px;
   /* Shadows carry the app's deep-blue hue instead of grey-black, so they sit on the white page like ink, not dirt. */
+  --nav-hover: rgb(20 28 43 / .045); --nav-active: rgb(20 28 43 / .075); /* neutral ink at low alpha: sidebar hover and open-page fills */
   --shadow-rgb: 22 36 78;
   --shadow-pop: 0 12px 36px rgb(var(--shadow-rgb) / .15), 0 0 0 1px var(--line);
   --shadow-modal: 0 24px 64px rgb(var(--shadow-rgb) / .22);
