@@ -65,8 +65,7 @@ saved/paid. Status is a coloured **pill** (`StatusPill`, `.pill-info|live|warn|o
 background, dot, and always the word; stage tones live in `stageLabel.ts`). The animated-looking live
 dot colour is only used for "with doctor / called". Action buttons: `success` (green, solid) for money-in
 or completing (Mark paid, Finish consultation, Bill, Collect payment), `danger` (red text with a thin red outline) for
-destructive (Cancel visit), `warn` (amber tint) for needs-attention actions (Fix a bill), blue stays the everyday action. Icons (`Icon.tsx`, 24-unit outline, one 1.5 stroke, round caps, no fills, current
-colour; the sidebar draws them at 18 px in grey, ink when open) sit before a button label (print, check, rupee, plus); they never replace the word.
+destructive (Cancel visit), `warn` (amber tint) for needs-attention actions (Fix a bill), blue stays the everyday action. Icons come from **Lucide** (`lucide-react`, picked by the owner from seven sets: Lucide, Phosphor regular/light/duotone, Tabler, Material Symbols, Heroicons): `Icon.tsx` maps our names to Lucide components (thin 1.5 line, single colour); the sidebar draws them at 18 px in grey, ink when open. Add an icon by adding one line to `ICONS` sit before a button label (print, check, rupee, plus); they never replace the word.
 A change that saves on its own shows "✓ Saved" (`.save-state-ok`); a save that leaves its form on screen uses `SaveTick` (fades after 5 s). Placeholder colour is never real content. Faint (#626C7C, 5.3:1) and
 placeholder (#6B7585, 4.6:1) were darkened on 2026-10-18 to pass 4.5:1 on white; the specification's
 blanket contrast statement still must not be reported as a verified accessibility pass.
